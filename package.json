@@ -1,0 +1,14 @@
+{
+  "name": "majyan",
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/web"
+  ],
+  "scripts": {
+    "test": "npm run test -w packages/core",
+    "dev": "npm run dev -w packages/web",
+    "build": "npm run build -w packages/core && npm run build -w packages/web",
+    "typecheck": "npm run typecheck -w packages/core && npm run typecheck -w packages/web"
+  }
+}
