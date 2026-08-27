@@ -103,17 +103,19 @@ export function Hand({ round }: { round: RoundState }) {
   // restTiles===player.hand.concealedなのでそのまま現在の待ちになる。
   const coreHand: HandShape = { concealed: restTiles, melds: player.hand.melds };
 
-  // リーチ選択中（どの牌を切ってリーチするか選んでいる段階）は、切る牌
-  // 候補によって待ちが変わる。じゃんたまの実機を確認すると、待ち牌は
-  // 手牌右下の小さな枠に「牌アイコン＋残り枚数」で常時表示されている
-  // （ロン牌が出た瞬間も同じ枠で表示されていた）。それに倣い、リーチ
-  // 候補牌にカーソルを合わせている間は、その牌を切ったと仮定した待ちに
-  // 切り替えて表示する。合わせていない間は今まで通りの表示のまま。
+  // 自分の手番中（リーチを選んでいるかどうかに関わらず）、切る牌の候補に
+  // カーソルを合わせている間は「その牌を切ったら何待ちになるか」に表示を
+  // 切り替える。以前はリーチ選択中（リーチボタンを押した後）だけこの
+  // プレビューが働いていたが、それだと通常のテンパイ時（まだリーチ宣言
+  // 前）にどの牌を切ればどんな待ちになるか比較できなかった。じゃんたまが
+  // 常時この挙動なのに倣い、手番中は常に候補牌をホバーで比較できるように
+  // する。合わせていない間はツモ牌をそのまま切ったと仮定した待ちを表示
+  // （今まで通り）。リーチ後はツモ切りしか選べず待りも固定されるため対象外。
   const hoveredCandidate = hoveredCandidateId ? player.hand.concealed.find((t) => t.id === hoveredCandidateId) : undefined;
-  const previewCode = riichiMode && hoveredCandidate && riichiTileIds.has(hoveredCandidate.id) ? hoveredCandidate.code : undefined;
-  const previewHand: HandShape | undefined = previewCode
+  const previewCode = isMyTurn && !player.riichi && hoveredCandidate ? hoveredCandidate.code : undefined;
+  const previewHand: HandShape | undefined = hoveredCandidate && previewCode
     ? (() => {
-        const idx = player.hand.concealed.findIndex((t) => t.code === previewCode);
+        const idx = player.hand.concealed.findIndex((t) => t.id === hoveredCandidate.id);
         const concealed = [...player.hand.concealed.slice(0, idx), ...player.hand.concealed.slice(idx + 1)];
         return { concealed, melds: player.hand.melds };
       })()

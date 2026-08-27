@@ -323,7 +323,7 @@ button {
   gap: 2px;
   text-align: center;
   color: #f0f0f0;
-  font-size: 12px;
+  font-size: 14px;
 }
 .center-board__round {
   font-size: 16px;
@@ -348,7 +348,7 @@ button {
   background: rgba(0, 0, 0, 0.4);
   border-radius: 4px;
   padding: 1px 6px;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -385,14 +385,14 @@ button {
   border: 1px solid #ff8787;
   border-radius: 8px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .debug-panel__label {
   white-space: nowrap;
   font-weight: 600;
 }
 .debug-panel .btn {
-  font-size: 12px;
+  font-size: 14px;
   padding: 3px 8px;
 }
 .debug-panel .btn:disabled {
@@ -419,7 +419,7 @@ button {
   gap: 8px;
 }
 .hud__dora-label {
-  font-size: 11px;
+  font-size: 13px;
   opacity: 0.75;
   white-space: nowrap;
 }
@@ -428,11 +428,11 @@ button {
   gap: 2px;
 }
 .hud__honba {
-  font-size: 12px;
+  font-size: 14px;
   color: #ffe4a3;
 }
 .hud__label {
-  font-size: 12px;
+  font-size: 14px;
   opacity: 0.85;
 }
 
@@ -449,7 +449,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: 15px;
   min-height: 0;
   overflow: visible;
 }
@@ -545,11 +545,11 @@ button {
   line-height: 1.15;
 }
 .nameplate__name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
 .nameplate__title {
-  font-size: 10px;
+  font-size: 12px;
   opacity: 0.6;
 }
 
@@ -748,7 +748,7 @@ button {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 12px;
+  font-size: 14px;
   color: #ffe4a3;
   white-space: nowrap;
 }
@@ -761,16 +761,16 @@ button {
 }
 .wait-row__count {
   position: absolute;
-  right: -3px;
-  bottom: -4px;
-  min-width: 13px;
+  right: -4px;
+  bottom: -5px;
+  min-width: 16px;
   padding: 0 2px;
-  border-radius: 7px;
+  border-radius: 8px;
   background: rgba(0, 0, 0, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.4);
   color: #fff;
-  font-size: 9px;
-  line-height: 13px;
+  font-size: 11px;
+  line-height: 16px;
   text-align: center;
 }
 
