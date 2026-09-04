@@ -31,18 +31,288 @@ button {
 .stage__canvas {
   position: relative;
   flex-shrink: 0;
-  transform-origin: center center;
 }
 
 .setup-screen {
+  position: relative;
   height: 100vh;
+  /* 横長(ワイド)で縦が狭い画面だと中身が100vhに収まりきらない。
+     justify-content:centerのままoverflow-yを効かせると、はみ出した分が
+     上下に均等に割り振られる（=画面外に出た上側にスクロールで届けない）
+     という定番の罠があるため、上寄せ＋縦スクロールに変更して必ず全部
+     見られるようにする。 */
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 16px;
   text-align: center;
-  padding: 16px;
+  padding: 24px 16px;
+}
+
+.setup-character-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 640px;
+}
+.setup-character-select__label {
+  font-size: 14px;
+  opacity: 0.75;
+}
+.setup-character-select__grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.character-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 120px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 10px 8px;
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+.character-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.character-card--selected {
+  border-color: #f1c453;
+  background: rgba(241, 196, 83, 0.15);
+}
+.character-card__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+.character-card__avatar--random {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+}
+.character-card__name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.25;
+}
+/* キャラ名「異名・名前」を上段(異名)・下段(名前)に分けて表示する。
+   カード幅(120px)に対して異名が長く、ブラウザ任せの折り返しだと
+   漢字の途中など変な位置で改行されて読みにくかったための対応。 */
+.character-card__title {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+.character-card__shortname {
+  font-size: 14px;
+  font-weight: 700;
+}
+.character-card__desc {
+  font-size: 11px;
+  opacity: 0.65;
+  line-height: 1.3;
+}
+
+/* キャラ・カードの一覧を常時表示するとトップ画面がごちゃつくため、選択中の
+   1件だけを表示する常設タイル。クリックすると.setup-picker-modal（一覧）が
+   開く。 */
+.setup-summary-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+.setup-summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 160px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(241, 196, 83, 0.4);
+  border-radius: 12px;
+  padding: 14px 12px;
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+.setup-summary-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #f1c453;
+}
+.setup-summary-card__label {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.setup-summary-card__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+.setup-summary-card__avatar--random {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+}
+.setup-summary-card__name {
+  font-size: 15px;
+  font-weight: 700;
+}
+.setup-summary-card__hint {
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+/* キャラ/カードの一覧をクリックで開く別モーダル（ピッカー）。.modal-overlayを
+   土台に使い、中身は既存の.setup-character-select__grid・.character-card
+   （カードは.card-card併用）をそのまま流用する。 */
+.setup-picker-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #10281d;
+  border: 1px solid #52b788;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 720px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.setup-picker-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.setup-picker-modal__close {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.setup-picker-modal__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* カード選択（.setup-card-select）は.setup-character-selectと同じグリッド・
+   カード見た目(.character-card)を流用しつつ、キャラと違い専用アートが無いため
+   丸バッジには「常時/消費」の種別だけを表示する。効果テキストが長いので
+   キャラより縦に伸びる想定でwidthを少し広げる。 */
+.setup-card-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 640px;
+}
+.card-card {
+  width: 150px;
+}
+.card-card__kind {
+  font-size: 13px;
+}
+.card-card__desc {
+  font-size: 11px;
+  opacity: 0.65;
+  line-height: 1.35;
+}
+
+/* キャラカードをクリックした直後、決定前に絵をドンと見せる確認パネル。
+   既存の.modal-overlayを土台に使い、中身だけこの専用レイアウトにする。 */
+.character-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #1c1730, #0f0c1c);
+  border: 2px solid #f1c453;
+  border-radius: 16px;
+  padding: 24px 32px;
+  max-width: 420px;
+  box-shadow: 0 0 40px 8px rgba(241, 196, 83, 0.25);
+}
+.character-confirm__art {
+  max-width: 100%;
+  max-height: 45vh;
+  border-radius: 10px;
+  object-fit: contain;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+.character-confirm__name {
+  font-size: 22px;
+  font-weight: 700;
+}
+.character-confirm__skill {
+  font-size: 13px;
+  opacity: 0.8;
+  line-height: 1.5;
+}
+.character-confirm__prompt {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffe4a3;
+  margin-top: 4px;
+}
+.character-confirm__buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* 対局中に自キャラの必殺技を確認するための簡易ポップアップ（Hand.tsx）。
+   .character-confirmと同系統の見た目だが、等身大カットイン絵は使わず
+   アイコン程度に留めて縦幅を抑える（.human-area基準の高さしかない場所に
+   出すため）。 */
+.skill-info-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, #1c1730, #0f0c1c);
+  border: 2px solid #f1c453;
+  border-radius: 16px;
+  padding: 20px 28px;
+  max-width: 380px;
+  box-shadow: 0 0 40px 8px rgba(241, 196, 83, 0.25);
+}
+.skill-info-card__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid #f1c453;
+}
+.skill-info-card__name {
+  font-size: 18px;
+  font-weight: 700;
+}
+.skill-info-card__skill {
+  font-size: 13px;
+  opacity: 0.85;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .setup-cpu-difficulty {
@@ -63,6 +333,11 @@ button {
 .setup-cpu-difficulty__name {
   min-width: 6em;
   text-align: left;
+}
+.setup-cpu-difficulty__selects {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .setup-cpu-difficulty__row select {
   background: #14281f;
@@ -115,7 +390,7 @@ button {
 }
 
 /* じゃんたま風のリボン型アクションボタン。右端を尖らせて旗のような形にする。 */
-.btn--ron, .btn--call, .btn--riichi, .btn--skip {
+.btn--ron, .btn--call, .btn--riichi, .btn--skip, .btn--skill {
   padding: 8px 18px 8px 14px;
   font-weight: 700;
   font-size: 15px;
@@ -140,6 +415,24 @@ button {
   background: linear-gradient(180deg, #5a5a5a, #2b2b2b);
   border-color: #888;
   color: #eee;
+}
+.btn--skill {
+  background: linear-gradient(180deg, #c584f0, #7a2fb8);
+  border-color: #e8bfff;
+  color: #fff;
+  animation: skill-gauge-ready-pulse 0.9s ease-in-out infinite;
+}
+/* ポン/チー/カンのボタンには、じゃんたま同様「ポン」「チー」等の文字に
+   加えて実際に鳴く牌の絵を並べて出す（以前は牌コードのテキスト表記
+   だったが、直感的に分かりにくいとの指摘のため）。 */
+.btn--call-tiles {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn--call-tiles__tiles {
+  display: flex;
+  gap: 1px;
 }
 
 /* ============ 卓（テーブル）全体 ============ */
@@ -199,6 +492,15 @@ button {
   width: 460px;
   height: 460px;
   flex-shrink: 0;
+  /* table-cluster(460px)はgridの"center"行(可変高さ)に対して実際には
+     やや大きく、justify-content:centerだけだと上下にはみ出す分が均等に
+     割り振られる。対面側の河が3段目まで埋まると、そのはみ出し分と
+     河自体の伸び（.river--topは上方向＝対面のnameplate/手牌側に伸びる
+     設計）が重なって、対面の手牌に河がめり込んで見える不具合があった。
+     自分側(human)は.human-areaにpadding-top:96pxの余裕を確保済みで
+     河が伸びても手牌まで距離があるため、余白を上から借りてくる形で
+     クラスタ全体を少し下にずらし、対面側の余裕を優先的に確保する。 */
+  margin-top: 40px;
 }
 /* 四方の河は中心から見て±102pxの位置に来るが、河自体の幅/高さ(136px)が
    隣の河の張り出し(204pxの半分=102px)より大きいぶん、隅で互いのバウン
@@ -247,7 +549,14 @@ button {
 .river--left, .river--right { width: 136px; height: 204px; }
 .river--top { align-items: flex-end; }
 .river--human { align-items: flex-start; }
-.river--top .discard-pile { transform: rotate(180deg); }
+/* rotate(90/180/-90deg)がかかった要素は、位置決め用のtransformで
+   フルピクセルに揃っていても、コンポジタがそのままの解像度でラスタライズ
+   せずぼやけて見えることがある（.stage__canvasのzoomと違い、rotate自体は
+   最終的に必ずtransformとしてコンポジタに渡るため）。will-change:transform+
+   backface-visibility:hiddenで専用のレイヤーに昇格させ、常時その解像度で
+   描き直させることで解消する（点数バッジ・河・上家/下家の手牌側にも
+   同じ対策を横展開している）。 */
+.river--top .discard-pile { transform: rotate(180deg); will-change: transform; backface-visibility: hidden; }
 /* rotate(90deg)/(-90deg)は回転前の自分自身のサイズを中心に回るため、
    捨て牌が増えて縦幅(=回転後の見た目の幅)が伸びるたびに回転の中心点が
    ズレて、卓に対して全体がじわっと動いて見えてしまう（180度回転の
@@ -264,16 +573,83 @@ button {
 .river--right .discard-pile {
   height: 133px;
 }
-.river--left .discard-pile { transform: rotate(90deg); }
-.river--right .discard-pile { transform: rotate(-90deg); }
+.river--left .discard-pile { transform: rotate(90deg); will-change: transform; backface-visibility: hidden; }
+.river--right .discard-pile { transform: rotate(-90deg); will-change: transform; backface-visibility: hidden; }
 
+/* 幅は「牌6枚×3段」を基準にしつつ、1段あたり最大1枚だけ有り得る
+   リーチ宣言牌（tile--rotated、横向きで幅が32→43pxに広がる）が混ざって
+   も6枚のまま折り返らないよう、その分の余白を上乗せしている。
+   通常牌6枚(32px×6+gap2px×5=202px)に対し、そのうち1枚がtile--rotated
+   に置き換わると202-32+43=213pxになるため、214px確保しておけば
+   「横向き牌1枚を含む6枚」も1段に収まる。逆に通常牌7枚分(32px×7+
+   gap2px×6=236px)には遠く及ばないため、通常の段が誤って7枚に
+   増えてしまうこともない。
+   align-items:centerは、tile--rotatedだけ自身の高さが32px（横幅と
+   入れ替わり、通常牌の43pxより低い）になる分、同じ段の他の牌と上端
+   揃え(flex-startの既定挙動)になって浮いて見えないよう、段の中で
+   縦中央に揃えるため。 */
 .discard-pile {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
+  align-items: center;
   gap: 2px;
-  width: 204px;
+  width: 214px;
   flex-shrink: 0;
+}
+
+/* ============ リーチ棒（1000点棒） ============ */
+/* 実物の1000点棒（象牙色の細い棒、中央に赤い点）を模す。河と中央
+   スコアボードの隙間（table-cluster基準で上下左右とも148px/312pxの
+   位置、隙間の中心）に置く。 */
+.riichi-stick {
+  position: absolute;
+  width: 46px;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fdf8ea, #e4d9b8);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.riichi-stick::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c0392b;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+/* 卓の四隅まで離すと河から遠すぎて不自然なため、中央の八角形の縁に
+   軽く乗り上げる位置まで戻す。八角形は角が斜めにカットされた形
+   （clip-path参照）で、各辺の中央28%〜72%だけが実際に塗られた
+   フラットな辺になっている。点数バッジ（辺の中央、河寄りにy=142-166px等）
+   のすぐ外側かつそのフラットな辺の範囲内（例:上辺はx=203.6〜256.4px）に
+   置けば、バッジ・河のどちらとも重ならず、八角形の縁にだけ数px乗る
+   （＝「八角形の端に置く」）見た目になる。 */
+.riichi-stick--top {
+  top: 172px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.riichi-stick--human {
+  top: 288px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.riichi-stick--left {
+  top: 50%;
+  left: 172px;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.riichi-stick--right {
+  top: 50%;
+  left: 288px;
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 
 /* ============ 中央スコアボード（八角形） ============ */
@@ -296,9 +672,25 @@ button {
    配置する（table-cluster基準の絶対配置）。 */
 .cluster-seat {
   position: absolute;
+  /* 卓全体をzoomで伸縮表示している上に、上家/下家/対面側の点数表示は
+     さらにrotate(90deg/-90deg/180deg)を重ねている。回転を伴う要素は、
+     再描画のきっかけ（点数増減演出のマウント/アンマウント等）があるたびに
+     一瞬コンポジタがラスタライズ済みのビットマップを引き伸ばして描画して
+     しまい、文字がにじんで見えることがあった。backface-visibility単体では
+     不十分だったため、will-changeも重ねて確実に専用のレイヤーへ昇格させ、
+     再描画のたびにその解像度で描き直させる（Chromiumで回転を伴う表示が
+     ぼやけるときの定番の回避策）。 */
+  backface-visibility: hidden;
+  will-change: transform;
 }
-.cluster-seat--top { top: 142px; left: 50%; transform: translateX(-50%) rotate(180deg); }
-.cluster-seat--bottom { bottom: 142px; left: 50%; transform: translateX(-50%); }
+/* 元は142pxで、点数バッジ(y=142-166px)とリーチ棒(top/human、y=168-176px)の
+   隙間がわずか2pxしかなく、リーチ宣言中（バッジに「リーチ」表示が付いて
+   横幅が伸びる）とブラウザのフォント描画誤差次第で実際に重なって見える
+   ことがあった（「リーチしたら点数表示のところが重なる」との指摘）。
+   河との隙間(元16px)を少し詰める形でバッジを河側へ寄せ、リーチ棒との
+   隙間を8px程度まで広げる。 */
+.cluster-seat--top { top: 136px; left: 50%; transform: translateX(-50%) rotate(180deg); }
+.cluster-seat--bottom { bottom: 136px; left: 50%; transform: translateX(-50%); }
 /* rotate()は要素自身の(可変な)サイズを基準に中心を取るため、リーチ表示の
    有無や点数の桁数でseat-badgeの横幅(=回転後は縦の長さ)が変わるたびに
    回転の中心がズレて、八角形側にめり込んで見えてしまう(河の回転バグと
@@ -312,9 +704,76 @@ button {
 }
 /* 幅を150pxに固定した分、回転後の中心(=left/rightの基準+幅の半分)が
    外側にずれるため、河と八角形の隙間の中央(設計上148px付近)に来るよう
-   left/rightの基準値を73pxに調整している。 */
-.cluster-seat--left { left: 73px; transform: translateY(-50%) rotate(90deg); }
-.cluster-seat--right { right: 73px; transform: translateY(-50%) rotate(-90deg); }
+   left/rightの基準値を調整している。top/bottomと同じ理由（リーチ棒との
+   隙間がフォント描画誤差で潰れて重なって見えることがある）で、73pxより
+   少し河側へ寄せて余裕を持たせる。 */
+.cluster-seat--left { left: 69px; transform: translateY(-50%) rotate(90deg); }
+.cluster-seat--right { right: 69px; transform: translateY(-50%) rotate(-90deg); }
+
+/* カード「点棒吸収」使用時の演出。中央に「点棒吸収！」の札を一瞬出し、
+   同時に各座席の点数バッジのすぐ上に増減分（+3000/-1000）を浮かせて
+   フェードさせる。CenterBoard.tsxがgameStore.tsのlastScoreAdjustment
+   （増減が起きるたびにkeyが増える一発イベント）を検知して表示・自動消去
+   する。左右/上家の座席は.cluster-seat自体が回転しているため、この演出も
+   そのままその場で回転して見える（河や点数バッジと同じ、座席から見た
+   向きに揃える設計を踏襲）。 */
+.center-board__absorb-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 6;
+  font-size: 22px;
+  font-weight: 900;
+  color: #2a1a00;
+  background: linear-gradient(180deg, #ffe066, #f1a93c);
+  padding: 6px 18px;
+  border-radius: 10px;
+  border: 2px solid #fff3c4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 18px rgba(255, 224, 102, 0.7);
+  pointer-events: none;
+  white-space: nowrap;
+  animation: call-announce-pop 1000ms ease-out forwards;
+}
+.score-delta-pop {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  z-index: 6;
+  margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 900;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  animation: score-delta-pop-rise 1.8s ease-out forwards;
+}
+.score-delta-pop--gain {
+  color: #8af0ab;
+}
+.score-delta-pop--loss {
+  color: #ff8a80;
+}
+@keyframes score-delta-pop-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.15);
+  }
+  25% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -14px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -22px) scale(1);
+  }
+}
 
 .center-board__core {
   display: flex;
@@ -399,6 +858,15 @@ button {
   opacity: 0.4;
   cursor: not-allowed;
 }
+/* 対局そのものを中断してタイトルへ戻る操作。他の巻き戻し系ボタンと違い
+   元に戻せないため、はっきり赤く目立たせておく。 */
+.debug-panel__quit {
+  background: #b33939;
+  border-color: #ff8787;
+}
+.debug-panel__quit:hover {
+  background: #d24545;
+}
 
 /* ============ 上部HUD（自風・対局形式） ============ */
 .hud {
@@ -435,6 +903,39 @@ button {
   font-size: 14px;
   opacity: 0.85;
 }
+.hud__bgm-volume input[type="range"] {
+  width: 70px;
+  height: 12px;
+}
+.hud__bgm-volume__value {
+  font-size: 12px;
+  opacity: 0.75;
+  min-width: 2.5em;
+}
+/* じゃんたま等の「自動ツモ切り」「自動和了」相当のトグル。ONのまま対局を
+   跨いでも意図が分かるよう、押している間だけでなくON/OFFの状態が常に
+   ラベル文字と縁色で見える形にする（ホバー中しか分からないtitle属性等では
+   なく、いつでも一目で現在の設定が分かるようにするため）。 */
+.hud__auto-toggles {
+  gap: 6px;
+}
+.hud__toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.hud__toggle-btn--on {
+  background: rgba(82, 209, 124, 0.25);
+  border-color: #52d17c;
+  color: #8af0ab;
+  font-weight: 600;
+}
 
 /* ============ 対面プレイヤー（アバター・名前） ============ */
 /* スクロールでの誤魔化しは禁止。手牌・副露を固定の小さい枠に収めようと
@@ -470,12 +971,59 @@ button {
   right: 8px;
 }
 .opponent-area--3 {
-  top: 96px;
+  /* .hudに自動ツモ切り/自動和了トグルの行を追加した分だけ.hudの高さが
+     さらに伸びたため、以前の128pxのままだと上家がHUDの下端とほぼ被る。
+     余裕を持って下にずらす（BGM音量スライダー追加時の96→128と同じ理由）。 */
+  top: 160px;
   left: 8px;
 }
 .opponent-area--active {
   outline: 2px dashed rgba(241, 196, 83, 0.7);
   outline-offset: 4px;
+}
+
+/* 必殺技「時間停止」発動中の演出。発動者本人の手牌・河・副露以外、
+   画面全体をグレーアウトして「時が止まった」感を出す。CenterBoard.tsx/
+   DiscardPile.tsxは共通のtable__frozenを、OpponentArea.tsx/Hand.tsxは
+   自分自身の判定結果に応じてopponent-area--frozen/hand-area--frozenを
+   それぞれ付与する（見た目はどれも同じ）。 */
+.table__frozen,
+.opponent-area--frozen,
+.hand-area--frozen {
+  filter: grayscale(1) brightness(0.55);
+  transition: filter 0.5s ease;
+  /* filterはかかった要素のサブツリー全体（回転させた河・点数バッジ・
+     手牌側を含む）をまとめてラスタライズし直す。will-changeで専用の
+     レイヤーへ昇格させておくことで、フィルタ適用中・トランジション中も
+     内部の回転要素がぼやけないようにする。 */
+  will-change: filter;
+}
+/* 発動者の「ボーナス手番」（本来なら次家に手番が渡るはずが、時間停止で
+   そのまま自分がもう一度ツモる瞬間）だけ、座順どおりに「本来なら自分の
+   番が来たかのような」空振りの光り演出を1人ずつ順番につける（実際には
+   手番は一切回ってこない。gameEngine.tsのresolveDiscardTurnTransition
+   参照）。この演出を見せている間、gameStore.tsのtick()が実際のツモを
+   意図的に遅らせている（TIME_STOP_FAKE_TURN_STEP_MS参照）ため、
+   3人ぶん一巡し終わるタイミングと実際にツモが実行されるタイミングが揃う。
+   .opponent-area--activeと似た黄金の縁取りだが、明滅させることで
+   「本物の手番表示ではない」ことを視覚的に区別する。 */
+@keyframes nameplate-fake-turn-pulse {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  35% {
+    box-shadow: 0 0 16px 5px rgba(255, 224, 102, 0.85);
+  }
+  70% {
+    box-shadow: 0 0 16px 5px rgba(255, 224, 102, 0.4);
+  }
+}
+.nameplate--fake-turn {
+  /* durationはOpponentArea.tsx/Hand.tsxがTIME_STOP_FAKE_TURN_STEP_MSから
+     インラインstyleで上書きするため、ここでは初期値として同じ値を書いておく。 */
+  animation: nameplate-fake-turn-pulse 650ms ease-in-out 1 both;
+  border-radius: 10px;
 }
 
 /* 敵が副露（チー/ポン/カン）した瞬間、発声を模した大きな文字を一瞬だけ
@@ -548,9 +1096,223 @@ button {
   font-size: 15px;
   font-weight: 600;
 }
+/* 自分のキャラ名だけ、対局中に必殺技の効果を確認できるようクリック可能に
+   している（Hand.tsx）。<button>化に伴うブラウザ既定の見た目をリセットし、
+   元の<div>表示（対面等の名前）と変わらない見た目にしつつ、クリック可能
+   であることだけホバー時のアンダーラインで示す。 */
+.nameplate__name--clickable {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nameplate__name--clickable:hover {
+  text-decoration: underline;
+}
 .nameplate__title {
   font-size: 12px;
   opacity: 0.6;
+}
+
+/* 必殺技ゲージ。溜まっている間は帯を伸ばすだけ、満タンになったら
+   .skill-gauge--readyで縁を光らせて「発動できる」ことを知らせる。 */
+.skill-gauge {
+  align-self: flex-start;
+  width: 96px;
+  margin-top: 2px;
+}
+.skill-gauge__label {
+  font-size: 10px;
+  line-height: 1.2;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.skill-gauge--ready .skill-gauge__label {
+  color: #ffe066;
+  opacity: 1;
+}
+.skill-gauge__bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+.skill-gauge__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7ec8ff, #4a7fe0);
+  transition: width 0.3s ease-out;
+}
+.skill-gauge--ready .skill-gauge__bar {
+  border-color: #ffe066;
+  animation: skill-gauge-ready-pulse 0.9s ease-in-out infinite;
+}
+.skill-gauge--ready .skill-gauge__fill {
+  background: linear-gradient(90deg, #ffe066, #ff9d4d);
+}
+@keyframes skill-gauge-ready-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 2px 0 rgba(255, 224, 102, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 8px 2px rgba(255, 224, 102, 0.9);
+  }
+}
+
+/* ============ 必殺技発動演出（キャラ絵がカットインするド派手な演出） ============ */
+.skill-activation-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  overflow: hidden;
+}
+.skill-activation-overlay__flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(10, 10, 25, 0.15) 0%, rgba(4, 4, 14, 0.78) 100%);
+  animation: skill-overlay-flash-fade 1.7s ease-out forwards;
+}
+@keyframes skill-overlay-flash-fade {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+/* 発動の瞬間に光の筋が回転しながら広がる、じゃんたま等の必殺技演出でよく
+   見る「光芒（バーストライン）」。conic-gradientの縞模様を回転+拡大させる
+   だけなので画像素材は不要。 */
+.skill-activation-overlay__burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 900px;
+  height: 900px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 224, 102, 0.4) 0deg 4deg, transparent 4deg 12deg);
+  mix-blend-mode: screen;
+  animation: skill-overlay-burst-spin 1.7s ease-out forwards;
+}
+@keyframes skill-overlay-burst-spin {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.4) rotate(50deg);
+  }
+}
+/* キャラ絵本体。画面右側から勢いよく滑り込んで少し弾んで止まり、
+   最後にフェードアウトする。立ち絵は撮影範囲外の文字等が写り込んでいても
+   気にならないよう、mask-imageで縁を丸くぼかして「切り抜き」風にする
+   （実際に背景除去した素材でなくてもそれっぽく見えるようにするため）。 */
+.skill-activation-overlay__cutin-wrap {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  width: 48%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: skill-overlay-cutin-slide 1.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes skill-overlay-cutin-slide {
+  0% {
+    opacity: 0;
+    transform: translateX(55%) scale(0.92) rotate(3deg);
+  }
+  14% {
+    opacity: 1;
+  }
+  32% {
+    transform: translateX(0%) scale(1.04) rotate(-1deg);
+  }
+  42% {
+    transform: translateX(0%) scale(1) rotate(0deg);
+  }
+  82% {
+    opacity: 1;
+    transform: translateX(0%) scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(6%) scale(1.02) rotate(1deg);
+  }
+}
+/* キャラ絵の後ろに敷く色帯。カットインらしい斜めカットのパネルにして、
+   立ち絵の縁をさらに馴染ませる。 */
+.skill-activation-overlay__panel {
+  position: absolute;
+  inset: -10% -20%;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 224, 102, 0.22) 45%, rgba(122, 47, 184, 0.35) 70%, transparent 88%);
+}
+.skill-activation-overlay__cutin {
+  position: relative;
+  max-height: 96%;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.65));
+  mask-image: radial-gradient(ellipse 48% 60% at 50% 36%, black 55%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 48% 60% at 50% 36%, black 55%, transparent 100%);
+}
+.skill-activation-overlay__text {
+  position: absolute;
+  left: 6%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: skill-overlay-text-pop 1.7s cubic-bezier(0.2, 1.6, 0.4, 1) forwards;
+}
+@keyframes skill-overlay-text-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.7) translateX(-20px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1) translateX(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.skill-activation-overlay__name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+.skill-activation-overlay__skill {
+  font-size: 42px;
+  font-weight: 900;
+  color: #ffe066;
+  letter-spacing: 2px;
+  text-shadow:
+    0 0 18px rgba(255, 224, 102, 0.9),
+    0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
 .opponent-hand-row {
@@ -573,6 +1335,15 @@ button {
      すぎるため、この形にした。 */
   flex-direction: row;
   justify-content: flex-start;
+  /* 名前プレート・必殺技ゲージが手牌の上に積まれる既定順だと、対面の
+     手牌が卓の上端からかなり下がった位置に来てしまう。手牌を
+     .opponent-area--2（縦のflex列）の先頭に繰り上げ、名前・ゲージは
+     その下に回す。 */
+  order: -1;
+  /* 繰り上げた直後だと.table側の木枠（inset box-shadowで卓外周から
+     約20px幅に描かれる縁）に手牌がめり込んで見えるため、枠の内側
+     （felt面）に収まる程度にわずかに下げる。 */
+  margin-top: 14px;
 }
 .opponent-area--2 .opponent-melds {
   order: -1;
@@ -581,18 +1352,13 @@ button {
   margin-left: auto;
   margin-right: auto;
 }
-/* ツモった牌を離して見せる位置（tile--drawn）は「本人から見た右端」の
-   つもり。対面は自分と正対している＝鏡写しの関係なので、対面自身の
-   右端は画面上はこちら側から見て左になる。DOM順は他対面と同じく
-   （本体…離れた1枚）のままにし、見た目だけrow-reverseで反転させ、
-   隙間もそれに合わせてmargin-leftからmargin-rightへ入れ替える。 */
-.opponent-area--2 .opponent-hand-back__inner {
-  flex-direction: row-reverse;
-}
-.opponent-area--2 .tile--drawn {
-  margin-left: 0;
-  margin-right: 10px;
-}
+/* 以前は対面を「自分と正対している＝鏡写し」の見た目にするため
+   row-reverseで並びを反転させ、萬子/筒子/索子の並び順が自分の手牌とは
+   逆（右から左）に見えていた。「対面の牌の並びを自分と同じ向きに
+   揃えてほしい（見づらい）」との指摘のため、鏡写し表現はやめて自分の
+   手牌と同じ並び順（左→右にsortTiles順、ツモ牌は右端）に統一する。
+   DOM順（本体…ツモった1枚）そのままの通常row表示でよく、
+   tile--drawnの隙間も既定のmargin-left:10px（右端側）のままでよい。 */
 .opponent-area--3 .opponent-hand-row,
 .opponent-area--1 .opponent-hand-row {
   align-items: center;
@@ -620,43 +1386,66 @@ button {
   flex-shrink: 0;
 }
 
-/* 手牌（最大14枚）は必ず1列（折り返し禁止）で実寸を確保し、副露は
+/* 手牌は必ず1列（折り返し禁止）で実寸を確保し、副露は
    flex:1で残りの縦幅いっぱいに広げる。
    注意: rotate()は見た目だけでレイアウトサイズには反映されないため、
    回転させる.__inner側ではなく外側のこの要素でheight/flexを指定し、
    その値をそのまま「回転後の見た目の高さ」として扱う必要がある。
-   上家・下家はposition:absoluteで卓の縦幅をほぼ丸ごと使うように
-   なった（.opponent-area--1/3のルール参照）ため、tile--small
-   （14枚換算で474px）を1列のまま収めるだけの縦の余裕がある。 */
+   手牌側の高さは「常に最大14枚ぶん(474px)」で固定していたが、鳴いて
+   手牌が減っても副露側に幅が返らず、副露が窮屈になって見切れる原因に
+   なっていた（下の.opponent-melds__innerのコメント参照）。実際の
+   手牌枚数から算出した値を使うことで、鳴いた分だけ副露側に余裕が
+   戻るようにする。 */
 .opponent-area--1 .opponent-hand-back,
 .opponent-area--3 .opponent-hand-back {
   width: 45px;
-  height: 474px;
+  /* 固定474px(14枚ぶん)ではなく、実際の手牌枚数から算出した値
+     (--hand-back-track、OpponentArea.tsx側で設定)を使う。鳴いて
+     手牌が減った分だけ副露(.opponent-melds)側に幅を返すことで、
+     副露を回転させた際の見た目の高さが手牌側に食われて見切れるのを防ぐ。 */
+  height: var(--hand-back-track, 474px);
   flex-shrink: 0;
 }
 .opponent-area--1 .opponent-melds,
 .opponent-area--3 .opponent-melds {
-  /* それでも手牌(474px)を引いた残りは副露1つぶん程度しかない場合が
-     あるため、副露どうしを横に並べず1つずつ縦に積む（max-widthで
-     副露1つぶんの幅に制限して強制的に折り返す）。widthは4つ積んでも
-     収まるだけの余白を確保。 */
-  width: 200px;
-  flex: 1 1 0;
-  min-height: 0;
+  /* 以前は副露どうしを横に並べず1つずつ縦に積んでいた（flex-wrap:wrap +
+     max-width指定）が、回転後は「卓の内側へ向かって伸びる」向きになり、
+     鳴くたびに副露が卓へめり込んでいく（重なって見える）不具合になって
+     いた。自分/対面と同じく鳴いた順に一列へ並べる方式に統一し、手牌枠
+     （.opponent-hand-back）と同じく実際の副露牌の実寸(--melds-track、
+     OpponentArea.tsx側で設定)ぶんだけ卓の縁沿いに幅を確保する。奥行き
+     （卓の内側方向）は牌1枚ぶんで足りるが、.meldにpadding 2px×2が付く分
+     手牌枠(45px=tile--h 43px+2pxの余白)より少し広い49px（tile--h 43px+
+     meld padding 4px+2pxの余白）を確保する。 */
+  width: 49px;
+  height: var(--melds-track, 0px);
+  flex-shrink: 0;
 }
-.opponent-area--1 .opponent-melds__inner,
-.opponent-area--3 .opponent-melds__inner {
-  flex-wrap: wrap;
-  align-content: flex-start;
-  max-width: 110px;
-}
+/* 河・点数バッジと同じ理由（.cluster-seatのコメント参照）で、回転させて
+   いる手牌・副露側にも専用レイヤーへの昇格を適用し、常にくっきり
+   再描画させる。 */
 .opponent-area--3 .opponent-hand-back__inner,
 .opponent-area--3 .opponent-melds__inner {
   transform: rotate(90deg);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 .opponent-area--1 .opponent-hand-back__inner,
 .opponent-area--1 .opponent-melds__inner {
   transform: rotate(-90deg);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* 下家(--1)はcolumn-reverseのため、手牌(.opponent-hand-back、先頭の
+   flex item)は常に行の最下部（＝卓の外周端）に張り付いた位置から描画
+   される。手牌・副露とも実寸ぶんのflex-shrink:0固定サイズになった今も、
+   デフォルトのjustify-content:flex-startのままだと2つ合わせた塊が外周端
+   （column-reverseの「先頭」側）に張り付いたまま孤立して見え、「手牌が
+   下に寄り過ぎている」印象になる。行全体をcenterで揃えることで、手牌や
+   副露が少ない時も塊が行の中央寄りに来るようにする。 */
+.opponent-area--1 .opponent-hand-row {
+  justify-content: center;
 }
 
 /* ============ 自分の手牌エリア ============ */
@@ -666,8 +1455,10 @@ button {
   padding: 8px;
   /* 手牌の右上（じゃんたま同様、手牌より上）にリーチ/チー/スキップ等の
      ボタン用の帯を常に確保しておく。ボタンの有無に関わらずこの帯の分だけ
-     手牌の位置が固定される。 */
-  padding-top: 48px;
+     手牌の位置が固定される。左側はキャラ表示+必殺技ゲージ+待ち表示が
+     縦に積まれるため、右側(action-row、1段ぶんの高さで足りる)より広めに
+     確保しておく必要がある。 */
+  padding-top: 96px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -698,14 +1489,23 @@ button {
   overflow: visible;
 }
 .hand-tiles {
+  /* 幅を最大枚数(14枚)分で固定しておくことで、ツモ・副露などで枚数が
+     変わっても中央寄せの基準サイズ自体は変わらず、既存の牌が左右に
+     動かない。中身(.hand-tiles__real)は左詰めのまま。 */
+  width: 800px;
+  flex-shrink: 0;
+}
+/* 実際に並んでいる牌ぶんだけの実寸コンテナ。DiscardPile.tsxがツモ切り
+   演出の起点として.hand-tiles側のdata-hand-anchorを実測しているが、
+   親の.hand-tilesは上記の理由で常に800px固定のため、鳴いて手牌が
+   減った後にそのまま使うと実際の手牌より右のかなり離れた位置（800px側の
+   右端）が起点になってしまい、ツモ切りが手牌の端から出ていないように
+   見えていた。実測用の基準は必ず「今何枚あるか」に追従するこちらの内側
+   要素に持たせる。 */
+.hand-tiles__real {
   display: flex;
   gap: 3px;
   flex-wrap: nowrap;
-  /* 幅を最大枚数(14枚)分で固定しておくことで、ツモ・副露などで枚数が
-     変わっても中央寄せの基準サイズ自体は変わらず、既存の牌が左右に
-     動かない。中身は左詰めのまま。 */
-  width: 800px;
-  flex-shrink: 0;
 }
 
 /* リーチ/チー/スキップ等のボタンの有無で手牌の位置が上下しないよう、
@@ -725,20 +1525,50 @@ button {
 
 .meld {
   display: flex;
+  /* 鳴かれた牌(tile--rotated)だけ自身の高さが幅と入れ替わって他の牌より
+     低くなるため、既定のstretch/flex-startだと上端が揃わず浮いて見える。
+     縦中央に揃える。 */
+  align-items: center;
   gap: 1px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 4px;
   padding: 2px;
 }
 
-/* テンパイ時の待ち牌表示（じゃんたま風）。.action-rowと同じ考え方で
+/* 自分のキャラ表示（ネームプレート）+必殺技ゲージ+待ち牌表示（じゃんたま風）
+   をまとめた左側の縦積みブロック。.action-rowと同じ考え方で
    .hand-tiles（幅800px、中央寄せ）の左端の真上に来るようにする。
    action-rowは右寄りなので、左寄りに置けば同じ上部の帯を使っても
-   干渉しない。 */
-.wait-row {
+   干渉しない。
+   以前はキャラ表示をaction-row（チー/ポン等のボタンで幅が変わる）側に
+   置いていたため、鳴きの選択肢が出るたびに位置がガタついていた。ここに
+   独立させたことで右側の増減と無関係に位置が安定する。 */
+.hand-left-status {
   position: absolute;
   top: 8px;
   left: calc(50% - 400px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 0;
+}
+/* 未来視・待ち表示は.hand-left-status（キャラ表示+ゲージ+カード/ベタ降り等の
+   状態表示が縦に積まれる、状態表示が増えるほど下に伸びる）から独立させ、
+   手牌(.hand-tiles、幅800pxで水平中央に固定)の真上・中央に置く。
+   .action-row/.hand-left-statyusと違いposition:absoluteの固定オフセット
+   にはしない（内容が増えた時に手牌と絶対に被らない保証ができないため）。
+   .hand-area（flex-direction:column）内で.hand-rowの直前に置く通常の
+   フロー要素にすることで、中身の高さぶんだけ.hand-row側が自動的に
+   押し上げられ（親.human-areaがjustify-content:flex-endのため、
+   .hand-area全体が伸びた分だけ上にずれる）、絶対に手牌と重ならない。 */
+.hand-top-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.wait-row {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -751,6 +1581,50 @@ button {
   font-size: 14px;
   color: #ffe4a3;
   white-space: nowrap;
+}
+.wait-row__furiten {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #ff5a5a;
+  background: rgba(255, 60, 60, 0.18);
+  color: #ff8a8a;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* スバルの「山読み」発動中、残り枚数が推測ではなく実数であることを示す。
+   フリテン(警告=赤)とは逆に、有利な正確情報なので緑系にしている。 */
+.wait-row__wallread {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #52d17c;
+  background: rgba(82, 209, 124, 0.18);
+  color: #8af0ab;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* タカハルの「アトミックベタ降り」発動中、盾（次にロンされるはずの捨て牌を
+   1度だけ無効化する権利）が今立っているかどうかを示す。まだメンツを崩して
+   おらず盾が立っていない間はグレー、盾が立っている間は山読みと同じ緑系
+   （有利な状態）にして一目で分かるようにする。 */
+.wait-row__shield {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #6b6b6b;
+  background: rgba(120, 120, 120, 0.18);
+  color: #b8b8b8;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.wait-row__shield--up {
+  border-color: #52d17c;
+  background: rgba(82, 209, 124, 0.18);
+  color: #8af0ab;
 }
 .wait-row__tiles {
   display: flex;
@@ -796,9 +1670,22 @@ button {
 }
 
 .tile {
-  width: 54px;
-  height: 72px;
+  --tile-w: 54px;
+  --tile-h: 72px;
+  width: var(--tile-w);
+  height: var(--tile-h);
   position: relative;
+  /* tile--dora::before/tile--highlighted::afterはz-index:-1で自分の
+     牌画像より奥に光らせているが、.tile自体はposition:relativeだけでは
+     スタッキングコンテキストを作らないため、そのままだとこの負のz-index
+     が.tileの外まで抜けてしまい、祖先側の背景（例えば自分の手牌エリア
+     .human-areaの半透明グラデーション背景）の下に光彩ごと隠れてしまう
+     不具合があった（河や他家の副露はたまたま手前に不透明な背景が無く
+     見えていただけ＝「自分の手牌のドラだけ光って見えない」という形で
+     表面化した）。isolationでこの牌1枚に閉じたスタッキングコンテキストを
+     作り、光彩を必ずこの牌自身の画像より奥・外側の祖先要素より手前に
+     固定する。 */
+  isolation: isolate;
   background: transparent;
   border: none;
   border-radius: 13.3% / 10%;
@@ -813,19 +1700,33 @@ button {
   overflow: visible;
 }
 .tile--small {
-  width: 32px;
-  height: 43px;
+  --tile-w: 32px;
+  --tile-h: 43px;
+  width: var(--tile-w);
+  height: var(--tile-h);
   box-shadow:
     0 1px 0 0 #d9cca3,
     0 2px 0 0 #c2b280,
     0 4px 4px rgba(0, 0, 0, 0.4);
 }
 .tile--tiny {
-  width: 21px;
-  height: 28px;
+  --tile-w: 21px;
+  --tile-h: 28px;
+  width: var(--tile-w);
+  height: var(--tile-h);
   box-shadow:
     0 1px 0 0 #d9cca3,
     0 2px 2px rgba(0, 0, 0, 0.4);
+}
+/* 牌の画像2枚(base/face)をまとめる内側のラッパー。通常時は.tile全体を
+   そのまま覆うだけだが、tile--rotated（横向き表示）の時だけここに
+   回転をかける。回転は.tile自身ではなくこちらに掛けることで、.tile
+   （レイアウト上の箱＝flexアイテムとして場所を取る実サイズ）を回転後の
+   見た目のサイズ（幅高さ入れ替え）そのものにでき、隣の牌と重ならなく
+   なる（下の.tile--rotated参照）。 */
+.tile__face {
+  position: absolute;
+  inset: 0;
 }
 .tile__img {
   display: block;
@@ -858,26 +1759,82 @@ button {
 .tile--dimmed {
   opacity: 0.45;
 }
-/* じゃんたま風のカーソル合わせハイライト。box-shadowは既存の牌の縁取り
-   影で埋まっているため、独立して重ねられるoutline/filterで光らせる。 */
-@keyframes tile-highlight-pulse {
-  0%,
-  100% {
-    filter: brightness(1.15) drop-shadow(0 0 4px rgba(255, 224, 102, 0.85));
-  }
-  50% {
-    filter: brightness(1.3) drop-shadow(0 0 9px rgba(255, 224, 102, 1));
-  }
-}
+/* じゃんたま風のカーソル合わせハイライト。
+   以前は黄色く光らせていたが、ドラ点滅・槍槓/ロン対象の光り方等
+   他の「光る」演出と紛らわしく分かりにくいとの指摘のため、光らせる
+   代わりに牌の上に半透明のグレーを重ねて「これが同じ牌」だと一目で
+   わかるようにした。牌本体の画像には一切触れず疑似要素(::after)を
+   牌の手前に重ねるだけなので、drop-shadow/filter系で過去に起きていた
+   縮尺・回転時のラスタライズぼやけの問題も再発しない（solid背景色の
+   合成はコンポジタが牌のビットマップを再描画し直す必要がないため）。
+   outlineとは別の疑似要素を使い、ドラ点滅(::before)と同時に付いても
+   互いに干渉しないようにする。 */
 .tile--highlighted {
-  outline: 3px solid #ffe066;
+  outline: 2px solid rgba(255, 255, 255, 0.75);
   outline-offset: 1px;
-  animation: tile-highlight-pulse 0.9s ease-in-out infinite;
 }
-/* ドラ牌の点滅表示。ホバーハイライトはoutline/filterを使っているため、
-   両方が同時に付いた場合でも喧嘩しないよう、ドラ側は疑似要素の
-   box-shadowだけで独立に光らせる（牌本体のoutline/filter/box-shadowには
-   一切触れない）。 */
+.tile--highlighted::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 13.3% / 10%;
+  background: rgba(60, 60, 60, 0.7);
+  pointer-events: none;
+}
+/* マサトの必殺技「三色の煌めき」発動中の演出。三色同順に絡みそうな牌の
+   縁を赤→緑→青（三色）の順に光らせてから消える。JS側(Hand.tsx)で
+   5000ms後にクラス自体を外すので、アニメーション終端(100%)は完全に
+   透明な状態に揃えておき、クラス除去の瞬間が唐突な消灯に見えないように
+   する。tile--highlighted同様、outlineとbox-shadow(::after)を分けて
+   ラスタライズのにじみを避ける。自分の手牌はhighlightable=falseで
+   ::afterを使わないため、ここで再利用しても衝突しない。 */
+.tile--sanshoku-hint::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 13.3% / 10%;
+  pointer-events: none;
+  z-index: -1;
+  animation: tile-sanshoku-glow 5s ease-in-out forwards;
+}
+@keyframes tile-sanshoku-outline {
+  0% {
+    outline: 3px solid rgba(255, 92, 92, 0.95);
+    outline-offset: 1px;
+  }
+  30% {
+    outline: 3px solid rgba(92, 214, 122, 0.95);
+    outline-offset: 1px;
+  }
+  60% {
+    outline: 3px solid rgba(92, 150, 255, 0.95);
+    outline-offset: 1px;
+  }
+  100% {
+    outline: 3px solid rgba(92, 150, 255, 0);
+    outline-offset: 1px;
+  }
+}
+@keyframes tile-sanshoku-glow {
+  0% {
+    box-shadow: 0 0 9px 3px rgba(255, 92, 92, 0.8);
+  }
+  30% {
+    box-shadow: 0 0 9px 3px rgba(92, 214, 122, 0.8);
+  }
+  60% {
+    box-shadow: 0 0 9px 3px rgba(92, 150, 255, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 9px 3px rgba(92, 150, 255, 0);
+  }
+}
+.tile--sanshoku-hint {
+  animation: tile-sanshoku-outline 5s ease-in-out forwards;
+}
+/* ドラ牌の点滅表示。ホバーハイライトは::before(::dora)とは別のpseudo-element
+   (::after)を使っているため、両方が同時に付いても喧嘩しない
+   （牌本体のoutline/box-shadowには一切触れない）。 */
 .tile--dora::before {
   content: "";
   position: absolute;
@@ -897,16 +1854,130 @@ button {
     opacity: 1;
   }
 }
-/* rotate は transform ではなく独立プロパティにしておく。牌の入場・移動
-   演出（下のtile--slide-in）がtranslateを使って演出するため、
-   transform: rotate(...)だと同じtransformプロパティを取り合って片方が
-   消えてしまう。translate/rotateを独立させれば両立する。 */
+/* ロン/チー/ポン/カンの対象牌（河にある、今まさに鳴ける牌）を強調表示。
+   「どの牌に対して鳴こうとしているか分かりづらい」との指摘を受け、
+   じゃんたま同様に対象牌そのものを目立たせる。tile--dora(::before)・
+   tile--highlighted(::after)が疑似要素を使い切っているため、ここでは
+   pointer-events に触れない outline のみで完結させる（box-shadow/filterは
+   使わない＝牌画像のラスタライズには一切影響しない）。tile--highlightedと
+   同じoutlineプロパティを取り合うが、こちらを後に書くことで両方が同時に
+   付いた場合はこちらが優先されるようにする（鳴きの対象という情報の方が
+   重要なため）。 */
+.tile--call-target {
+  outline: 3px solid #ff4d4d;
+  outline-offset: 2px;
+  animation: tile-call-target-pulse 0.8s ease-in-out infinite;
+}
+@keyframes tile-call-target-pulse {
+  0%,
+  100% {
+    outline-color: rgba(255, 77, 77, 0.55);
+    outline-offset: 1px;
+  }
+  50% {
+    outline-color: rgba(255, 77, 77, 1);
+    outline-offset: 4px;
+  }
+}
+/* 横向き表示（リーチ宣言牌・鳴かれた牌）は、以前は.tile自身にrotateを
+   掛けていたが、.tile自身のレイアウト上の箱（flexアイテムとして場所を
+   取るサイズ）は回転しても幅高さそのままのため、回転後の見た目
+   （幅高さが入れ替わる）だけが箱からはみ出し、隣の牌と重なって見える
+   不具合があった。河(.discard-pile)ではこれを避けるためmarginを
+   打ち消して余白なしにしていたが、それでは尚更はみ出しが隣に接触し、
+   逆にmarginで余白を確保すると今度は横1段が6枚から5枚に減って次の段へ
+   早まって折り返り、他の段と横位置がズレる（河は6枚×3段ぴったりの
+   幅で組んである）。どちらの副作用も許容できないため、回転そのものは
+   画像を包む内側の.tile__face側に掛け、.tile自身（flexアイテム）の幅
+   高さを入れ替えた値にする。これで.tileの箱＝見た目の占有サイズが
+   一致し、隣の牌に一切重ならず、かつ他の牌と同じ横幅（32px等）しか
+   消費しないため段の折り返し位置（6枚区切り）も変わらない。 */
 .tile--rotated {
+  width: var(--tile-h);
+  height: var(--tile-w);
+}
+.tile--rotated .tile__face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tile-w);
+  height: var(--tile-h);
+  margin-top: calc(var(--tile-h) / -2);
+  margin-left: calc(var(--tile-w) / -2);
   rotate: 90deg;
-  margin: 0 4px;
 }
 .tile--drawn {
   margin-left: 10px;
+}
+
+/* ナギの「積み込み」等、ツモ牌をすり替える必殺技の発動演出。ツモ牌の
+   スロットだけ、カードがくるっと裏返って別の牌になる3D風フリップに
+   差し替える（.tile--drawnのmargin-left:10pxぶんも含めて箱のサイズを
+   確保しておき、通常表示に戻った時に横位置がズレないようにする）。 */
+.tile-swap-flip {
+  position: relative;
+  width: 64px;
+  height: 72px;
+  flex-shrink: 0;
+  perspective: 320px;
+}
+.tile-swap-flip__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: tile-swap-flip-spin 0.7s cubic-bezier(0.4, 0.1, 0.2, 1) forwards;
+}
+@keyframes tile-swap-flip-spin {
+  0% {
+    transform: rotateY(0deg) scale(1);
+  }
+  45% {
+    transform: rotateY(90deg) scale(1.18);
+  }
+  55% {
+    transform: rotateY(90deg) scale(1.18);
+  }
+  100% {
+    transform: rotateY(180deg) scale(1);
+  }
+}
+.tile-swap-flip__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.tile-swap-flip__face--front {
+  transform: rotateY(0deg);
+}
+.tile-swap-flip__face--back {
+  transform: rotateY(180deg);
+}
+/* すり替わる瞬間（真横を向く付近）に金色の閃光を一瞬出して、
+   「何かが起きた」ことをさらに強調する。 */
+.tile-swap-flip__flash {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 224, 102, 0.95) 0%, rgba(255, 224, 102, 0) 70%);
+  opacity: 0;
+  pointer-events: none;
+  animation: tile-swap-flash-pulse 0.7s ease-out forwards;
+}
+@keyframes tile-swap-flash-pulse {
+  0%,
+  38% {
+    opacity: 0;
+  }
+  48% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 /* ツモ切り（ツモった牌をそのまま切った）と手出し（ツモ牌を一旦手に
    加えてから手牌の中から選んで切った）の違いを、切った瞬間の動きだけで
@@ -964,8 +2035,14 @@ button {
   flex-shrink: 0;
 }
 
+/* 元々はposition: fixedだったが、それは.stage__canvas側のtransformが
+   fixed要素の包含ブロックをこの卓自身に閉じ込めていたことに依存していた
+   （transformを持つ要素はfixed子孫の包含ブロックになる仕様）。卓の縮小を
+   zoomに変えてtransformを外したため、fixedのままだとブラウザウィンドウ
+   全体を覆ってしまう。.stage__canvasはposition: relativeなので、
+   absoluteにすれば同じく卓の範囲だけを覆う元通りの見た目になる。 */
 .modal-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   display: flex;
@@ -979,7 +2056,13 @@ button {
   border-radius: 12px;
   padding: 24px;
   min-width: 320px;
-  max-width: 480px;
+  /* 480pxだと.win-detail__hand（.modalのpadding 24px×2＋.win-detailの
+     padding 8px×2を引いた実質幅は416px）に13枚（tile--small 32px×13＋
+     隙間2px×12＝440px）すら収まらず、聴牌時の手牌開示（副露無しでも
+     必ず13枚）が中途半端に2段へ折り返されて不自然に見えていた。和了時の
+     副露込み最大ケース（14枚＋副露の枠の余白）はそれでも折り返して構わ
+     ないが、素の13〜14枚は1段に収まるよう広げる。 */
+  max-width: 560px;
   max-height: 80vh;
   overflow-y: auto;
   display: flex;
@@ -992,8 +2075,33 @@ button {
   border-radius: 8px;
   padding: 8px;
 }
+.tenpai-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tenpai-list__label {
+  font-weight: bold;
+}
 .win-detail__player {
   font-weight: bold;
+  margin-bottom: 4px;
+}
+/* 和了時、役・点数の文字情報だけでは「実際にどういう手だったか」が
+   分からないとの指摘のため、当たり牌・副露も含めた牌姿をここに並べる。
+   モーダル幅(480px、左右padding計48px)に収まらない枚数(最大14枚+副露)は
+   折り返して2段以上になっても構わない。 */
+.win-detail__hand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.win-detail__dora {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 4px;
 }
 .yaku-list {
@@ -1004,6 +2112,83 @@ button {
   margin-top: 4px;
   font-weight: bold;
   color: #f1c453;
+}
+
+/* ============ 対局終了時の優勝演出 ============ */
+/* 以前は結果モーダル(max-width:480px、役・点数内訳や順位一覧と同居)の中に
+   埋め込んでいたが、他の情報に埋もれて目立たなかった（「全然出てない」との
+   指摘）。結果モーダルを確認し終えた後に見せる、画面中心の独立した
+   オーバーレイに変更し、キャラ絵をずっと大きく・情報量を絞って表示する。 */
+.match-victory-overlay {
+  /* .modal-overlayより暗くして優勝演出そのものに視線を集める。 */
+  background: rgba(0, 0, 0, 0.78);
+}
+.match-victory-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(90vw, 640px);
+  padding: 28px 32px 24px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1c1710, #0f0c08);
+  border: 2px solid #f1c453;
+  box-shadow:
+    0 0 60px 10px rgba(241, 196, 83, 0.25),
+    0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: match-victory-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.match-victory-card__panel {
+  position: absolute;
+  inset: -30% -20%;
+  background: radial-gradient(ellipse at center, rgba(255, 224, 102, 0.28), transparent 70%);
+  pointer-events: none;
+}
+.match-victory-card__title {
+  position: relative;
+  font-size: 16px;
+  letter-spacing: 8px;
+  color: #ffe066;
+  font-weight: 800;
+  text-shadow: 0 0 16px rgba(255, 224, 102, 0.8);
+}
+.match-victory-card__art {
+  position: relative;
+  max-width: 100%;
+  max-height: 55vh;
+  border-radius: 12px;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.7));
+}
+.match-victory-card__name {
+  position: relative;
+  font-size: 24px;
+  font-weight: 800;
+}
+.match-victory-card__quote {
+  position: relative;
+  max-width: 480px;
+  font-size: 15px;
+  line-height: 1.6;
+  opacity: 0.92;
+  font-style: italic;
+  text-align: center;
+}
+@keyframes match-victory-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(10px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* ============ 対局結果（順位カード） ============ */

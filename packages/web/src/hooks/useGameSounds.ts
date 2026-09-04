@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { Meld, RoundState } from "@majyan/core";
+import { CHARACTERS, type Meld, type RoundState } from "@majyan/core";
 import { playDiscardSound, playDrawSound, speak } from "../sound.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
@@ -58,6 +58,34 @@ export function useGameSounds(round: RoundState | undefined) {
     }
     prevMeldTypesRef.current = meldTypesByPlayer;
   }, [meldsSignature]);
+
+  // リーチ宣言（player.riichiがfalse→trueに変わった瞬間）で発声する。
+  const riichiFlags = round?.players.map((p) => p.riichi) ?? [false, false, false, false];
+  const riichiSignature = riichiFlags.join(",");
+  const prevRiichiFlagsRef = useRef(riichiFlags);
+  useEffect(() => {
+    const prev = prevRiichiFlagsRef.current;
+    if (riichiFlags.some((r, i) => r && !prev[i])) speak("リーチ");
+    prevRiichiFlagsRef.current = riichiFlags;
+  }, [riichiSignature]);
+
+  // 必殺技発動（skillGaugeが満タンから0に戻った瞬間）で、キャラ名+技名を読み上げる。
+  // ゲージは通常の加算では減らないため、0への低下＝発動とみなせる。
+  const skillGauges = round?.players.map((p) => p.skillGauge) ?? [0, 0, 0, 0];
+  const skillGaugeSignature = skillGauges.join(",");
+  const prevSkillGaugesRef = useRef(skillGauges);
+  useEffect(() => {
+    const prev = prevSkillGaugesRef.current;
+    if (round) {
+      for (let i = 0; i < skillGauges.length; i++) {
+        if (prev[i]! > 0 && skillGauges[i] === 0) {
+          const character = CHARACTERS[round.characterIds[i]!];
+          if (character) speak(`${character.voiceName ?? character.name} ${character.skill.voiceName ?? character.skill.name}`);
+        }
+      }
+    }
+    prevSkillGaugesRef.current = skillGauges;
+  }, [skillGaugeSignature]);
 
   const phase = round?.phase;
   const prevPhaseRef = useRef(phase);

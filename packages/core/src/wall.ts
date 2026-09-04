@@ -109,3 +109,31 @@ export function uraDoraIndicators(wall: WallState): TileCode[] {
   }
   return result;
 }
+
+/** カード「裏ドラ倍加」用。通常公開される範囲(revealedDoraCount枚)の
+    さらに1つ先の裏ドラ表示牌を、山を実際にはめくらずに覗き見る（王牌の
+    並び自体は変更しない）。カン枚数が既に上限(5)近くで王牌に対応する
+    枠が残っていない場合はnull（不発）。 */
+export function extraUraDoraIndicator(wall: WallState): TileCode | null {
+  const tile = wall.deadWall[4 + wall.revealedDoraCount * 2 + 1];
+  return tile ? tile.code : null;
+}
+
+/** 最初の裏ドラ表示牌(deadWall[5])を、指定した表示牌コードに強制的に
+    入れ替える。牌の総枚数（コードごと4枚）の整合を保つため、実際に山
+    （liveTiles）に残っている対象コードの牌と位置を入れ替えるだけで、
+    牌そのものを作り替えたりはしない。対象コードの牌が山に残っていない
+    （既に他家の手牌・捨て牌・王牌の別の場所にある）場合は何もしない
+    （＝不発）。 */
+export function forceFirstUraDoraIndicator(wall: WallState, indicatorCode: TileCode): WallState {
+  const slot = 5; // deadWall[4 + 0*2 + 1]（カン枚数に関わらず必ず公開される1組目の裏ドラ表示牌）
+  const current = wall.deadWall[slot];
+  if (!current || current.code === indicatorCode) return wall;
+  const liveIndex = wall.liveTiles.findIndex((t) => t.code === indicatorCode);
+  if (liveIndex === -1) return wall;
+  const replacement = wall.liveTiles[liveIndex]!;
+  const liveTiles = [...wall.liveTiles.slice(0, liveIndex), current, ...wall.liveTiles.slice(liveIndex + 1)];
+  const deadWall = [...wall.deadWall];
+  deadWall[slot] = replacement;
+  return { ...wall, deadWall, liveTiles };
+}

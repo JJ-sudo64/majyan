@@ -120,3 +120,18 @@ export function calcShanten(hand: Hand): number {
   const kokushi = calcKokushiShanten(concealedCodes);
   return Math.min(standard, chiitoi, kokushi);
 }
+
+/** 手牌（14枚相当、まだ何を切るか決めていない状態）から、1枚選んで切った時に
+    実現できる最良のシャンテン数。AIの打牌選択や、有効牌を引き当てる系の
+    必殺技の判定に使う共通処理。removeTileFromHand（hand.ts）を使うと
+    hand.ts→shanten.ts→hand.tsの循環importになるため、ここでは配列操作のみで
+    「1枚抜いた手」を作る。 */
+export function bestShantenAfterDiscard(hand: Hand): number {
+  let best = Infinity;
+  for (let i = 0; i < hand.concealed.length; i++) {
+    const concealed = [...hand.concealed.slice(0, i), ...hand.concealed.slice(i + 1)];
+    const s = calcShanten({ concealed, melds: hand.melds });
+    if (s < best) best = s;
+  }
+  return best;
+}

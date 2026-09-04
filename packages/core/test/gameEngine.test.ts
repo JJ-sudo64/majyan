@@ -21,6 +21,11 @@ function emptyPlayer(codes: TileCode[]): PlayerRoundState {
     doubleRiichi: false,
     ippatsuActive: false,
     isTenpai: false,
+    skillGauge: 0,
+    guaranteedRinshan: false,
+    tileSwapsRemaining: 0,
+    pendingTileSwapNextRound: false,
+    timeStopTurnsRemaining: 0,
   };
 }
 
@@ -36,6 +41,7 @@ function makeWall(liveCodes: TileCode[]): WallState {
 
 function makeRound(overrides: Partial<RoundState> & { players: RoundState["players"] }): RoundState {
   return {
+    format: "hanchan",
     roundWind: 1,
     roundNumber: 1,
     honba: 0,
@@ -50,7 +56,21 @@ function makeRound(overrides: Partial<RoundState> & { players: RoundState["playe
     pendingCallWindow: null,
     kanCount: 0,
     result: null,
+    characterIds: ["", "", "", ""],
     anyCallOrRiichiMade: false,
+    handsRevealedTo: null,
+    wallReadRevealedTo: null,
+    dealerRenchanByWin: false,
+    riichiLockedBy: null,
+    tomohiroGuardCount: 0,
+    cardIds: [null, null, null, null],
+    cardUsesRemaining: [0, 0, 0, 0],
+    cardNegateArmed: [false, false, false, false],
+    cardBonusHan: [0, 0, 0, 0],
+    cardExtraUraDora: [false, false, false, false],
+    cardScoreDoubled: [false, false, false, false],
+    pendingScoreAdjustment: null,
+    lastActivatedSkill: null,
     ...overrides,
   };
 }
@@ -108,6 +128,88 @@ describe("gameEngine turn flow", () => {
       expect(round.phase).toBe("awaiting-draw");
     }
   });
+
+  it("riichi locks the hand: pon/chi/minkan are rejected, skip still works", () => {
+    let round = makeRound({
+      players: [
+        emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"]),
+        { ...emptyPlayer(["5z", "5z", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]), riichi: true },
+        emptyPlayer(["6m", "6m", "6m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      wall: makeWall(["5z", "9s", "9s", "9s"]),
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    round = applyAction(round, { type: "discard", player: 0, tileId: round.lastDrawnTile!.id, tsumogiri: true });
+    expect(round.lastDiscard!.tile.code).toBe("5z");
+
+    const matchingIds = round.players[1].hand.concealed.filter((t) => t.code === "5z").map((t) => t.id);
+    expect(matchingIds.length).toBe(2);
+    expect(() => applyAction(round, { type: "pon", player: 1, usedHandTileIds: [matchingIds[0]!, matchingIds[1]!] })).toThrow();
+
+    const afterSkip = applyAction(round, { type: "skip", player: 1 });
+    expect(afterSkip.pendingCallWindow?.respondedBy).toContain(1);
+  });
+
+  it("if the riichi declaration tile gets called away, the marker (isRiichiDeclaration) transfers to the next discard", () => {
+    let round = makeRound({
+      players: [
+        emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"]), // tenpai (2z tanki)
+        emptyPlayer(["5z", "5z", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer(["6m", "6m", "6m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      // canRiichi requires at least 4 live tiles remaining *after* the draw that
+      // triggers the riichi decision, so keep one spare tile beyond the 4 that
+      // actually get drawn over the course of this test.
+      wall: makeWall(["5z", "9m", "8m", "6m", "9p"]),
+    });
+
+    // player0 draws 5z and riichis on it (discarding it keeps the 2z-tanki tenpai shape).
+    round = applyAction(round, { type: "draw", player: 0 });
+    expect(round.lastDrawnTile!.code).toBe("5z");
+    round = applyAction(round, { type: "riichi", player: 0, tileId: round.lastDrawnTile!.id });
+    expect(round.players[0].discards[0]!.isRiichiDeclaration).toBe(true);
+    expect(round.players[0].discards[0]!.calledAway).toBe(false);
+
+    // player1 pons the riichi declaration tile away (5z 5z + the discarded 5z).
+    const fivezIds = round.players[1].hand.concealed.filter((t) => t.code === "5z").map((t) => t.id);
+    expect(fivezIds.length).toBe(2);
+    round = applyAction(round, { type: "pon", player: 1, usedHandTileIds: [fivezIds[0]!, fivezIds[1]!] });
+    // window's awaitingPlayers = otherPlayers(discarder=0) = [1,2,3]; player1 already
+    // responded via pon, and player0 (the discarder) was never an awaiting player.
+    for (const p of [2, 3] as PlayerIndex[]) round = applyAction(round, { type: "skip", player: p });
+    expect(round.currentTurn).toBe(1);
+    expect(round.players[0].discards[0]!.calledAway).toBe(true); // marker's tile is gone from the river now
+    expect(round.players[0].discards[0]!.isRiichiDeclaration).toBe(true); // but the flag itself stays on that entry
+
+    // player1 discards a hand tile (not a draw, since they just called).
+    const p1DiscardId = round.players[1].hand.concealed.find((t) => t.code === "3m")!.id;
+    round = applyAction(round, { type: "discard", player: 1, tileId: p1DiscardId, tsumogiri: false });
+    for (const p of [0, 2, 3] as PlayerIndex[]) round = applyAction(round, { type: "skip", player: p });
+    expect(round.currentTurn).toBe(2);
+
+    // player2 and player3 each draw-and-discard (tsumogiri) to cycle the turn back to player0.
+    round = applyAction(round, { type: "draw", player: 2 });
+    round = applyAction(round, { type: "discard", player: 2, tileId: round.lastDrawnTile!.id, tsumogiri: true });
+    for (const p of [3, 0, 1] as PlayerIndex[]) round = applyAction(round, { type: "skip", player: p });
+    expect(round.currentTurn).toBe(3);
+
+    round = applyAction(round, { type: "draw", player: 3 });
+    round = applyAction(round, { type: "discard", player: 3, tileId: round.lastDrawnTile!.id, tsumogiri: true });
+    for (const p of [0, 1, 2] as PlayerIndex[]) round = applyAction(round, { type: "skip", player: p });
+    expect(round.currentTurn).toBe(0);
+
+    // player0 draws again (still riichi, forced tsumogiri). This discard should now carry
+    // the isRiichiDeclaration marker, since the original one is no longer visible in their river.
+    round = applyAction(round, { type: "draw", player: 0 });
+    expect(round.lastDrawnTile!.code).toBe("6m");
+    round = applyAction(round, { type: "discard", player: 0, tileId: round.lastDrawnTile!.id, tsumogiri: true });
+    const p0Discards = round.players[0].discards;
+    expect(p0Discards.length).toBe(2);
+    expect(p0Discards[1]!.tile.code).toBe("6m");
+    expect(p0Discards[1]!.isRiichiDeclaration).toBe(true);
+  });
 });
 
 describe("gameEngine win detection", () => {
@@ -145,7 +247,7 @@ describe("gameEngine win detection", () => {
       wall: makeWall(["1s", "9s", "9s", "9s"]),
     });
 
-    const winAnalysis = canDeclareRon(round, 0, "4m");
+    const winAnalysis = canDeclareRon(round, 0, "4m", 1);
     expect(winAnalysis).not.toBeNull();
 
     round = applyAction(round, { type: "draw", player: 1 });

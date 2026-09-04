@@ -1,7 +1,7 @@
 import type { TileCode } from "../tiles.js";
 import { numberOf, suitOf, isTerminalOrHonor, nextTileForDora } from "../tiles.js";
 import { removeTileFromHand, allHandTileCodes, type Hand, type Meld } from "../hand.js";
-import { calcShanten } from "../shanten.js";
+import { calcShanten, bestShantenAfterDiscard } from "../shanten.js";
 import { doraIndicators } from "../wall.js";
 import { seatWindOf, type RoundState } from "../gameState.js";
 import type { GameAction, PlayerIndex } from "../actions.js";
@@ -80,16 +80,6 @@ const AI_PROFILES: Record<AiDifficulty, AiProfile> = {
     callSelectivity: true,
   },
 };
-
-function bestShantenAfterDiscardOptions(hand: Hand): number {
-  let best = Infinity;
-  for (const t of hand.concealed) {
-    const { hand: rest } = removeTileFromHand(hand, t.id);
-    const s = calcShanten(rest);
-    if (s < best) best = s;
-  }
-  return best;
-}
 
 /** 表ドラの牌コード集合（実際にドラとして加算される牌。表示牌そのものではない）。 */
 function computeDoraCodes(round: RoundState): Set<TileCode> {
@@ -237,6 +227,47 @@ export function decideTurnAction(round: RoundState, player: PlayerIndex, difficu
   return { type: "discard", player, tileId: bestTileId, tsumogiri: bestTileId === round.lastDrawnTile?.id };
 }
 
+/** 現在の手牌の中で「これを抜いた時にシャンテンが一番良く保てる牌」＝最も不要な
+    1枚を選ぶ。通常の打牌選択と同じ基準。手牌が空ならnull。 */
+function pickLeastUsefulTile(hand: Hand, round: RoundState, player: PlayerIndex, doraCodes: Set<TileCode>): string | null {
+  if (hand.concealed.length === 0) return null;
+  let bestTileId: string | null = null;
+  let bestPenalty = Infinity;
+  for (const t of hand.concealed) {
+    const { hand: rest } = removeTileFromHand(hand, t.id);
+    const shanten = calcShanten(rest);
+    const terminalOrHonor = isTerminalOrHonor(t.code);
+    const sameCodeCount = hand.concealed.filter((x) => x.code === t.code).length;
+    const isValuable = t.isRed === true || doraCodes.has(t.code) || (sameCodeCount >= 2 && isYakuhaiCode(t.code, round, player));
+    const penalty = shanten * 1000 + (isValuable ? 10 : 0) + (terminalOrHonor ? 0 : 1);
+    if (penalty < bestPenalty) {
+      bestPenalty = penalty;
+      bestTileId = t.id;
+    }
+  }
+  return bestTileId;
+}
+
+/**
+ * ルナの必殺技で得た配牌入れ替え権をCPUがどの牌に使うか決める。3枚同時に選んで
+ * 同時に交換する仕様のため、ここでは実際に手牌を書き換えずローカルなHandの
+ * コピー上でだけ「抜いたことにして」次の1枚を選び直す、を count回繰り返し、
+ * 交換すべきcount枚をまとめて返す。難易度による強弱は設けない（配牌直後の
+ * 1回きりの判断のため）。
+ */
+export function decideTileSwaps(round: RoundState, player: PlayerIndex, count: number): string[] {
+  const doraCodes = computeDoraCodes(round);
+  let hand = round.players[player].hand;
+  const chosen: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const tileId = pickLeastUsefulTile(hand, round, player, doraCodes);
+    if (!tileId) break;
+    chosen.push(tileId);
+    hand = removeTileFromHand(hand, tileId).hand;
+  }
+  return chosen;
+}
+
 function findChiOptions(hand: Hand, discardTile: TileCode): [TileCode, TileCode][] {
   if (discardTile.endsWith("z")) return [];
   const n = numberOf(discardTile);
@@ -256,12 +287,14 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
   const window = round.pendingCallWindow!;
   const discardTile = window.discardTile;
 
-  const ronAnalysis = canDeclareRon(round, player, discardTile.code, window.isChankan);
+  const ronAnalysis = canDeclareRon(round, player, discardTile.code, window.discarderIndex, window.isChankan);
   if (ronAnalysis) return { type: "ron", player };
 
   if (window.isChankan) return { type: "skip", player };
 
   const hand = round.players[player].hand;
+  // リーチ後は手牌が固定されるため、ロン以外の宣言（チー/ポン/カン）はできない。
+  if (round.players[player].riichi) return { type: "skip", player };
   const currentShanten = calcShanten(hand);
 
   const matches = hand.concealed.filter((t) => t.code === discardTile.code);
@@ -284,7 +317,7 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
     const { hand: afterB } = removeTileFromHand(afterA, b!.id);
     const meld: Meld = { type: "pon", tiles: [discardTile, a!, b!] };
     const probe: Hand = { concealed: afterB.concealed, melds: [...afterB.melds, meld] };
-    const best = bestShantenAfterDiscardOptions(probe);
+    const best = bestShantenAfterDiscard(probe);
     const yakuOk = !profile.callSelectivity || hasPlausibleYakuOpen(probe, round, player);
     if (best < currentShanten && yakuOk) {
       return { type: "pon", player, usedHandTileIds: [a!.id, b!.id] };
@@ -303,7 +336,7 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
       const { hand: after2 } = removeTileFromHand(after1, t2.id);
       const meld: Meld = { type: "chi", tiles: [discardTile, t1, t2] };
       const probe: Hand = { concealed: after2.concealed, melds: [...after2.melds, meld] };
-      const best = bestShantenAfterDiscardOptions(probe);
+      const best = bestShantenAfterDiscard(probe);
       const yakuOk = !profile.callSelectivity || hasPlausibleYakuOpen(probe, round, player);
       if (best < bestShantenAfter && yakuOk) {
         bestShantenAfter = best;

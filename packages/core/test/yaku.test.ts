@@ -27,6 +27,7 @@ const baseContext: WinContext = {
   chankan: false,
   doraIndicators: [],
   uraDoraIndicators: [],
+  bonusHan: 0,
 };
 
 function ctx(overrides: Partial<WinContext>): WinContext {
@@ -161,11 +162,76 @@ describe("analyzeWin - yakuman", () => {
   });
 });
 
+describe("analyzeWin - yakuhai shanpon (\"役牌バック\")", () => {
+  it("open hand, tsumo on the yakuhai side of a shanpon wait, is a valid win via yakuhai", () => {
+    const ponMeld: Meld = { type: "pon", tiles: [tile("1s"), tile("1s"), tile("1s")] };
+    // 234m 567p 5z5z(白) 3p3p のシャンポン待ち。白をツモって白の刻子が完成する。
+    const h = hand(["2m", "3m", "4m", "5p", "6p", "7p", "5z", "5z", "5z", "3p", "3p"], [ponMeld]);
+    const result = analyzeWin(h, ctx({ winTile: "5z", isTsumo: true, seatWind: 2, roundWind: 1 }));
+    expect(result).not.toBeNull();
+    expect(yakuNames(result!.yaku)).toContain("役牌:白");
+  });
+
+  it("open hand, tsumo on the non-yakuhai side of the same shanpon wait, has no yaku", () => {
+    const ponMeld: Meld = { type: "pon", tiles: [tile("1s"), tile("1s"), tile("1s")] };
+    const h = hand(["2m", "3m", "4m", "5p", "6p", "7p", "5z", "5z", "3p", "3p", "3p"], [ponMeld]);
+    const result = analyzeWin(h, ctx({ winTile: "3p", isTsumo: true, seatWind: 2, roundWind: 1 }));
+    expect(result).toBeNull();
+  });
+
+  it("open hand, tsumo on the seat-wind side of a shanpon wait", () => {
+    const ponMeld: Meld = { type: "pon", tiles: [tile("1s"), tile("1s"), tile("1s")] };
+    // seatWind=2(南) -> 自風牌は2z
+    const h = hand(["2m", "3m", "4m", "5p", "6p", "7p", "2z", "2z", "2z", "3p", "3p"], [ponMeld]);
+    const result = analyzeWin(h, ctx({ winTile: "2z", isTsumo: true, seatWind: 2, roundWind: 1 }));
+    expect(result).not.toBeNull();
+    expect(yakuNames(result!.yaku)).toContain("自風牌");
+  });
+
+  it("open hand, tsumo on the round-wind side of a shanpon wait", () => {
+    const ponMeld: Meld = { type: "pon", tiles: [tile("1s"), tile("1s"), tile("1s")] };
+    // roundWind=1(東) -> 場風牌は1z
+    const h = hand(["2m", "3m", "4m", "5p", "6p", "7p", "1z", "1z", "1z", "3p", "3p"], [ponMeld]);
+    const result = analyzeWin(h, ctx({ winTile: "1z", isTsumo: true, seatWind: 2, roundWind: 1 }));
+    expect(result).not.toBeNull();
+    expect(yakuNames(result!.yaku)).toContain("場風牌");
+  });
+});
+
 describe("analyzeWin - dora", () => {
   it("dora counted only when a real yaku exists", () => {
     const h = hand(["2m","3m","4m","4p","5p","6p","3s","4s","5s","6s","7s","8s","9p","9p"]);
     const result = analyzeWin(h, ctx({ winTile: "4m", doraIndicators: ["3m"] }));
     // dora indicator 3m -> dora is 4m; hand has two 4m (one from sequence 2m3m4m... wait only one 4m). Just check it doesn't error.
     expect(result).not.toBeNull();
+  });
+});
+
+describe("analyzeWin - card effect (bonusHan)", () => {
+  it("adds a han-up card's bonus as its own yaku entry on top of a real yaku", () => {
+    const h = hand(["2m","3m","4m","4p","5p","6p","3s","4s","5s","6s","7s","8s","8p","8p"]);
+    const withoutBonus = analyzeWin(h, ctx({ winTile: "4m", riichi: true }));
+    const withBonus = analyzeWin(h, ctx({ winTile: "4m", riichi: true, bonusHan: 2 }));
+    expect(withoutBonus).not.toBeNull();
+    expect(withBonus).not.toBeNull();
+    expect(yakuNames(withBonus!.yaku)).toContain("カード効果");
+    expect(withBonus!.han).toBe(withoutBonus!.han + 2);
+  });
+
+  it("does not create a win by itself when there is no other yaku (like dora)", () => {
+    const melds: Meld[] = [
+      { type: "chi", tiles: [tile("1p"), tile("2p"), tile("3p")], calledFromRelative: 1, calledTile: tile("1p") },
+    ];
+    const h = hand(["2m","3m","4m","4p","5p","6p","3s","4s","5s","9p","9p"], melds);
+    const result = analyzeWin(h, ctx({ winTile: "5s", bonusHan: 2 }));
+    expect(result).toBeNull();
+  });
+
+  it("does not apply to a yakuman hand", () => {
+    const h = hand(["5z","5z","5z","6z","6z","6z","7z","7z","7z","2m","3m","4m","9s","9s"]);
+    const result = analyzeWin(h, ctx({ winTile: "9s", isTsumo: true, bonusHan: 2 }));
+    expect(result).not.toBeNull();
+    expect(result!.isYakuman).toBe(true);
+    expect(yakuNames(result!.yaku)).not.toContain("カード効果");
   });
 });

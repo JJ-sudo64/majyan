@@ -21,16 +21,22 @@ export const STAGE_HEIGHT = 748;
  * 画面が縦に狭ければ左右に、逆に縦長なら上下に余白（レターボックス）ができる形で
  * 1920x1080のキャンバスを一律スケールする。中のレイアウトはこのキャンバス基準の
  * 固定pxのままでよく、画面サイズごとに個別調整する必要がない。
+ *
+ * 縮小には transform: scale() ではなく zoom を使う。transform: scale() は
+ * コンポジタが「描画済みのビットマップを後から引き伸ばす」形になるため、
+ * 特にSVG(<img src="*.svg">)がその引き伸ばし前の解像度でラスタライズ
+ * キャッシュされたままになりやすく、牌画像・回転させた点数表示・河など
+ * 卓のあちこちが縮尺次第でぼやけて見える不具合の温床になっていた
+ * （子要素側で個別にbackface-visibility等の補正を積み重ねてもキリがない）。
+ * zoomはレイアウト計算そのものを縮尺後のサイズで行う（＝実際にその解像度で
+ * 描き直す）ため、この種のぼやけがそもそも起こらない。
  */
 export function Stage({ children }: { children: ReactNode }) {
   const { containerRef, scale } = useFitScale(STAGE_WIDTH, STAGE_HEIGHT);
 
   return (
     <div className="stage" ref={containerRef}>
-      <div
-        className="stage__canvas"
-        style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT, transform: `scale(${scale})` }}
-      >
+      <div className="stage__canvas" style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT, zoom: scale }}>
         {children}
       </div>
     </div>

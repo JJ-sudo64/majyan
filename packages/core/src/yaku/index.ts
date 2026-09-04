@@ -21,12 +21,18 @@ export interface WinContext {
   riichi: boolean;
   doubleRiichi: boolean;
   ippatsu: boolean;
+  /** 必殺技「大明立直」でオープンリーチ（手牌公開）として立直していたか。
+      和了できれば「オープンリーチ」役として+3翻される。 */
+  openRiichi: boolean;
   haitei: boolean;
   houtei: boolean;
   rinshan: boolean;
   chankan: boolean;
   doraIndicators: TileCode[];
   uraDoraIndicators: TileCode[];
+  /** カード「小手先の一翻」「会心の二翻」で加算される翻数。ドラと同様、
+      既に他に役がある和了にのみ乗る（役満には乗らない）。 */
+  bonusHan: number;
 }
 
 export interface YakuResult {
@@ -246,6 +252,7 @@ function evaluateRegularYaku(
   if (context.doubleRiichi) results.push({ name: "ダブル立直", han: 2 });
   else if (context.riichi) results.push({ name: "立直", han: 1 });
   if (context.ippatsu && (context.riichi || context.doubleRiichi)) results.push({ name: "一発", han: 1 });
+  if (context.openRiichi && (context.riichi || context.doubleRiichi)) results.push({ name: "オープンリーチ", han: 3 });
   if (!isOpen && context.isTsumo) results.push({ name: "門前清自摸和", han: 1 });
   if (context.haitei && context.isTsumo) results.push({ name: "海底摸月", han: 1 });
   if (context.houtei && !context.isTsumo) results.push({ name: "河底撈魚", han: 1 });
@@ -377,6 +384,7 @@ function evaluateChiitoitsuYaku(pairs: TileCode[], context: WinContext, allCodes
   if (context.doubleRiichi) results.push({ name: "ダブル立直", han: 2 });
   else if (context.riichi) results.push({ name: "立直", han: 1 });
   if (context.ippatsu && (context.riichi || context.doubleRiichi)) results.push({ name: "一発", han: 1 });
+  if (context.openRiichi && (context.riichi || context.doubleRiichi)) results.push({ name: "オープンリーチ", han: 3 });
   if (context.isTsumo) results.push({ name: "門前清自摸和", han: 1 });
   if (context.haitei && context.isTsumo) results.push({ name: "海底摸月", han: 1 });
   if (context.houtei && !context.isTsumo) results.push({ name: "河底撈魚", han: 1 });
@@ -469,7 +477,10 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
       if (dora > 0) yakuList.push({ name: "ドラ", han: dora });
       if (uraDora > 0) yakuList.push({ name: "裏ドラ", han: uraDora });
       if (akaDora > 0) yakuList.push({ name: "赤ドラ", han: akaDora });
-      const hasRealYaku = yakuList.some((y) => y.name !== "ドラ" && y.name !== "裏ドラ" && y.name !== "赤ドラ");
+      if (context.bonusHan > 0) yakuList.push({ name: "カード効果", han: context.bonusHan });
+      const hasRealYaku = yakuList.some(
+        (y) => y.name !== "ドラ" && y.name !== "裏ドラ" && y.name !== "赤ドラ" && y.name !== "カード効果",
+      );
       if (!hasRealYaku) continue;
       const han = yakuList.reduce((a, y) => a + y.han, 0);
       const analysis: WinAnalysis = { yaku: yakuList, han, fu: 25, isYakuman: false, yakumanMultiplier: 0 };
@@ -488,6 +499,7 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
     if (dora > 0) fullYakuList.push({ name: "ドラ", han: dora });
     if (uraDora > 0) fullYakuList.push({ name: "裏ドラ", han: uraDora });
     if (akaDora > 0) fullYakuList.push({ name: "赤ドラ", han: akaDora });
+    if (context.bonusHan > 0) fullYakuList.push({ name: "カード効果", han: context.bonusHan });
 
     const han = fullYakuList.reduce((a, y) => a + y.han, 0);
     const fu = calcFu(cand, isOpen, context, yakuList);

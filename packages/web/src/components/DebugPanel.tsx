@@ -8,6 +8,7 @@ export function DebugPanel() {
   const debugRewind = useGameStore((s) => s.debugRewind);
   const debugSetSpeed = useGameStore((s) => s.debugSetSpeed);
   const debugTogglePause = useGameStore((s) => s.debugTogglePause);
+  const backToTitle = useGameStore((s) => s.backToTitle);
 
   if (!debugMode) return null;
 
@@ -28,6 +29,9 @@ export function DebugPanel() {
       </button>
       <button className="btn btn--secondary" onClick={debugRewind} disabled={historyLength === 0}>
         ⏪ 巻き戻す（{historyLength}）
+      </button>
+      <button className="btn btn--secondary debug-panel__quit" onClick={backToTitle}>
+        ⏹ 途中終了
       </button>
     </div>
   );

@@ -19,6 +19,14 @@ export interface TileViewProps {
       光らせる意味が薄い、という指摘を受けfalseにできるようにした）。
       未指定時はtrue。 */
   highlightable?: boolean;
+  /** ロン/チー/ポン/カンの対象になっている牌かどうか。じゃんたま同様、
+      どの牌に対して鳴こうとしているか一目でわかるよう強めに光らせる
+      （hoveredCode一致によるtile--highlightedとは独立で、常時表示される）。 */
+  callTarget?: boolean;
+  /** マサトの必殺技「三色の煌めき」発動中、三色同順に絡みそうな牌として
+      一時的に光らせる対象かどうか。ホバー起点のtile--highlightedとは
+      独立した、時間経過で消える演出用の別クラス。 */
+  sanshokuHint?: boolean;
   /** styleの--enter-x/--enter-yを起点に静止位置へ滑り込むアニメーションを再生する。
       "default"はそのまま滑り込むだけ、"tsumogiri"は起点でいったん静止して
       間を置いてから運ばれる2段階演出（河のツモ切り牌専用）。 */
@@ -34,7 +42,7 @@ export interface TileViewProps {
 }
 
 export const TileView = forwardRef<HTMLButtonElement, TileViewProps>(function TileView(
-  { code, faceDown, selected, rotated, dimmed, small, tiny, drawn, red, highlightable = true, slideIn, onHoverChange, style, onClick },
+  { code, faceDown, selected, rotated, dimmed, small, tiny, drawn, red, highlightable = true, callTarget, sanshokuHint, slideIn, onHoverChange, style, onClick },
   ref,
 ) {
   // じゃんたま風に、同じ牌にカーソルを合わせたら河・副露など盤面上の
@@ -81,6 +89,8 @@ export const TileView = forwardRef<HTMLButtonElement, TileViewProps>(function Ti
   else if (small) classes.push("tile--small");
   if (drawn) classes.push("tile--drawn");
   if (highlighted) classes.push("tile--highlighted");
+  if (callTarget) classes.push("tile--call-target");
+  if (sanshokuHint) classes.push("tile--sanshoku-hint");
   if (isDora) classes.push("tile--dora");
   if (slideIn === "tsumogiri") classes.push("tile--slide-in-tsumogiri");
   else if (slideIn) classes.push("tile--slide-in");
@@ -119,14 +129,16 @@ export const TileView = forwardRef<HTMLButtonElement, TileViewProps>(function Ti
             }
       }
     >
-      {faceDown ? (
-        <img className="tile__img" src={TILE_BACK_SRC} alt="" draggable={false} />
-      ) : (
-        <>
-          <img className="tile__img tile__img--base" src={TILE_FRONT_SRC} alt="" draggable={false} />
-          <img className="tile__img tile__img--face" src={tileImageSrc(code, red)} alt="" draggable={false} />
-        </>
-      )}
+      <span className="tile__face">
+        {faceDown ? (
+          <img className="tile__img" src={TILE_BACK_SRC} alt="" draggable={false} />
+        ) : (
+          <>
+            <img className="tile__img tile__img--base" src={TILE_FRONT_SRC} alt="" draggable={false} />
+            <img className="tile__img tile__img--face" src={tileImageSrc(code, red)} alt="" draggable={false} />
+          </>
+        )}
+      </span>
     </button>
   );
 });

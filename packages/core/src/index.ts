@@ -11,3 +11,5 @@ export * from "./yaku/index.js";
 export * from "./scoring.js";
 export * from "./ai/simpleAi.js";
 export * from "./skills/types.js";
+export * from "./characters.js";
+export * from "./cards.js";

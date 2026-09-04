@@ -57,11 +57,34 @@ function toLocalDelta(direction: RiverDirection, screenDx: number, screenDy: num
   return [cos * screenDx - sin * screenDy, sin * screenDx + cos * screenDy];
 }
 
-export function DiscardPile({ discards, direction }: { discards: DiscardedTile[]; direction: RiverDirection }) {
-  const visible = discards.length > MAX_VISIBLE ? discards.slice(discards.length - MAX_VISIBLE) : discards;
-  const latestIndex = visible.length - 1;
+export function DiscardPile({
+  discards,
+  direction,
+  callTargetTileId,
+  frozen,
+}: {
+  discards: DiscardedTile[];
+  direction: RiverDirection;
+  /** ロン/チー/ポン/カンの対象になっている牌のid。一致する牌を光らせて
+      「どの牌に対して鳴こうとしているか」を分かりやすくする。 */
+  callTargetTileId?: string;
+  /** 必殺技「時間停止」発動中、発動者以外の河をグレーアウトする演出用。
+      発動者本人の河はfalse（通常表示のまま）のまま渡される。 */
+  frozen?: boolean;
+}) {
+  // 鳴かれた牌は実物の麻雀と同じく、鳴いた側の副露に移ったものとして河からは
+  // 完全に取り除く（以前は半透明のまま河に残していたが「実際の麻雀と見た目が
+  // 違って不自然」との指摘のため）。
+  const notCalledAway = discards.filter((d) => !d.calledAway);
+  const visible = notCalledAway.length > MAX_VISIBLE ? notCalledAway.slice(notCalledAway.length - MAX_VISIBLE) : notCalledAway;
   const latestTileRef = useRef<HTMLButtonElement>(null);
-  const latest = latestIndex >= 0 ? visible[latestIndex] : undefined;
+  // 「一番最後に切られた牌」はdiscards（鳴きによる除外前）の末尾で判定する。
+  // 鳴かれてvisibleから消えたのがちょうど直近の1枚だった場合、繰り上がった
+  // visible配列の末尾（実際はもっと古い牌）を最新と誤判定してしまい、
+  // とっくに河に馴染んでいた牌へ入場アニメーションが今さら再生される
+  // 不具合になるため、visibleの配列位置ではなく牌のidそのもので照合する。
+  const trueLatestId = discards.length > 0 ? discards[discards.length - 1]!.tile.id : undefined;
+  const latest = visible.find((d) => d.tile.id === trueLatestId);
 
   // ツモ切り牌だけ、実際の手牌の位置を計測してそこを入場アニメーションの
   // 起点にする。「手牌の端に置かれた牌がそのまま河へ運ばれる」という
@@ -89,15 +112,20 @@ export function DiscardPile({ discards, direction }: { discards: DiscardedTile[]
     // これは.opponent-hand-back__innerの回転方向（styles.css参照）に依存
     // する: DOM順で最後（＝tile--drawn）はpre-rotationで一番右にあり、
     // rotate(90deg)（上家）だと画面下、rotate(-90deg)（下家）だと画面上へ
-    // 移る。対面は自分と正対している＝鏡写しの関係なので、対面自身の右端
-    // （row-reverseで画面左に描画）を使う。人間の自分の手牌は鏡関係が無い
-    // のでそのまま右端。
-    const horizontal = handRect.width >= handRect.height;
-    const anchorX = horizontal
-      ? direction === "top"
-        ? handRect.left + handRect.height / 2
-        : handRect.right - handRect.height / 2
-      : handRect.left + handRect.width / 2;
+    // 移る。対面は以前「自分と正対している＝鏡写し」としてrow-reverseで
+    // 左右反転させていたが、萬子/筒子/索子の並びが自分の手牌と逆向きで
+    // 見づらいとの指摘のためその反転をやめた。対面も人間の自分の手牌と
+    // 同じくDOM順そのまま＝右端がtile--drawn側になる。
+    // 以前はhandRect.width >= handRect.heightで横長/縦長を判定していたが、
+    // 上家・下家(.opponent-hand-back)の高さは鳴きで手牌が減った分だけ
+    // 動的に縮むようになった（OpponentArea.tsx参照）ため、手牌がかなり
+    // 少ない終盤（例: 4副露+単騎待ちで残り1枚）だと高さが横幅(45px)を
+    // 下回り、この比較が誤って反転してしまうことがあった。反転すると
+    // 入場アニメーションの起点が全く別の場所に飛び、捨て牌がぶれて見える。
+    // 横長/縦長は手牌の実測サイズではなく、対面の向き（direction）だけで
+    // 一意に決まる（top/human=横長、left/right=縦長）ため、そちらで判定する。
+    const horizontal = direction === "top" || direction === "human";
+    const anchorX = horizontal ? handRect.right - handRect.height / 2 : handRect.left + handRect.width / 2;
     const anchorY = horizontal
       ? handRect.top + handRect.height / 2
       : direction === "left"
@@ -118,9 +146,9 @@ export function DiscardPile({ discards, direction }: { discards: DiscardedTile[]
   }, [latest, direction]);
 
   return (
-    <div className="discard-pile">
-      {visible.map((d, i) => {
-        const isLatest = i === latestIndex;
+    <div className={`discard-pile${frozen ? " table__frozen" : ""}`}>
+      {visible.map((d) => {
+        const isLatest = d.tile.id === trueLatestId;
         const isLatestTsumogiri = isLatest && d.isTsumogiri;
         return (
           <TileView
@@ -129,8 +157,8 @@ export function DiscardPile({ discards, direction }: { discards: DiscardedTile[]
             code={d.tile.code}
             small
             rotated={d.isRiichiDeclaration}
-            dimmed={d.calledAway}
             red={d.tile.isRed}
+            callTarget={d.tile.id === callTargetTileId}
             slideIn={isLatest ? (d.isTsumogiri ? "tsumogiri" : "default") : undefined}
             style={isLatest ? (isLatestTsumogiri ? undefined : tegiriOffset(direction)) : undefined}
           />

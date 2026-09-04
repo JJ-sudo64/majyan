@@ -75,6 +75,23 @@ export interface SkipAction {
   player: PlayerIndex;
 }
 
+export interface UseSkillAction {
+  type: "useSkill";
+  player: PlayerIndex;
+}
+
+export interface UseCardAction {
+  type: "useCard";
+  player: PlayerIndex;
+}
+
+export interface SwapTilesAction {
+  type: "swapTiles";
+  player: PlayerIndex;
+  /** 同時に交換して山に返す牌（手牌内、まとめて1回で処理する） */
+  tileIds: string[];
+}
+
 export type GameAction =
   | DrawAction
   | DiscardAction
@@ -87,4 +104,7 @@ export type GameAction =
   | TsumoAction
   | RonAction
   | KyushuKyuhaiAction
-  | SkipAction;
+  | SkipAction
+  | UseSkillAction
+  | SwapTilesAction
+  | UseCardAction;

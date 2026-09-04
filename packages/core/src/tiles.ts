@@ -115,6 +115,22 @@ export function nextTileForDora(indicator: TileCode): TileCode {
   return `${next as HonorNumber}z`;
 }
 
+/** nextTileForDoraの逆関数。「この牌をドラにするにはどの表示牌が必要か」を逆算する。 */
+export function prevTileForDora(target: TileCode): TileCode {
+  if (isNumbered(target)) {
+    const n = numberOf(target);
+    const prev = n === 1 ? 9 : n - 1;
+    return `${prev as SuitNumber}${suitOf(target) as NumberedSuit}`;
+  }
+  const n = numberOf(target);
+  if (n >= 1 && n <= 4) {
+    const prev = n === 1 ? 4 : n - 1;
+    return `${prev as HonorNumber}z`;
+  }
+  const prev = n === 5 ? 7 : n - 1;
+  return `${prev as HonorNumber}z`;
+}
+
 export function compareTileCode(a: TileCode, b: TileCode): number {
   return tileCodeToIndex(a) - tileCodeToIndex(b);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMatch } from "../src/matchFormat.js";
-import { planNextRound, dealNewRound } from "../src/matchFormat.js";
+import { planNextRound, dealNewRound, settleLeftoverKyotaku } from "../src/matchFormat.js";
 import { applyAction, computeRoundScoreOutcome, RIICHI_STICK_COST } from "../src/gameEngine.js";
 import { decideTurnAction, decideCallResponse } from "../src/ai/simpleAi.js";
 import type { PlayerIndex } from "../src/actions.js";
@@ -58,6 +58,10 @@ function playFullMatch(format: MatchFormat, seed: number) {
     const plan = planNextRound(round, format, result.dealerContinues, keepKyotaku);
 
     if (plan.matchOver) {
+      // 対局終了時、次局へ持ち越すはずだった供託(plan.kyotaku)の行き先が
+      // 無くなるため、gameStore.tsの本番挙動と同じく総合トップへ精算する
+      // （そうしないとゼロサムが崩れる。matchFormat.tsのコメント参照）。
+      scores = settleLeftoverKyotaku(scores, plan.kyotaku);
       match = { ...match, round, scores, finished: true };
       break;
     }
