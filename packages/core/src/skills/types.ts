@@ -92,5 +92,18 @@ export interface Character {
   gaugePerTurn: number;
   /** 自分が放銃した時に追加で増えるゲージ量（逆転要素）。 */
   gaugePerDealIn: number;
+  /** カリン専用: 自身のonActivateを持たず、ゲージ満タン時に同卓者3人の
+      うち好きな1人の必殺技を選んで代わりに発動する（borrowSkillアクション。
+      gameEngine.tsのcanBorrowSkill/applyBorrowSkillAction参照）。このフラグを
+      持つキャラはskill.hooks.onActivateが無くてもUI側（Hand.tsx）が
+      通常の必殺技ボタンの代わりに相手選択UIを出す。 */
+  borrowsSkill?: boolean;
+  /** ミオ専用: 自身のonActivateを持たず、ゲージ満タン時に自分の河（鳴かれて
+      いないもの限定）から1枚選んで手牌に戻し、代わりに手牌の別の1枚をその場で
+      切り直す（retrieveDiscardアクション。gameEngine.tsのcanRetrieveDiscard/
+      applyRetrieveDiscardAction参照）。このフラグを持つキャラはskill.hooks.
+      onActivateが無くてもUI側（Hand.tsx/Table.tsx）が「取り返す河の1枚→
+      代わりに切る手牌の1枚」の2段階選択UIを出す。 */
+  retrievesDiscard?: boolean;
   skill: CharacterSkill;
 }

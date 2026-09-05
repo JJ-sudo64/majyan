@@ -62,6 +62,8 @@ export function DiscardPile({
   direction,
   callTargetTileId,
   frozen,
+  onTileClick,
+  selectedTileId,
 }: {
   discards: DiscardedTile[];
   direction: RiverDirection;
@@ -71,6 +73,10 @@ export function DiscardPile({
   /** 必殺技「時間停止」発動中、発動者以外の河をグレーアウトする演出用。
       発動者本人の河はfalse（通常表示のまま）のまま渡される。 */
   frozen?: boolean;
+  /** ミオの必殺技「取り返し」選択中: 河の牌をクリック可能にする（自分の河のみ渡される）。 */
+  onTileClick?: (tileId: string) => void;
+  /** 「取り返し」選択中に既に選んだ牌のid（選択中の見た目強調用）。 */
+  selectedTileId?: string;
 }) {
   // 鳴かれた牌は実物の麻雀と同じく、鳴いた側の副露に移ったものとして河からは
   // 完全に取り除く（以前は半透明のまま河に残していたが「実際の麻雀と見た目が
@@ -159,8 +165,10 @@ export function DiscardPile({
             rotated={d.isRiichiDeclaration}
             red={d.tile.isRed}
             callTarget={d.tile.id === callTargetTileId}
+            selected={d.tile.id === selectedTileId}
             slideIn={isLatest ? (d.isTsumogiri ? "tsumogiri" : "default") : undefined}
             style={isLatest ? (isLatestTsumogiri ? undefined : tegiriOffset(direction)) : undefined}
+            onClick={onTileClick ? () => onTileClick(d.tile.id) : undefined}
           />
         );
       })}

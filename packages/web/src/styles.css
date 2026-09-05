@@ -2035,6 +2035,13 @@ button {
   flex-shrink: 0;
 }
 
+/* ミオの必殺技「取り返し」選択中、河から選ぶ段階であることを示す案内文。 */
+.call-actions__hint {
+  color: #eee;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
 /* 元々はposition: fixedだったが、それは.stage__canvas側のtransformが
    fixed要素の包含ブロックをこの卓自身に閉じ込めていたことに依存していた
    （transformを持つ要素はfixed子孫の包含ブロックになる仕様）。卓の縮小を

@@ -80,6 +80,22 @@ export interface UseSkillAction {
   player: PlayerIndex;
 }
 
+export interface BorrowSkillAction {
+  type: "borrowSkill";
+  player: PlayerIndex;
+  /** 技を借りる相手（自分以外） */
+  target: PlayerIndex;
+}
+
+export interface RetrieveDiscardAction {
+  type: "retrieveDiscard";
+  player: PlayerIndex;
+  /** 手牌に取り返す、自分の河にある牌のid */
+  reclaimTileId: string;
+  /** 代わりにその場で切り直す、手牌内の牌のid */
+  replacementTileId: string;
+}
+
 export interface UseCardAction {
   type: "useCard";
   player: PlayerIndex;
@@ -106,5 +122,7 @@ export type GameAction =
   | KyushuKyuhaiAction
   | SkipAction
   | UseSkillAction
+  | BorrowSkillAction
+  | RetrieveDiscardAction
   | SwapTilesAction
   | UseCardAction;

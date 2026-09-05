@@ -11,6 +11,8 @@ import {
   canKyushuKyuhai,
   canUseCard,
   canUseSkill,
+  borrowableSkillTargets,
+  reclaimableDiscardTileIds,
   canSwapStartingTile,
   getWaitingTiles,
   doraIndicators,
@@ -19,6 +21,7 @@ import {
 } from "@majyan/core";
 import { useGameStore, TIME_STOP_FAKE_TURN_STEP_MS } from "../store/gameStore.js";
 import { useSettingsStore } from "../store/settingsStore.js";
+import { useRetrieveDiscardStore } from "../store/retrieveDiscardStore.js";
 import { TileView } from "./TileView.js";
 import { CallPrompt } from "./CallPrompt.js";
 import { SkillGauge } from "./SkillGauge.js";
@@ -113,6 +116,8 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
   const humanKakan = useGameStore((s) => s.humanKakan);
   const humanKyushuKyuhai = useGameStore((s) => s.humanKyushuKyuhai);
   const humanUseSkill = useGameStore((s) => s.humanUseSkill);
+  const humanBorrowSkill = useGameStore((s) => s.humanBorrowSkill);
+  const humanRetrieveDiscard = useGameStore((s) => s.humanRetrieveDiscard);
   const humanUseCard = useGameStore((s) => s.humanUseCard);
   const humanSwapTiles = useGameStore((s) => s.humanSwapTiles);
   const [riichiMode, setRiichiMode] = useState(false);
@@ -123,6 +128,13 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
   // 選択中の牌idも別途保持する。
   const [swapMode, setSwapMode] = useState(false);
   const [swapSelection, setSwapSelection] = useState<string[]>([]);
+  // ミオの必殺技「取り返し」用（河の1枚→手牌の1枚、の2段階選択）。河は
+  // Table.tsx側の別コンポーネントで選ぶため、riichiMode/swapModeと違い
+  // useStateではなく専用のクロスコンポーネントstoreで共有する。
+  const retrieveActive = useRetrieveDiscardStore((s) => s.active);
+  const retrieveReclaimTileId = useRetrieveDiscardStore((s) => s.reclaimTileId);
+  const startRetrieve = useRetrieveDiscardStore((s) => s.start);
+  const cancelRetrieve = useRetrieveDiscardStore((s) => s.cancel);
   // リーチ選択中の待ちプレビュー専用のホバー状態。盤面全体で共有される
   // hoveredCode（同一牌ハイライト用、code単位）をそのまま使うと、河や
   // 他家の副露にたまたま同じcodeの牌が見えているだけでもプレビューが
@@ -142,6 +154,18 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
   const kyushuOk = isMyTurn && canKyushuKyuhai(round, HUMAN);
   const skillReady = isMyTurn && canUseSkill(round, HUMAN);
   const character = CHARACTERS[round.characterIds[HUMAN]];
+  // カリンの「借り物競争」用: 自分のonActivateを持たず、代わりに同卓者3人の
+  // うち今借りられる相手だけを選択肢として出す（characters.tsのkarin参照）。
+  const borrowTargets = isMyTurn && character?.borrowsSkill ? borrowableSkillTargets(round, HUMAN) : [];
+  // ミオの「取り返し」用: 自分のonActivateを持たず、代わりにゲージ満タン時
+  // （リーチ中は不可）に自分の河から取り返せる牌がある場合だけボタンを出す
+  // （characters.tsのmio参照）。
+  const retrieveReady =
+    isMyTurn &&
+    !!character?.retrievesDiscard &&
+    !player.riichi &&
+    player.skillGauge >= character.gaugeMax &&
+    reclaimableDiscardTileIds(round, HUMAN).length > 0;
   // 必殺技発動の演出はTable.tsxのSkillActivationOverlay（卓全体を使った
   // ド派手な演出）に一本化したため、ここでの個別表示は行わない。
 
@@ -168,7 +192,24 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
     }
   }, [swapAvailable, swapMode]);
 
+  // 手番が過ぎた等で「取り返し」モードに入ったまま操作不能に見えないよう、
+  // 自分の手番でなくなったら自動でモードを抜ける（swapAvailableと同じ考え方）。
+  useEffect(() => {
+    if (retrieveActive && !isMyTurn) {
+      cancelRetrieve();
+    }
+  }, [retrieveActive, isMyTurn, cancelRetrieve]);
+
   function handleTileClick(tileId: string) {
+    if (retrieveActive) {
+      // 河の1枚をまだ選んでいない間は、手牌クリックは何もしない
+      // （先にTable.tsx側の自分の河から取り返す1枚を選ぶ必要がある）。
+      if (retrieveReclaimTileId) {
+        humanRetrieveDiscard(retrieveReclaimTileId, tileId);
+        cancelRetrieve();
+      }
+      return;
+    }
     if (swapMode) {
       setSwapSelection((prev) => {
         if (prev.includes(tileId)) return prev.filter((id) => id !== tileId);
@@ -484,6 +525,32 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
               <button className="btn btn--skill" onClick={() => humanUseSkill()} title={character.skill.description}>
                 必殺技: {character.skill.name}
               </button>
+            )}
+            {borrowTargets.map((target) => {
+              const targetCharacter = CHARACTERS[round.characterIds[target]]!;
+              return (
+                <button
+                  key={target}
+                  className="btn btn--skill"
+                  onClick={() => humanBorrowSkill(target)}
+                  title={targetCharacter.skill.description}
+                >
+                  借り物: {targetCharacter.name}の「{targetCharacter.skill.name}」
+                </button>
+              );
+            })}
+            {retrieveReady && !retrieveActive && character && (
+              <button className="btn btn--skill" onClick={() => startRetrieve()} title={character.skill.description}>
+                必殺技: {character.skill.name}
+              </button>
+            )}
+            {retrieveActive && (
+              <>
+                {!retrieveReclaimTileId && <span className="call-actions__hint">河から取り返す牌を選んでください</span>}
+                <button className="btn btn--skip" onClick={() => cancelRetrieve()}>
+                  取消
+                </button>
+              </>
             )}
             {cardReady && heldCard && (
               <button className="btn btn--skill" onClick={() => humanUseCard()} title={heldCard.description}>

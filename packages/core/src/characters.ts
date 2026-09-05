@@ -7,6 +7,7 @@
  */
 import type { Character, SkillContext } from "./skills/types.js";
 import type { RoundState } from "./gameState.js";
+import type { PlayerIndex } from "./actions.js";
 import { revealNextDora, drawFromLive, doraIndicators, type WallState } from "./wall.js";
 import { addTileToHand, getWaitingTiles, removeTileFromHand, type Hand } from "./hand.js";
 import { calcShanten, bestShantenAfterDiscard } from "./shanten.js";
@@ -18,6 +19,13 @@ function updatePlayer(round: RoundState, index: number, updater: (p: RoundState[
   const next = [...round.players] as RoundState["players"];
   next[index] = updater(next[index]!);
   return next;
+}
+
+/** セナの「様子見」用。gameEngine.tsのnextSeatと同じ計算だが、あちらは
+    モジュール非公開のためここで同じ内容を持つ（4人打ち固定のため常に
+    この式で次家が求まる）。 */
+function nextSeat(player: PlayerIndex): PlayerIndex {
+  return ((player + 1) % 4) as PlayerIndex;
 }
 
 /** ナギ/ライコのように「今の自摸牌をすり替える」タイプの必殺技が発動可能かどうか。
@@ -174,8 +182,10 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "牌の並びなんて、ちょっと手を加えるだけ。運も実力のうち、でしょう？",
     avatar: "/avatars/characters/nagi.webp",
     cutin: "/avatars/characters/nagi-cutin.webp",
+    // 引き直す牌はランダム（カエデと違い有効牌が保証されない賭け）なので、
+    // 制約なしで発動できる点を割り引いてカエデより速くする。
     gaugeMax: 100,
-    gaugePerTurn: 6,
+    gaugePerTurn: 8,
     gaugePerDealIn: 25,
     skill: {
       id: "nagi-tsumikomi",
@@ -284,8 +294,9 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "勝負は、派手に勝つより、静かに勝つもの。誰も気づいた時には、もう終わってる。",
     avatar: "/avatars/characters/kagerou.webp",
     cutin: "/avatars/characters/kagerou-cutin.webp",
+    // 他家3人の手牌が丸見えになる情報アドバンテージは大きいため、標準(10)より遅くする。
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 8,
     gaugePerDealIn: 20,
     skill: {
       id: "kagerou-toushi",
@@ -338,8 +349,10 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "運任せなんて言葉は、数えることを放棄した者の言い訳だ。俺はただ、見えている数を数えただけだよ。",
     avatar: "/avatars/characters/subaru.webp",
     cutin: "/avatars/characters/subaru-cutin.webp",
+    // 手牌が見えるカゲロウと違い「残り枚数の精度が上がる」だけの地味な効果
+    // のため、標準(10)より速くする。
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 13,
     gaugePerDealIn: 20,
     skill: {
       id: "subaru-yamayomi",
@@ -362,8 +375,10 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "一歩ずつでいい。だが、その一歩を疎かにする者に、大成は無い。",
     avatar: "/avatars/characters/kaede.webp",
     cutin: "/avatars/characters/kaede-cutin.webp",
+    // ナギと違い引き直す牌が必ず有効牌になる（結果が保証されている）ため、
+    // テンパイ中不可という制約を差し引いてもナギより遅くする。
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 6,
     gaugePerDealIn: 20,
     skill: {
       id: "kaede-tehodoki",
@@ -473,8 +488,10 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "てんこしゃんこ、っと。……あれ、三色乗ってる？ラッキー。",
     avatar: "/avatars/characters/masato.webp",
     cutin: "/avatars/characters/masato-cutin.webp",
+    // 局面・点数に一切影響しない純粋な見た目だけの効果（このゲーム内で
+    // 最も弱い必殺技）なので、全キャラ中最速で溜まるようにする。
     gaugeMax: 100,
-    gaugePerTurn: 16,
+    gaugePerTurn: 24,
     gaugePerDealIn: 20,
     skill: {
       id: "masato-sanshoku-kirameki",
@@ -662,8 +679,10 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "ケチケチしても始まらない。パーッと捨てて、パーッと拾おうぜ。",
     avatar: "/avatars/characters/koki.webp",
     cutin: "/avatars/characters/koki-cutin.webp",
+    // 発動後は局が終わるまで何度でも（ドラを切るたび）再発動する持続効果で
+    // 単発の必殺技より価値が高いため、標準(10)より遅くする。
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 7,
     gaugePerDealIn: 20,
     skill: {
       id: "koki-futoppara",
@@ -727,8 +746,10 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "最速も最強も、生き残ってこそだろ？降りる時はきっちり降りる、それだけの話だ。",
     avatar: "/avatars/characters/takaharu.webp",
     cutin: "/avatars/characters/takaharu-cutin.webp",
+    // 局が終わるまで何度でも張り直せる持続的なロン無効化は単発の必殺技より
+    // 価値が高いため、標準(10)より遅くする。
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 8,
     gaugePerDealIn: 20,
     skill: {
       id: "takaharu-atomic-bettaori",
@@ -767,8 +788,10 @@ export const CHARACTERS: Record<string, Character> = {
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
     // `character.cutin ?? character.avatar`参照）に委ねる。
+    // 局が終わるまで他家3人全員のリーチを封じる強力な妨害効果のため、
+    // 標準(10)より遅くする。
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 7,
     gaugePerDealIn: 20,
     skill: {
       id: "nyanjiro-atomic-riichi",
@@ -903,6 +926,95 @@ export const CHARACTERS: Record<string, Character> = {
           return { ...result, lastActivatedSkill: { owner, characterId: last.characterId } };
         },
       },
+    },
+  },
+  karin: {
+    id: "karin",
+    name: "何でも屋・カリン",
+    description: "必殺技「借り物競争」: 発動すると、同卓者3人のうち好きな1人を選び、その必殺技を代わりに発動できる（選んだ相手の追加発動条件も自分が満たしている必要がある）。その代わりゲージの溜まりは他のキャラの半分とかなり遅い。",
+    winQuote: "困った時はお互い様でしょ？ ちょっとその技、借りてくね！",
+    avatar: "/avatars/characters/karin.webp",
+    cutin: "/avatars/characters/karin-cutin.webp",
+    // 通常キャラの半分（gaugePerTurn 10→5, gaugePerDealIn 20→10）。
+    // 「同卓者の技を自由に選べる」という自由度の高さの代償として、
+    // 発動できるようになるまでの回転率を大きく落としている。
+    gaugeMax: 100,
+    gaugePerTurn: 5,
+    gaugePerDealIn: 10,
+    borrowsSkill: true,
+    skill: {
+      id: "karin-karimono-kyousou",
+      name: "借り物競争",
+      description: "発動時、同卓者3人（自分以外）のうち必殺技を借りられる相手を選び、その必殺技をそのまま自分に対して発動する（選んだ相手の追加発動条件を満たしていない場合は選択肢に出ない。onActivateを持たないパッシブ専用キャラの技は借りられない）。",
+      // 実際の発動処理はborrowSkillアクション経由（gameEngine.tsの
+      // canBorrowSkill/applyBorrowSkillAction）で行われ、karin自身は
+      // onActivateを持たない（skills/types.tsのCharacter.borrowsSkill参照）。
+      hooks: {},
+    },
+  },
+  sena: {
+    id: "sena",
+    name: "石橋の番人・セナ",
+    description: "必殺技「様子見」: 発動すると今の自摸を山に戻し、打牌を一切行わずにそのまま次家に手番を渡す（自摸も打牌もしないため、その巡は安全に過ごせる）。弱い技のためゲージの溜まりは早い。",
+    winQuote: "危ない橋は渡らない。それだけで、案外生き残れるものでしょう？",
+    avatar: "/avatars/characters/sena.webp",
+    cutin: "/avatars/characters/sena-cutin.webp",
+    // 効果が弱い（1巡やり過ごすだけで打点・進行には一切寄与しない）代わりに、
+    // 打牌のたびのゲージ上昇を標準の倍にしている（gaugePerTurn 10→20）。
+    // gaugePerDealInは標準の20のまま据え置き。
+    gaugeMax: 100,
+    gaugePerTurn: 20,
+    gaugePerDealIn: 20,
+    skill: {
+      id: "sena-yousumi",
+      name: "様子見",
+      description: "発動すると、今の自摸牌を山の下に戻し、打牌を一切行わずにそのまま次家へ手番を渡す（自摸も打牌もしないため、ロン・鳴きのどちらのリスクも一切負わない）。敵のリーチ等で安全牌が無い時に、その1巡だけ安全に見送るための技。",
+      hooks: {
+        // チー/ポン/大明槓で手番だけ回ってきた直後（自分ではまだ何も自摸っていない）
+        // は発動できない。hasOwnPendingDrawの説明コメント参照。
+        canActivate: (ctx) => hasOwnPendingDraw(ctx.round, ctx.owner),
+        onActivate: (ctx) => {
+          const { round, owner } = ctx;
+          const drawn = round.lastDrawnTile;
+          if (!drawn) return round;
+          const p = round.players[owner]!;
+          const { hand: handWithoutDrawn } = removeTileFromHand(p.hand, drawn.id);
+          const wall = { ...round.wall, liveTiles: [...round.wall.liveTiles, drawn] };
+          const players = updatePlayer(round, owner, (pl) => ({ ...pl, hand: handWithoutDrawn }));
+          // 打牌が一切発生しないため、lastDiscard/pendingCallWindowには触れず
+          // （＝鳴き/ロンの対象になる捨て牌自体が存在しない）、直接次家の
+          // 自摸フェーズへ手番を進める。
+          return {
+            ...round,
+            players,
+            wall,
+            lastDrawnTile: null,
+            phase: "awaiting-draw",
+            currentTurn: nextSeat(owner),
+          };
+        },
+      },
+    },
+  },
+  mio: {
+    id: "mio",
+    name: "やり直し請負人・ミオ",
+    description: "必殺技「取り返し」: 発動すると、自分の河（鳴かれていないもの限定）から好きな1枚を選んで手牌に戻し、代わりに手牌の別の1枚をその場で切り直す（実質的な打牌交換）。過去に切って裏目った1枚を、今から切り直せる。",
+    winQuote: "やり直しなんて、いくらでも利くのよ。過去の一手くらい、今から書き換えてあげる。",
+    avatar: "/avatars/characters/mio.webp",
+    cutin: "/avatars/characters/mio-cutin.webp",
+    gaugeMax: 100,
+    gaugePerTurn: 10,
+    gaugePerDealIn: 20,
+    retrievesDiscard: true,
+    skill: {
+      id: "mio-torikaeshi",
+      name: "取り返し",
+      description: "発動時、自分の河（他家に鳴かれていない牌限定）から1枚選んで手牌に戻し、代わりに手牌の中から選んだ別の1枚をその場で切り直す（打牌の交換。鳴き・ロンの応答ウィンドウは通常の打牌と同じく開く）。リーチ中は打牌を選べない（ツモ切り強制）ため発動できない。",
+      // 実際の発動処理はretrieveDiscardアクション経由（gameEngine.tsの
+      // canRetrieveDiscard/applyRetrieveDiscardAction）で行われ、ミオ自身は
+      // onActivateを持たない（skills/types.tsのCharacter.retrievesDiscard参照）。
+      hooks: {},
     },
   },
 };

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { CHARACTERS, doraIndicators, nextTileForDora, type PlayerIndex, type TileCode } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
+import { useRetrieveDiscardStore } from "../store/retrieveDiscardStore.js";
 import { useGameSounds } from "../hooks/useGameSounds.js";
 import { useBgm } from "../hooks/useBgm.js";
 import { DoraProvider } from "../doraContext.js";
@@ -53,6 +54,13 @@ export function Table() {
   const timeStopSource = ([0, 1, 2, 3] as PlayerIndex[]).find((seat) => round.players[seat].timeStopTurnsRemaining > 0);
   const riverFrozen = (seat: PlayerIndex) => timeStopSource !== undefined && seat !== timeStopSource;
 
+  // ミオの必殺技「取り返し」選択中: 自分の河から取り返す1枚を選ぶ段階
+  // （reclaimTileIdがまだnull）の間だけ、自分の河をクリック可能にする。
+  const retrieveActive = useRetrieveDiscardStore((s) => s.active);
+  const retrieveReclaimTileId = useRetrieveDiscardStore((s) => s.reclaimTileId);
+  const selectRetrieveReclaimTile = useRetrieveDiscardStore((s) => s.selectReclaimTile);
+  const humanRiverClickable = retrieveActive && !retrieveReclaimTileId;
+
   return (
     <DoraProvider doraCodes={doraCodes}>
       <div className="table">
@@ -72,7 +80,14 @@ export function Table() {
               <DiscardPile discards={round.players[1].discards} direction="right" callTargetTileId={callTargetTileId} frozen={riverFrozen(1)} />
             </div>
             <div className="river river--human">
-              <DiscardPile discards={round.players[0].discards} direction="human" callTargetTileId={callTargetTileId} frozen={riverFrozen(0)} />
+              <DiscardPile
+                discards={round.players[0].discards}
+                direction="human"
+                callTargetTileId={callTargetTileId}
+                frozen={riverFrozen(0)}
+                onTileClick={humanRiverClickable ? selectRetrieveReclaimTile : undefined}
+                selectedTileId={retrieveReclaimTileId ?? undefined}
+              />
             </div>
             <CenterBoard round={round} scores={match.scores} />
             {/* リーチ棒（1000点棒）。実際の卓と同じく、リーチした本人の河と

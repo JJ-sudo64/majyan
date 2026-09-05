@@ -264,6 +264,54 @@ export function canUseSkill(round: RoundState, player: PlayerIndex): boolean {
   return true;
 }
 
+/** カリンの「借り物」が今、指定した相手(target)の必殺技を借りて発動できるかどうか。
+    自分自身のゲージが満タンで、targetがonActivateを持ち、かつtarget側の追加発動条件
+    （canActivate。例: ライコの「一発中のみ」）を借りる側（player）が満たしている
+    必要がある（カガミのcanCopyLastSkillと同様の考え方。characters.ts参照）。 */
+export function canBorrowSkill(round: RoundState, player: PlayerIndex, target: PlayerIndex): boolean {
+  if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
+  if (target === player) return false;
+  const character = CHARACTERS[round.characterIds[player]];
+  if (!character?.borrowsSkill) return false;
+  if (round.players[player]!.skillGauge < character.gaugeMax) return false;
+  const targetHooks = CHARACTERS[round.characterIds[target]]?.skill.hooks;
+  if (!targetHooks?.onActivate) return false;
+  if (targetHooks.canActivate && !targetHooks.canActivate({ round, owner: player })) return false;
+  return true;
+}
+
+/** カリンが今借りられる相手の一覧（自分以外で条件を満たす席）。UI側の選択肢表示用。 */
+export function borrowableSkillTargets(round: RoundState, player: PlayerIndex): PlayerIndex[] {
+  return ([0, 1, 2, 3] as PlayerIndex[]).filter((seat) => canBorrowSkill(round, player, seat));
+}
+
+/** ミオの「取り返し」用: 自分の河のうち鳴かれていない（calledAway===false）discardの
+    tile idの一覧。これらだけが手牌に戻せる対象（鳴かれてしまったものは既に他家の
+    副露に組み込まれているため戻せない）。 */
+export function reclaimableDiscardTileIds(round: RoundState, player: PlayerIndex): string[] {
+  return round.players[player]!.discards.filter((d) => !d.calledAway).map((d) => d.tile.id);
+}
+
+/** ミオの「取り返し」が今、指定した河の1枚(reclaimTileId)を手牌の指定した1枚
+    (replacementTileId)と交換して発動できるかどうか。リーチ中は打牌そのものを
+    選べない（ツモ切り強制）ため、この技も使えない。 */
+export function canRetrieveDiscard(
+  round: RoundState,
+  player: PlayerIndex,
+  reclaimTileId: string,
+  replacementTileId: string,
+): boolean {
+  if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
+  const character = CHARACTERS[round.characterIds[player]];
+  if (!character?.retrievesDiscard) return false;
+  const p = round.players[player]!;
+  if (p.riichi) return false;
+  if (p.skillGauge < character.gaugeMax) return false;
+  if (!reclaimableDiscardTileIds(round, player).includes(reclaimTileId)) return false;
+  if (!p.hand.concealed.some((t) => t.id === replacementTileId)) return false;
+  return true;
+}
+
 /** 所持カード（消費型のみ）が今使えるかどうか。canUseSkillと同じ構え
     （自分の打牌前＝ツモ直後）で使う。パッシブカード（onDealHandのみ持つ）は
     useCardアクション自体が無いため対象外。 */
@@ -990,6 +1038,70 @@ function applyUseSkillAction(round: RoundState, player: PlayerIndex): RoundState
   return { ...activated, players, lastActivatedSkill };
 }
 
+/** カリンの「借り物」。borrowSkillアクションの実処理。targetのonActivateを、
+    ownerを借りた側（player）に差し替えて呼び出すことで、効果自体は借りた側に
+    及ぶ（カガミがコピー先のonActivateを呼ぶ際と同じ考え方。characters.ts参照）。 */
+function applyBorrowSkillAction(round: RoundState, player: PlayerIndex, target: PlayerIndex): RoundState {
+  if (!canBorrowSkill(round, player, target)) throw new Error("borrowSkill: 現在必殺技を借りられません");
+  const targetCharacter = CHARACTERS[round.characterIds[target]]!;
+
+  // カード「無効化」の対象: 敵（カード所持者以外）が必殺技を発動した瞬間。
+  // applyUseSkillActionと同じ扱い（実際に効果を発揮するのは借りた側=playerのため、
+  // 無効化判定もplayerを基準にする）。
+  const negatingOwner = findNegatingCardOwner(round, player);
+  if (negatingOwner !== null) {
+    const players = updatePlayer(round.players, player, (pl) => ({ ...pl, skillGauge: 0 }));
+    return disarmNegate({ ...round, players }, negatingOwner);
+  }
+
+  const activated = targetCharacter.skill.hooks.onActivate!({ round, owner: player });
+  const players = updatePlayer(activated.players, player, (pl) => ({ ...pl, skillGauge: 0 }));
+  const lastActivatedSkill =
+    activated.lastActivatedSkill !== round.lastActivatedSkill
+      ? activated.lastActivatedSkill
+      : { owner: player, characterId: targetCharacter.id };
+  return { ...activated, players, lastActivatedSkill };
+}
+
+/** ミオの「取り返し」。retrieveDiscardアクションの実処理。自分の河から1枚を
+    手牌へ戻し、代わりに手牌の別の1枚をその場で切り直す（実質的な打牌交換）。
+    交換後の1枚は通常の打牌と全く同じ扱いで河へ追加され、鳴き/ロンの応答
+    ウィンドウも通常どおり開く（applyDiscardActionと同じ後処理を踏襲する）。 */
+function applyRetrieveDiscardAction(round: RoundState, player: PlayerIndex, reclaimTileId: string, replacementTileId: string): RoundState {
+  if (!canRetrieveDiscard(round, player, reclaimTileId, replacementTileId)) {
+    throw new Error("retrieveDiscard: 現在この牌を取り返せません");
+  }
+  const character = CHARACTERS[round.characterIds[player]]!;
+  const p = round.players[player]!;
+  const discardIndex = p.discards.findIndex((d) => d.tile.id === reclaimTileId);
+  const reclaimed = p.discards[discardIndex]!.tile;
+  const discardsWithoutReclaimed = [...p.discards.slice(0, discardIndex), ...p.discards.slice(discardIndex + 1)];
+  const handWithReclaimed = addTileToHand(p.hand, reclaimed);
+  const { tile: replaced, hand } = removeTileFromHand(handWithReclaimed, replacementTileId);
+  const isTsumogiri = replacementTileId === round.lastDrawnTile?.id;
+  const players = updatePlayer(round.players, player, (pl) => ({
+    ...pl,
+    hand,
+    discards: [...discardsWithoutReclaimed, { tile: replaced, calledAway: false, isRiichiDeclaration: false, isTsumogiri }],
+    skillGauge: 0,
+  }));
+
+  // 「取り返し」自身がlastActivatedSkillに記録される必要がある（カガミの
+  // canCopyLastSkillが「直近に発動した技」として正しく認識できるように）。
+  // ただしミオのskill.hooksにはonActivateが無いため、カガミ側は
+  // copiedHooks?.onActivateが無いと判定して結局コピー不可になる
+  // （カリンのborrowsSkill同様、この技自体はカガミの写し身の対象外）。
+  let afterRound: RoundState = { ...round, players, lastActivatedSkill: { owner: player, characterId: character.id } };
+  const onAfterDiscard = character.skill.hooks.onAfterDiscard;
+  if (onAfterDiscard) afterRound = onAfterDiscard({ round: afterRound, owner: player }, replaced);
+
+  const timeStopped = (afterRound.players[player]!.timeStopTurnsRemaining ?? 0) > 0;
+  if (liveTilesRemaining(round.wall) === 0 && (timeStopped || !hasAnyoneWhoCanRon(afterRound, afterRound.players, player, replaced.code))) {
+    return buildExhaustiveDrawResult(afterRound);
+  }
+  return resolveDiscardTurnTransition(afterRound, player, replaced);
+}
+
 function applyUseCardAction(round: RoundState, player: PlayerIndex): RoundState {
   if (!canUseCard(round, player)) throw new Error("useCard: 現在カードを使用できません");
   const card = CARDS[round.cardIds[player]!]!;
@@ -1059,6 +1171,10 @@ export function applyAction(round: RoundState, action: GameAction): RoundState {
       return applySkipAction(round, action.player);
     case "useSkill":
       return applyUseSkillAction(round, action.player);
+    case "borrowSkill":
+      return applyBorrowSkillAction(round, action.player, action.target);
+    case "retrieveDiscard":
+      return applyRetrieveDiscardAction(round, action.player, action.reclaimTileId, action.replacementTileId);
     case "swapTiles":
       return applySwapTilesAction(round, action);
     case "useCard":

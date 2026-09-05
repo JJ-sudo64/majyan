@@ -3,7 +3,18 @@ import type { TileCode } from "../src/tiles.js";
 import type { Hand, Meld } from "../src/hand.js";
 import type { PlayerRoundState, RoundState } from "../src/gameState.js";
 import type { PlayerIndex } from "../src/actions.js";
-import { applyAction, canDeclareRon, canDeclareTsumo, canRiichi, canSwapStartingTile, canUseSkill } from "../src/gameEngine.js";
+import {
+  applyAction,
+  borrowableSkillTargets,
+  canBorrowSkill,
+  canDeclareRon,
+  canDeclareTsumo,
+  canRetrieveDiscard,
+  canRiichi,
+  canSwapStartingTile,
+  canUseSkill,
+  reclaimableDiscardTileIds,
+} from "../src/gameEngine.js";
 import { CHARACTERS } from "../src/characters.js";
 import { dealNewRound } from "../src/matchFormat.js";
 import { calcShanten } from "../src/shanten.js";
@@ -1833,5 +1844,264 @@ describe("kagami", () => {
       lastActivatedSkill: { owner: 0, characterId: "koki" },
     });
     expect(canUseSkill(round, 1)).toBe(false);
+  });
+});
+
+describe("karin's 借り物競争 (borrowSkill)", () => {
+  it("cannot borrow when its own gauge is not full", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), { ...emptyPlayer([]), skillGauge: 50 }, emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "karin", "naoki", "raiko"],
+      currentTurn: 1,
+      phase: "awaiting-discard",
+    });
+    expect(canBorrowSkill(round, 1, 0)).toBe(false);
+  });
+
+  it("cannot borrow from a passive-only character with no onActivate (naoki)", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), { ...emptyPlayer([]), skillGauge: 100 }, emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "karin", "naoki", "raiko"],
+      currentTurn: 1,
+      phase: "awaiting-discard",
+    });
+    expect(canBorrowSkill(round, 1, 2)).toBe(false);
+  });
+
+  it("cannot borrow a skill whose own canActivate condition (evaluated against the borrower) isn't met (raiko's issen requires ippatsu)", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), { ...emptyPlayer([]), skillGauge: 100 }, emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "karin", "naoki", "raiko"],
+      currentTurn: 1,
+      phase: "awaiting-discard",
+    });
+    expect(canBorrowSkill(round, 1, 3)).toBe(false);
+  });
+
+  it("lists only the borrowable tablemates", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), { ...emptyPlayer([]), skillGauge: 100 }, emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "karin", "naoki", "raiko"],
+      currentTurn: 1,
+      phase: "awaiting-discard",
+    });
+    expect(borrowableSkillTargets(round, 1)).toEqual([0]);
+  });
+
+  it("borrows hiiragi's dora reveal, consumes its own gauge, and records hiiragi's characterId (not karin's)", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), { ...emptyPlayer([]), skillGauge: 100 }, emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "karin", "naoki", "raiko"],
+      currentTurn: 1,
+      phase: "awaiting-discard",
+    });
+    expect(round.wall.revealedDoraCount).toBe(1);
+    expect(canBorrowSkill(round, 1, 0)).toBe(true);
+
+    const next = applyAction(round, { type: "borrowSkill", player: 1, target: 0 });
+    expect(next.wall.revealedDoraCount).toBe(2);
+    expect(next.players[1]!.skillGauge).toBe(0);
+    expect(next.lastActivatedSkill).toEqual({ owner: 1, characterId: "hiiragi" });
+  });
+});
+
+describe("sena's 様子見 (skip own turn safely)", () => {
+  it("cannot activate right after calling pon/chi, when lastDrawnTile is stale and not in her own hand", () => {
+    const round = makeRound({
+      players: [
+        { ...emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z"]), skillGauge: 100 },
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["sena", "hiiragi", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      lastDrawnTile: { id: "stale-draw", code: "9m" },
+      wall: makeWall(["5z", "9s", "9s", "9s"]),
+    });
+    expect(canUseSkill(round, 0)).toBe(false);
+    expect(() => applyAction(round, { type: "useSkill", player: 0 })).toThrow();
+  });
+
+  it("returns the drawn tile to the wall, skips discard entirely, and hands the turn to the next player untouched", () => {
+    const round = makeRound({
+      players: [
+        { ...emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"]), skillGauge: 100 },
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["sena", "hiiragi", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      wall: makeWall(["5z", "9s", "9s", "9s"]),
+    });
+    const drawn = { id: "drawnX", code: "3z" as TileCode };
+    const roundWithDraw: RoundState = {
+      ...round,
+      lastDrawnTile: drawn,
+      players: [
+        { ...round.players[0]!, hand: { ...round.players[0]!.hand, concealed: [...round.players[0]!.hand.concealed, drawn] } },
+        round.players[1]!,
+        round.players[2]!,
+        round.players[3]!,
+      ],
+    };
+    const handSizeBefore = roundWithDraw.players[0]!.hand.concealed.length;
+    const liveBefore = roundWithDraw.wall.liveTiles.length;
+
+    expect(canUseSkill(roundWithDraw, 0)).toBe(true);
+    const next = applyAction(roundWithDraw, { type: "useSkill", player: 0 });
+
+    expect(next.players[0]!.hand.concealed.length).toBe(handSizeBefore - 1); // 引いた分を戻すだけで、打牌の代わりに引き直しはしない
+    expect(next.players[0]!.hand.concealed.some((t) => t.id === drawn.id)).toBe(false);
+    expect(next.wall.liveTiles.length).toBe(liveBefore + 1); // 山に1枚戻すだけ（引き直さない）
+    expect(next.players[0]!.skillGauge).toBe(0);
+    expect(next.lastDrawnTile).toBeNull();
+    expect(next.lastDiscard).toBeNull(); // 打牌そのものが発生しないため、河には何も残らない
+    expect(next.phase).toBe("awaiting-draw");
+    expect(next.currentTurn).toBe(1); // 鳴きの応答ウィンドウを一切挟まず、そのまま次家の自摸へ進む
+  });
+});
+
+describe("mio's 取り返し (retrieveDiscard)", () => {
+  function playerWithDiscards(handCodes: TileCode[], discardCodes: { code: TileCode; calledAway: boolean }[]): PlayerRoundState {
+    return {
+      ...emptyPlayer(handCodes),
+      discards: discardCodes.map((d) => ({ tile: tile(d.code), calledAway: d.calledAway, isRiichiDeclaration: false, isTsumogiri: false })),
+    };
+  }
+
+  it("only lists tablemate-uncalled discards as reclaimable", () => {
+    const round = makeRound({
+      players: [
+        playerWithDiscards(
+          ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"],
+          [
+            { code: "5z", calledAway: false },
+            { code: "6z", calledAway: true },
+            { code: "7z", calledAway: false },
+          ],
+        ),
+        emptyPlayer([]),
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["mio", "", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const ids = reclaimableDiscardTileIds(round, 0);
+    const codes = ids.map((id) => round.players[0]!.discards.find((d) => d.tile.id === id)!.tile.code);
+    expect(codes.sort()).toEqual(["5z", "7z"]);
+  });
+
+  it("cannot activate when its own gauge is not full", () => {
+    const round = makeRound({
+      players: [
+        {
+          ...playerWithDiscards(
+            ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"],
+            [{ code: "5z", calledAway: false }],
+          ),
+          skillGauge: 50,
+        },
+        emptyPlayer([]),
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["mio", "", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const reclaimId = round.players[0]!.discards[0]!.tile.id;
+    const replacementId = round.players[0]!.hand.concealed[0]!.id;
+    expect(canRetrieveDiscard(round, 0, reclaimId, replacementId)).toBe(false);
+  });
+
+  it("cannot reclaim a discard that has already been called away", () => {
+    const round = makeRound({
+      players: [
+        {
+          ...playerWithDiscards(
+            ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"],
+            [{ code: "5z", calledAway: true }],
+          ),
+          skillGauge: 100,
+        },
+        emptyPlayer([]),
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["mio", "", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const reclaimId = round.players[0]!.discards[0]!.tile.id;
+    const replacementId = round.players[0]!.hand.concealed[0]!.id;
+    expect(canRetrieveDiscard(round, 0, reclaimId, replacementId)).toBe(false);
+  });
+
+  it("cannot activate while in riichi (forced tsumogiri)", () => {
+    const round = makeRound({
+      players: [
+        {
+          ...playerWithDiscards(
+            ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"],
+            [{ code: "5z", calledAway: false }],
+          ),
+          skillGauge: 100,
+          riichi: true,
+        },
+        emptyPlayer([]),
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["mio", "", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const reclaimId = round.players[0]!.discards[0]!.tile.id;
+    const replacementId = round.players[0]!.hand.concealed[0]!.id;
+    expect(canRetrieveDiscard(round, 0, reclaimId, replacementId)).toBe(false);
+  });
+
+  it("swaps a reclaimed river tile back into hand for a freshly-discarded replacement", () => {
+    const round = makeRound({
+      players: [
+        {
+          ...playerWithDiscards(
+            ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"],
+            [
+              { code: "5z", calledAway: false },
+              { code: "6z", calledAway: true },
+            ],
+          ),
+          skillGauge: 100,
+        },
+        emptyPlayer([]),
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["mio", "", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const reclaimId = round.players[0]!.discards[0]!.tile.id; // "5z"
+    const replacement = round.players[0]!.hand.concealed.find((t) => t.code === "2z")!;
+
+    expect(canRetrieveDiscard(round, 0, reclaimId, replacement.id)).toBe(true);
+    const next = applyAction(round, { type: "retrieveDiscard", player: 0, reclaimTileId: reclaimId, replacementTileId: replacement.id });
+
+    expect(next.players[0]!.hand.concealed.some((t) => t.code === "5z")).toBe(true); // 取り返した牌が手牌に入る
+    expect(next.players[0]!.hand.concealed.some((t) => t.id === replacement.id)).toBe(false); // 代わりに切った牌は手牌から消える
+    expect(next.players[0]!.discards.some((d) => d.tile.id === reclaimId)).toBe(false); // 取り返した牌は河から消える
+    expect(next.players[0]!.discards.some((d) => d.tile.id === replacement.id && !d.calledAway)).toBe(true); // 代わりの1枚が新たに河に並ぶ
+    expect(next.players[0]!.discards.some((d) => d.tile.code === "6z" && d.calledAway)).toBe(true); // 鳴かれていた既存の河はそのまま
+    expect(next.players[0]!.skillGauge).toBe(0);
+    expect(next.lastDiscard).toEqual({ player: 0, tile: replacement });
+    expect(next.phase).toBe("awaiting-calls");
+    expect(next.lastActivatedSkill).toEqual({ owner: 0, characterId: "mio" });
   });
 });

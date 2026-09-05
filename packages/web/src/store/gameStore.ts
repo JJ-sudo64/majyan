@@ -4,11 +4,15 @@ import {
   applyAction,
   applyCardBustGuards,
   applyCardMatchEndBonuses,
+  borrowableSkillTargets,
+  calcShanten,
   canDeclareRon,
   canDeclareTsumo,
+  canRetrieveDiscard,
   canSwapStartingTile,
   canUseCard,
   canUseSkill,
+  CHARACTERS,
   computeRoundScoreOutcome,
   createMatch,
   dealNewRound,
@@ -19,6 +23,7 @@ import {
   planNextRound,
   randomCardId,
   randomCharacterIds,
+  reclaimableDiscardTileIds,
   resolveKyotakuWithCard,
   settleLeftoverKyotaku,
   RIICHI_STICK_COST,
@@ -195,6 +200,8 @@ interface GameStoreState {
   humanKakan: (tileId: string) => void;
   humanKyushuKyuhai: () => void;
   humanUseSkill: () => void;
+  humanBorrowSkill: (target: PlayerIndex) => void;
+  humanRetrieveDiscard: (reclaimTileId: string, replacementTileId: string) => void;
   humanUseCard: () => void;
   humanSwapTiles: (tileIds: string[]) => void;
   humanCall: (action: GameAction) => void;
@@ -368,7 +375,11 @@ function tick(get: () => GameStoreState, set: (s: Partial<GameStoreState>) => vo
       // 自動的にツモ切りする（毎回クリックさせるのは冗長との指摘のため）。
       const player = round.players[HUMAN];
       if (!player.riichi) return;
-      const hasRealChoice = !!canDeclareTsumo(round, HUMAN) || ankanOptions(round, HUMAN).length > 0 || canUseSkill(round, HUMAN);
+      const hasRealChoice =
+        !!canDeclareTsumo(round, HUMAN) ||
+        ankanOptions(round, HUMAN).length > 0 ||
+        canUseSkill(round, HUMAN) ||
+        borrowableSkillTargets(round, HUMAN).length > 0;
       if (hasRealChoice) return;
       const thinkDelay = state.debugMode && state.debugSpeed === "fast" ? DEBUG_CPU_THINK_DELAY_MS : CPU_THINK_DELAY_MS;
       setTimeout(() => {
@@ -377,7 +388,13 @@ function tick(get: () => GameStoreState, set: (s: Partial<GameStoreState>) => vo
         if (s2.debugMode && s2.debugPaused) return;
         const r2 = s2.match.round;
         if (r2.phase !== "awaiting-discard" || r2.currentTurn !== HUMAN || !r2.players[HUMAN].riichi) return;
-        if (canDeclareTsumo(r2, HUMAN) || ankanOptions(r2, HUMAN).length > 0 || canUseSkill(r2, HUMAN)) return;
+        if (
+          canDeclareTsumo(r2, HUMAN) ||
+          ankanOptions(r2, HUMAN).length > 0 ||
+          canUseSkill(r2, HUMAN) ||
+          borrowableSkillTargets(r2, HUMAN).length > 0
+        )
+          return;
         const next = applyAction(r2, { type: "discard", player: HUMAN, tileId: r2.lastDrawnTile!.id, tsumogiri: true });
         applyRoundUpdate(get, set, next);
       }, thinkDelay);
@@ -419,6 +436,56 @@ function tick(get: () => GameStoreState, set: (s: Partial<GameStoreState>) => vo
           return;
         } catch (err) {
           console.error("[majyan] CPUの必殺技発動を無視しました:", err);
+        }
+      }
+      // カリンの「借り物競争」。CPU側の判断は他の必殺技と同じく単純に
+      // 「借りられるなら即、選べる中の先頭の相手から借りる」だけ。
+      if (!canDeclareTsumo(r2, r2.currentTurn)) {
+        const targets = borrowableSkillTargets(r2, r2.currentTurn);
+        if (targets.length > 0) {
+          try {
+            const activated = applyAction(r2, { type: "borrowSkill", player: r2.currentTurn, target: targets[0]! });
+            applyRoundUpdate(get, set, activated);
+            return;
+          } catch (err) {
+            console.error("[majyan] CPUの借り物競争発動を無視しました:", err);
+          }
+        }
+      }
+      // ミオの「取り返し」。CPU側は「河から取り返せる牌ごとに、手牌に戻して
+      // 何を切り直せば一番シャンテンが良くなるか」を全探索し、現状より
+      // 実際に改善する組み合わせがある時だけ使う（改善しないなら空撃ちせず
+      // 見送る＝ゲージを無駄にしない）。
+      if (!canDeclareTsumo(r2, r2.currentTurn)) {
+        const character = CHARACTERS[r2.characterIds[r2.currentTurn]];
+        if (character?.retrievesDiscard) {
+          const p = r2.players[r2.currentTurn];
+          const currentShanten = calcShanten(p.hand);
+          let best: { reclaimTileId: string; replacementTileId: string; shanten: number } | null = null;
+          for (const reclaimTileId of reclaimableDiscardTileIds(r2, r2.currentTurn)) {
+            const reclaimed = p.discards.find((d) => d.tile.id === reclaimTileId)!.tile;
+            const candidateConcealed = [...p.hand.concealed, reclaimed];
+            for (const t of candidateConcealed) {
+              if (t.id === reclaimed.id) continue; // 戻した牌をそのまま切り直すのは無意味
+              const trial = { concealed: candidateConcealed.filter((x) => x.id !== t.id), melds: p.hand.melds };
+              const shanten = calcShanten(trial);
+              if (!best || shanten < best.shanten) best = { reclaimTileId, replacementTileId: t.id, shanten };
+            }
+          }
+          if (best && best.shanten < currentShanten) {
+            try {
+              const activated = applyAction(r2, {
+                type: "retrieveDiscard",
+                player: r2.currentTurn,
+                reclaimTileId: best.reclaimTileId,
+                replacementTileId: best.replacementTileId,
+              });
+              applyRoundUpdate(get, set, activated);
+              return;
+            } catch (err) {
+              console.error("[majyan] CPUの取り返し発動を無視しました:", err);
+            }
+          }
         }
       }
       // カードもCPUを含む全席が対象。判断はまだ単純に「使えるなら即使う」だけ
@@ -588,6 +655,20 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const state = get();
     if (!state.match) return;
     safeDispatch(get, set, () => applyAction(state.match!.round, { type: "useSkill", player: HUMAN }));
+  },
+
+  humanBorrowSkill: (target) => {
+    const state = get();
+    if (!state.match) return;
+    safeDispatch(get, set, () => applyAction(state.match!.round, { type: "borrowSkill", player: HUMAN, target }));
+  },
+
+  humanRetrieveDiscard: (reclaimTileId, replacementTileId) => {
+    const state = get();
+    if (!state.match) return;
+    safeDispatch(get, set, () =>
+      applyAction(state.match!.round, { type: "retrieveDiscard", player: HUMAN, reclaimTileId, replacementTileId }),
+    );
   },
 
   humanUseCard: () => {
