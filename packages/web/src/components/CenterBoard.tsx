@@ -43,37 +43,38 @@ export function CenterBoard({ round, scores }: { round: RoundState; scores: [num
   const deltaFor = (player: PlayerIndex) => activeDelta?.[player] ?? 0;
 
   return (
-    <>
-      <div className={`center-board${frozenClass}`}>
-        <div className="center-board__core">
-          <div className="center-board__round">
-            {WIND_NAMES[round.roundWind]}
-            {round.roundNumber}局
-          </div>
-          <div className="center-board__wall">残り {round.wall.liveTiles.length}枚</div>
-          {round.kyotaku > 0 && <div className="center-board__kyotaku">供託 {round.kyotaku}本</div>}
-        </div>
-        {activeDelta && <div className="center-board__absorb-banner">点棒吸収！</div>}
+    <div className={`center-board${frozenClass}`}>
+      <div className="center-board__round">
+        {WIND_NAMES[round.roundWind]}
+        {round.roundNumber}局
       </div>
+      <div className="center-board__wall-group">
+        <div className="center-board__wall">残り {round.wall.liveTiles.length}枚</div>
+        {round.kyotaku > 0 && <div className="center-board__kyotaku">供託 {round.kyotaku}本</div>}
+      </div>
+      {activeDelta && <div className="center-board__absorb-banner">点棒吸収！</div>}
 
-      {/* 4人分の点数は全員同じ扱いにする：八角形の中に押し込めると窮屈になるため、
-          全席とも八角形の外（河との間の余白）に離して配置する。 */}
-      <div className={`cluster-seat cluster-seat--top${frozenClass}`}>
+      {/* 参考画像を丸ごと切り出した中央パネル(center-cluster.png)には、
+          中央の局情報2段に加えて上下左右4方向の枠がすでに絵として
+          含まれている。4人分の点数はその4つの枠の位置（実測した%座標）に
+          重ねて表示する。以前のように河との間に別枠として離して置く
+          のではなく、この1枚の画像の中に収める。 */}
+      <div className={`center-board__seat center-board__seat--top${frozenClass}`}>
         <SeatBadge round={round} player={2} score={scores[2]} />
         <ScoreDeltaPop delta={deltaFor(2)} />
       </div>
-      <div className={`cluster-seat cluster-seat--bottom${frozenClass}`}>
+      <div className={`center-board__seat center-board__seat--bottom${frozenClass}`}>
         <SeatBadge round={round} player={0} score={scores[0]} />
         <ScoreDeltaPop delta={deltaFor(0)} />
       </div>
-      <div className={`cluster-seat cluster-seat--left${frozenClass}`}>
+      <div className={`center-board__seat center-board__seat--left${frozenClass}`}>
         <SeatBadge round={round} player={3} score={scores[3]} />
         <ScoreDeltaPop delta={deltaFor(3)} />
       </div>
-      <div className={`cluster-seat cluster-seat--right${frozenClass}`}>
+      <div className={`center-board__seat center-board__seat--right${frozenClass}`}>
         <SeatBadge round={round} player={1} score={scores[1]} />
         <ScoreDeltaPop delta={deltaFor(1)} />
       </div>
-    </>
+    </div>
   );
 }

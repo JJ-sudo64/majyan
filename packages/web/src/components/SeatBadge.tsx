@@ -1,20 +1,16 @@
 import type { PlayerIndex, RoundState } from "@majyan/core";
-import { WIND_NAMES, seatWindOf } from "@majyan/core";
 
+/**
+ * 中央局面クラスタの座席バッジ。風・リーチ状態はCharacterPanel（画面外周の
+ * キャラクターパネル）側にまとめたため、ここでは局情報を邪魔しない最小限の
+ * 点数表示だけに簡略化する（同じ情報を画面内に二重表示しないため）。
+ */
 export function SeatBadge({ round, player, score }: { round: RoundState; player: PlayerIndex; score: number }) {
-  const wind = seatWindOf(round.dealerSeat, player);
-  const isDealer = player === round.dealerSeat;
   const isCurrent = round.currentTurn === player;
-  const riichi = round.players[player].riichi;
 
   return (
     <div className={`seat-badge${isCurrent ? " seat-badge--active" : ""}`}>
-      <span className="wind-badge">
-        {WIND_NAMES[wind]}
-        {isDealer ? "(親)" : ""}
-      </span>
-      <span className="seat-badge__score">{score}点</span>
-      {riichi && <span className="riichi-badge">リーチ</span>}
+      <span className="seat-badge__score">{score}</span>
     </div>
   );
 }

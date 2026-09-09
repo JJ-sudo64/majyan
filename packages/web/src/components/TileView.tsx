@@ -82,6 +82,7 @@ export const TileView = forwardRef<HTMLButtonElement, TileViewProps>(function Ti
   }, []);
 
   const classes = ["tile"];
+  if (faceDown) classes.push("tile--face-down");
   if (selected) classes.push("tile--selected");
   if (rotated) classes.push("tile--rotated");
   if (dimmed) classes.push("tile--dimmed");
@@ -131,7 +132,7 @@ export const TileView = forwardRef<HTMLButtonElement, TileViewProps>(function Ti
     >
       <span className="tile__face">
         {faceDown ? (
-          <img className="tile__img" src={TILE_BACK_SRC} alt="" draggable={false} />
+          <img className="tile__img tile__img--back" src={TILE_BACK_SRC} alt="" draggable={false} />
         ) : (
           <>
             <img className="tile__img tile__img--base" src={TILE_FRONT_SRC} alt="" draggable={false} />

@@ -19,12 +19,11 @@ import {
   isFuriten,
   allHandTileCodes,
 } from "@majyan/core";
-import { useGameStore, TIME_STOP_FAKE_TURN_STEP_MS } from "../store/gameStore.js";
+import { useGameStore } from "../store/gameStore.js";
 import { useSettingsStore } from "../store/settingsStore.js";
 import { useRetrieveDiscardStore } from "../store/retrieveDiscardStore.js";
 import { TileView } from "./TileView.js";
 import { CallPrompt } from "./CallPrompt.js";
-import { SkillGauge } from "./SkillGauge.js";
 
 /** 自動ツモ切りが実際に切るまでの待ち時間。0だと切られたことに気付く前に
     河へ飛んでしまい、リーチ・カン等の選択肢に気付いて手を止める余地が
@@ -108,7 +107,7 @@ function MeldView({ meld }: { meld: Meld }) {
   );
 }
 
-export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkillInfo: () => void }) {
+export function Hand({ round }: { round: RoundState }) {
   const humanDiscard = useGameStore((s) => s.humanDiscard);
   const humanRiichi = useGameStore((s) => s.humanRiichi);
   const humanTsumo = useGameStore((s) => s.humanTsumo);
@@ -172,15 +171,13 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
   const heldCard = round.cardIds[HUMAN] ? CARDS[round.cardIds[HUMAN]!] : undefined;
   const cardReady = isMyTurn && canUseCard(round, HUMAN);
 
-  // 必殺技「時間停止」発動中の演出。OpponentArea.tsxと同じロジック
-  // （発動者以外は丸ごとグレーアウト＋ボーナス手番の間だけ座順どおりの
-  // 空振り演出）を、自分(HUMAN)が発動者かどうかで判定する。
+  // 必殺技「時間停止」発動中の演出。OpponentArea.tsxと同じロジックで、
+  // 発動者以外は手牌ごと丸ごとグレーアウトする。ネームプレート側の
+  // 「空振りの光り演出」はCharacterPanel.tsxへ移設したため、ここでは
+  // 手牌グレーアウト用のfrozen判定だけ残す。
   const timeStopSource = ([0, 1, 2, 3] as const).find((seat) => round.players[seat]!.timeStopTurnsRemaining > 0);
   const isTimeStopped = timeStopSource !== undefined;
-  const isTimeStopSource = timeStopSource === HUMAN;
-  const frozen = isTimeStopped && !isTimeStopSource;
-  const fakeTurnWindow = isTimeStopped && round.phase === "awaiting-draw" && round.currentTurn === timeStopSource;
-  const fakeTurnStepIndex = frozen && fakeTurnWindow ? (HUMAN - timeStopSource! + 4) % 4 : 0; // 1〜3
+  const frozen = isTimeStopped && timeStopSource !== HUMAN;
 
   const swapAvailable = canSwapStartingTile(round, HUMAN);
   // 交換権を使い切った/局が進んだ等でswapAvailableがfalseに戻ったら、
@@ -362,20 +359,16 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
   const actualWaitingTiles = isResolvedCoreHand ? (previewHand ? getWaitingTiles(coreHand) : waitingTiles) : [];
   const furiten = actualWaitingTiles.length > 0 && isFuriten({ ...player, hand: coreHand });
 
-  const showTopStatus = player.revealedFutureDraws.length > 0 || waitingTiles.length > 0;
+  // キャラ表示・必殺技ゲージはCharacterPanel.tsx（卓の外の独立レイヤー）へ
+  // 移設したため、ここに残る状態表示（未来視・待ち・カード・ベタ降り）を
+  // 全て.hand-top-status（手牌の真上・中央、通常フロー内）に一本化する。
+  // 通常フロー内に置くことで、内容がどれだけ増えても手牌側が自動で押し
+  // 下げられ「絶対に被らない」ことを保証する。
+  const showTopStatus =
+    player.revealedFutureDraws.length > 0 || waitingTiles.length > 0 || !!heldCard || player.bettaoriActive;
 
   return (
     <div className={`hand-area${frozen ? " hand-area--frozen" : ""}`}>
-      {/* 未来視・待ち表示は左側の縦積み(.hand-left-status)から独立させ、
-          手牌の真上・中央に置く。カード/ベタ降りの盾等、左側に積む状態
-          表示が増えるにつれ.hand-left-status自体が縦に伸び、これらが下の
-          方の状態表示や手牌そのものと被って見えなくなっていたため
-          （「待ち表示・未来視の予測牌が手牌と被って見にくい」との指摘）。
-          手牌の位置を固定するためabsolute配置にしていた以前のやり方だと、
-          両方同時に出た場合など内容が多い時に絶対に被らない保証ができない
-          ため、通常のフロー内（.hand-row の前）に置き、内容ぶんだけ
-          手牌側が自動で押し下げられる形にして「絶対に被らない」ことを
-          保証する。 */}
       {showTopStatus && (
         <div className="hand-top-status">
           {player.revealedFutureDraws.length > 0 && (
@@ -416,6 +409,30 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
                   );
                 })}
               </div>
+            </div>
+          )}
+          {heldCard && (
+            <div className="wait-row">
+              <span className="wait-row__label">カード</span>
+              <span
+                className={`wait-row__shield${round.cardUsesRemaining[HUMAN] > 0 ? " wait-row__shield--up" : ""}`}
+                title={heldCard.description}
+              >
+                {heldCard.name}
+                {heldCard.kind === "passive"
+                  ? "（常時発動中）"
+                  : round.cardUsesRemaining[HUMAN] > 0
+                    ? `（残り${round.cardUsesRemaining[HUMAN]}回）`
+                    : "（使用済み）"}
+              </span>
+            </div>
+          )}
+          {player.bettaoriActive && (
+            <div className="wait-row">
+              <span className="wait-row__label">ベタ降り</span>
+              <span className={`wait-row__shield${player.bettaoriShield ? " wait-row__shield--up" : ""}`}>
+                {player.bettaoriShield ? "盾あり（ロンされない）" : "盾なし（メンツを崩すと盾が立つ）"}
+              </span>
             </div>
           )}
         </div>
@@ -587,59 +604,6 @@ export function Hand({ round, onShowSkillInfo }: { round: RoundState; onShowSkil
                 九種九牌流局
               </button>
             )}
-          </div>
-        )}
-      </div>
-      {/* キャラ表示・必殺技ゲージ・待ち表示は左側にまとめて固定する。
-          以前はキャラ表示をaction-row（右寄せ、チー/ポン等のボタンで
-          幅が変わる）に置いていたため、鳴きの選択肢が出るたびに位置が
-          左右にガタついて邪魔だった。ここなら右側のボタンの増減と無関係に
-          位置が安定する。 */}
-      <div className="hand-left-status">
-        {character && (
-          <div
-            className={`nameplate${fakeTurnStepIndex > 0 ? " nameplate--fake-turn" : ""}`}
-            style={
-              fakeTurnStepIndex > 0
-                ? {
-                    animationDelay: `${(fakeTurnStepIndex - 1) * TIME_STOP_FAKE_TURN_STEP_MS}ms`,
-                    animationDuration: `${TIME_STOP_FAKE_TURN_STEP_MS}ms`,
-                  }
-                : undefined
-            }
-          >
-            <img className="nameplate__avatar" src={character.avatar} alt="" />
-            <div className="nameplate__text">
-              <button type="button" className="nameplate__name nameplate__name--clickable" onClick={onShowSkillInfo}>
-                {character.name}
-              </button>
-              <div className="nameplate__title">あなた</div>
-            </div>
-          </div>
-        )}
-        <SkillGauge round={round} player={HUMAN} />
-        {heldCard && (
-          <div className="wait-row">
-            <span className="wait-row__label">カード</span>
-            <span
-              className={`wait-row__shield${round.cardUsesRemaining[HUMAN] > 0 ? " wait-row__shield--up" : ""}`}
-              title={heldCard.description}
-            >
-              {heldCard.name}
-              {heldCard.kind === "passive"
-                ? "（常時発動中）"
-                : round.cardUsesRemaining[HUMAN] > 0
-                  ? `（残り${round.cardUsesRemaining[HUMAN]}回）`
-                  : "（使用済み）"}
-            </span>
-          </div>
-        )}
-        {player.bettaoriActive && (
-          <div className="wait-row">
-            <span className="wait-row__label">ベタ降り</span>
-            <span className={`wait-row__shield${player.bettaoriShield ? " wait-row__shield--up" : ""}`}>
-              {player.bettaoriShield ? "盾あり（ロンされない）" : "盾なし（メンツを崩すと盾が立つ）"}
-            </span>
           </div>
         )}
       </div>

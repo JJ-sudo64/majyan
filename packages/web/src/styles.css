@@ -10,7 +10,15 @@ html, body, #root {
 
 body {
   font-family: "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
-  background: #0a1a33;
+  /* 和風雀荘の薄暗い室内を想起させる暖色系のアンビエンス。単色の濃紺から、
+     行灯のような柔らかい光だまりを2箇所に置いた構成に変更。
+     .stageと同じ配色にして、対局画面前後（キャラ選択画面等）でも
+     世界観が途切れないようにする。将来AI生成の背景素材に差し替える際は
+     ここと.stageのbackgroundをbackground-imageに置き換えればよい。 */
+  background:
+    radial-gradient(circle at 18% 15%, rgba(255, 205, 130, 0.07) 0%, transparent 38%),
+    radial-gradient(circle at 82% 80%, rgba(255, 205, 130, 0.05) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 35%, #241a10 0%, #150e08 55%, #0a0603 100%);
   color: #f0f0f0;
 }
 
@@ -26,7 +34,13 @@ button {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #05101f;
+  /* レターボックス（縦横比が合わない画面で卓の外側に見える帯）用の背景。
+     bodyと揃えた雀荘アンビエンスにし、卓の外にも同じ世界観が続いて
+     見えるようにする。 */
+  background:
+    radial-gradient(circle at 18% 15%, rgba(255, 205, 130, 0.07) 0%, transparent 38%),
+    radial-gradient(circle at 82% 80%, rgba(255, 205, 130, 0.05) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 35%, #241a10 0%, #150e08 55%, #0a0603 100%);
 }
 .stage__canvas {
   position: relative;
@@ -435,37 +449,227 @@ button {
   gap: 1px;
 }
 
+/* ============ 画面全体（背景＋卓＋キャラクターレイヤー） ============ */
+/* Phase1では.tableを直接94%/98%へ縮小して余白を作ろうとしたが、
+   .tableのgrid/絶対配置の内部pxバジェット（1392x748基準で細かく
+   調整済み）がそのぶん縮んでしまい、河の2〜3段目のクリック判定や
+   ボタンの重なりを繰り返し壊す原因になっていた。
+   今回はwidth/heightそのものを変えず、CSSの`zoom`で.table全体を
+   縮小表示する（.stage__canvas側の全体スケーリングと同じ手法）。
+   zoomは「内部のレイアウト計算はそのまま(1392x748)行い、結果をまとめて
+   縮小表示する」ため、内部のgrid行/絶対配置は一切壊れず、かつ.table
+   自身の画面上の占有サイズ（＝周囲にできる余白）だけを小さくできる。
+   その余白に、キャラクターパネル（.character-panel）や部屋の背景
+   （.game-background）を配置する。 */
+.game-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.game-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  /* 後からAI生成の1920x1080背景画像に差し替え可能なプレースホルダー。
+     画像を追加する場合はbackground-imageをこの変数へ設定し、
+     background-size/position/暗転ビネットの調整もこのブロック内で行う。 */
+  background-image: var(--game-background-image, none);
+  background-size: cover;
+  background-position: center;
+  background-color: #150e08;
+  background-blend-mode: normal;
+}
+.game-background::before {
+  /* 背景画像の有無に関わらず、卓の周囲を暗く落として卓自体の明るさが
+     一段目立つようにする「暗転ビネット」。画像を差し替えた場合も
+     このビネットは自動的に重なる。 */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(255, 205, 130, 0.07) 0%, transparent 38%),
+    radial-gradient(circle at 82% 80%, rgba(255, 205, 130, 0.05) 0%, transparent 42%),
+    radial-gradient(ellipse at 50% 40%, transparent 0%, transparent 40%, rgba(5, 3, 1, 0.55) 100%),
+    radial-gradient(ellipse at 50% 35%, #241a10 0%, #150e08 55%, #0a0603 100%);
+}
+
 /* ============ 卓（テーブル）全体 ============ */
 .table {
-  position: relative;
+  /* .game-screen内で中央に固定配置し、zoomで縮小することで周囲に
+     キャラクターパネル用の余白を作る（詳細は上のコメント参照）。 */
+  position: absolute;
+  top: 52.9%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  zoom: 1.46;
+  z-index: 1;
   display: grid;
   grid-template-columns: 260px 1fr 260px;
   grid-template-rows: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
-  /* 上家・下家(opponent-area--1/3)はgridの行に縛られると中央行(1fr)の
-     高さしか使えず窮屈になるため、grid配置をやめてposition:absoluteで
-     卓の縦幅をほぼ丸ごと使わせる（下のopponent-areaのルール参照）。
-     そのぶんここでは中央列だけのシンプルな3行に戻す。 */
+  /* Step3: 3行×3列全てを同じ"content"エリアにし、.game-content-plane
+     （河・中央パネル・4方向の手牌をまとめて3D変形する層）が.tableの
+     content-box全体（260px/1fr/260px列・auto/1fr/auto行の合計）を
+     そのまま受け取れるようにする。実際の列/行の内訳（top/center/human、
+     260px側列）は.game-content-plane__inner側でもう一段そのまま
+     再現するため、対面・上家・下家・自分の各要素の座標計算は
+     一切変更されない。 */
   grid-template-areas:
-    ". top ."
-    ". center ."
-    ". human .";
+    "content content content"
+    "content content content"
+    "content content content";
   gap: 8px;
-  width: 100%;
-  height: 100%;
+  /* zoomで外から縮小するため、内部の基準サイズは常にSTAGE_WIDTH/HEIGHT
+     (1392x748, Stage.tsx参照)と一致させる。 */
+  width: 1392px;
+  height: 748px;
   padding: 8px;
   overflow: hidden;
+  /* Step1（斜め視点化の検証）: 卓面の見た目（フェルト+木枠）は新しい
+     .table-surface-stage（兄弟要素、3D変形）へ役割を移した。ここは
+     河・手牌・中央パネル等のための透明な配置用コンテナに戻す
+     （中身の座標計算は一切変更していない）。 */
+  background: transparent;
+}
+/* ============ 卓面（フェルト+木枠） ============ */
+/* Phase C-2: 以前は.table-surface-stageという独立した3Dツリー（兄弟要素）
+   にあったが、.game-content-plane__inner（ゲーム内容側の3Dツリー）と
+   サイズを常に一致させ続ける必要があり、実測でズレが繰り返し発覚した
+   （Phase Aのサイズ不一致、Phase C-1のpadding起因のズレ）。
+   .game-content-plane__innerの最初の子要素として統合し、同じ3D空間
+   （同じperspective/rotateX(55deg)）を共有することで、この種のズレが
+   構造的に起こらないようにする。装飾専用のため引き続きpointer-events:none。 */
+.table-surface {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* 木製の卓縁本体（天面）。既存の.tableのbox-shadowバンドと似た茶系の
+   多層グラデーションで木目の濃淡を表現し、外周に厚みのある影を落とす。 */
+.table-surface__frame {
+  position: absolute;
+  /* Phase A: 土台が1220x900→1392x748になった分、余白も新しい比率へ
+     換算（縦方向の縮小率 748/900≈0.831 を基準に60px→50px）。
+     上辺だけ大きめに取ってあるのは、自分の手牌を画面下ギリギリまで
+     下げた分、卓全体を下にずらしたことで上辺の木枠が画面内に見えて
+     しまうようになったため（隠れて見えなくなるまで余白を広げてある）。 */
+  inset: 250px 50px 50px 50px;
+  border-radius: 36px;
+  background: linear-gradient(155deg, #a06d3a 0%, #8a5a2e 30%, #6b3d1a 60%, #3a2010 100%);
   box-shadow:
-    inset 0 0 0 14px #5c3218,
-    inset 0 0 0 18px #7a4a24,
-    inset 0 0 0 20px #3c2010;
+    0 50px 100px rgba(0, 0, 0, 0.65),
+    inset 0 0 0 4px rgba(255, 226, 170, 0.3),
+    inset 0 0 0 8px rgba(0, 0, 0, 0.35),
+    inset 0 0 50px rgba(0, 0, 0, 0.45);
+}
+/* フェルト面（既存.table__feltと同系統の深緑グラデーションを流用）。 */
+.table-surface__felt {
+  position: absolute;
+  inset: 80px;
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 30%, rgba(255, 250, 230, 0.09) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #216036 0%, #163f24 40%, #0a2013 72%, #030d07 100%);
+  box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.65);
+}
+
+/* 木枠の内側に重ねる、方向性のある光の反射。border-imageに
+   linear-gradientを使うと、上辺は明るい側、下辺は暗い側を自動的に
+   サンプリングしてくれるため、追加のDOM要素なしで「上から光が当たる
+   厚みのある縁」を表現できる（4辺個別にdivを置く必要がない）。
+   .table自身ではなく別要素にすることで、.tableのcontent-box（内部の
+   絶対配置の基準）には一切影響しない。 */
+.table__frame-light {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border: 20px solid transparent;
+  border-image: linear-gradient(180deg, rgba(255, 226, 170, 0.4) 0%, rgba(255, 226, 170, 0) 28%, rgba(0, 0, 0, 0) 68%, rgba(0, 0, 0, 0.5) 100%) 35% / 20px;
 }
 
 .table__felt {
   position: absolute;
   inset: 0;
   z-index: -1;
+  /* 深緑フェルト。下から順に: ①中央やや上に柔らかい光だまり
+     （卓上照明が当たっている感じ）、②目の細かい織り目テクスチャ
+     （repeating-linear-gradientを45度で重ねるだけ、画像素材不要）、
+     ③本体の深緑グラデーション（縁に向かって暗くなるビネット）。
+     内側の縁にはうっすら影を落とし、木枠に沈み込んで見えるようにする。 */
   background:
-    radial-gradient(ellipse at center, #1c4d7e 0%, #123153 55%, #0a1f38 100%);
+    radial-gradient(ellipse 70% 55% at 50% 32%, rgba(255, 250, 230, 0.08) 0%, transparent 55%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.018) 0px, rgba(255, 255, 255, 0.018) 1px, transparent 1px, transparent 3px),
+    radial-gradient(ellipse at center, #216036 0%, #163f24 40%, #0a2013 72%, #030d07 100%);
+  box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.65);
+}
+
+/* フェルト面より手前・卓上の牌やUIより奥に敷く、卓全体の照明を
+   ひとつに揃えるための光レイヤー。上方から柔らかい光が当たり、
+   下端はわずかに暗くなる形で「一つの光源の下にある卓」に見せる。
+   DOM順で.table__feltの直後・z-index:-1同士のため、フェルトの上・
+   通常コンテンツ(auto)の下に重なる。 */
+.table__ambient {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 20%, rgba(255, 244, 214, 0.16) 0%, transparent 58%),
+    linear-gradient(180deg, rgba(255, 244, 214, 0.05) 0%, transparent 22%, transparent 68%, rgba(0, 0, 0, 0.28) 100%);
+}
+
+/* 卓の四隅を留める金属パーツ（菱形）。画像素材なしでclip-pathのみで
+   表現する簡易版。木枠の帯(0〜20px)の内側に収まる位置に置く。 */
+.table__corner {
+  position: absolute;
+  z-index: -1;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  background: radial-gradient(circle at 35% 30%, #f8e3a0 0%, #d4af6a 42%, #7a5a1e 100%);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+.table__corner--tl { top: 4px; left: 4px; }
+.table__corner--tr { top: 4px; right: 4px; }
+.table__corner--bl { bottom: 4px; left: 4px; }
+.table__corner--br { bottom: 4px; right: 4px; }
+
+/* ============ Step3: ゲーム内容全体の3D変形層 ============ */
+/* CSSのperspectiveは「自分自身のtransform」ではなく「自分の子要素」に
+   だけ作用する（サンドボックスで実測確認済み：同一要素にperspectiveと
+   transform:rotateXを同居させると台形にもサイズ差にもならない）。
+   そのため.table-surface-stage/.table-surfaceと同じく、perspectiveを
+   持つ層とrotateXを持つ層を必ず2段に分ける。 */
+.game-content-plane {
+  grid-area: content;
+  position: relative;
+  perspective: 4000px;
+  perspective-origin: 50% 22%;
+}
+/* .tableの元のgrid（260px/1fr/260px列・auto/1fr/auto行、area名top/
+   center/human）をそのまま1段深いところに再現する。これにより
+   table__center・human-area・OpponentArea（座標計算・position:absolute
+   のtop/left/right/bottom含む）は一切変更しなくてよい。 */
+.game-content-plane__inner {
+  position: absolute;
+  inset: 0;
+  transform: rotateX(35deg);
+  display: grid;
+  grid-template-columns: 260px 1fr 260px;
+  /* Phase C-1 Step1/2: 対面手牌(top)・自分手牌(human)をposition:absolute化
+     してこのgridの外に出したため、この2行はもう内容量で高さが決まらない
+     （絶対配置された要素はgridのトラックサイズ計算に寄与しないため、
+     元のminmax(0,auto)のままだと2行とも0に潰れ、1frのcenter行が
+     全高を奪って中央パネル・河の位置がずれてしまう＝実測で確認済み）。
+     変更前の実測auto高さ(64.9682px / 97.9579px)で固定し、center行の
+     見た目上の位置・高さを変更前と同じに保つ。 */
+  grid-template-rows: 64.9682px minmax(0, 1fr) 97.9579px;
+  grid-template-areas:
+    ". top ."
+    ". center ."
+    ". human .";
 }
 
 .table__center {
@@ -489,9 +693,30 @@ button {
    一律に掛けて行う（Table.tsx）。 */
 .table-cluster {
   position: relative;
-  width: 460px;
-  height: 460px;
+  /* position:relativeでもz-index未指定(auto)の要素同士はDOM順で重なりが
+     決まる。.opponent-area/.human-areaは共にposition:relativeで、JSX内
+     では.table__center（河側）より後に書かれているため、河が3段目まで
+     伸びて隣接エリアに重なると、見た目には河の牌が見えていても実際は
+     透明なopponent-area/human-areaのボックスが手前でクリック・ホバーを
+     奪ってしまう（「取り返し」で河の3段目が反応しない不具合の原因）。
+     以前は必殺技/ロン等の操作ボタン（.action-row）がposition:absoluteの
+     オーバーレイで河の領域まで張り出すことがあり、z-indexの奪い合いに
+     なっていた。今はaction-rowを通常フロー化し、自キャラ表示も
+     CharacterPanel（卓の外）へ移設したため、その競合は構造的に発生しない。 */
+  z-index: 1;
+  width: 380px;
+  height: 380px;
   flex-shrink: 0;
+  /* Step2は当初.table-cluster全体をrotateX(55deg)でtable-surfaceと同じ
+     角度に傾けていたが、既存の河は左右で2D rotate(90deg/-90deg)を
+     ローカルに掛けている（河をローカル座標で90度倒す処理）ため、祖先の
+     3D rotateXと合成するとシアー（斜めのせん断）変形が起き、河が2段目
+     以降で一直線に並ばず斜めに散らばって見える不具合になった（実測で
+     確認済み）。2D変形（既存のrotate/translate/animation）どうしの合成は
+     安定しているのに対し、2D回転済みコンテンツを3D回転に入れると
+     このような崩れが起きるため、方針を変更：卓面（.table-surface、
+     別要素）だけを3Dのまま維持し、河・中央パネル・手牌などのゲーム内容
+     (.table-cluster以下)は完全に平面のまま安定動作させる。 */
   /* table-cluster(460px)はgridの"center"行(可変高さ)に対して実際には
      やや大きく、justify-content:centerだけだと上下にはみ出す分が均等に
      割り振られる。対面側の河が3段目まで埋まると、そのはみ出し分と
@@ -499,8 +724,14 @@ button {
      設計）が重なって、対面の手牌に河がめり込んで見える不具合があった。
      自分側(human)は.human-areaにpadding-top:96pxの余裕を確保済みで
      河が伸びても手牌まで距離があるため、余白を上から借りてくる形で
-     クラスタ全体を少し下にずらし、対面側の余裕を優先的に確保する。 */
-  margin-top: 40px;
+     クラスタ全体を少し下にずらし、対面側の余裕を優先的に確保する。
+     …としていたが、その後の自分の手牌側の調整（縮小・位置固定化）で
+     手牌の実際の上端が上がり、今度は自分側の河の3段目が自分の手牌に
+     被るようになった（実測でほぼ0pxの余白しかなかった）。対面側は
+     まだ十分な余白があったため、その余白を少し自分側に返す形で
+     margin-topを縮める（対面の手牌・副露に被らない範囲で実測して
+     調整済み）。 */
+  margin-top: -15px;
 }
 /* 四方の河は中心から見て±102pxの位置に来るが、河自体の幅/高さ(136px)が
    隣の河の張り出し(204pxの半分=102px)より大きいぶん、隅で互いのバウン
@@ -520,15 +751,26 @@ button {
 }
 .table-cluster .river--left {
   position: absolute;
-  left: -10px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: -70px;
+  /* 川が下がり過ぎて手牌との間に大きな空白ができているとの指摘のため
+     持ち上げる。上家のネームプレート下端とはギリギリ接する位置関係な
+     ので、ネームプレート側も合わせて詰める（下のcharacter-panel--left
+     参照）。下家側だけ動かすと不自然なので同じ量だけ揃える。 */
+  top: 58%;
+  /* 左右の河は内部でrotate(90deg)（.discard-pile側）を持っており、
+     祖先(.game-content-plane__inner)のrotateX(55deg)をそのまま継承すると
+     ローカルのX/Y軸が入れ替わっているせいで段がシアー変形してしまう
+     （サンドボックスで再現・特定済み）。ここでrotateX(-55deg)により
+     祖先の傾きを一旦打ち消し、90度回転後の見た目に対応する軸
+     (rotateY)で改めて傾け直すことで、段の直線性を保ったまま
+     「卓の斜め方向に自然に沿う」奥行きを表現する。 */
+  transform: translateY(-50%) rotateX(-35deg) rotateY(0deg) rotateZ(0deg);
 }
 .table-cluster .river--right {
   position: absolute;
-  right: -10px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: -70px;
+  top: 58%;
+  transform: translateY(-50%) rotateX(-35deg) rotateY(0deg) rotateZ(0deg);
 }
 
 .river {
@@ -644,6 +886,11 @@ button {
 .riichi-stick--left {
   top: 50%;
   left: 172px;
+  /* 河・手牌側のようにrotateX(-55deg) rotateY(∓55deg)による軸補正を
+     試みたが、この要素は補正とローカルのrotate(90deg)を分離する内側
+     要素を持たないため未検証。装飾的な棒でテキストも無く優先度が低い
+     ため、今回は無補正のまま祖先のrotateXを素直に継承させるに留める
+     （見た目を実機で確認し、必要なら次段で個別対応する）。 */
   transform: translate(-50%, -50%) rotate(90deg);
 }
 .riichi-stick--right {
@@ -657,58 +904,49 @@ button {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 120px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(155deg, #24507e 0%, #16324f 100%);
-  clip-path: polygon(28% 0, 72% 0, 100% 28%, 100% 72%, 72% 100%, 28% 100%, 0 72%, 0 28%);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22) inset, 0 6px 18px rgba(0, 0, 0, 0.55);
+  /* Step3: 祖先(.game-content-plane__inner)のrotateX(55deg)により
+     局情報の文字が読みにくくならないよう、逆回転(rotateX(-55deg))で
+     正面向きに戻す（ビルボード）。translateZ()は3D空間内でz-indexが
+     効かないため、河（伏せ牌）の奥に隠れないよう手前に押し出す
+     （Step2で対面の点数バッジが河に隠れて消える不具合として発覚
+     した対策と同じ）。河の牌側に段（1段目/2段目/3段目）ごとのz-index
+     （最大100、DiscardPile.tsx参照）を追加したため、それより確実に
+     手前になるようここでも明示的にz-indexを大きく取っておく。 */
+  transform: translate(-50%, -50%) translateZ(80px) rotateX(-35deg);
+  z-index: 200;
+  /* 参考画像を丸ごと切り出したパネル(center-cluster.png、512x420≒
+     1.219:1、透過済み)に合わせた比率。局情報2段＋上下左右4枠が
+     すべて1枚の画像に収まっているため、以前のように点数バッジを画像の
+     外側に別途配置する必要はない（中身は全てposition:absoluteの子要素と
+     して、画像内の実測%座標に重ねる）。河と重ならないサイズまで実測で
+     縮めてある。 */
+  width: 174px;
+  height: 143px;
+  background: url("/table/center-cluster.png") center / 100% 100% no-repeat;
 }
 
-/* 4人分の点数は全員同じ扱いで八角形に押し込めず、河との間の余白に離して
-   配置する（table-cluster基準の絶対配置）。 */
-.cluster-seat {
+.center-board__seat {
   position: absolute;
-  /* 卓全体をzoomで伸縮表示している上に、上家/下家/対面側の点数表示は
-     さらにrotate(90deg/-90deg/180deg)を重ねている。回転を伴う要素は、
-     再描画のきっかけ（点数増減演出のマウント/アンマウント等）があるたびに
-     一瞬コンポジタがラスタライズ済みのビットマップを引き伸ばして描画して
-     しまい、文字がにじんで見えることがあった。backface-visibility単体では
-     不十分だったため、will-changeも重ねて確実に専用のレイヤーへ昇格させ、
-     再描画のたびにその解像度で描き直させる（Chromiumで回転を伴う表示が
-     ぼやけるときの定番の回避策）。 */
+  /* 卓全体をzoomで伸縮表示している上に、上家/下家側はさらにrotate
+     (90deg/-90deg)を重ねている。回転を伴う要素は、再描画のきっかけ
+     （点数増減演出のマウント/アンマウント等）があるたびに一瞬コンポジタが
+     ラスタライズ済みのビットマップを引き伸ばして描画してしまい、文字が
+     にじんで見えることがあった。backface-visibility単体では不十分
+     だったため、will-changeも重ねて確実に専用のレイヤーへ昇格させ、
+     再描画のたびにその解像度で描き直させる。 */
   backface-visibility: hidden;
   will-change: transform;
 }
-/* 元は142pxで、点数バッジ(y=142-166px)とリーチ棒(top/human、y=168-176px)の
-   隙間がわずか2pxしかなく、リーチ宣言中（バッジに「リーチ」表示が付いて
-   横幅が伸びる）とブラウザのフォント描画誤差次第で実際に重なって見える
-   ことがあった（「リーチしたら点数表示のところが重なる」との指摘）。
-   河との隙間(元16px)を少し詰める形でバッジを河側へ寄せ、リーチ棒との
-   隙間を8px程度まで広げる。 */
-.cluster-seat--top { top: 136px; left: 50%; transform: translateX(-50%) rotate(180deg); }
-.cluster-seat--bottom { bottom: 136px; left: 50%; transform: translateX(-50%); }
-/* rotate()は要素自身の(可変な)サイズを基準に中心を取るため、リーチ表示の
-   有無や点数の桁数でseat-badgeの横幅(=回転後は縦の長さ)が変わるたびに
-   回転の中心がズレて、八角形側にめり込んで見えてしまう(河の回転バグと
-   同根)。幅を最大ケース基準で固定し、その中でバッジを中央寄せすることで
-   中身が変わっても回転の中心を常に一定に保つ。 */
-.cluster-seat--left, .cluster-seat--right {
-  top: 50%;
-  width: 150px;
-  display: flex;
-  justify-content: center;
-}
-/* 幅を150pxに固定した分、回転後の中心(=left/rightの基準+幅の半分)が
-   外側にずれるため、河と八角形の隙間の中央(設計上148px付近)に来るよう
-   left/rightの基準値を調整している。top/bottomと同じ理由（リーチ棒との
-   隙間がフォント描画誤差で潰れて重なって見えることがある）で、73pxより
-   少し河側へ寄せて余裕を持たせる。 */
-.cluster-seat--left { left: 69px; transform: translateY(-50%) rotate(90deg); }
-.cluster-seat--right { right: 69px; transform: translateY(-50%) rotate(-90deg); }
+/* center-cluster.png(512x420)を実測してグリッド化し、上下左右4枠の
+   中心の%座標を求めた（上下＝約50.8%,10.1%/50.8%,89.3%、左右＝約
+   12.7%,50%/87.9%,50%）。.center-boardはすでに祖先のrotateXを
+   打ち消すビルボードになっているため、子要素はここでは奥行き方向の
+   再調整（translateZ/rotateX）をやり直す必要はなく、単純に画像内の
+   位置へ2D配置するだけでよい。左右だけ牌に合わせて90度回転させる。 */
+.center-board__seat--top { left: 50%; top: 12%; transform: translate(-50%, -50%); }
+.center-board__seat--bottom { left: 50%; top: 88%; transform: translate(-50%, -50%); }
+.center-board__seat--left { left: 14%; top: 50%; transform: translate(-50%, -50%) rotate(90deg); }
+.center-board__seat--right { left: 86%; top: 50%; transform: translate(-50%, -50%) rotate(-90deg); }
 
 /* カード「点棒吸収」使用時の演出。中央に「点棒吸収！」の札を一瞬出し、
    同時に各座席の点数バッジのすぐ上に増減分（+3000/-1000）を浮かせて
@@ -775,25 +1013,34 @@ button {
   }
 }
 
-.center-board__core {
+/* center-cluster.png(512x420)を実測すると、中央の局情報2段（上＝局数、
+   下＝残り枚数/供託）はそれぞれ画像の縦32.1%・63.1%あたりが中心。
+   .center-board__coreという1つのflexブロックとしてまとめて中央寄せする
+   と2段の間隔がこの画像の2枠の間隔と合わずズレるため、局数と
+   残り枚数(+供託)を別々に画像内の%座標へ配置する。 */
+.center-board__round {
+  position: absolute;
+  left: 50%;
+  top: 36.5%;
+  transform: translate(-50%, -50%);
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffe4a3;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.center-board__wall-group {
+  position: absolute;
+  left: 50%;
+  top: 66%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   text-align: center;
   color: #f0f0f0;
-  font-size: 14px;
-}
-.center-board__round {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ffe4a3;
-  white-space: nowrap;
-}
-.center-board__dora {
-  display: flex;
-  gap: 2px;
-  justify-content: center;
+  font-size: 13px;
 }
 .center-board__wall, .center-board__kyotaku {
   opacity: 0.8;
@@ -804,10 +1051,12 @@ button {
   display: flex;
   align-items: center;
   gap: 3px;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 4px;
-  padding: 1px 6px;
+  /* 帯パネルの絵はcenter-cluster.png側にすでに描かれているため、
+     ここでは背景を持たせず文字だけ載せる（.center-board__seat--*が
+     画像内のその枠の位置に配置してくれる）。 */
+  padding: 2px 10px;
   font-size: 14px;
+  color: #f0f0f0;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -818,12 +1067,14 @@ button {
   font-weight: bold;
 }
 .wind-badge {
-  background: #333;
+  background: linear-gradient(160deg, #3a2f22, #201a12);
+  border: 1px solid rgba(212, 175, 55, 0.3);
   padding: 1px 6px;
   border-radius: 4px;
 }
 .riichi-badge {
-  background: #d4a017;
+  background: linear-gradient(160deg, #f0c65a, #b8862a);
+  border: 1px solid #fff0c2;
   color: #1a1a1a;
   padding: 1px 6px;
   border-radius: 4px;
@@ -877,9 +1128,11 @@ button {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 8px;
+  background: linear-gradient(160deg, rgba(24, 16, 8, 0.85), rgba(10, 7, 4, 0.8));
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 10px;
   padding: 6px 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .hud__row {
   display: flex;
@@ -894,6 +1147,10 @@ button {
 .hud__dora {
   display: flex;
   gap: 2px;
+  /* 牌のbox-shadow（厚みの帯）は牌自身のレイアウト上の高さには含まれない
+     ため、帯を縮めても縮めきれない分だけ次の行（自動ツモ切り等）に
+     わずかに被っていた。帯のぶんだけ余白を足して確実に被らないようにする。 */
+  margin-bottom: 10px;
 }
 .hud__honba {
   font-size: 14px;
@@ -901,7 +1158,9 @@ button {
 }
 .hud__label {
   font-size: 14px;
-  opacity: 0.85;
+  font-weight: 700;
+  color: #ffe4a3;
+  letter-spacing: 0.03em;
 }
 .hud__bgm-volume input[type="range"] {
   width: 70px;
@@ -920,8 +1179,8 @@ button {
   gap: 6px;
 }
 .hud__toggle-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(212, 175, 55, 0.3);
   border-radius: 6px;
   color: inherit;
   font: inherit;
@@ -954,7 +1213,26 @@ button {
   min-height: 0;
   overflow: visible;
 }
-.opponent-area--2 { grid-area: top; height: 100%; }
+/* Phase C-1 Step1(再改訂): 「対面手牌という麻雀卓レイアウト上の要素の
+   基準点(=実際に牌が並ぶ矩形の中心)をフェルト座標(0.5, 0.10)に置く」。
+   0.10自体は対称な5層骨格(0.10/0.30/0.50/0.70/0.90)の初期値。
+   u,v→ローカル%の変換式は、.table(border-box+padding:8px)の
+   content-box実寸(1376x732、.table-surface-stageもこれに合わせて
+   縮小済み)を基準に再計算したもの
+   (top%=10.9290+v*78.1421、フェルトinset:80pxが1376x732ボックスの
+   5.8140%/94.1860%(左右)・10.9290%/89.0710%(上下)に対応)。
+   箱(.opponent-area--2)の中心と実際の手牌行の中心の差(+3.4px、DOM構造由来)
+   はtransformで補正する。grid配置(top行)から外すが、行そのものは
+   .game-content-plane__inner側で固定高さを維持しているため中央パネル・
+   河の位置には影響しない。列幅(872px)は維持して手牌内部のレイアウトを
+   変えない。 */
+.opponent-area--2 {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  transform: translate(-50%, calc(-50% - 3.4px));
+  width: 872px;
+}
 /* 上家・下家はgridの「center」行(1fr)だけに収めると窮屈になるため、
    gridから外してposition:absoluteで卓の縦幅をほぼ丸ごと使う。
    下家(right)側は他に何もないため卓の上端から下端までフルに、
@@ -968,14 +1246,26 @@ button {
 }
 .opponent-area--1 {
   top: 8px;
-  right: 8px;
+  right: 130px;
+  /* 下家（右側）の手牌・副露は内部(.opponent-hand-back__inner等)で
+     rotate(-90deg)を持っている。以前はここにrotateY(35deg)も足して
+     いたが、河の左右（.river--left/--right）で発覚したのと同じ理由で、
+     祖先(.game-content-plane__inner)のrotateXとrotateYが合成されると
+     牌1枚1枚が平行四辺形にシアー変形してしまっていた（「牌が斜めに
+     なって不自然」との指摘）。rotateY成分を外し、祖先のrotateXを
+     打ち消すだけのrotateX(-35deg)のみにする（河と同じ最終形）。
+     rotateZは牌の形（平行四辺形化）に影響しない純粋な2D回転のため、
+     真っ直ぐすぎて不自然に見えないよう、控えめに少しだけ傾きを足す。 */
+  transform: rotateX(-35deg) rotateZ(2deg);
 }
 .opponent-area--3 {
   /* .hudに自動ツモ切り/自動和了トグルの行を追加した分だけ.hudの高さが
      さらに伸びたため、以前の128pxのままだと上家がHUDの下端とほぼ被る。
-     余裕を持って下にずらす（BGM音量スライダー追加時の96→128と同じ理由）。 */
+     余裕を持って下にずらす（BGM音量スライダー追加時の96→128と同じ理由）。
+     rotateYを外した理由・rotateZの理由は.opponent-area--1のコメント参照。 */
   top: 160px;
-  left: 8px;
+  left: 130px;
+  transform: rotateX(-35deg) rotateZ(-2deg);
 }
 .opponent-area--active {
   outline: 2px dashed rgba(241, 196, 83, 0.7);
@@ -1007,7 +1297,7 @@ button {
    3人ぶん一巡し終わるタイミングと実際にツモが実行されるタイミングが揃う。
    .opponent-area--activeと似た黄金の縁取りだが、明滅させることで
    「本物の手番表示ではない」ことを視覚的に区別する。 */
-@keyframes nameplate-fake-turn-pulse {
+@keyframes character-panel-fake-turn-pulse {
   0%,
   100% {
     box-shadow: none;
@@ -1019,11 +1309,11 @@ button {
     box-shadow: 0 0 16px 5px rgba(255, 224, 102, 0.4);
   }
 }
-.nameplate--fake-turn {
-  /* durationはOpponentArea.tsx/Hand.tsxがTIME_STOP_FAKE_TURN_STEP_MSから
+.character-panel__portrait--fake-turn {
+  /* durationはCharacterPanel.tsxがTIME_STOP_FAKE_TURN_STEP_MSから
      インラインstyleで上書きするため、ここでは初期値として同じ値を書いておく。 */
-  animation: nameplate-fake-turn-pulse 650ms ease-in-out 1 both;
-  border-radius: 10px;
+  animation: character-panel-fake-turn-pulse 650ms ease-in-out 1 both;
+  border-radius: 50%;
 }
 
 /* 敵が副露（チー/ポン/カン）した瞬間、発声を模した大きな文字を一瞬だけ
@@ -1070,51 +1360,175 @@ button {
   }
 }
 
-.nameplate {
+/* ============ キャラクターパネル（卓の外の独立レイヤー） ============ */
+/* 画像→額縁→名前→点数/状態を1枚のパネルにまとめる。以前は
+   OpponentArea.tsx/Hand.tsxそれぞれの中でネームプレート+必殺技ゲージが
+   河・手牌と同じ箱の高さ/クリック優先度を奪い合っていたが、卓
+   （.table）の外に独立配置することでその競合そのものを解消する。 */
+.character-panel {
+  position: absolute;
+  z-index: 2;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(8, 18, 32, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  padding: 3px 10px 3px 3px;
-  align-self: flex-start;
+  gap: 8px;
+  max-width: 190px;
+  padding: 6px 14px 6px 6px;
+  background: linear-gradient(150deg, rgba(24, 16, 8, 0.9), rgba(9, 6, 3, 0.84));
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
-.nameplate__avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid #f1c453;
+.character-panel--active {
+  outline: 2px dashed rgba(241, 196, 83, 0.7);
+  outline-offset: 3px;
+}
+.character-panel--frozen {
+  filter: grayscale(1) brightness(0.55);
+  transition: filter 0.5s ease;
+}
+/* 目標にした参考画像と同じく、キャラパネルを卓上下中央の帯ではなく
+   四隅に寄せる。これにより画面上下中央の帯が完全に空くため、卓自体を
+   画面の上下いっぱいまで大きく使えるようになる（対面=右上、下家=右中、
+   上家=左中、自分=左下）。卓の内部レイアウト（grid/絶対配置のpxバジェット）
+   とは無関係な独立座標のため、河が何段に伸びてもこのパネルの位置は
+   一切影響を受けない。 */
+.character-panel--top { top: 8px; right: 160px; }
+/* 上家・下家だけ、顔・名前・点数・必殺技ゲージを全部縦並びにする
+   （指摘により）。対面・自分は従来通り横並びのまま。 */
+.character-panel--left,
+.character-panel--right {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  /* 横幅を固定にして上家・下家で必ず揃える（max-widthだと中身の幅
+     次第で微妙にズレることがあるため）。 */
+  width: 110px;
+  gap: 4px;
+}
+.character-panel--left .character-panel__body,
+.character-panel--right .character-panel__body {
+  align-items: center;
+  width: 100%;
+}
+.character-panel--left .character-panel__name,
+.character-panel--right .character-panel__name {
+  align-items: center;
+}
+/* 親（風・ドラ表示バッジ）と点数も横並びをやめて縦に積む。これで
+   .character-panel__metaの横幅も.character-panel__nameと同程度に収まり、
+   上家・下家とも見た目の横幅が一致する。 */
+.character-panel--left .character-panel__meta,
+.character-panel--right .character-panel__meta {
+  flex-direction: column;
+  gap: 2px;
+}
+.character-panel--left .skill-gauge,
+.character-panel--right .skill-gauge,
+.character-panel--left .riichi-badge,
+.character-panel--right .riichi-badge {
+  align-self: center;
+}
+.character-panel--right { top: 50%; right: 8px; transform: translateY(-50%); }
+/* 上家：HUD（東風戦パネル、左上）のやや右下、自分の手牌・河には
+   当たらない位置。 */
+.character-panel--left { top: 156px; left: 150px; right: auto; transform: none; }
+.character-panel--bottom {
+  /* 自分の手牌の左上あたり。カード欄（.hand-top-status、手牌の直上・
+     左寄せ）に被らないよう、それよりさらに上に置く。 */
+  top: 470px;
+  left: 160px;
+  right: auto;
+  bottom: auto;
+  /* 自分は主役として一回り大きく。 */
+  max-width: 230px;
+  padding: 8px 18px 8px 8px;
+  gap: 10px;
+}
+
+.character-panel__portrait {
+  position: relative;
   flex-shrink: 0;
 }
-.nameplate__text {
+.character-panel__avatar {
+  display: block;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid #d4af37;
+  /* 二重リングの額縁にして「キャラクターを収めた勲章」のような一体感を出す。 */
+  box-shadow: 0 0 0 2px #1a1208, 0 0 0 3px rgba(212, 175, 55, 0.55), 0 3px 8px rgba(0, 0, 0, 0.55);
+  object-fit: cover;
+}
+.character-panel--bottom .character-panel__avatar {
+  width: 72px;
+  height: 72px;
+  border-width: 3px;
+}
+.character-panel__body {
   display: flex;
   flex-direction: column;
-  line-height: 1.15;
+  gap: 2px;
+  min-width: 0;
 }
-.nameplate__name {
-  font-size: 15px;
-  font-weight: 600;
+/* キャラ名は「異名・名前」形式で長いため、1行だと省略されて誰なのか
+   分からなくなっていた。「・」の位置(splitCharacterName、
+   CharacterPanel.tsx)で2行に分け、異名・名前とも省略されず見えるように
+   する。行ごとのフォールバックとしてellipsisは残すが、通常の長さでは
+   発動しない想定。 */
+.character-panel__name {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  min-width: 0;
+}
+.character-panel__name-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* 自分のキャラ名だけ、対局中に必殺技の効果を確認できるようクリック可能に
-   している（Hand.tsx）。<button>化に伴うブラウザ既定の見た目をリセットし、
-   元の<div>表示（対面等の名前）と変わらない見た目にしつつ、クリック可能
-   であることだけホバー時のアンダーラインで示す。 */
-.nameplate__name--clickable {
+   している（CharacterPanel.tsx）。<button>化に伴うブラウザ既定の見た目を
+   リセットし、通常の名前表示と変わらない見た目にしつつ、クリック可能で
+   あることだけホバー時のアンダーラインで示す。 */
+.character-panel__name--clickable {
   background: none;
   border: none;
   padding: 0;
   font: inherit;
+  font-weight: 700;
   color: inherit;
   text-align: left;
   cursor: pointer;
 }
-.nameplate__name--clickable:hover {
+.character-panel__name--clickable:hover {
   text-decoration: underline;
 }
-.nameplate__title {
-  font-size: 12px;
-  opacity: 0.6;
+.character-panel__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  /* 名前との間に細い金線を挟み、「名前＋数字の羅列」ではなく一枚の
+     名札として名前・点数がひとまとまりに見えるようにする。 */
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+  padding-top: 2px;
+  margin-top: 1px;
+}
+.character-panel__score {
+  font-weight: 700;
+  color: #ffe4a3;
+}
+.character-panel .skill-gauge {
+  width: 100%;
+  max-width: 110px;
+  margin-top: 2px;
+}
+.character-panel .riichi-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 0 5px;
 }
 
 /* 必殺技ゲージ。溜まっている間は帯を伸ばすだけ、満タンになったら
@@ -1347,6 +1761,13 @@ button {
 }
 .opponent-area--2 .opponent-melds {
   order: -1;
+  /* HUD(画面左上のドラ表示パネル)と重なって見えることがあるため、
+     副露を卓の内側へ少し寄せる。margin-leftではなくposition:relative+left
+     を使うのは、marginだとflexレイアウト上の占有幅が変わり、
+     .opponent-hand-back側のmargin:auto中央寄せ計算に影響して手牌の位置
+     まで動いてしまうため（見た目だけをずらし、手牌の位置は変えない）。 */
+  position: relative;
+  left: 140px;
 }
 .opponent-area--2 .opponent-hand-back {
   margin-left: auto;
@@ -1385,7 +1806,6 @@ button {
   flex-wrap: nowrap;
   flex-shrink: 0;
 }
-
 /* 手牌は必ず1列（折り返し禁止）で実寸を確保し、副露は
    flex:1で残りの縦幅いっぱいに広げる。
    注意: rotate()は見た目だけでレイアウトサイズには反映されないため、
@@ -1406,6 +1826,13 @@ button {
   height: var(--hand-back-track, 474px);
   flex-shrink: 0;
 }
+/* 手牌だけを卓の中央側へ少し寄せる（副露は動かさない）。 */
+.opponent-area--1 .opponent-hand-back {
+  transform: translateX(-27px);
+}
+.opponent-area--3 .opponent-hand-back {
+  transform: translateX(27px);
+}
 .opponent-area--1 .opponent-melds,
 .opponent-area--3 .opponent-melds {
   /* 以前は副露どうしを横に並べず1つずつ縦に積んでいた（flex-wrap:wrap +
@@ -1420,6 +1847,12 @@ button {
   width: 49px;
   height: var(--melds-track, 0px);
   flex-shrink: 0;
+}
+/* 下家の副露だけ、もっと奥（画面上方向、プレイヤーから見て遠い側）へ
+   移動する。.opponent-hand-row（column-reverse）の主軸は縦なので、
+   横方向のtranslateXではなく縦方向のtranslateYで動かす。 */
+.opponent-area--1 .opponent-melds {
+  transform: translateY(-60px);
 }
 /* 河・点数バッジと同じ理由（.cluster-seatのコメント参照）で、回転させて
    いる手牌・副露側にも専用レイヤーへの昇格を適用し、常にくっきり
@@ -1449,16 +1882,24 @@ button {
 }
 
 /* ============ 自分の手牌エリア ============ */
+/* Phase C-1 Step2(再改訂): opponent-area--2と同じ考え方・同じ変換式
+   (top%=10.9290+v*78.1421)で、実際に牌が並ぶ矩形(.human-area .hand-row)
+   の中心を対面と対称なフェルト座標(0.5, 0.90)に置く（対面0.10と中心0.5
+   から等距離=0.40）。.human-areaの箱自体はaction-row等も含むため、
+   実測した箱↔手牌行のズレ(-4.9px、手牌行は箱の中心よりわずかに上)を
+   transformで補正している。grid配置(human行)
+   から外すが、行そのものは.game-content-plane__inner側で固定高さを
+   維持しているため中央パネル・河の位置には影響しない。列幅(872px)は
+   維持して手牌内部のレイアウトを変えない。 */
 .human-area {
-  position: relative;
-  grid-area: human;
+  position: absolute;
+  left: 50%;
+  top: 81.444%;
+  transform: translate(-50%, calc(-50% + 4.9px));
+  width: 872px;
+  /* 自キャラ表示（旧.hand-left-status）を卓の外のCharacterPanelへ移設し、
+     action-rowも通常フロー化したため、上部に大きな予約余白は不要になった。 */
   padding: 8px;
-  /* 手牌の右上（じゃんたま同様、手牌より上）にリーチ/チー/スキップ等の
-     ボタン用の帯を常に確保しておく。ボタンの有無に関わらずこの帯の分だけ
-     手牌の位置が固定される。左側はキャラ表示+必殺技ゲージ+待ち表示が
-     縦に積まれるため、右側(action-row、1段ぶんの高さで足りる)より広めに
-     確保しておく必要がある。 */
-  padding-top: 96px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -1472,6 +1913,11 @@ button {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* .hand-top-status/.action-rowを.hand-rowの上に絶対配置するための基準。
+     どちらも通常フローから外すことで、表示・非表示が切り替わっても
+     .hand-row（実際の手牌）の位置が一切動かないようにする
+     （「手牌が上下にズレるのを禁止」との指摘のため）。 */
+  position: relative;
 }
 .hand-row {
   position: relative;
@@ -1491,9 +1937,21 @@ button {
 .hand-tiles {
   /* 幅を最大枚数(14枚)分で固定しておくことで、ツモ・副露などで枚数が
      変わっても中央寄せの基準サイズ自体は変わらず、既存の牌が左右に
-     動かない。中身(.hand-tiles__real)は左詰めのまま。 */
+     動かない。 */
   width: 800px;
   flex-shrink: 0;
+  /* 手牌をzoomで縮小した分、中身(.hand-tiles__real)が800px幅より小さく
+     なり、左詰めのままだと左に寄って見えていた。
+     以前はdisplay:flex+justify-content:centerで中央寄せしていたが、
+     それだとツモ・打牌で枚数（＝.hand-tiles__realの実幅）が変わるたびに
+     中央寄せの基準位置ごと再計算されて手牌全体が左右にズレてしまって
+     いた（「ツモるたびに左右に動くのを禁止」との指摘）。中身の枚数に
+     関係なく開始位置を絶対に動かさないよう、動的な中央寄せではなく
+     固定のpadding-leftで「最大14枚がだいたい収まる位置」まで一度だけ
+     寄せる（14枚*44px*zoom0.85+gapぶん≒557px、(800-557)/2≒122px。
+     手牌の横幅を54→44pxに縮めた際にこの値を更新し忘れており、左に
+     寄り過ぎて見えていたのを合わせて直す）。 */
+  padding-left: 122px;
 }
 /* 実際に並んでいる牌ぶんだけの実寸コンテナ。DiscardPile.tsxがツモ切り
    演出の起点として.hand-tiles側のdata-hand-anchorを実測しているが、
@@ -1506,19 +1964,33 @@ button {
   display: flex;
   gap: 3px;
   flex-wrap: nowrap;
+  /* 自分の手牌が大きすぎるとの指摘のため、牌本体+間隔をまとめて縮小する。
+     transform:scaleではなくzoomを使うのは、他の縮小箇所と同じくラスタ画像
+     (牌のimg)がぼやけるのを避けるため（zoomはレイアウトごと縮小され、
+     img自体が縮小サイズで再デコードされる）。 */
+  zoom: 0.85;
 }
 
-/* リーチ/チー/スキップ等のボタンの有無で手牌の位置が上下しないよう、
-   通常のフローから外し、手牌より上・右寄り（じゃんたまの配置）に固定表示する。 */
+/* リーチ/ポン/ロン/キャンセル等の操作ボタン。通常フロー（.hand-rowの
+   直後）に置いていた時期があったが、それだと表示・非表示が切り替わる
+   たびに手牌の位置が上下にズレてしまっていた。手牌の位置は絶対に
+   動かしてはいけない（指摘により）ため、.hand-area基準の絶対配置に戻し、
+   手牌の下ではなく右上に重ねて表示する（手牌の下側に何かを表示するのは
+   禁止）。 */
 .action-row {
+  /* 右端(right)は.hand-area全体の右端ではなく、実際の手牌
+     (.hand-tiles__real)の右端に合わせる。実測で.hand-area右端との差が
+     約200pxだったため、その分だけ内側(左)へ寄せる。margin-bottomは
+     手牌にかからないよう少し広めに取る。 */
   position: absolute;
-  top: 8px;
-  /* 画面右端ではなく、自分の手牌(.hand-tiles、幅800pxで中央寄せ)の右端の
-     真上に来るようにする。50%(中央)から手牌の半幅(400px)ぶん右に
-     ずらした位置が手牌の右端なので、そこを基準にrightオフセットを出す。 */
-  right: calc(50% - 400px);
+  right: 100px;
+  bottom: 100%;
+  margin-bottom: 20px;
+  z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   min-height: 0;
 }
@@ -1536,36 +2008,26 @@ button {
 }
 
 /* 自分のキャラ表示（ネームプレート）+必殺技ゲージ+待ち牌表示（じゃんたま風）
-   をまとめた左側の縦積みブロック。.action-rowと同じ考え方で
-   .hand-tiles（幅800px、中央寄せ）の左端の真上に来るようにする。
-   action-rowは右寄りなので、左寄りに置けば同じ上部の帯を使っても
-   干渉しない。
-   以前はキャラ表示をaction-row（チー/ポン等のボタンで幅が変わる）側に
-   置いていたため、鳴きの選択肢が出るたびに位置がガタついていた。ここに
-   独立させたことで右側の増減と無関係に位置が安定する。 */
-.hand-left-status {
+   キャラ表示（ネームプレート）は卓の外のCharacterPanelへ移設したため、
+   ここには未来視・待ち・カード・ベタ降り等の状態表示だけが残る。
+   以前は通常フロー要素として.hand-rowの直前に置き、中身の高さぶんだけ
+   手牌側を押し上げることで重なりを避けていたが、これだと表示・非表示の
+   たびに手牌の位置が上下にズレてしまっていた（「手牌が上下にズレるのを
+   禁止」との指摘）。.hand-row（実際の手牌）の位置は絶対に動かしたくない
+   ため、通常フローから外し、.hand-area基準の絶対配置で手牌の直上に
+   重ねる（手牌の位置に一切影響しない）。 */
+.hand-top-status {
+  /* 手牌の左上あたりに来るよう左寄せにする（右寄せの.action-rowとは
+     反対側）。margin-bottomは手牌にかからないよう少し広めに取る。 */
   position: absolute;
-  top: 8px;
-  left: calc(50% - 400px);
+  left: 100px;
+  right: auto;
+  bottom: 100%;
+  margin-bottom: 20px;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-  min-height: 0;
-}
-/* 未来視・待ち表示は.hand-left-status（キャラ表示+ゲージ+カード/ベタ降り等の
-   状態表示が縦に積まれる、状態表示が増えるほど下に伸びる）から独立させ、
-   手牌(.hand-tiles、幅800pxで水平中央に固定)の真上・中央に置く。
-   .action-row/.hand-left-statyusと違いposition:absoluteの固定オフセット
-   にはしない（内容が増えた時に手牌と絶対に被らない保証ができないため）。
-   .hand-area（flex-direction:column）内で.hand-rowの直前に置く通常の
-   フロー要素にすることで、中身の高さぶんだけ.hand-row側が自動的に
-   押し上げられ（親.human-areaがjustify-content:flex-endのため、
-   .hand-area全体が伸びた分だけ上にずれる）、絶対に手牌と重ならない。 */
-.hand-top-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 4px;
 }
 .wait-row {
@@ -1664,7 +2126,9 @@ button {
 .melds-row {
   position: absolute;
   right: calc(50% - 400px + 16px);
-  bottom: 0;
+  /* 手牌の並びの一番下（下端）にそのまま揃えると、副露が河のように
+     卓に沈んで見えるとの指摘のため、その分だけ持ち上げる。 */
+  bottom: 24px;
   display: flex;
   gap: 2px;
 }
@@ -1689,10 +2153,18 @@ button {
   background: transparent;
   border: none;
   border-radius: 13.3% / 10%;
+  /* 牌の「厚み」。側面は白一色の本体＋その外側（フェルトに近い側）に
+     牌の表面色（このゲームでは緑）をはっきり帯として乗せる、参考にした
+     市販タイトルと同じ2層構造（白の本体＋色の付いた縁の帯）にする。
+     グラデーションで馴染ませず、帯自体ははっきり色を変える。密着した
+     接地影（すぐ下、締まった暗さ）とその外側に広がる柔らかい接地影
+     （ぼかし大、フェルトへの映り込み）を分けることで、「フェルトの上に
+     実際に乗っている」重みを強調する。 */
   box-shadow:
-    0 2px 0 0 #d9cca3,
-    0 4px 0 0 #c2b280,
-    0 6px 7px rgba(0, 0, 0, 0.45);
+    0 34px 0 0 #f2f2ec,
+    0 40px 0 0 #3f7a4f,
+    0 10px 4px rgba(0, 0, 0, 0.4),
+    0 42px 24px rgba(0, 0, 0, 0.6);
   display: block;
   cursor: default;
   padding: 0;
@@ -1705,18 +2177,191 @@ button {
   width: var(--tile-w);
   height: var(--tile-h);
   box-shadow:
-    0 1px 0 0 #d9cca3,
-    0 2px 0 0 #c2b280,
-    0 4px 4px rgba(0, 0, 0, 0.4);
+    0 15px 0 0 #f2f2ec,
+    0 18px 0 0 #3f7a4f,
+    0 4px 2px rgba(0, 0, 0, 0.4),
+    0 20px 10px rgba(0, 0, 0, 0.5);
 }
 .tile--tiny {
   --tile-w: 21px;
   --tile-h: 28px;
   width: var(--tile-w);
   height: var(--tile-h);
+  /* HUDのドラ表示で使われるが、厚みの帯が大きすぎて直下の自動ツモ切り
+     ボタン列に被っていたため、帯を縮める。 */
   box-shadow:
-    0 1px 0 0 #d9cca3,
-    0 2px 2px rgba(0, 0, 0, 0.4);
+    0 9px 0 0 #f2f2ec,
+    0 11px 0 0 #3f7a4f,
+    0 12px 6px rgba(0, 0, 0, 0.5);
+}
+/* 手牌（立てて持つ牌）の帯は、その牌を持つ本人から見て奥側（自分の体から
+   離れた側＝卓の中心を向いた側）に出す。自分（画面下）は中心が画面上な
+   ので帯は上端、対面（画面上）は中心が画面下なので帯は下端＝河・副露と
+   同じ向きになる（対面だけ符号を反転する必要はない。以前は「自分・対面
+   ともに上端」としていたが、対面から見ればそれは自分の体側＝手前になって
+   しまっていたため誤り）。 */
+/* .human-area配下には手牌(.hand-tiles、幅44px/等倍の帯)以外にも
+   副露(.melds-row、tile--small)やポン/チー/カンボタンの牌
+   (.action-row内、tile--tiny)など、全く別サイズの.tileが同居している。
+   ここを.human-area .tileのように緩く書くと、tile--small/tile--tinyより
+   このルールの方が詳細度で勝ってしまい（クラス2つ>1つ）、--tile-wと
+   帯box-shadowが上書きされて副露・ポン/チーの牌が本来のサイズ・帯から
+   大きく崩れる不具合が出ていた。手牌本体(.hand-tiles)だけに絞る。 */
+.human-area .hand-tiles .tile {
+  /* 手牌の横幅が広すぎるとの指摘のため、高さはそのままに幅だけ縮める。 */
+  --tile-w: 44px;
+  /* 白い厚み部分（帯の本体）が大きすぎるとの指摘のため縮小する。 */
+  box-shadow:
+    0 -19px 0 0 #f2f2ec,
+    0 -22px 0 0 #3f7a4f,
+    0 -6px 2px rgba(0, 0, 0, 0.4),
+    0 -24px 14px rgba(0, 0, 0, 0.6);
+}
+/* 帯（box-shadow）を縮めたことで、Front.svg自体に元々ある牌上端の
+   薄い陰影（角の面取り表現、白地にごく薄く黒を乗せたもの）が帯の緑と
+   隣接し、「帯の内側にもう一本緑の帯があるように」誤読される見え方に
+   なっていた（帯を大きく取っていた時は白地の余白に紛れて目立たなかった）。
+   自分の手牌でだけ帯が最も薄いため顕著だったので、牌上端のその陰影部分
+   だけ白で覆って隠す（絵柄本体・他家の牌には一切触れない）。 */
+.human-area .hand-tiles .tile__face::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 10px;
+  background: #f2f2ec;
+  border-radius: 6px 6px 0 0;
+  z-index: 1;
+  pointer-events: none;
+}
+/* 上家・下家（opponent-area--3/--1）の副露（鳴いた牌、通常時にここが
+   表示される唯一のケース）は、川に切られている自分の捨て牌
+   （.river--left/--right、同じrotate(90deg)/(-90deg)のローカル座標系）と
+   全く同じ見え方に揃える。ローカル軸もriver--left/--rightに合わせて
+   上下(0 Ypx)ではなく左右(Xpx 0)にする（以前はYpxのままだったため
+   向きが直らなかった）。 */
+.opponent-area--3 .tile {
+  box-shadow:
+    15px 0 0 0 #f2f2ec,
+    18px 0 0 0 #3f7a4f,
+    4px 0 2px rgba(0, 0, 0, 0.4),
+    20px 0 10px rgba(0, 0, 0, 0.5);
+}
+.opponent-area--1 .tile {
+  box-shadow:
+    -15px 0 0 0 #f2f2ec,
+    -18px 0 0 0 #3f7a4f,
+    -4px 0 2px rgba(0, 0, 0, 0.4),
+    -20px 0 10px rgba(0, 0, 0, 0.5);
+}
+/* 伏せ牌（相手の手牌の裏）は、白い面（＝隠れている表面、文字が書かれた
+   側）がその牌を持っている本人の方を向き、緑（見えている裏面と同じ色）
+   が中心・河側を向くようにする。対面なら白は画面上（対面自身の側）、
+   上家・下家も同様に本人側を向く。牌に接する側を緑・先端を白にするのは
+   変えない（見えている緑の裏面と帯の色がそこだけ白く途切れて不自然に
+   なるため）。白の帯（先端側）を緑（牌に接する側、ごく細い帯として
+   残す）より広めの比率にしてある。 */
+/* 上家・下家は「対面の手牌グラフィックをそのまま左右90度回転させた
+   もの」にする（指示の通り）。対面(.opponent-area--2)と全く同じ牌の
+   見た目・並べ方をここでも使い、.opponent-hand-back__inner側の既存の
+   ±90度回転（このコメントの下のブロック）だけでグラフィック全体を
+   回転させる。牌側のCSSは対面と完全に同一（帯の向き・比率も同じ）に
+   しておくことで、「対面のグラフィックを回転させた」状態を正確に再現
+   する。 */
+.opponent-area--1 .tile--face-down,
+.opponent-area--2 .tile--face-down,
+.opponent-area--3 .tile--face-down {
+  box-shadow:
+    0 -6px 0 0 #3f7a4f,
+    0 -22px 0 0 #f2f2ec,
+    0 -4px 2px rgba(0, 0, 0, 0.4),
+    0 -24px 10px rgba(0, 0, 0, 0.5);
+}
+/* 上家・下家は対面のグラフィックを回転させただけだと帯の向きが逆に
+   見えたため、牌を180度回転させて向きを合わせる（厚みの帯=box-shadowは
+   対面と同じ値のまま、見た目だけ180度反転させる）。 */
+.opponent-area--1 .tile--face-down,
+.opponent-area--3 .tile--face-down {
+  transform: rotate(180deg);
+}
+/* 本体の高さ(--tile-h)を縮めても、画像は幅高さとも100%で box を
+   埋めるため縦だけでなく見た目の比率全体が変わってしまう。牌の本体
+   （緑の縦長部分＝.tile__img--backの背面画像）自体をもう表示せず、
+   厚みを表す帯（box-shadow、緑+白とも）だけを見せる形にする。 */
+.opponent-area--1 .tile--face-down .tile__face,
+.opponent-area--3 .tile--face-down .tile__face {
+  display: none;
+}
+/* 本体を非表示にしても、box-shadowのうすいぼかし影レイヤー
+   （rgba(0,0,0,...)、接地影用）が牌の本来の枠の位置にうっすら
+   残って見えてしまっていた。帯の色（緑・白の2枚）だけ残し、
+   ぼかし影の2枚は外す。 */
+.opponent-area--1 .tile--face-down,
+.opponent-area--3 .tile--face-down {
+  box-shadow:
+    0 -6px 0 0 #3f7a4f,
+    0 -22px 0 0 #f2f2ec;
+}
+/* box-shadowは.tileと同じ大きさの角丸コピーを複製しているだけで、
+   その「本体にあたる大部分」は本来.tile__face（本体の絵）が上に
+   重なって隠す前提だった。本体を非表示にした今、隠すものが無くなり
+   コピーの本体部分がそのまま透けて四角い枠として見えてしまっていた
+   原因はこれ。帯の範囲（牌の上端から-22px分）だけ描画されるよう
+   clip-pathで切り取り、それより下（元の牌の本体があった範囲）は
+   描画自体させない。 */
+.opponent-area--1 .tile--face-down,
+.opponent-area--3 .tile--face-down {
+  clip-path: inset(-22px 0 100% 0);
+}
+/* 対面・自分の河は横並び＝同じ段の牌同士は左右にしか接していないため、
+   どの牌も画面手前を向いた辺は常に空いている（段の数に関係なく全ての
+   牌に厚みの帯を出してよい）。.discard-pile自体が対面ごと丸ごと回転
+   している（top:180deg/left:90deg/right:-90deg、上のコメント参照）ため、
+   牌側のオフセットをその回転の逆方向にあらかじめ振っておき、回転後の
+   見た目が常に画面下向きになるよう帳尻を合わせる。human（回転なし）は
+   元々の下向きのままで正しいため上書き不要。 */
+.river--top .tile--small {
+  box-shadow:
+    0 -15px 0 0 #f2f2ec,
+    0 -18px 0 0 #3f7a4f,
+    0 -4px 2px rgba(0, 0, 0, 0.4),
+    0 -20px 10px rgba(0, 0, 0, 0.5);
+}
+/* 自分の河（.river--human）は帯が画面下＝自分の手牌側へ伸びる向きのため、
+   河のクラスタ全体を上へ動かす調整だけでは、帯（box-shadowの張り出し）が
+   実際のレイアウト上の箱を越えて手牌にかぶって見える分までは解消しない
+   （getBoundingClientRectは box-shadow の張り出しを含まないため、
+   箱同士の隙間があるように見えても帯だけ届いてしまう）。指摘の通り、
+   自分の河の帯だけ縮めて張り出しを減らす。 */
+.river--human .tile--small {
+  box-shadow:
+    0 9px 0 0 #f2f2ec,
+    0 11px 0 0 #3f7a4f,
+    0 3px 1px rgba(0, 0, 0, 0.4),
+    0 13px 6px rgba(0, 0, 0, 0.5);
+}
+/* 上家・下家（left/right）は他と事情が違う：.discard-pile自体が±90度
+   回転しているせいで、段の中で牌を並べる主軸(ローカルX)が、画面の奥行き
+   方向（回転後は画面の上下）に対応してしまう。同じ段の中で奥（画面上）
+   から手前（画面下）へ順に牌が置かれていく形になるため、対面・自分とは
+   違い、同じ段の中の牌同士にも奥行きの差がある。とはいえ帯自体は他と
+   同じく全ての牌に付ける（対面と同じ「全部に厚みを出す」ルールのまま）。
+   段内で奥にある牌の帯が手前の牌の実体にめり込む分は、DiscardPile.tsxが
+   段内の奥行き差までz-indexに織り込んでいるため、手前の牌に自然に隠れて
+   見えなくなる（間隔・box-shadowの量は他の対面と揃えたまま、重なりの
+   前後関係だけで表現する）。 */
+.river--left .tile--small {
+  box-shadow:
+    15px 0 0 0 #f2f2ec,
+    18px 0 0 0 #3f7a4f,
+    4px 0 2px rgba(0, 0, 0, 0.4),
+    20px 0 10px rgba(0, 0, 0, 0.5);
+}
+.river--right .tile--small {
+  box-shadow:
+    -15px 0 0 0 #f2f2ec,
+    -18px 0 0 0 #3f7a4f,
+    -4px 0 2px rgba(0, 0, 0, 0.4),
+    -20px 0 10px rgba(0, 0, 0, 0.5);
 }
 /* 牌の画像2枚(base/face)をまとめる内側のラッパー。通常時は.tile全体を
    そのまま覆うだけだが、tile--rotated（横向き表示）の時だけここに
@@ -1744,7 +2389,42 @@ button {
   inset: 0;
   width: 100%;
   height: 100%;
+  /* object-fit未指定（初期値fill）だと牌のアスペクト比(54:72)と絵柄SVGの
+     アスペクト比(300:400、どちらも3:4で一致)が違う牌ではそのまま歪んで
+     引き伸ばされる。通常サイズの牌ではたまたま比率が一致するため今まで
+     問題が出なかっただけで、自分の手牌のように横幅だけ狭くする(44:72)と
+     文字が横につぶれて見えていた。containで常に元の縦横比を保つ。 */
+  object-fit: contain;
   transform: scale(0.72);
+}
+/* 牌の柄・裏面画像そのものには一切触れず、手前に光沢の反射だけを重ねる
+   （柄の正確性を保ったまま艶を出す）。斜め上から光が当たっているように
+   左上を明るく、右下へ向けて自然に消えるグラデーション。 */
+.tile__face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 13.3% / 10%;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.14) 22%, transparent 46%);
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+/* 上家・下家の伏せ牌は.opponent-hand-back__innerごと±90度回転している
+   ため、上のグラデーション（ローカル160deg=左上が明るい）もそのまま
+   回転してしまい、画面上では明るい部分が牌の中ほどに来て「中央が
+   色抜けしている」ように見えてしまっていた。回転角ぶんだけ角度を
+   逆算し、画面上では常に元と同じ向き（左上が明るい）になるようにする。 */
+.opponent-area--1 .tile__face::after {
+  background: linear-gradient(250deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.14) 22%, transparent 46%);
+}
+.opponent-area--3 .tile__face::after {
+  background: linear-gradient(70deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.14) 22%, transparent 46%);
+}
+/* 牌の裏面(Back.svg)は元のオレンジ地のまま、色相のみをCSSで深緑寄りに
+   回転させる。SVG自体の柄・ハイライト/シャドウ形状（マスクの明度で
+   決まる）には触れず、色調だけを卓のフェルト・金の配色に合わせる。 */
+.tile__img--back {
+  filter: hue-rotate(112deg) saturate(0.78) brightness(0.88);
 }
 
 .tile--clickable {

@@ -6,6 +6,45 @@ import { STAGE_WIDTH } from "./Stage.js";
 // 川の表示枠は横6枚×3段(18枚)分しか確保していないため、CSSのoverflowでの
 // クリップに頼らずここで頭打ちにする。それ以上は溢れて隣と被ってしまうため。
 const MAX_VISIBLE = 18;
+// 1段あたりの牌数（styles.cssの.discard-pile幅=214pxが通常牌6枚+gap5本分な
+// のに対応、「6枚×3段」参照）。段番号・段内の位置からz-indexを組み立てる
+// のに使う（下のtileZIndex参照）。
+const TILES_PER_ROW = 6;
+
+// 河の牌は全てのタイル（対面・自分は左右に並ぶだけで奥行きの差がなく、
+// 上家・下家は段の中で奥から手前へ順に並ぶ）に同じ張り出し量の帯を付ける
+// （styles.cssの.tile--small等参照）。段内で奥行きの差がある上家・下家は、
+// 実際の卓と同じく手前の牌に厚みが隠れて見えなくなるよう、z-indexだけで
+// 前後関係を作る（間隔やCSSのbox-shadowの有無はここでは一切変えない）。
+//
+// 上家は段の中で後から置かれた牌ほど画面下(=手前)に来るため、段内の
+// 位置(i%6)が大きいほど手前。下家はローカル座標の回転方向が逆で、段内の
+// 位置が小さいほど手前（実測で確認済み）。対面・自分は段内の牌同士に
+// 奥行きの差がないため0固定でよい。
+function withinRowNearness(direction: RiverDirection, positionInRow: number): number {
+  if (direction === "left") return positionInRow;
+  if (direction === "right") return TILES_PER_ROW - 1 - positionInRow;
+  return 0;
+}
+
+// 段（1段目/2段目/3段目）自体の奥行きは対面と自分とで逆になる：対面は
+// 自分（＝カメラ）から見て奥にいる相手なので、河は相手からこちらへ、
+// つまり1段目が一番手前・後の段ほど奥へ育つ。自分の河はこちらの手前へ
+// そのまま育つため、逆に後の段ほど画面下＝手前に来る（実測で確認済み。
+// 上家・下家は段ごとに横へ張り出す構造で段同士は重ならないため、
+// どちらの向きでも見た目には影響しない）。
+function rowNearness(direction: RiverDirection, rowIndex: number): number {
+  return direction === "human" ? rowIndex : -rowIndex;
+}
+
+// 段番号の差を最優先し、その中で段内の奥行き差(0〜5)で微調整する合成
+// z-index。段の差が必ず段内の差より効くよう、段番号には段内レンジ(6)より
+// 大きい係数(10)を掛けておく。
+function tileZIndex(direction: RiverDirection, i: number): number {
+  const rowIndex = Math.floor(i / TILES_PER_ROW);
+  const positionInRow = i % TILES_PER_ROW;
+  return rowNearness(direction, rowIndex) * 10 + withinRowNearness(direction, positionInRow);
+}
 
 export type RiverDirection = "top" | "left" | "right" | "human";
 
@@ -153,9 +192,13 @@ export function DiscardPile({
 
   return (
     <div className={`discard-pile${frozen ? " table__frozen" : ""}`}>
-      {visible.map((d) => {
+      {visible.map((d, i) => {
         const isLatest = d.tile.id === trueLatestId;
         const isLatestTsumogiri = isLatest && d.isTsumogiri;
+        const style: CSSProperties = {
+          zIndex: tileZIndex(direction, i),
+          ...(isLatest && !isLatestTsumogiri ? tegiriOffset(direction) : undefined),
+        };
         return (
           <TileView
             key={d.tile.id}
@@ -167,7 +210,7 @@ export function DiscardPile({
             callTarget={d.tile.id === callTargetTileId}
             selected={d.tile.id === selectedTileId}
             slideIn={isLatest ? (d.isTsumogiri ? "tsumogiri" : "default") : undefined}
-            style={isLatest ? (isLatestTsumogiri ? undefined : tegiriOffset(direction)) : undefined}
+            style={style}
             onClick={onTileClick ? () => onTileClick(d.tile.id) : undefined}
           />
         );

@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { CHARACTERS, type Meld, type PlayerIndex, type RoundState } from "@majyan/core";
+import type { Meld, PlayerIndex, RoundState } from "@majyan/core";
 import { TileView } from "./TileView.js";
-import { SkillGauge } from "./SkillGauge.js";
-import { TIME_STOP_FAKE_TURN_STEP_MS } from "../store/gameStore.js";
 
-const SEAT_LABELS: Record<number, string> = { 1: "下家CPU", 2: "対面CPU", 3: "上家CPU" };
 const HUMAN: PlayerIndex = 0;
 
 // 副露が分かりにくいとの指摘を受け、鳴いた瞬間に発声を模した大きな文字を
@@ -119,7 +116,8 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
   // その10pxも加算する。
   const handTileCount = p.hand.concealed.length;
   const drawnMargin = hasPendingDraw && drawnTile ? 10 : 0;
-  const handBackTrack = handTileCount > 0 ? handTileCount * 34 - 2 + drawnMargin : 0;
+  const handGap = 2;
+  const handBackTrack = handTileCount > 0 ? handTileCount * (32 + handGap) - handGap + drawnMargin : 0;
 
   // 副露枠(.opponent-melds)も手牌枠と同じ理屈で、実際の副露牌の実寸から
   // 必要な幅（回転後は「卓の縁沿い」の長さになる）を算出する。以前は
@@ -137,48 +135,20 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
     p.hand.melds.reduce((sum, m) => sum + 33 * m.tiles.length + 3 + (m.calledTile ? ROTATED_TILE_EXTRA_WIDTH : 0), 0) +
     Math.max(0, p.hand.melds.length - 1) * 2;
 
-  const character = CHARACTERS[round.characterIds[player]];
-
   // 必殺技「時間停止」発動中の演出。発動者本人（timeStopSource）以外は
   // 手牌ごと丸ごとグレーアウトする（2巡ぶんの発動中はずっと）。
+  // ネームプレート側の「空振りの光り演出」（fakeTurnStepIndex）は
+  // CharacterPanel.tsxへ移設したため、ここでは手牌グレーアウト用の
+  // frozen判定だけ残す。
   const timeStopSource = ([0, 1, 2, 3] as const).find((seat) => round.players[seat]!.timeStopTurnsRemaining > 0);
   const isTimeStopped = timeStopSource !== undefined;
-  const isTimeStopSource = timeStopSource === player;
-  const frozen = isTimeStopped && !isTimeStopSource;
-  // 「本来なら自分の番が来たかのような」空振りの光り演出は、発動者の
-  // ボーナス手番（打牌解決直後、次家に渡らずそのまま発動者がもう一度
-  // ツモる瞬間）の間だけ、座順どおり（発動者の次→…）に1人ずつ順番で
-  // つける。gameStore.tsのtick()がこの間だけ実際のツモをTIME_STOP_FAKE_TURN_STEP_MS
-  // の3倍だけ遅らせているため、その時間内で3人ぶん一巡し終わるよう
-  // 1ステップぶんのdurationで自分の順番に合わせて発火させる
-  // （実際には手番は一切回ってこない。gameEngine.tsのresolveDiscardTurnTransition
-  // 参照）。
-  const fakeTurnWindow = isTimeStopped && round.phase === "awaiting-draw" && round.currentTurn === timeStopSource;
-  const fakeTurnStepIndex = frozen && fakeTurnWindow ? (player - timeStopSource! + 4) % 4 : 0; // 1〜3
+  const frozen = isTimeStopped && timeStopSource !== player;
 
   return (
     <div
       className={`opponent-area opponent-area--${player}${isCurrent ? " opponent-area--active" : ""}${frozen ? " opponent-area--frozen" : ""}`}
     >
       {callAnnounce && <div className="call-announce">{callAnnounce}</div>}
-      <div
-        className={`nameplate${fakeTurnStepIndex > 0 ? " nameplate--fake-turn" : ""}`}
-        style={
-          fakeTurnStepIndex > 0
-            ? ({
-                animationDelay: `${(fakeTurnStepIndex - 1) * TIME_STOP_FAKE_TURN_STEP_MS}ms`,
-                animationDuration: `${TIME_STOP_FAKE_TURN_STEP_MS}ms`,
-              } as CSSProperties)
-            : undefined
-        }
-      >
-        <img className="nameplate__avatar" src={character?.avatar ?? `/avatars/seat${player}.svg`} alt="" />
-        <div className="nameplate__text">
-          <div className="nameplate__name">{character?.name ?? SEAT_LABELS[player]}</div>
-          <div className="nameplate__title">{SEAT_LABELS[player]}</div>
-        </div>
-      </div>
-      <SkillGauge round={round} player={player} />
       <div className="opponent-hand-row">
         <div
           className="opponent-hand-back"
@@ -218,27 +188,42 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
         </div>
         <div className="opponent-melds" style={{ "--melds-track": `${meldsTrack}px` } as CSSProperties}>
           <div className="opponent-melds__inner">
-            {p.hand.melds.map((m, i) => (
-              <div key={i} className="meld meld--small">
-                {m.tiles.map((t, j) => {
-                  // 暗槓は自己申告のみで鳴きではないため、実際の対局同様
-                  // 両端の2枚は伏せたまま（種類を悟らせない）。以前は
-                  // dimmed（半透明）にするだけで柄自体は見えてしまっており、
-                  // 対戦相手の暗槓の中身が丸わかりになってしまっていた。
-                  const isAnkanEdge = m.type === "ankan" && (j === 0 || j === m.tiles.length - 1);
-                  return (
-                    <TileView
-                      key={j}
-                      code={t.code}
-                      faceDown={isAnkanEdge}
-                      small
-                      rotated={m.calledTile?.id === t.id}
-                      red={t.isRed}
-                    />
-                  );
-                })}
-              </div>
-            ))}
+            {(() => {
+              // 上家・下家の副露は川の捨て牌と同じ帯（厚み）の向きにしたが、
+              // 川と違ってどの牌にも段内の奥行きz-indexが付いていないため、
+              // 隣の牌の帯がそのまま前の牌の絵の上に乗って見えてしまって
+              // いた（川と同じ「隣り合う牌が互いの帯を隠す」処理が必要）。
+              // 帯が伸びる向き（下家=左向き/-X、上家=右向き/+X）へ進むほど
+              // 手前に来るよう、副露をまたいだ通し番号でz-indexを振る
+              // （.meldはposition未指定でスタッキングコンテキストを
+              // 作らないため、この番号は副露の境をまたいでそのまま比較される）。
+              let globalIdx = 0;
+              return p.hand.melds.map((m, i) => (
+                <div key={i} className="meld meld--small">
+                  {m.tiles.map((t, j) => {
+                    // 暗槓は自己申告のみで鳴きではないため、実際の対局同様
+                    // 両端の2枚は伏せたまま（種類を悟らせない）。以前は
+                    // dimmed（半透明）にするだけで柄自体は見えてしまっており、
+                    // 対戦相手の暗槓の中身が丸わかりになってしまっていた。
+                    const isAnkanEdge = m.type === "ankan" && (j === 0 || j === m.tiles.length - 1);
+                    const idx = globalIdx++;
+                    const zIndexStyle: CSSProperties | undefined =
+                      player === 1 ? { zIndex: -idx } : player === 3 ? { zIndex: idx } : undefined;
+                    return (
+                      <TileView
+                        key={j}
+                        code={t.code}
+                        faceDown={isAnkanEdge}
+                        small
+                        rotated={m.calledTile?.id === t.id}
+                        red={t.isRed}
+                        style={zIndexStyle}
+                      />
+                    );
+                  })}
+                </div>
+              ));
+            })()}
           </div>
         </div>
       </div>
