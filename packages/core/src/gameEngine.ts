@@ -253,9 +253,12 @@ export function canRiichi(round: RoundState, player: PlayerIndex): boolean {
   return true;
 }
 
-/** 必殺技ゲージが満タンで、かつ自分の打牌前（ツモ直後）で発動できる状況かどうか */
+/** 必殺技ゲージが満タンで、かつ自分の打牌前（ツモ直後）で発動できる状況かどうか。
+    リーチ後は打牌そのものを選べない（ツモ切り強制）ため、手牌を動かせる余地の
+    ある必殺技も同様に使えない（canRetrieveDiscardと同じ理由）。 */
 export function canUseSkill(round: RoundState, player: PlayerIndex): boolean {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
+  if (round.players[player]!.riichi) return false;
   const character = CHARACTERS[round.characterIds[player]];
   if (!character || !character.skill.hooks.onActivate) return false;
   if (round.players[player]!.skillGauge < character.gaugeMax) return false;
@@ -267,9 +270,11 @@ export function canUseSkill(round: RoundState, player: PlayerIndex): boolean {
 /** カリンの「借り物」が今、指定した相手(target)の必殺技を借りて発動できるかどうか。
     自分自身のゲージが満タンで、targetがonActivateを持ち、かつtarget側の追加発動条件
     （canActivate。例: ライコの「一発中のみ」）を借りる側（player）が満たしている
-    必要がある（カガミのcanCopyLastSkillと同様の考え方。characters.ts参照）。 */
+    必要がある（カガミのcanCopyLastSkillと同様の考え方。characters.ts参照）。
+    canUseSkillと同じ理由でリーチ中は使えない。 */
 export function canBorrowSkill(round: RoundState, player: PlayerIndex, target: PlayerIndex): boolean {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
+  if (round.players[player]!.riichi) return false;
   if (target === player) return false;
   const character = CHARACTERS[round.characterIds[player]];
   if (!character?.borrowsSkill) return false;

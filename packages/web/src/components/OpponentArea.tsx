@@ -157,7 +157,15 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
         >
           <div className="opponent-hand-back__inner">
             {mainTiles.map((t, i) => {
-              const style: CSSProperties | undefined = splitting
+              // 上家・下家は手牌もrotate(90deg/-90deg)されており、牌の帯
+              // (box-shadow)がローカル座標の「下」＝回転後は横方向に伸びる
+              // ため、素のままだと隣の牌の絵の上に帯が乗ってしまう（大明
+              // 立直等で手牌を公開した時に顕著）。河・副露(.opponent-melds)
+              // と同じ考え方で、手前に来る牌ほど高いz-indexを持たせ、奥の
+              // 牌の帯を手前の牌の絵の下に隠す。
+              const zIndexStyle: CSSProperties | undefined =
+                player === 1 ? { zIndex: -i } : player === 3 ? { zIndex: i } : undefined;
+              const enterStyle: CSSProperties | undefined = splitting
                 ? i < leftCount
                   ? ({ "--enter-x": `${-HAND_SPLIT_DISTANCE}px`, "--enter-y": "0px" } as CSSProperties)
                   : ({ "--enter-x": `${HAND_SPLIT_DISTANCE}px`, "--enter-y": "0px" } as CSSProperties)
@@ -170,7 +178,7 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
                   red={revealHand ? t.isRed : undefined}
                   small
                   slideIn={splitting ? "default" : undefined}
-                  style={style}
+                  style={{ ...zIndexStyle, ...enterStyle }}
                 />
               );
             })}
@@ -182,6 +190,7 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
                 red={revealHand ? drawnTile.isRed : undefined}
                 small
                 drawn
+                style={player === 1 ? { zIndex: -mainTiles.length } : player === 3 ? { zIndex: mainTiles.length } : undefined}
               />
             )}
           </div>

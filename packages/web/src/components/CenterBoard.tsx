@@ -48,9 +48,10 @@ export function CenterBoard({ round, scores }: { round: RoundState; scores: [num
         {WIND_NAMES[round.roundWind]}
         {round.roundNumber}局
       </div>
+      {/* 供託表示はHUD左上（Hud.tsx、本場と並べて常時表示）に統合したため、
+          ここでの重複表示は廃止した。 */}
       <div className="center-board__wall-group">
         <div className="center-board__wall">残り {round.wall.liveTiles.length}枚</div>
-        {round.kyotaku > 0 && <div className="center-board__kyotaku">供託 {round.kyotaku}本</div>}
       </div>
       {activeDelta && <div className="center-board__absorb-banner">点棒吸収！</div>}
 

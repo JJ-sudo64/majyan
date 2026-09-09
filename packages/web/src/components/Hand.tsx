@@ -93,16 +93,22 @@ function computeSanshokuHintCodes(hand: HandShape): Set<TileCode> {
 function MeldView({ meld }: { meld: Meld }) {
   return (
     <div className="meld">
-      {meld.tiles.map((t, i) => (
-        <TileView
-          key={i}
-          code={t.code}
-          small
-          dimmed={meld.type === "ankan" && (i === 0 || i === meld.tiles.length - 1)}
-          rotated={meld.calledTile?.id === t.id}
-          red={t.isRed}
-        />
-      ))}
+      {meld.tiles.map((t, i) => {
+        // 暗槓は実際の卓と同じく両端の2枚を伏せる（OpponentArea.tsxと同じ
+        // 扱い）。以前はdimmed（半透明）にするだけで柄が見えてしまっていた
+        // （「見え方がおかしい」との指摘の原因）。
+        const isAnkanEdge = meld.type === "ankan" && (i === 0 || i === meld.tiles.length - 1);
+        return (
+          <TileView
+            key={i}
+            code={t.code}
+            faceDown={isAnkanEdge}
+            small
+            rotated={meld.calledTile?.id === t.id}
+            red={t.isRed}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -364,8 +370,7 @@ export function Hand({ round }: { round: RoundState }) {
   // 全て.hand-top-status（手牌の真上・中央、通常フロー内）に一本化する。
   // 通常フロー内に置くことで、内容がどれだけ増えても手牌側が自動で押し
   // 下げられ「絶対に被らない」ことを保証する。
-  const showTopStatus =
-    player.revealedFutureDraws.length > 0 || waitingTiles.length > 0 || !!heldCard || player.bettaoriActive;
+  const showTopStatus = player.revealedFutureDraws.length > 0 || waitingTiles.length > 0 || player.bettaoriActive;
 
   return (
     <div className={`hand-area${frozen ? " hand-area--frozen" : ""}`}>
@@ -409,22 +414,6 @@ export function Hand({ round }: { round: RoundState }) {
                   );
                 })}
               </div>
-            </div>
-          )}
-          {heldCard && (
-            <div className="wait-row">
-              <span className="wait-row__label">カード</span>
-              <span
-                className={`wait-row__shield${round.cardUsesRemaining[HUMAN] > 0 ? " wait-row__shield--up" : ""}`}
-                title={heldCard.description}
-              >
-                {heldCard.name}
-                {heldCard.kind === "passive"
-                  ? "（常時発動中）"
-                  : round.cardUsesRemaining[HUMAN] > 0
-                    ? `（残り${round.cardUsesRemaining[HUMAN]}回）`
-                    : "（使用済み）"}
-              </span>
             </div>
           )}
           {player.bettaoriActive && (
@@ -493,8 +482,48 @@ export function Hand({ round }: { round: RoundState }) {
           ))}
         </div>
       </div>
-      <div className="action-row">
-        <CallPrompt round={round} active={isAwaitingCall} />
+      <div className="action-stack">
+        {/* カードはポン/チー等の操作ボタンの少し上に積む（指摘により、以前の
+            手牌左上のhand-top-statusから移設）。.action-stackはflex-column
+            で「カード→ボタン列」の順に積むだけなので、ボタン側が何段に
+            折り返しても互いに重ならない。 */}
+        {heldCard && (
+          <div className="wait-row action-stack__card">
+            <span className="wait-row__label">カード</span>
+            {cardReady ? (
+              <button
+                type="button"
+                className="wait-row__shield wait-row__shield--up wait-row__shield--clickable"
+                title={heldCard.description}
+                onClick={() => humanUseCard()}
+              >
+                {heldCard.name}（使用する）
+              </button>
+            ) : (
+              <span
+                className={`wait-row__shield${round.cardUsesRemaining[HUMAN] > 0 ? " wait-row__shield--up" : ""}`}
+                title={heldCard.description}
+              >
+                {heldCard.name}
+                {heldCard.kind === "passive"
+                  ? "（常時発動中）"
+                  : heldCard.hooks.onUse
+                    ? round.cardUsesRemaining[HUMAN] > 0
+                      ? `（残り${round.cardUsesRemaining[HUMAN]}回）`
+                      : "（使用済み）"
+                    : // onUseを持たない消費型カード（例:一閃の盾）は自分では使えず、
+                      // 条件を満たした瞬間に自動で発動・消費される「持っているだけ」の
+                      // カードのため、手動使用前提の「残りN回」ではなく発動待ち/
+                      // 発動済みとして表示する（指摘により）。
+                      round.cardUsesRemaining[HUMAN] > 0
+                      ? "（発動待ち）"
+                      : "（発動済み）"}
+              </span>
+            )}
+          </div>
+        )}
+        <div className="action-row">
+          <CallPrompt round={round} active={isAwaitingCall} />
         {swapAvailable && !swapMode && (
           <div className="call-actions">
             <button
@@ -569,11 +598,6 @@ export function Hand({ round }: { round: RoundState }) {
                 </button>
               </>
             )}
-            {cardReady && heldCard && (
-              <button className="btn btn--skill" onClick={() => humanUseCard()} title={heldCard.description}>
-                カード使用: {heldCard.name}
-              </button>
-            )}
             {tsumoAnalysis && (
               <button className="btn btn--ron" onClick={() => humanTsumo()}>
                 ツモ ({tsumoAnalysis.isYakuman ? "役満" : `${tsumoAnalysis.han}翻${tsumoAnalysis.fu}符`})
@@ -606,6 +630,7 @@ export function Hand({ round }: { round: RoundState }) {
             )}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

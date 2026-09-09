@@ -745,7 +745,7 @@ button {
 }
 .table-cluster .river--human {
   position: absolute;
-  bottom: -10px;
+  bottom: -8px;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -755,8 +755,12 @@ button {
   /* 川が下がり過ぎて手牌との間に大きな空白ができているとの指摘のため
      持ち上げる。上家のネームプレート下端とはギリギリ接する位置関係な
      ので、ネームプレート側も合わせて詰める（下のcharacter-panel--left
-     参照）。下家側だけ動かすと不自然なので同じ量だけ揃える。 */
-  top: 58%;
+     参照）。下家側だけ動かすと不自然なので同じ量だけ揃える。
+     （さらに引き上げてほしいとの指摘で58%→50%→44%に変更。
+     character-panel--leftの位置はHUDの直下ギリギリで今回は動かして
+     いないため、河の上端とネームプレートが視覚的にぶつかっていないか
+     要目視確認。） */
+  top: 44%;
   /* 左右の河は内部でrotate(90deg)（.discard-pile側）を持っており、
      祖先(.game-content-plane__inner)のrotateX(55deg)をそのまま継承すると
      ローカルのX/Y軸が入れ替わっているせいで段がシアー変形してしまう
@@ -769,7 +773,7 @@ button {
 .table-cluster .river--right {
   position: absolute;
   right: -70px;
-  top: 58%;
+  top: 50%;
   transform: translateY(-50%) rotateX(-35deg) rotateY(0deg) rotateZ(0deg);
 }
 
@@ -841,11 +845,14 @@ button {
 }
 
 /* ============ リーチ棒（1000点棒） ============ */
-/* 実物の1000点棒（象牙色の細い棒、中央に赤い点）を模す。河と中央
-   スコアボードの隙間（table-cluster基準で上下左右とも148px/312pxの
-   位置、隙間の中心）に置く。 */
+/* 実物の1000点棒（象牙色の細い棒、中央に赤い点）を模す。点数バッジと
+   中央の局情報の隙間（.riichi-stick--*参照）に置く。.center-boardが
+   z-index:200を持つため、.table-cluster内で単なる兄弟のままだと
+   center-boardの背景画像の下に隠れてしまう。それより手前になるよう
+   明示的にz-indexを大きく取っておく（center-board__seatのコメント参照）。 */
 .riichi-stick {
   position: absolute;
+  z-index: 201;
   width: 46px;
   height: 8px;
   border-radius: 2px;
@@ -866,26 +873,25 @@ button {
   transform: translate(-50%, -50%);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
-/* 卓の四隅まで離すと河から遠すぎて不自然なため、中央の八角形の縁に
-   軽く乗り上げる位置まで戻す。八角形は角が斜めにカットされた形
-   （clip-path参照）で、各辺の中央28%〜72%だけが実際に塗られた
-   フラットな辺になっている。点数バッジ（辺の中央、河寄りにy=142-166px等）
-   のすぐ外側かつそのフラットな辺の範囲内（例:上辺はx=203.6〜256.4px）に
-   置けば、バッジ・河のどちらとも重ならず、八角形の縁にだけ数px乗る
-   （＝「八角形の端に置く」）見た目になる。 */
+/* 点数バッジ（外側）と中央の局情報「東1局」「残り69枚」（内側）の隙間に
+   置いてほしいとの指摘のため、headless Chrome+CDPで実測しながら
+   table-cluster基準のtop/leftを調整した（3D回転(rotateX)+遠近感
+   (perspective)の影響で単純な比率計算が効かないため、実測値ベースで
+   決めている）。祖先のrotateXにより上下左右で見え方の縮尺が異なるため、
+   4方向とも個別の値になっている。 */
 .riichi-stick--top {
-  top: 172px;
+  top: 161px;
   left: 50%;
   transform: translate(-50%, -50%);
 }
 .riichi-stick--human {
-  top: 288px;
+  top: 219px;
   left: 50%;
   transform: translate(-50%, -50%);
 }
 .riichi-stick--left {
   top: 50%;
-  left: 172px;
+  left: 147px;
   /* 河・手牌側のようにrotateX(-55deg) rotateY(∓55deg)による軸補正を
      試みたが、この要素は補正とローカルのrotate(90deg)を分離する内側
      要素を持たないため未検証。装飾的な棒でテキストも無く優先度が低い
@@ -895,7 +901,7 @@ button {
 }
 .riichi-stick--right {
   top: 50%;
-  left: 288px;
+  left: 230px;
   transform: translate(-50%, -50%) rotate(90deg);
 }
 
@@ -1032,7 +1038,7 @@ button {
 .center-board__wall-group {
   position: absolute;
   left: 50%;
-  top: 66%;
+  top: 63%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
@@ -1042,9 +1048,14 @@ button {
   color: #f0f0f0;
   font-size: 13px;
 }
-.center-board__wall, .center-board__kyotaku {
-  opacity: 0.8;
+/* 残り枚数の文字が薄くて読みにくいとの指摘のため、.center-board__roundと
+   同様にはっきりした色+太字+縁取り(text-shadow)にする。 */
+.center-board__wall {
+  color: #ffe4a3;
+  font-weight: 700;
+  font-size: 14px;
   white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .seat-badge {
@@ -1096,6 +1107,12 @@ button {
   border-radius: 8px;
   padding: 4px 10px;
   font-size: 14px;
+  /* .hud/.character-panel等と同じ理由：.game-screen内で.table(z-index:1)
+     と兄弟のこのパネルはz-indexがより高く、視覚的に重なった範囲では
+     .table側の内容（チー/ポン等の操作ボタン）へのクリックを奪ってしまう。
+     パネル自体はほぼ表示専用のため素通しにし、実際に押すボタンだけ
+     .debug-panel .btnで個別にpointer-events:autoへ戻す。 */
+  pointer-events: none;
 }
 .debug-panel__label {
   white-space: nowrap;
@@ -1104,6 +1121,7 @@ button {
 .debug-panel .btn {
   font-size: 14px;
   padding: 3px 8px;
+  pointer-events: auto;
 }
 .debug-panel .btn:disabled {
   opacity: 0.4;
@@ -1133,6 +1151,33 @@ button {
   border-radius: 10px;
   padding: 6px 10px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* 操作ボタンのクリックを奪う不具合対策（.debug-panelのコメント参照）。
+     .hudはボタン等の操作要素を持たないため丸ごと素通しにしてよい。 */
+  pointer-events: none;
+}
+/* 自動ツモ切り/自動和了トグル+BGM音量。対局情報(.hud、左上)とは役割が
+   違うため切り離し、画面左下の別パネルにした（SettingsPanel.tsx）。
+   見た目は.hudと揃えるため配色/枠は同じにし、位置だけ変える。 */
+.settings-panel {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: linear-gradient(160deg, rgba(24, 16, 8, 0.85), rgba(10, 7, 4, 0.8));
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* 操作ボタンのクリックを奪う不具合対策（.debug-panelのコメント参照）。
+     トグルボタン・スライダーだけ下のルールでpointer-events:autoに戻す。 */
+  pointer-events: none;
+}
+.settings-panel .hud__toggle-btn,
+.settings-panel input[type="range"] {
+  pointer-events: auto;
 }
 .hud__row {
   display: flex;
@@ -1147,14 +1192,31 @@ button {
 .hud__dora {
   display: flex;
   gap: 2px;
-  /* 牌のbox-shadow（厚みの帯）は牌自身のレイアウト上の高さには含まれない
-     ため、帯を縮めても縮めきれない分だけ次の行（自動ツモ切り等）に
-     わずかに被っていた。帯のぶんだけ余白を足して確実に被らないようにする。 */
-  margin-bottom: 10px;
 }
-.hud__honba {
-  font-size: 14px;
+/* ドラ表示の牌だけ厚みの帯(box-shadow)を消す（指摘により）。他の
+   .tile--tiny（ポン/チー等の鳴きボタンの牌、待ち牌表示）には影響しない
+   よう.hud__dora配下だけに絞る。 */
+.hud__dora .tile {
+  box-shadow: none;
+}
+/* 本場・供託の棒アイコン表示。実物の点棒画像は未用意のため、実際の配色
+   パターンを模したSVG（Hud.tsx、HonbaStickIcon/KyotakuStickIcon）+
+   文字ラベルで代用する。アイコンだけだと100点棒/1000点棒の区別が
+   付きにくいとの指摘のため、本場/供託の文字も必ず併記する。 */
+.hud__sticks {
+  gap: 4px;
+}
+.hud__sticks-label {
+  font-size: 12px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.hud__sticks-count {
+  font-size: 13px;
+  font-weight: 700;
   color: #ffe4a3;
+  margin-right: 6px;
+  white-space: nowrap;
 }
 .hud__label {
   font-size: 14px;
@@ -1170,6 +1232,44 @@ button {
   font-size: 12px;
   opacity: 0.75;
   min-width: 2.5em;
+}
+/* BGM音量は常設せず、画面右端の歯車アイコンを押した時だけポップオーバーで
+   出す（指摘により）。歯車はcharacter-panel--top（right:200px）より外側の
+   右端の隙間（right:8〜190px）に置く。 */
+.volume-gear-wrap {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+.volume-gear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, rgba(24, 16, 8, 0.85), rgba(10, 7, 4, 0.8));
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: #ffe4a3;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.volume-gear:hover {
+  border-color: #f1c453;
+}
+.volume-popover {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  pointer-events: auto;
+  background: linear-gradient(160deg, rgba(24, 16, 8, 0.92), rgba(10, 7, 4, 0.88));
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
 }
 /* じゃんたま等の「自動ツモ切り」「自動和了」相当のトグル。ONのまま対局を
    跨いでも意図が分かるよう、押している間だけでなくON/OFFの状態が常に
@@ -1246,7 +1346,10 @@ button {
 }
 .opponent-area--1 {
   top: 8px;
-  right: 130px;
+  /* ネームプレート(character-panel--right、画面右端に縦中央固定)に
+     当たらない範囲で、できるだけ卓の中央側へ寄せる（指摘により130→170→200）。
+     その後「少しだけ外側へ」との指摘で185へ戻す。 */
+  right: 185px;
   /* 下家（右側）の手牌・副露は内部(.opponent-hand-back__inner等)で
      rotate(-90deg)を持っている。以前はここにrotateY(35deg)も足して
      いたが、河の左右（.river--left/--right）で発覚したのと同じ理由で、
@@ -1262,9 +1365,19 @@ button {
   /* .hudに自動ツモ切り/自動和了トグルの行を追加した分だけ.hudの高さが
      さらに伸びたため、以前の128pxのままだと上家がHUDの下端とほぼ被る。
      余裕を持って下にずらす（BGM音量スライダー追加時の96→128と同じ理由）。
-     rotateYを外した理由・rotateZの理由は.opponent-area--1のコメント参照。 */
-  top: 160px;
-  left: 130px;
+     rotateYを外した理由・rotateZの理由は.opponent-area--1のコメント参照。
+     （指摘によりさらに引き上げ。headless Chrome+CDPで実測しながら調整。
+     .opponent-area--3内の実際の手牌(.opponent-hand-back)の上端とhud
+     下端との間に約16.3pxの余裕が残る115pxを採用。100pxまで上げた
+     時点では実測で0.9pxしか余裕が無くhudと被る寸前だったため、
+     これ以上は上げない下限の目安として覚えておく。その後.hud側から
+     自動ツモ切り/自動和了/BGM音量をSettingsPanelへ分離してhud自体が
+     縮んだため、余裕を取り直して92pxまで引き上げ。） */
+  top: 92px;
+  /* ネームプレート(character-panel--left、画面左端に縦中央固定)に
+     当たらない範囲で、できるだけ卓の中央側へ寄せる（指摘により130→170→200）。
+     その後「少しだけ外側へ」との指摘で185へ戻す。 */
+  left: 185px;
   transform: rotateX(-35deg) rotateZ(-2deg);
 }
 .opponent-area--active {
@@ -1377,6 +1490,17 @@ button {
   border: 1px solid rgba(212, 175, 55, 0.45);
   border-radius: 18px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* .character-panelは.table（河・操作ボタンを含む）とは.game-screen内の
+     兄弟要素で、z-index:2 > .tableのz-index:1のため、視覚的な重なりが
+     わずかでもあると常にこちらが手前としてクリックを奪ってしまう
+     （.tableの内部で操作ボタン側がどれだけ大きいz-indexを持っていても、
+     外から見た.tableの寄与自体が1に丸められるため無関係）。特に自分の
+     パネル(--bottom)は自分の手牌・河のすぐ近くに置かれるため、操作ボタン
+     （ポン/チー/カード使用等）の一部がパネルの下に隠れて押せなくなる
+     不具合の原因になっていた。パネル自体はほぼ表示専用のため、
+     pointer-eventsを切って素通しにし、実際にクリック可能な自キャラ名
+     ボタンだけ個別にpointer-events:autoで復活させる。 */
+  pointer-events: none;
 }
 .character-panel--active {
   outline: 2px dashed rgba(241, 196, 83, 0.7);
@@ -1392,7 +1516,7 @@ button {
    上家=左中、自分=左下）。卓の内部レイアウト（grid/絶対配置のpxバジェット）
    とは無関係な独立座標のため、河が何段に伸びてもこのパネルの位置は
    一切影響を受けない。 */
-.character-panel--top { top: 8px; right: 160px; }
+.character-panel--top { top: 8px; right: 200px; }
 /* 上家・下家だけ、顔・名前・点数・必殺技ゲージを全部縦並びにする
    （指摘により）。対面・自分は従来通り横並びのまま。 */
 .character-panel--left,
@@ -1412,7 +1536,7 @@ button {
 }
 .character-panel--left .character-panel__name,
 .character-panel--right .character-panel__name {
-  align-items: center;
+  text-align: center;
 }
 /* 親（風・ドラ表示バッジ）と点数も横並びをやめて縦に積む。これで
    .character-panel__metaの横幅も.character-panel__nameと同程度に収まり、
@@ -1429,14 +1553,14 @@ button {
   align-self: center;
 }
 .character-panel--right { top: 50%; right: 8px; transform: translateY(-50%); }
-/* 上家：HUD（東風戦パネル、左上）のやや右下、自分の手牌・河には
-   当たらない位置。 */
-.character-panel--left { top: 156px; left: 150px; right: auto; transform: none; }
+/* 上家：下家(--right)と同じ高さ(画面縦中央)に揃え、画面左端に寄せる
+   （指摘により、HUD直下の固定位置から変更）。 */
+.character-panel--left { top: 50%; left: 8px; right: auto; transform: translateY(-50%); }
 .character-panel--bottom {
   /* 自分の手牌の左上あたり。カード欄（.hand-top-status、手牌の直上・
      左寄せ）に被らないよう、それよりさらに上に置く。 */
   top: 470px;
-  left: 160px;
+  left: 240px;
   right: auto;
   bottom: auto;
   /* 自分は主役として一回り大きく。 */
@@ -1471,22 +1595,31 @@ button {
   min-width: 0;
 }
 /* キャラ名は「異名・名前」形式で長いため、1行だと省略されて誰なのか
-   分からなくなっていた。「・」の位置(splitCharacterName、
-   CharacterPanel.tsx)で2行に分け、異名・名前とも省略されず見えるように
-   する。行ごとのフォールバックとしてellipsisは残すが、通常の長さでは
-   発動しない想定。 */
+   分からなくなっていた。対面/上家/下家は異名・名前を極力1段ずつ見せる
+   （.character-panel__name--split、下のルール参照）。自分だけは例外で、
+   自キャラの異名（てんこしゃんこ）が長く2行固定だとパネルが無駄に縦長に
+   なるとの指摘のため、区切りをスペースに変えて(displayCharacterName、
+   CharacterPanel.tsx)1つの折り返し可能なテキストにする。全キャラ一律で
+   こうするのはナンセンスとの指摘の通り、これは自分のみの例外対応。 */
 .character-panel__name {
-  display: flex;
-  flex-direction: column;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.25;
   min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+/* 対面/上家/下家用: 異名・名前を別々の段に強制する（従来の見た目）。
+   異名自体がプレート幅を超えるほど長い場合だけ、.character-panel__name-line
+   側の折り返しで名前の段へあふれるのは許容する。 */
+.character-panel__name--split {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .character-panel__name-line {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 /* 自分のキャラ名だけ、対局中に必殺技の効果を確認できるようクリック可能に
    している（CharacterPanel.tsx）。<button>化に伴うブラウザ既定の見た目を
@@ -1501,6 +1634,8 @@ button {
   color: inherit;
   text-align: left;
   cursor: pointer;
+  /* 親.character-panelがpointer-events:noneのため、ここだけ個別に戻す。 */
+  pointer-events: auto;
 }
 .character-panel__name--clickable:hover {
   text-decoration: underline;
@@ -1790,6 +1925,8 @@ button {
 }
 .opponent-area--3 .opponent-hand-row {
   flex-direction: column;
+  /* 上家の手牌と副露の間隔が狭いとの指摘のため、基本の6pxより広げる。 */
+  gap: 40px;
 }
 .opponent-area--1 .opponent-hand-row {
   flex-direction: column-reverse;
@@ -1879,6 +2016,9 @@ button {
    副露が少ない時も塊が行の中央寄りに来るようにする。 */
 .opponent-area--1 .opponent-hand-row {
   justify-content: center;
+  /* 下家の手牌をもう少し上（卓の内側）へ寄せてほしいとの指摘のため、
+     中央寄せした塊自体を少し引き上げる。 */
+  transform: translateY(-50px);
 }
 
 /* ============ 自分の手牌エリア ============ */
@@ -1894,8 +2034,16 @@ button {
 .human-area {
   position: absolute;
   left: 50%;
-  top: 81.444%;
+  top: 82%;
   transform: translate(-50%, calc(-50% + 4.9px));
+  /* transform(translate)を持つ要素はz-index:autoでもスタッキングコンテキストを
+     作ってしまう（CSS仕様）。z-index未指定のままだと"auto"扱いのレイヤーに
+     置かれ、.table-cluster（z-index:1、正の値）の方が常に手前に描画されて
+     しまい、河が.action-row（内部でz-index:5を持つが.human-area自身の
+     コンテキストに閉じ込められて無関係）よりクリックを奪う不具合の原因に
+     なっていた。明示的にz-index（.table-clusterの1より大きい値）を指定して
+     正の値どうしの比較にし、常に河より手前に来るようにする。 */
+  z-index: 2;
   width: 872px;
   /* 自キャラ表示（旧.hand-left-status）を卓の外のCharacterPanelへ移設し、
      action-rowも通常フロー化したため、上部に大きな予約余白は不要になった。 */
@@ -1976,8 +2124,13 @@ button {
    たびに手牌の位置が上下にズレてしまっていた。手牌の位置は絶対に
    動かしてはいけない（指摘により）ため、.hand-area基準の絶対配置に戻し、
    手牌の下ではなく右上に重ねて表示する（手牌の下側に何かを表示するのは
-   禁止）。 */
-.action-row {
+   禁止）。
+   カード表示をこのボタン列の少し上に積んでほしいとの指摘のため、
+   .action-row自体ではなく親の.action-stackを絶対配置の基準にし、
+   .action-rowは.action-stack内のflex-columnの通常フロー項目にした
+   （カード行→ボタン行の順に積むだけなので、ボタン側が何段に折り返しても
+   カードと重ならない）。 */
+.action-stack {
   /* 右端(right)は.hand-area全体の右端ではなく、実際の手牌
      (.hand-tiles__real)の右端に合わせる。実測で.hand-area右端との差が
      約200pxだったため、その分だけ内側(左)へ寄せる。margin-bottomは
@@ -1987,6 +2140,20 @@ button {
   bottom: 100%;
   margin-bottom: 20px;
   z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+/* カードがボタン列（チー/キャンセル等、右寄せ）とすぐ隣接して窮屈に見える
+   との指摘のため、カードだけ左寄せ(align-self)にして少し左上へ離す
+   （.action-stack自体はalign-items:flex-endで右寄せのまま、カードだけ
+   個別に上書きする）。 */
+.action-stack__card {
+  align-self: flex-start;
+  margin-bottom: 4px;
+}
+.action-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -2087,6 +2254,17 @@ button {
   border-color: #52d17c;
   background: rgba(82, 209, 124, 0.18);
   color: #8af0ab;
+}
+/* カード表示をそのまま「使用する」ボタンにする際の<button>既定見た目リセット。
+   バッジとしての見た目(.wait-row__shield)は保ったまま、押せることが伝わるよう
+   カーソルとホバー時の強調だけ足す。 */
+.wait-row__shield--clickable {
+  font: inherit;
+  cursor: pointer;
+}
+.wait-row__shield--clickable:hover {
+  border-color: #8af0ab;
+  background: rgba(82, 209, 124, 0.32);
 }
 .wait-row__tiles {
   display: flex;
@@ -2200,6 +2378,12 @@ button {
    同じ向きになる（対面だけ符号を反転する必要はない。以前は「自分・対面
    ともに上端」としていたが、対面から見ればそれは自分の体側＝手前になって
    しまっていたため誤り）。 */
+/* 上家・下家の手牌(.opponent-hand-back)はrotate(90deg/-90deg)されており、
+   帯(box-shadow)がローカル座標の「下」＝回転後は横方向に伸びるため、
+   隣の牌の絵の上に帯が乗ってしまう（ジンの「大明立直」等で手牌を公開
+   した時に顕著）。河・副露(.opponent-melds)と同じ仕組みで、手前に来る牌
+   ほど高いz-indexを持たせ、奥の牌の帯を手前の牌の絵の下に隠す
+   （z-indexの実際の値はOpponentArea.tsx側、mainTiles.map参照）。 */
 /* .human-area配下には手牌(.hand-tiles、幅44px/等倍の帯)以外にも
    副露(.melds-row、tile--small)やポン/チー/カンボタンの牌
    (.action-row内、tile--tiny)など、全く別サイズの.tileが同居している。
@@ -2396,6 +2580,10 @@ button {
      文字が横につぶれて見えていた。containで常に元の縦横比を保つ。 */
   object-fit: contain;
   transform: scale(0.72);
+}
+/* 自分の手牌だけ、数字/柄をほんの少し上へ寄せる（指摘により）。 */
+.human-area .hand-tiles .tile__img--face {
+  transform: scale(0.72) translateY(-3px);
 }
 /* 牌の柄・裏面画像そのものには一切触れず、手前に光沢の反射だけを重ねる
    （柄の正確性を保ったまま艶を出す）。斜め上から光が当たっているように

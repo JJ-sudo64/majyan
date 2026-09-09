@@ -12,6 +12,7 @@ import { ScoreResult } from "./ScoreResult.js";
 import { CenterBoard } from "./CenterBoard.js";
 import { CharacterPanel } from "./CharacterPanel.js";
 import { Hud } from "./Hud.js";
+import { SettingsPanel } from "./SettingsPanel.js";
 import { DebugPanel } from "./DebugPanel.js";
 import { SkillActivationOverlay } from "./SkillActivationOverlay.js";
 
@@ -86,10 +87,14 @@ export function Table() {
             いた。.game-screen直下（拡大・オフセットされていない実座標）に
             移すことで、常に画面の実際の左上付近に表示されるようにする。 */}
         <Hud round={round} format={match.format} />
+        <SettingsPanel />
+        {/* DebugPanelもHud等と同じ理由（.tableはzoom:1.46+top:52.9%で
+            拡大・中央配置されており、game-screenの実表示領域を縦に大きく
+            はみ出す）で、.table内部に置くと画面の外（見えない位置）に
+            出てしまっていた。同じく.game-screen直下へ移す。 */}
+        <DebugPanel />
 
         <div className="table">
-          <DebugPanel />
-
           {/* Step3/Phase C-2: 卓面（フェルト+木枠）と「ゲーム内容」を
               同一の3Dツリーに統合する。.game-content-planeがperspectiveを、
               その子.game-content-plane__innerがtransform-style:preserve-3d
@@ -131,8 +136,9 @@ export function Table() {
                     />
                   </div>
                   <CenterBoard round={round} scores={match.scores} />
-                  {/* リーチ棒（1000点棒）。実際の卓と同じく、リーチした本人の河と
-                      中央スコアボードの間（ここでは40px強の隙間がある）に置く。 */}
+                  {/* リーチ棒（1000点棒）。点数バッジ（外側）と中央の局情報
+                      「東◯局」「残りN枚」（内側）の隙間に置く（位置の詳細は
+                      styles.cssの.riichi-stick--*参照）。 */}
                   {round.players[2].riichi && <div className={`riichi-stick riichi-stick--top${riverFrozen(2) ? " table__frozen" : ""}`} />}
                   {round.players[3].riichi && <div className={`riichi-stick riichi-stick--left${riverFrozen(3) ? " table__frozen" : ""}`} />}
                   {round.players[1].riichi && <div className={`riichi-stick riichi-stick--right${riverFrozen(1) ? " table__frozen" : ""}`} />}
