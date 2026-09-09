@@ -1595,12 +1595,10 @@ button {
   min-width: 0;
 }
 /* キャラ名は「異名・名前」形式で長いため、1行だと省略されて誰なのか
-   分からなくなっていた。対面/上家/下家は異名・名前を極力1段ずつ見せる
-   （.character-panel__name--split、下のルール参照）。自分だけは例外で、
-   自キャラの異名（てんこしゃんこ）が長く2行固定だとパネルが無駄に縦長に
-   なるとの指摘のため、区切りをスペースに変えて(displayCharacterName、
-   CharacterPanel.tsx)1つの折り返し可能なテキストにする。全キャラ一律で
-   こうするのはナンセンスとの指摘の通り、これは自分のみの例外対応。 */
+   分からなくなっていた。自分/対面/上家/下家とも異名・名前をきっちり
+   2段（1段ずつ）に分けて見せる（.character-panel__name--split、下の
+   ルール参照）。以前は自分だけ1行に詰める例外を作っていたが、見た目が
+   不自然との指摘で廃止し全員統一した。 */
 .character-panel__name {
   font-size: 13px;
   font-weight: 700;
@@ -1609,9 +1607,9 @@ button {
   white-space: normal;
   overflow-wrap: break-word;
 }
-/* 対面/上家/下家用: 異名・名前を別々の段に強制する（従来の見た目）。
-   異名自体がプレート幅を超えるほど長い場合だけ、.character-panel__name-line
-   側の折り返しで名前の段へあふれるのは許容する。 */
+/* 異名・名前を別々の段に強制する。異名自体がプレート幅を超えるほど長い
+   場合だけ、.character-panel__name-line側の折り返しで名前の段へ
+   あふれるのは許容する。 */
 .character-panel__name--split {
   display: flex;
   flex-direction: column;
@@ -2971,7 +2969,11 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 2px;
-  margin-bottom: 6px;
+  /* 牌の厚み(box-shadow)は牌自身のレイアウト上の高さには含まれず、
+     tile--smallだと下端からさらに約20px張り出す。以前のmargin-bottom
+     6pxでは足りず、直下の「ドラ表示」ラベルに厚みが重なって文字が
+     読めなくなっていたため、厚み込みで確実に空くだけの余白を確保する。 */
+  margin-bottom: 24px;
 }
 .win-detail__dora {
   display: flex;

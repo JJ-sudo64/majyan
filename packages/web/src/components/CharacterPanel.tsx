@@ -5,17 +5,10 @@ import { SkillGauge } from "./SkillGauge.js";
 
 const SEAT_LABELS: Record<number, string> = { 1: "下家CPU", 2: "対面CPU", 3: "上家CPU" };
 
-// キャラ名は「異名・名前」形式（例:「開花の巫女・ヒイラギ」）。対面/上家/
-// 下家は「・」の位置で2行に分け、異名・名前とも極力1段ずつ見せる
-// （splitCharacterName）。自分だけは、自キャラの異名（てんこしゃんこ）が
-// 長く2行固定だとパネルが無駄に縦長になるとの指摘のため例外的に、
-// 「・」をスペースに変えた1つの折り返し可能なテキストにして、幅に収まる
-// 分は名前も同じ行に表示されるようにする（displayCharacterName）。
-function displayCharacterName(name: string | undefined): string {
-  if (!name) return "";
-  return name.replace("・", " ");
-}
-
+// キャラ名は「異名・名前」形式（例:「開花の巫女・ヒイラギ」）。自分/対面/
+// 上家/下家とも「・」の位置できっちり2行に分け、異名・名前とも1段ずつ
+// 見せる（指摘により、自分だけ1行に詰めて表示していた例外を廃止し
+// 全員統一）。行が増えてパネルが縦に伸びるのは許容する。
 function splitCharacterName(name: string | undefined): [string, string] {
   if (!name) return ["", ""];
   const i = name.indexOf("・");
@@ -84,8 +77,16 @@ export function CharacterPanel({
       </div>
       <div className="character-panel__body">
         {isSelf && onShowSkillInfo ? (
-          <button type="button" className="character-panel__name character-panel__name--clickable" onClick={onShowSkillInfo}>
-            {displayCharacterName(character?.name ?? "あなた")}
+          <button
+            type="button"
+            className="character-panel__name character-panel__name--split character-panel__name--clickable"
+            onClick={onShowSkillInfo}
+          >
+            {splitCharacterName(character?.name ?? "あなた").map((line, i) => (
+              <span key={i} className="character-panel__name-line">
+                {line}
+              </span>
+            ))}
           </button>
         ) : (
           <div className="character-panel__name character-panel__name--split">
