@@ -159,8 +159,11 @@ export function DiscardPile({
     // rotate(90deg)（上家）だと画面下、rotate(-90deg)（下家）だと画面上へ
     // 移る。対面は以前「自分と正対している＝鏡写し」としてrow-reverseで
     // 左右反転させていたが、萬子/筒子/索子の並びが自分の手牌と逆向きで
-    // 見づらいとの指摘のためその反転をやめた。対面も人間の自分の手牌と
-    // 同じくDOM順そのまま＝右端がtile--drawn側になる。
+    // 見づらいとの指摘のためその反転をやめた（並び順は人間の自分の手牌と
+    // 同じくDOM順そのまま）。ただし対面は自分と正対しているため、対面
+    // 本人から見て右（＝ツモ牌の本来の位置）は、こちらから見ると左になる。
+    // そのため対面だけツモ牌をOpponentArea.tsx側でDOM順の先頭（画面左端）に
+    // 描画しており、ここでもtop方向だけ左端を基準にする。
     // 以前はhandRect.width >= handRect.heightで横長/縦長を判定していたが、
     // 上家・下家(.opponent-hand-back)の高さは鳴きで手牌が減った分だけ
     // 動的に縮むようになった（OpponentArea.tsx参照）ため、手牌がかなり
@@ -170,7 +173,12 @@ export function DiscardPile({
     // 横長/縦長は手牌の実測サイズではなく、対面の向き（direction）だけで
     // 一意に決まる（top/human=横長、left/right=縦長）ため、そちらで判定する。
     const horizontal = direction === "top" || direction === "human";
-    const anchorX = horizontal ? handRect.right - handRect.height / 2 : handRect.left + handRect.width / 2;
+    const anchorX =
+      direction === "human"
+        ? handRect.right - handRect.height / 2
+        : direction === "top"
+          ? handRect.left + handRect.height / 2
+          : handRect.left + handRect.width / 2;
     const anchorY = horizontal
       ? handRect.top + handRect.height / 2
       : direction === "left"

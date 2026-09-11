@@ -1234,7 +1234,7 @@ button {
   min-width: 2.5em;
 }
 /* BGM音量は常設せず、画面右端の歯車アイコンを押した時だけポップオーバーで
-   出す（指摘により）。歯車はcharacter-panel--top（right:200px）より外側の
+   出す（指摘により）。歯車はcharacter-panel--top（right:230px）より外側の
    右端の隙間（right:8〜190px）に置く。 */
 .volume-gear-wrap {
   position: absolute;
@@ -1263,6 +1263,9 @@ button {
   position: absolute;
   top: 42px;
   right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   pointer-events: auto;
   background: linear-gradient(160deg, rgba(24, 16, 8, 0.92), rgba(10, 7, 4, 0.88));
   border: 1px solid rgba(212, 175, 55, 0.32);
@@ -1516,11 +1519,15 @@ button {
    上家=左中、自分=左下）。卓の内部レイアウト（grid/絶対配置のpxバジェット）
    とは無関係な独立座標のため、河が何段に伸びてもこのパネルの位置は
    一切影響を受けない。 */
-.character-panel--top { top: 8px; right: 200px; }
-/* 上家・下家だけ、顔・名前・点数・必殺技ゲージを全部縦並びにする
-   （指摘により）。対面・自分は従来通り横並びのまま。 */
+/* 対面の手牌右端（副露を左へ寄せた分、手牌自体は中央よりやや右に
+   広がる）と被らないよう、横長だった頃のright:200pxより少し外側へ。
+   歯車(.volume-gear-wrap、right:8〜190pxの隙間)より内側なのは変わらない。 */
+.character-panel--top { top: 8px; right: 230px; }
+/* 上家・下家・対面は、顔・名前・点数・必殺技ゲージを全部縦並びにする
+   （指摘により）。自分だけ従来通り横並びのまま。 */
 .character-panel--left,
-.character-panel--right {
+.character-panel--right,
+.character-panel--top {
   flex-direction: column;
   align-items: center;
   text-align: center;
@@ -1530,26 +1537,31 @@ button {
   gap: 4px;
 }
 .character-panel--left .character-panel__body,
-.character-panel--right .character-panel__body {
+.character-panel--right .character-panel__body,
+.character-panel--top .character-panel__body {
   align-items: center;
   width: 100%;
 }
 .character-panel--left .character-panel__name,
-.character-panel--right .character-panel__name {
+.character-panel--right .character-panel__name,
+.character-panel--top .character-panel__name {
   text-align: center;
 }
 /* 親（風・ドラ表示バッジ）と点数も横並びをやめて縦に積む。これで
    .character-panel__metaの横幅も.character-panel__nameと同程度に収まり、
-   上家・下家とも見た目の横幅が一致する。 */
+   上家・下家・対面とも見た目の横幅が一致する。 */
 .character-panel--left .character-panel__meta,
-.character-panel--right .character-panel__meta {
+.character-panel--right .character-panel__meta,
+.character-panel--top .character-panel__meta {
   flex-direction: column;
   gap: 2px;
 }
 .character-panel--left .skill-gauge,
 .character-panel--right .skill-gauge,
+.character-panel--top .skill-gauge,
 .character-panel--left .riichi-badge,
-.character-panel--right .riichi-badge {
+.character-panel--right .riichi-badge,
+.character-panel--top .riichi-badge {
   align-self: center;
 }
 .character-panel--right { top: 50%; right: 8px; transform: translateY(-50%); }
@@ -1900,7 +1912,7 @@ button {
      .opponent-hand-back側のmargin:auto中央寄せ計算に影響して手牌の位置
      まで動いてしまうため（見た目だけをずらし、手牌の位置は変えない）。 */
   position: relative;
-  left: 140px;
+  left: 110px;
 }
 .opponent-area--2 .opponent-hand-back {
   margin-left: auto;

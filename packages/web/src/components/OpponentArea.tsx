@@ -113,12 +113,17 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
   // ツモった牌(.tile--drawn)には本体から離して見せるための
   // margin-left:10pxが別途乗るため、枚数ぶんの実寸だけでは10px足りず、
   // ツモった瞬間だけそのぶんが枠からはみ出して見切れてしまう
-  // （＝ツモっても手が開かれて見えない）。手番中で表示対象がある間だけ
-  // その10pxも加算する。
+  // （＝ツモっても手が開かれて見えない）。
+  // 以前はこの+1枚・+10pxをhasPendingDrawの間だけ加算していたが、その
+  // せいでツモ・打牌のたびにこの枠の高さが44pxぶん変動し、続く副露エリア
+  // (.opponent-melds)がその変動をそのまま押し出されて縦にガクガク動く
+  // 不具合になっていた（上家・下家どちらでも発生）。ツモの有無に関わらず
+  // 「常にもう1枚保持している体」で高さを一定にし、実際にツモった瞬間も
+  // 枠のサイズが変わらないようにする。
   const handTileCount = p.hand.concealed.length;
-  const drawnMargin = hasPendingDraw && drawnTile ? 10 : 0;
+  const steadyHandTileCount = hasPendingDraw ? handTileCount - 1 : handTileCount;
   const handGap = 2;
-  const handBackTrack = handTileCount > 0 ? handTileCount * (32 + handGap) - handGap + drawnMargin : 0;
+  const handBackTrack = steadyHandTileCount > 0 ? (steadyHandTileCount + 1) * (32 + handGap) - handGap + 10 : 0;
 
   // 副露枠(.opponent-melds)も手牌枠と同じ理屈で、実際の副露牌の実寸から
   // 必要な幅（回転後は「卓の縁沿い」の長さになる）を算出する。以前は
@@ -145,6 +150,33 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
   const isTimeStopped = timeStopSource !== undefined;
   const frozen = isTimeStopped && timeStopSource !== player;
 
+  // ツモ牌の枠は常に描画し、ツモ中でない間はvisibility:hiddenで隠すだけに
+  // する（DOMから外したり幅0にはしない）。こうしないとツモの有無でこの
+  // 内側全体(.opponent-hand-back__inner)の実寸が変わってしまい、外側
+  // (.opponent-hand-back)のjustify-content:centerによって既存の牌ごと
+  // 再センタリングされ、手牌全体がガクガク動く不具合になる。実寸を常に
+  // 一定に保つことで、中央寄せのままでも手牌の位置が変わらないようにする。
+  function renderDrawnTile() {
+    const showDrawn = hasPendingDraw && !!drawnTile;
+    const zIndexStyle: CSSProperties | undefined =
+      player === 1 ? { zIndex: -mainTiles.length } : player === 3 ? { zIndex: mainTiles.length } : undefined;
+    // 対面(2)だけツモ牌を先頭（画面左）に置くため、既定の.tile--drawn
+    // (margin-left:10px＝手前の牌との間隔)を反転させ、後ろに続く本体牌との
+    // 間隔をmargin-rightで確保する。
+    const marginFix: CSSProperties | undefined = player === 2 ? { marginLeft: 0, marginRight: 10 } : undefined;
+    return (
+      <TileView
+        key="drawn"
+        code={showDrawn && revealHand ? drawnTile!.code : "1m"}
+        faceDown={!(showDrawn && revealHand)}
+        red={showDrawn && revealHand ? drawnTile!.isRed : undefined}
+        small
+        drawn
+        style={{ ...zIndexStyle, ...marginFix, visibility: showDrawn ? "visible" : "hidden" }}
+      />
+    );
+  }
+
   return (
     <div
       className={`opponent-area opponent-area--${player}${isCurrent ? " opponent-area--active" : ""}${frozen ? " opponent-area--frozen" : ""}`}
@@ -157,6 +189,12 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
           style={{ "--hand-back-track": `${handBackTrack}px` } as CSSProperties}
         >
           <div className="opponent-hand-back__inner">
+            {/* 対面(2)は自分と正対しているため、対面本人から見た右側
+                （＝こちらから見た左側）にツモ牌が来るのが実際の卓と同じで
+                自然。DOM順で先頭に置くことで、回転もrow-reverseもしていない
+                対面の手牌の中で画面左端に表示させる（上家・下家・自分は
+                これまで通りDOM順の最後＝画面右端寄り）。 */}
+            {player === 2 && renderDrawnTile()}
             {mainTiles.map((t, i) => {
               // 上家・下家は手牌もrotate(90deg/-90deg)されており、牌の帯
               // (box-shadow)がローカル座標の「下」＝回転後は横方向に伸びる
@@ -183,17 +221,7 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
                 />
               );
             })}
-            {hasPendingDraw && drawnTile && (
-              <TileView
-                key="drawn"
-                code={revealHand ? drawnTile.code : "1m"}
-                faceDown={!revealHand}
-                red={revealHand ? drawnTile.isRed : undefined}
-                small
-                drawn
-                style={player === 1 ? { zIndex: -mainTiles.length } : player === 3 ? { zIndex: mainTiles.length } : undefined}
-              />
-            )}
+            {player !== 2 && renderDrawnTile()}
           </div>
         </div>
         <div className="opponent-melds" style={{ "--melds-track": `${meldsTrack}px` } as CSSProperties}>

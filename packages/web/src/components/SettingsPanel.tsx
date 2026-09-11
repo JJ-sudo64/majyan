@@ -8,6 +8,8 @@ import { useSettingsStore } from "../store/settingsStore.js";
 export function SettingsPanel() {
   const bgmVolume = useSettingsStore((s) => s.bgmVolume);
   const setBgmVolume = useSettingsStore((s) => s.setBgmVolume);
+  const seVolume = useSettingsStore((s) => s.seVolume);
+  const setSeVolume = useSettingsStore((s) => s.setSeVolume);
   const autoTsumogiri = useSettingsStore((s) => s.autoTsumogiri);
   const setAutoTsumogiri = useSettingsStore((s) => s.setAutoTsumogiri);
   const autoWin = useSettingsStore((s) => s.autoWin);
@@ -52,7 +54,7 @@ export function SettingsPanel() {
         <button
           type="button"
           className="volume-gear"
-          aria-label="BGM音量設定"
+          aria-label="音量設定"
           aria-expanded={volumeOpen}
           onClick={() => setVolumeOpen((v) => !v)}
         >
@@ -64,17 +66,31 @@ export function SettingsPanel() {
           </svg>
         </button>
         {volumeOpen && (
-          <div className="volume-popover hud__row hud__bgm-volume">
-            <span className="hud__dora-label">BGM音量</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={bgmVolume}
-              onChange={(e) => setBgmVolume(Number(e.target.value))}
-            />
-            <span className="hud__bgm-volume__value">{Math.round(bgmVolume * 100)}%</span>
+          <div className="volume-popover">
+            <div className="hud__row hud__bgm-volume">
+              <span className="hud__dora-label">BGM音量</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={bgmVolume}
+                onChange={(e) => setBgmVolume(Number(e.target.value))}
+              />
+              <span className="hud__bgm-volume__value">{Math.round(bgmVolume * 100)}%</span>
+            </div>
+            <div className="hud__row hud__bgm-volume">
+              <span className="hud__dora-label">SE音量</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={seVolume}
+                onChange={(e) => setSeVolume(Number(e.target.value))}
+              />
+              <span className="hud__bgm-volume__value">{Math.round(seVolume * 100)}%</span>
+            </div>
           </div>
         )}
       </div>

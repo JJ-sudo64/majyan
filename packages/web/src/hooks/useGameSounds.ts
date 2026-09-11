@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { CHARACTERS, type Meld, type RoundState, type VoiceEvent } from "@majyan/core";
-import { playDiscardSound, playDrawSound, playVoiceClip, speakVoice } from "../sound.js";
+import { playDealSound, playDiscardSound, playDrawSound, playRiichiStickSound, playVoiceClip, speakVoice } from "../sound.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
   chi: "チー",
@@ -47,6 +47,17 @@ export function useGameSounds(round: RoundState | undefined) {
     }
     hadRoundRef.current = roundStarted;
   }, [roundStarted]);
+
+  // 局が変わる（roundNumber/honbaが変わる）たびに配牌の「牌を混ぜる」音を
+  // 1回鳴らす。ただし対局最初の東一局（起家の配牌）は、卓に着いた時点で
+  // 既に牌が積まれている想定のため鳴らさない。次局以降の切り替わりのみ対象。
+  const roundSignature = round ? `${round.roundNumber}-${round.honba}` : null;
+  const prevRoundSignatureRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevRoundSignatureRef.current;
+    if (roundSignature && prev !== null && roundSignature !== prev) playDealSound();
+    prevRoundSignatureRef.current = roundSignature;
+  }, [roundSignature]);
 
   const totalDiscards = round?.players.reduce((sum, p) => sum + p.discards.length, 0) ?? 0;
   const prevDiscardsRef = useRef(totalDiscards);
@@ -100,7 +111,10 @@ export function useGameSounds(round: RoundState | undefined) {
   useEffect(() => {
     const prev = prevRiichiFlagsRef.current;
     const declaredIndex = riichiFlags.findIndex((r, i) => r && !prev[i]);
-    if (declaredIndex !== -1) speakPlayerVoice(round, declaredIndex, "riichi", "リーチ");
+    if (declaredIndex !== -1) {
+      playRiichiStickSound();
+      speakPlayerVoice(round, declaredIndex, "riichi", "リーチ");
+    }
     prevRiichiFlagsRef.current = riichiFlags;
   }, [riichiSignature]);
 
