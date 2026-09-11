@@ -11,8 +11,8 @@ const RIICHI_BGM_SRC = "/bgm/wafu-battle.mp3";
  * 表示している間）だけ鳴らし、タイトルへ戻る（Tableがアンマウントされる）と
  * 自然に止まる。誰かがリーチすると緊迫感のあるBGMに切り替わり、次局が
  * 配牌されてリーチが誰も残っていない状態に戻ると通常BGMに戻る。
- * ツモ・ロンで局が終わった瞬間はBGMを止め、次局の配牌と同時に自然に
- * 再開する（流局系は対象外、和了の余韻を邪魔しないための仕様）。
+ * 局が終わった瞬間（ツモ・ロンに加え、荒牌平局・九種九牌等の流局も含む）は
+ * BGMを止め、次局の配牌と同時に自然に再開する。
  * ブラウザの自動再生制限で最初のplay()がブロックされた場合は、ユーザーが
  * 画面のどこかを最初にクリックした瞬間に1回だけ再試行する。
  */
@@ -45,11 +45,13 @@ export function useBgm(round: RoundState | undefined) {
   }, [bgmVolume]);
 
   const anyRiichi = round?.players.some((p) => p.riichi) ?? false;
-  const wonByTsumoOrRon = round?.phase === "round-over" && (round.result?.type === "tsumo" || round.result?.type === "ron");
+  // 局終了画面（ツモ・ロンに加え、荒牌平局・九種九牌等の流局も含む）では
+  // 結果を確認している間、BGMを止める。次局の配牌と同時に自然に再開する。
+  const roundOver = round?.phase === "round-over";
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !round) return;
-    if (wonByTsumoOrRon) {
+    if (roundOver) {
       audio.pause();
       return;
     }
@@ -59,5 +61,5 @@ export function useBgm(round: RoundState | undefined) {
       audio.src = nextSrc;
     }
     audio.play().catch(() => {});
-  }, [anyRiichi, wonByTsumoOrRon, round]);
+  }, [anyRiichi, roundOver, round]);
 }

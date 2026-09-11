@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { CHARACTERS, doraIndicators, uraDoraIndicators, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile } from "@majyan/core";
+import { useEffect, useState } from "react";
+import { CHARACTERS, doraIndicators, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
+import { playVoiceQueue } from "../sound.js";
+import { orderMeldTilesForDisplay } from "../meldDisplay.js";
 import { MatchVictoryOverlay } from "./MatchVictoryOverlay.js";
 import { TileView } from "./TileView.js";
 
@@ -35,23 +37,37 @@ function WinningHandView({ round, player }: { round: RoundState; player: PlayerI
         <TileView key={t.id} code={t.code} red={t.isRed} small highlightable={false} />
       ))}
       {winTile && <TileView key={winTile.id} code={winTile.code} red={winTile.isRed} small drawn highlightable={false} />}
-      {melds.map((m, i) => (
-        <div key={i} className="meld meld--small">
-          {m.tiles.map((t, j) => (
-            <TileView
-              key={j}
-              code={t.code}
-              red={t.isRed}
-              small
-              highlightable={false}
-              dimmed={m.type === "ankan" && (j === 0 || j === m.tiles.length - 1)}
-              rotated={m.calledTile?.id === t.id}
-            />
-          ))}
-        </div>
-      ))}
+      {melds.map((m, i) => {
+        const displayTiles = orderMeldTilesForDisplay(m);
+        return (
+          <div key={i} className="meld meld--small">
+            {displayTiles.map((t, j) => (
+              <TileView
+                key={j}
+                code={t.code}
+                red={t.isRed}
+                small
+                highlightable={false}
+                faceDown={m.type === "ankan" && (j === 0 || j === displayTiles.length - 1)}
+                rotated={m.calledTile?.id === t.id}
+              />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
+}
+
+// 「自風牌」「場風牌」は役名だけでは実際の風(東南西北)が分からず、
+// 「ドラ」「裏ドラ」「赤ドラ」は本数がその都度変わるため、通常の
+// yakuVoiceClips（役名→音源の1対1辞書）では表現できない。この2種類だけは
+// roundの実際の状態（自風/場風/本数）から個別に解決する。
+function resolveYakuVoiceClip(character: Character, y: YakuResult, round: RoundState, player: PlayerIndex): string | undefined {
+  if (y.name === "自風牌") return character.windVoiceClips?.[seatWindOf(round.dealerSeat, player)];
+  if (y.name === "場風牌") return character.windVoiceClips?.[round.roundWind];
+  if (y.name === "ドラ" || y.name === "裏ドラ" || y.name === "赤ドラ") return character.doraVoiceClips?.[y.han];
+  return character.yakuVoiceClips?.[y.name];
 }
 
 function resultTitle(round: RoundState): string {
@@ -68,6 +84,30 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
   const match = useGameStore((s) => s.match);
 
   const winnerEntries = Object.entries(outcome.winAnalyses) as [string, { analysis: import("@majyan/core").WinAnalysis; score: import("@majyan/core").ScoreResult }][];
+
+  // 和了したキャラに役ボイスがあれば、成立した役を宣言順に読み上げる
+  // （ツモ/ロンの掛け声はuseGameSounds側で既に鳴っているため、ここでは
+  //   役名・翻数帯のみを対象にする）。ボイス未収録の役は無音でスキップする。
+  useEffect(() => {
+    const queue: string[] = [];
+    for (const [playerStr, { analysis, score }] of winnerEntries) {
+      const player = Number(playerStr) as PlayerIndex;
+      const character = CHARACTERS[round.characterIds[player]!];
+      if (!character) continue;
+      for (const y of analysis.yaku) {
+        const clip = resolveYakuVoiceClip(character, y, round, player);
+        if (clip) queue.push(clip);
+      }
+      if (score.limitName) {
+        const clip = character.yakuVoiceClips?.[score.limitName];
+        if (clip) queue.push(clip);
+      }
+    }
+    if (queue.length === 0) return;
+    // useGameSounds側の「ツモ」「ロン」の掛け声と被らないよう、少し間を置いてから読み上げる。
+    const timer = window.setTimeout(() => playVoiceQueue(queue), 900);
+    return () => window.clearTimeout(timer);
+  }, [outcome]);
 
   // 対局全体の最終順位1位（同点なら若い席順）。結果モーダルを見終えた後に
   // 別画面でドンと出す「優勝」演出用。

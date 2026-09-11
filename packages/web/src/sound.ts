@@ -3,10 +3,10 @@
  *
  * 打牌/ツモの「音」は実際の牌音源を持っていないため、Web Audio APIで
  * その場で合成した短いクリック音で代用する。
- * 「ポン」「チー」「カン」「ロン」「ツモ」の音声は、収録された本物の
- * 発声データを用意できない（生成もできない）ため、ブラウザ内蔵の
- * SpeechSynthesis（音声合成）で代わりに読み上げる。本物の掛け声には
- * 及ばないが、無音よりは分かりやすくなるはず。
+ * 「ポン」「チー」「カン」「ロン」「ツモ」等の音声は、キャラクターごとに
+ * 収録ボイス（Character.voiceClips）が用意されていればそれを再生し、
+ * 未収録のキャラ/イベントはブラウザ内蔵のSpeechSynthesis（音声合成）で
+ * 代わりに読み上げる。
  */
 
 let audioCtx: AudioContext | null = null;
@@ -56,7 +56,7 @@ function getJapaneseVoice(): SpeechSynthesisVoice | undefined {
   return window.speechSynthesis.getVoices().find((v) => v.lang?.startsWith("ja"));
 }
 
-/** 「ポン」「チー」「カン」「ロン」「ツモ」等の読み上げ。本物の音声収録の代用。 */
+/** 「ポン」「チー」「カン」「ロン」「ツモ」等の読み上げ。収録ボイスが無い場合の代用。 */
 export function speak(text: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
@@ -67,4 +67,50 @@ export function speak(text: string) {
   const voice = getJapaneseVoice();
   if (voice) utter.voice = voice;
   window.speechSynthesis.speak(utter);
+}
+
+const voiceClipCache = new Map<string, HTMLAudioElement>();
+
+function getVoiceClip(url: string): HTMLAudioElement | null {
+  if (typeof window === "undefined") return null;
+  let audio = voiceClipCache.get(url);
+  if (!audio) {
+    audio = new Audio(url);
+    voiceClipCache.set(url, audio);
+  }
+  return audio;
+}
+
+/** 収録ボイス音源を1つ再生する（TTSへのフォールバックなし）。 */
+export function playVoiceClip(url: string) {
+  const audio = getVoiceClip(url);
+  if (!audio) return;
+  audio.currentTime = 0;
+  void audio.play().catch(() => {});
+}
+
+/** 収録ボイスがあればそれを再生し、無ければfallbackTextをspeak()で読み上げる。 */
+export function speakVoice(clipUrl: string | undefined, fallbackText: string) {
+  if (clipUrl) {
+    playVoiceClip(clipUrl);
+    return;
+  }
+  speak(fallbackText);
+}
+
+/** 複数の収録ボイスを重ならないよう順番に再生する（役の連続宣言などに使用）。 */
+export function playVoiceQueue(urls: string[]) {
+  if (typeof window === "undefined" || urls.length === 0) return;
+  const [first, ...rest] = urls;
+  const audio = getVoiceClip(first!);
+  if (!audio) return;
+  audio.currentTime = 0;
+  audio.onended = () => {
+    audio.onended = null;
+    if (rest.length > 0) playVoiceQueue(rest);
+  };
+  void audio.play().catch(() => {
+    audio.onended = null;
+    if (rest.length > 0) playVoiceQueue(rest);
+  });
 }

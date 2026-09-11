@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { CHARACTERS, type Meld, type RoundState } from "@majyan/core";
-import { playDiscardSound, playDrawSound, speak } from "../sound.js";
+import { CHARACTERS, type Meld, type RoundState, type VoiceEvent } from "@majyan/core";
+import { playDiscardSound, playDrawSound, playVoiceClip, speakVoice } from "../sound.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
   chi: "チー",
@@ -10,12 +10,44 @@ const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
   ankan: "カン",
 };
 
+const CALL_EVENT: Partial<Record<Meld["type"], VoiceEvent>> = {
+  chi: "chi",
+  pon: "pon",
+  minkan: "kan",
+  kakan: "kan",
+  ankan: "kan",
+};
+
+/** playerの鳴き/リーチ/ツモ/ロンを、キャラの収録ボイス（無ければTTS）で読み上げる。 */
+function speakPlayerVoice(round: RoundState | undefined, player: number, event: VoiceEvent, fallbackText: string) {
+  const character = round ? CHARACTERS[round.characterIds[player]!] : undefined;
+  speakVoice(character?.voiceClips?.[event], fallbackText);
+}
+
 /**
  * 打牌・ツモ・鳴き・和了に合わせて効果音/読み上げを鳴らす。
  * 4人分をまとめてここで一元管理する（人間・敵のどちらの操作でも同じ音を出す）。
  * 対局が始まっていない間（round未定義）は何もしない。
  */
 export function useGameSounds(round: RoundState | undefined) {
+  // 対局開始（roundがundefined→定義済みに変わった瞬間）に、挨拶ボイスを
+  // 持つキャラがいれば1回だけ再生する。局が進む間はroundが常に定義済みの
+  // ままなので、次に発火するのはタイトルへ戻って新しい対局を始めた時のみ。
+  const roundStarted = !!round;
+  const hadRoundRef = useRef(false);
+  useEffect(() => {
+    if (!hadRoundRef.current && round) {
+      for (const characterId of round.characterIds) {
+        const clip = CHARACTERS[characterId]?.voiceClips?.greeting;
+        if (clip) {
+          playVoiceClip(clip);
+          break;
+        }
+      }
+    }
+    hadRoundRef.current = roundStarted;
+  }, [roundStarted]);
+
   const totalDiscards = round?.players.reduce((sum, p) => sum + p.discards.length, 0) ?? 0;
   const prevDiscardsRef = useRef(totalDiscards);
   useEffect(() => {
@@ -44,13 +76,15 @@ export function useGameSounds(round: RoundState | undefined) {
       const curTypes = meldTypesByPlayer[i]!;
       const prevTypes = prev[i] ?? [];
       if (curTypes.length > prevTypes.length) {
-        const label = CALL_VOICE[curTypes[curTypes.length - 1]!];
-        if (label) speak(label);
+        const type = curTypes[curTypes.length - 1]!;
+        const label = CALL_VOICE[type];
+        if (label) speakPlayerVoice(round, i, CALL_EVENT[type]!, label);
       } else if (curTypes.length === prevTypes.length) {
         for (let j = 0; j < curTypes.length; j++) {
           if (curTypes[j] !== prevTypes[j]) {
-            const label = CALL_VOICE[curTypes[j]!];
-            if (label) speak(label);
+            const type = curTypes[j]!;
+            const label = CALL_VOICE[type];
+            if (label) speakPlayerVoice(round, i, CALL_EVENT[type]!, label);
             break;
           }
         }
@@ -65,7 +99,8 @@ export function useGameSounds(round: RoundState | undefined) {
   const prevRiichiFlagsRef = useRef(riichiFlags);
   useEffect(() => {
     const prev = prevRiichiFlagsRef.current;
-    if (riichiFlags.some((r, i) => r && !prev[i])) speak("リーチ");
+    const declaredIndex = riichiFlags.findIndex((r, i) => r && !prev[i]);
+    if (declaredIndex !== -1) speakPlayerVoice(round, declaredIndex, "riichi", "リーチ");
     prevRiichiFlagsRef.current = riichiFlags;
   }, [riichiSignature]);
 
@@ -80,7 +115,10 @@ export function useGameSounds(round: RoundState | undefined) {
       for (let i = 0; i < skillGauges.length; i++) {
         if (prev[i]! > 0 && skillGauges[i] === 0) {
           const character = CHARACTERS[round.characterIds[i]!];
-          if (character) speak(`${character.voiceName ?? character.name} ${character.skill.voiceName ?? character.skill.name}`);
+          if (character) {
+            const fallback = `${character.voiceName ?? character.name} ${character.skill.voiceName ?? character.skill.name}`;
+            speakVoice(character.voiceClips?.skillActivate, fallback);
+          }
         }
       }
     }
@@ -92,8 +130,8 @@ export function useGameSounds(round: RoundState | undefined) {
   useEffect(() => {
     if (phase === "round-over" && prevPhaseRef.current !== "round-over") {
       const result = round?.result;
-      if (result?.type === "tsumo") speak("ツモ");
-      else if (result?.type === "ron") speak("ロン");
+      if (result?.type === "tsumo") speakPlayerVoice(round, result.winners[0]!, "tsumo", "ツモ");
+      else if (result?.type === "ron") speakPlayerVoice(round, result.winners[0]!, "ron", "ロン");
     }
     prevPhaseRef.current = phase;
   }, [phase, round?.result]);

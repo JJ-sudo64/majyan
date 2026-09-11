@@ -190,6 +190,7 @@ function buildWinContext(
     houtei: !isTsumo && !chankan && liveTilesRemaining(round.wall) === 0,
     rinshan: isTsumo && round.isRinshanTurn,
     chankan,
+    firstTurnWin: isTsumo && p.discards.length === 0 && !round.anyCallOrRiichiMade,
     doraIndicators: doraIndicators(round.wall),
     // カード「裏ドラ倍加」使用済みの立直和了には、通常公開ぶんに加えてもう1枚
     // 裏ドラ表示牌を追加する（王牌に対応する枠が無ければextraUraDoraIndicatorが

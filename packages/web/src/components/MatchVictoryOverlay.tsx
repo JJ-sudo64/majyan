@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import type { Character, PlayerIndex } from "@majyan/core";
+import { playVoiceClip } from "../sound.js";
 
 const PLAYER_NAMES: Record<number, string> = { 0: "あなた", 1: "下家", 2: "対面", 3: "上家" };
 
@@ -15,6 +17,14 @@ export function MatchVictoryOverlay({
   champion: { player: PlayerIndex; character: Character };
   onBackToTitle: () => void;
 }) {
+  // 収録ボイスがあるキャラのみ、演出表示と同時に勝利台詞を読み上げる
+  // （TTSフォールバックは行わない。棒読みで長台詞を読ませるのは
+  //   逆に演出を損なうため）。
+  useEffect(() => {
+    const clip = champion.character.voiceClips?.winQuote;
+    if (clip) playVoiceClip(clip);
+  }, [champion.character]);
+
   return (
     <div className="modal-overlay match-victory-overlay">
       <div className="match-victory-card">

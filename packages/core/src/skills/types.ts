@@ -8,7 +8,7 @@
  */
 import type { RoundState } from "../gameState.js";
 import type { PlayerIndex } from "../actions.js";
-import type { Tile } from "../tiles.js";
+import type { Tile, Wind } from "../tiles.js";
 
 export interface SkillContext {
   round: RoundState;
@@ -73,6 +73,10 @@ export interface CharacterSkill {
   hooks: SkillHooks;
 }
 
+/** 収録ボイスに対応するイベント種別。chi/pon/kan/riichi/tsumo/ronのみ
+    未収録時にspeak()のTTSへフォールバックする（他イベントは未収録なら無音）。 */
+export type VoiceEvent = "chi" | "pon" | "kan" | "riichi" | "tsumo" | "ron" | "skillActivate" | "winQuote" | "greeting";
+
 export interface Character {
   id: string;
   name: string;
@@ -80,6 +84,22 @@ export interface Character {
   /** 音声読み上げ用の読み（ひらがな/カタカナ）。ブラウザの読み上げが誤読しやすい
       熟語を含む名前の場合のみ指定する。未指定ならnameをそのまま読む。 */
   voiceName?: string;
+  /** イベントごとの収録ボイス音源パス（public/配下）。指定されたイベントのみ
+      実音声を再生し、未指定のイベントは従来通りspeak()のTTSで読み上げる。 */
+  voiceClips?: Partial<Record<VoiceEvent, string>>;
+  /** 役名・翻数帯（yaku結果のnameやScoreResult.limitNameと完全一致する文字列）
+      ごとの収録ボイス。和了時、該当する役があれば宣言順に再生する。
+      「自風牌」「場風牌」（誰の・どの局でも同じ役名になり、実際の風は
+      その都度変わる）と「ドラ」「裏ドラ」「赤ドラ」（本数がその都度変わる）は
+      この辞書では表現できないため、それぞれwindVoiceClips/doraVoiceClipsで
+      別途対応させる。 */
+  yakuVoiceClips?: Partial<Record<string, string>>;
+  /** 自風牌・場風牌が成立した時、実際の風（1=東 2=南 3=西 4=北）ごとに
+      読み上げる収録ボイス。 */
+  windVoiceClips?: Partial<Record<Wind, string>>;
+  /** ドラ・裏ドラ・赤ドラが乗った本数ごとの収録ボイス（種別を問わず本数のみで
+      決まる。例えば表ドラ2枚でも裏ドラ2枚でも同じ「ドラ2」を再生する）。 */
+  doraVoiceClips?: Partial<Record<number, string>>;
   /** アバター画像のパス（public/配下）。ナメプレート等、小さい円形表示用。 */
   avatar: string;
   /** 必殺技発動演出（カットイン）用の縦長立ち絵。未指定ならavatarを代わりに使う。 */

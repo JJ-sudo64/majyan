@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Meld, PlayerIndex, RoundState } from "@majyan/core";
+import { orderMeldTilesForDisplay } from "../meldDisplay.js";
 import { TileView } from "./TileView.js";
 
 const HUMAN: PlayerIndex = 0;
@@ -207,31 +208,34 @@ export function OpponentArea({ round, player }: { round: RoundState; player: Pla
               // （.meldはposition未指定でスタッキングコンテキストを
               // 作らないため、この番号は副露の境をまたいでそのまま比較される）。
               let globalIdx = 0;
-              return p.hand.melds.map((m, i) => (
-                <div key={i} className="meld meld--small">
-                  {m.tiles.map((t, j) => {
-                    // 暗槓は自己申告のみで鳴きではないため、実際の対局同様
-                    // 両端の2枚は伏せたまま（種類を悟らせない）。以前は
-                    // dimmed（半透明）にするだけで柄自体は見えてしまっており、
-                    // 対戦相手の暗槓の中身が丸わかりになってしまっていた。
-                    const isAnkanEdge = m.type === "ankan" && (j === 0 || j === m.tiles.length - 1);
-                    const idx = globalIdx++;
-                    const zIndexStyle: CSSProperties | undefined =
-                      player === 1 ? { zIndex: -idx } : player === 3 ? { zIndex: idx } : undefined;
-                    return (
-                      <TileView
-                        key={j}
-                        code={t.code}
-                        faceDown={isAnkanEdge}
-                        small
-                        rotated={m.calledTile?.id === t.id}
-                        red={t.isRed}
-                        style={zIndexStyle}
-                      />
-                    );
-                  })}
-                </div>
-              ));
+              return p.hand.melds.map((m, i) => {
+                const displayTiles = orderMeldTilesForDisplay(m);
+                return (
+                  <div key={i} className="meld meld--small">
+                    {displayTiles.map((t, j) => {
+                      // 暗槓は自己申告のみで鳴きではないため、実際の対局同様
+                      // 両端の2枚は伏せたまま（種類を悟らせない）。以前は
+                      // dimmed（半透明）にするだけで柄自体は見えてしまっており、
+                      // 対戦相手の暗槓の中身が丸わかりになってしまっていた。
+                      const isAnkanEdge = m.type === "ankan" && (j === 0 || j === displayTiles.length - 1);
+                      const idx = globalIdx++;
+                      const zIndexStyle: CSSProperties | undefined =
+                        player === 1 ? { zIndex: -idx } : player === 3 ? { zIndex: idx } : undefined;
+                      return (
+                        <TileView
+                          key={j}
+                          code={t.code}
+                          faceDown={isAnkanEdge}
+                          small
+                          rotated={m.calledTile?.id === t.id}
+                          red={t.isRed}
+                          style={zIndexStyle}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              });
             })()}
           </div>
         </div>

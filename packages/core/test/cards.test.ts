@@ -655,6 +655,9 @@ describe("double-ura-dora card (裏ドラ倍加)", () => {
       currentTurn: 0,
       phase: "awaiting-discard",
       lastDrawnTile: drawnTile,
+      // リーチ宣言済み＝少なくとも1巡目の打牌は既に済んでいるはずなので、
+      // 天和/地和（firstTurnWin）の条件には該当させない。
+      anyCallOrRiichiMade: true,
       // makeWallのdeadWallは常に[1z,2z,3z,4z,1z,2z,3z,4z,1z,2z,3z,4z,1z,2z]、
       // revealedDoraCount=1固定。通常の裏ドラ表示牌はdeadWall[5]="2z"→ドラは3z
       // （手牌に無いので通常は0翻）。追加の裏ドラ表示牌はdeadWall[7]="4z"→
@@ -974,6 +977,8 @@ describe("score-double card (大逆転の目)", () => {
       phase: "awaiting-discard",
       lastDrawnTile: drawnTile,
       result: { type: "tsumo", winners: [0], dealerContinues: true },
+      // 天和（firstTurnWin）扱いにならないよう、1巡目ではないことを明示する。
+      anyCallOrRiichiMade: true,
     });
     const outcomeWithout = computeRoundScoreOutcome(round);
     const withCard = { ...round, cardScoreDoubled: [true, false, false, false] as RoundState["cardScoreDoubled"] };

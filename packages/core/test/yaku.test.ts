@@ -25,6 +25,7 @@ const baseContext: WinContext = {
   houtei: false,
   rinshan: false,
   chankan: false,
+  firstTurnWin: false,
   doraIndicators: [],
   uraDoraIndicators: [],
   bonusHan: 0,
@@ -233,5 +234,88 @@ describe("analyzeWin - card effect (bonusHan)", () => {
     expect(result).not.toBeNull();
     expect(result!.isYakuman).toBe(true);
     expect(yakuNames(result!.yaku)).not.toContain("カード効果");
+  });
+});
+
+describe("analyzeWin - tenhou / chiihou", () => {
+  const h = hand(["2m","3m","4m","4p","5p","6p","3s","4s","5s","6s","7s","8s","9p","9p"]);
+
+  it("dealer tsumo on the very first draw is 天和", () => {
+    const result = analyzeWin(h, ctx({ winTile: "4m", isTsumo: true, isDealer: true, firstTurnWin: true }));
+    expect(result).not.toBeNull();
+    expect(result!.isYakuman).toBe(true);
+    expect(yakuNames(result!.yaku)).toContain("天和");
+  });
+
+  it("non-dealer tsumo on their first draw before any call is 地和", () => {
+    const result = analyzeWin(h, ctx({ winTile: "4m", isTsumo: true, isDealer: false, firstTurnWin: true }));
+    expect(result).not.toBeNull();
+    expect(result!.isYakuman).toBe(true);
+    expect(yakuNames(result!.yaku)).toContain("地和");
+  });
+
+  it("does not apply once firstTurnWin is false, even for a dealer tsumo", () => {
+    const result = analyzeWin(h, ctx({ winTile: "4m", isTsumo: true, isDealer: true, firstTurnWin: false }));
+    expect(result).not.toBeNull();
+    expect(yakuNames(result!.yaku)).not.toContain("天和");
+  });
+});
+
+describe("analyzeWin - suukantsu / sankantsu", () => {
+  it("four kans is 四槓子 (yakuman)", () => {
+    const melds: Meld[] = [
+      { type: "ankan", tiles: (["1m","1m","1m","1m"] as TileCode[]).map(tile) },
+      { type: "ankan", tiles: (["9m","9m","9m","9m"] as TileCode[]).map(tile) },
+      { type: "ankan", tiles: (["1p","1p","1p","1p"] as TileCode[]).map(tile) },
+      { type: "ankan", tiles: (["9p","9p","9p","9p"] as TileCode[]).map(tile) },
+    ];
+    const h = hand(["5s","5s"], melds);
+    const result = analyzeWin(h, ctx({ winTile: "5s", isTsumo: true }));
+    expect(result).not.toBeNull();
+    expect(result!.isYakuman).toBe(true);
+    expect(yakuNames(result!.yaku)).toContain("四槓子");
+  });
+
+  it("three kans plus a normal set is 三槓子 (2 han, not yakuman)", () => {
+    const melds: Meld[] = [
+      { type: "ankan", tiles: (["2m","2m","2m","2m"] as TileCode[]).map(tile) },
+      { type: "ankan", tiles: (["3p","3p","3p","3p"] as TileCode[]).map(tile) },
+      { type: "ankan", tiles: (["4s","4s","4s","4s"] as TileCode[]).map(tile) },
+    ];
+    const h = hand(["2s","3s","4s","5s","5s"], melds);
+    const result = analyzeWin(h, ctx({ winTile: "5s", isTsumo: true }));
+    expect(result).not.toBeNull();
+    expect(result!.isYakuman).toBe(false);
+    const sankantsu = result!.yaku.find((y) => y.name === "三槓子");
+    expect(sankantsu?.han).toBe(2);
+  });
+});
+
+describe("analyzeWin - chuurenpoutou", () => {
+  it("closed 1112345678999 + any same-suit tile completing the base shape is 純正九蓮宝燈 (double yakuman)", () => {
+    const h = hand(["1m","1m","1m","2m","3m","4m","5m","6m","7m","8m","9m","9m","9m","5m"]);
+    const result = analyzeWin(h, ctx({ winTile: "5m", isTsumo: true }));
+    expect(result).not.toBeNull();
+    expect(result!.isYakuman).toBe(true);
+    expect(yakuNames(result!.yaku)).toContain("純正九蓮宝燈");
+    expect(result!.han).toBe(26);
+  });
+
+  it("a chuurenpoutou shape whose 13-tile base already had a duplicate is the regular 九蓮宝燈", () => {
+    const h = hand(["1m","1m","1m","2m","3m","4m","5m","5m","6m","7m","8m","9m","9m","9m"]);
+    const result = analyzeWin(h, ctx({ winTile: "1m", isTsumo: false }));
+    expect(result).not.toBeNull();
+    expect(result!.isYakuman).toBe(true);
+    expect(yakuNames(result!.yaku)).toContain("九蓮宝燈");
+    expect(result!.han).toBe(13);
+  });
+
+  it("does not trigger with an open hand", () => {
+    const melds: Meld[] = [
+      { type: "chi", tiles: [tile("1m"), tile("2m"), tile("3m")], calledFromRelative: 1, calledTile: tile("1m") },
+    ];
+    const h = hand(["1m","1m","4m","5m","6m","7m","8m","9m","9m","9m","5m"], melds);
+    const result = analyzeWin(h, ctx({ winTile: "5m", isTsumo: true }));
+    expect(result === null || !yakuNames(result.yaku).some((n) => n.includes("九蓮宝燈"))).toBe(true);
   });
 });

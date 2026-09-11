@@ -28,6 +28,10 @@ export interface WinContext {
   houtei: boolean;
   rinshan: boolean;
   chankan: boolean;
+  /** 天和・地和判定用。「isTsumoかつ、このプレイヤーがまだ一度も打牌しておらず、
+      かつこの局でまだ誰も鳴き/立直をしていない」時のみtrue（ロンでは常にfalse）。
+      天和/地和どちらになるかはisDealerで区別する。 */
+  firstTurnWin: boolean;
   doraIndicators: TileCode[];
   uraDoraIndicators: TileCode[];
   /** カード「小手先の一翻」「会心の二翻」で加算される翻数。ドラと同様、
@@ -164,8 +168,16 @@ function evaluateYakuman(
   if (allGreen) results.push({ name: "緑一色", han: 13 });
   if (allTerminal) results.push({ name: "清老頭", han: 13 });
 
+  if (context.firstTurnWin) {
+    results.push({ name: context.isDealer ? "天和" : "地和", han: 13 });
+  }
+
   if (!isChiitoitsu) {
     const tripletsOrKans = sets.filter((s) => s.kind !== "sequence");
+
+    // 四槓子: カン（明槓・暗槓・加槓いずれも）が4つ揃っている。
+    const kanSets = sets.filter((s) => s.kind === "kan");
+    if (kanSets.length === 4) results.push({ name: "四槓子", han: 13 });
 
     // 大三元
     const dragonSets = tripletsOrKans.filter((s) => isDragon(s.tile));
@@ -224,6 +236,31 @@ function evaluateKokushi(hand: Hand, context: WinContext): WinAnalysis | null {
     isYakuman: true,
     yakumanMultiplier: isThirteenWait ? 2 : 1,
   };
+}
+
+/** 九蓮宝燈: 面前・清一色で「1112345678999」の形に、同じ色のどれか1枚が
+    加わった14枚。和了前の13枚が既にこの基本形そのものだった場合は
+    9面待ちが成立していたことになり、純正九蓮宝燈（ダブル役満）となる。 */
+function evaluateChuurenpoutou(hand: Hand, context: WinContext, allCodes: TileCode[]): YakuResult | null {
+  if (hand.melds.length !== 0) return null;
+  if (allCodes.length !== 14) return null;
+  const suits = new Set(allCodes.map(suitOf));
+  if (suits.size !== 1) return null;
+  const suit = [...suits][0]!;
+  if (suit === "z") return null;
+
+  const counts = new Array(10).fill(0);
+  for (const c of allCodes) counts[numberOf(c)]++;
+  for (let n = 1; n <= 9; n++) {
+    const required = n === 1 || n === 9 ? 3 : 1;
+    if (counts[n]! < required) return null;
+  }
+
+  const preWinCounts = [...counts];
+  preWinCounts[numberOf(context.winTile)]--;
+  const isPure = [1, 2, 3, 4, 5, 6, 7, 8, 9].every((n) => preWinCounts[n] === (n === 1 || n === 9 ? 3 : 1));
+
+  return { name: isPure ? "純正九蓮宝燈" : "九蓮宝燈", han: isPure ? 26 : 13 };
 }
 
 function require_index(code: TileCode): number {
@@ -350,6 +387,12 @@ function evaluateRegularYaku(
     results.push({ name: "対々和", han: 2 });
   }
 
+  // 三槓子: カンが3つ（4つ揃えば四槓子として上位のevaluateYakumanが処理する）。
+  {
+    const kanCount = sets.filter((s) => s.kind === "kan").length;
+    if (kanCount === 3) results.push({ name: "三槓子", han: 2 });
+  }
+
   // 三暗刻
   {
     const ankoCount = sets.filter((s, i) => {
@@ -411,6 +454,17 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
 
   const kokushi = evaluateKokushi(hand, context);
   if (kokushi) return kokushi;
+
+  const chuuren = evaluateChuurenpoutou(hand, context, allCodes);
+  if (chuuren) {
+    return {
+      yaku: [chuuren],
+      han: chuuren.han,
+      fu: 0,
+      isYakuman: true,
+      yakumanMultiplier: chuuren.han >= 26 ? 2 : 1,
+    };
+  }
 
   const isOpen = hand.melds.some((m) => m.type !== "ankan");
   const candidates: Candidate[] = [];

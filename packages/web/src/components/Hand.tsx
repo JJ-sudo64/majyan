@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Meld, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
+import { orderMeldTilesForDisplay } from "../meldDisplay.js";
 import {
   CARDS,
   CHARACTERS,
@@ -91,13 +92,14 @@ function computeSanshokuHintCodes(hand: HandShape): Set<TileCode> {
 }
 
 function MeldView({ meld }: { meld: Meld }) {
+  const displayTiles = orderMeldTilesForDisplay(meld);
   return (
     <div className="meld">
-      {meld.tiles.map((t, i) => {
+      {displayTiles.map((t, i) => {
         // 暗槓は実際の卓と同じく両端の2枚を伏せる（OpponentArea.tsxと同じ
         // 扱い）。以前はdimmed（半透明）にするだけで柄が見えてしまっていた
         // （「見え方がおかしい」との指摘の原因）。
-        const isAnkanEdge = meld.type === "ankan" && (i === 0 || i === meld.tiles.length - 1);
+        const isAnkanEdge = meld.type === "ankan" && (i === 0 || i === displayTiles.length - 1);
         return (
           <TileView
             key={i}
