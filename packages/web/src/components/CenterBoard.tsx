@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { PlayerIndex, RoundState } from "@majyan/core";
-import { WIND_NAMES } from "@majyan/core";
+import { WIND_NAMES, seatWindOf } from "@majyan/core";
 import { SeatBadge } from "./SeatBadge.js";
 import { useGameStore } from "../store/gameStore.js";
+import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
 
 /** カード「点棒吸収」等の即時点数増減演出を表示しておく時間。 */
 const SCORE_ADJUSTMENT_DISPLAY_MS = 1800;
@@ -42,8 +43,20 @@ export function CenterBoard({ round, scores }: { round: RoundState; scores: [num
   }, [lastScoreAdjustment]);
   const deltaFor = (player: PlayerIndex) => activeDelta?.[player] ?? 0;
 
+  // 新しい卓面背景画像(.table-surface)内の表示板の絵に、このUIパネルを
+  // 実機で重ね合わせられるよう、BackgroundDebugPanelのスライダー値を
+  // CSSカスタムプロパティとして注入する（styles.cssの.center-board参照）。
+  const centerBoardOffsetX = useBackgroundDebugStore((s) => s.centerBoardOffsetX);
+  const centerBoardOffsetY = useBackgroundDebugStore((s) => s.centerBoardOffsetY);
+  const centerBoardScale = useBackgroundDebugStore((s) => s.centerBoardScale);
+  const centerBoardStyle = {
+    "--center-board-offset-x": `${centerBoardOffsetX}px`,
+    "--center-board-offset-y": `${centerBoardOffsetY}px`,
+    "--center-board-scale": centerBoardScale,
+  } as CSSProperties;
+
   return (
-    <div className={`center-board${frozenClass}`}>
+    <div className={`center-board${frozenClass}`} style={centerBoardStyle}>
       <div className="center-board__round">
         {WIND_NAMES[round.roundWind]}
         {round.roundNumber}局
@@ -75,6 +88,30 @@ export function CenterBoard({ round, scores }: { round: RoundState; scores: [num
       <div className={`center-board__seat center-board__seat--right${frozenClass}`}>
         <SeatBadge round={round} player={1} score={scores[1]} />
         <ScoreDeltaPop delta={deltaFor(1)} />
+      </div>
+
+      {/* 8角形の4隅に各プレイヤーの自風（東南西北）を表示する。
+          自分=左下、上家=左上、対面=右上、下家=右下。親番（東家）だけ
+          目立つよう赤字にする。 */}
+      <div
+        className={`center-board__wind center-board__wind--top-left${round.dealerSeat === 3 ? " center-board__wind--dealer" : ""}`}
+      >
+        {WIND_NAMES[seatWindOf(round.dealerSeat, 3)]}
+      </div>
+      <div
+        className={`center-board__wind center-board__wind--top-right${round.dealerSeat === 2 ? " center-board__wind--dealer" : ""}`}
+      >
+        {WIND_NAMES[seatWindOf(round.dealerSeat, 2)]}
+      </div>
+      <div
+        className={`center-board__wind center-board__wind--bottom-right${round.dealerSeat === 1 ? " center-board__wind--dealer" : ""}`}
+      >
+        {WIND_NAMES[seatWindOf(round.dealerSeat, 1)]}
+      </div>
+      <div
+        className={`center-board__wind center-board__wind--bottom-left${round.dealerSeat === 0 ? " center-board__wind--dealer" : ""}`}
+      >
+        {WIND_NAMES[seatWindOf(round.dealerSeat, 0)]}
       </div>
     </div>
   );

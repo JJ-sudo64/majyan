@@ -34,7 +34,7 @@ const CPU_SEATS: { player: 1 | 2 | 3; label: string }[] = [
   { player: 3, label: "上家CPU" },
 ];
 
-export function MatchSetup() {
+export function MatchSetup({ onBack }: { onBack: () => void }) {
   const startMatch = useGameStore((s) => s.startMatch);
   const [debugMode, setDebugMode] = useState(false);
   // デフォルトは箱割れ（誰かが0点未満になった時点で）即終了。チェックを入れると
@@ -91,8 +91,10 @@ export function MatchSetup() {
 
   return (
     <div className="setup-screen">
-      <h1>雀神 - 対戦型麻雀</h1>
-      <p>CPU3人と対局します。対局形式を選んでください。</p>
+      <button type="button" className="setup-back-btn" onClick={onBack}>
+        ← タイトルへ戻る
+      </button>
+      <p className="setup-lead">CPU3人と対局します。対局形式を選んでください。</p>
 
       <div className="setup-summary-row">
         <button type="button" className="setup-summary-card" onClick={() => setShowCharacterPicker(true)}>

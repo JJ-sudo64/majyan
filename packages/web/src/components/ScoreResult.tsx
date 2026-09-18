@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { CHARACTERS, doraIndicators, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
+import { CHARACTERS, doraIndicators, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { playVoiceQueue } from "../sound.js";
-import { orderMeldTilesForDisplay } from "../meldDisplay.js";
+import { meldDisplaySlots } from "../meldDisplay.js";
 import { MatchVictoryOverlay } from "./MatchVictoryOverlay.js";
 import { TileView } from "./TileView.js";
 
@@ -38,20 +38,46 @@ function WinningHandView({ round, player }: { round: RoundState; player: PlayerI
       ))}
       {winTile && <TileView key={winTile.id} code={winTile.code} red={winTile.isRed} small drawn highlightable={false} />}
       {melds.map((m, i) => {
-        const displayTiles = orderMeldTilesForDisplay(m);
+        const slots = meldDisplaySlots(m);
         return (
           <div key={i} className="meld meld--small">
-            {displayTiles.map((t, j) => (
-              <TileView
-                key={j}
-                code={t.code}
-                red={t.isRed}
-                small
-                highlightable={false}
-                faceDown={m.type === "ankan" && (j === 0 || j === displayTiles.length - 1)}
-                rotated={m.calledTile?.id === t.id}
-              />
-            ))}
+            {slots.map((slot, j) =>
+              slot.kind === "stack" ? (
+                // 加槓：元のポンで横向きにした牌の上に4枚目を重ねて見せる。
+                <span key={j} style={{ position: "relative", display: "inline-flex" }}>
+                  <TileView
+                    code={slot.base.code}
+                    red={slot.base.isRed}
+                    small
+                    highlightable={false}
+                    rotated
+                    // 4枚目(added)と重ならないよう、台座側も少し下へずらす
+                    // （Hand.tsxのMeldViewと同じ理由）。
+                    style={{ position: "relative", top: 16 }}
+                  />
+                  <TileView
+                    code={slot.added.code}
+                    red={slot.added.isRed}
+                    small
+                    highlightable={false}
+                    rotated
+                    // 台座の牌と同じ「厚み」の帯が二重に見えるのを避け、
+                    // 浮いている程度の柔らかい影に差し替える。
+                    style={{ position: "absolute", top: -16, left: 0, zIndex: 5, boxShadow: "0 2px 3px rgba(0, 0, 0, 0.5)" }}
+                  />
+                </span>
+              ) : (
+                <TileView
+                  key={j}
+                  code={slot.tile.code}
+                  red={slot.tile.isRed}
+                  small
+                  highlightable={false}
+                  faceDown={slot.faceDown}
+                  rotated={slot.rotated}
+                />
+              ),
+            )}
           </div>
         );
       })}
@@ -180,12 +206,30 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
             {/* 実際の麻雀のルール通り、荒牌流局時はテンパイを申告した者の手牌を
                 開示する（ノーテン者は開示不要のため対象外）。名前だけでは
                 「本当にテンパイしていたか」が分からず不透明だったため。 */}
-            {(round.result.tenpaiPlayers ?? []).map((p) => (
-              <div key={p} className="win-detail">
-                <div className="win-detail__player">{PLAYER_NAMES[p]}</div>
-                <WinningHandView round={round} player={p} />
-              </div>
-            ))}
+            {(round.result.tenpaiPlayers ?? []).map((p) => {
+              // 手牌を見せるだけでは「結局何待ちだったのか」が一目で分からない
+              // との指摘のため、Hand.tsx（自分の手牌）と同じ考え方で待ち牌も
+              // 添える。荒牌流局時点のhandをそのまま渡せばよく（ツモ番中の
+              // 「まだ切るか決めていない1枚」を除外するHand.tsx側の考慮は、
+              // 流局は必ず打牌後の状態で迎えるため不要）。
+              const waits = getWaitingTiles(round.players[p]!.hand);
+              return (
+                <div key={p} className="win-detail">
+                  <div className="win-detail__player">{PLAYER_NAMES[p]}</div>
+                  <WinningHandView round={round} player={p} />
+                  {waits.length > 0 && (
+                    <div className="wait-row">
+                      <span className="wait-row__label">待ち</span>
+                      <div className="wait-row__tiles">
+                        {waits.map((code) => (
+                          <TileView key={code} code={code} tiny highlightable={false} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

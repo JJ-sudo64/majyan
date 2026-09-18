@@ -15,6 +15,12 @@ function splitCharacterName(name: string | undefined): [string, string] {
   return i === -1 ? [name, ""] : [name.slice(0, i), name.slice(i + 1)];
 }
 
+/** 異名（例:「卓上のてんこしゃんこ」）が長すぎるとプレート幅で折り返され、
+    パネルが縦に伸びて.hand-top-status（自分の待ち表示）と被る一因になって
+    いた。折り返させる代わりに、この長さを超える段だけ文字を少し縮めて
+    1行に収める。 */
+const LONG_NAME_LINE_THRESHOLD = 8;
+
 export type PanelCorner = "top" | "right" | "left" | "bottom";
 
 /**
@@ -83,7 +89,10 @@ export function CharacterPanel({
             onClick={onShowSkillInfo}
           >
             {splitCharacterName(character?.name ?? "あなた").map((line, i) => (
-              <span key={i} className="character-panel__name-line">
+              <span
+                key={i}
+                className={`character-panel__name-line${line.length > LONG_NAME_LINE_THRESHOLD ? " character-panel__name-line--long" : ""}`}
+              >
                 {line}
               </span>
             ))}
@@ -91,7 +100,10 @@ export function CharacterPanel({
         ) : (
           <div className="character-panel__name character-panel__name--split">
             {splitCharacterName(character?.name ?? SEAT_LABELS[player]).map((line, i) => (
-              <span key={i} className="character-panel__name-line">
+              <span
+                key={i}
+                className={`character-panel__name-line${line.length > LONG_NAME_LINE_THRESHOLD ? " character-panel__name-line--long" : ""}`}
+              >
                 {line}
               </span>
             ))}

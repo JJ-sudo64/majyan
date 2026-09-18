@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSettingsStore } from "../store/settingsStore.js";
+import { useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
 
 /** 自動ツモ切り/自動和了トグルを、対局情報(Hud.tsx)とは切り離して画面左下に
     常設する設定パネル。以前はHudパネル(左上)に同居していたが、対局情報と
@@ -14,6 +16,12 @@ export function SettingsPanel() {
   const setAutoTsumogiri = useSettingsStore((s) => s.setAutoTsumogiri);
   const autoWin = useSettingsStore((s) => s.autoWin);
   const setAutoWin = useSettingsStore((s) => s.setAutoWin);
+  const tile3dEnabled = useSettingsStore((s) => s.tile3dEnabled);
+  const setTile3dEnabled = useSettingsStore((s) => s.setTile3dEnabled);
+  const setActiveTile3DPanel = useTile3DDebugStore((s) => s.setActivePanel);
+  const setMeldEditSeat = useTile3DDebugStore((s) => s.setMeldEditSeat);
+  const setHandEditSeat = useTile3DDebugStore((s) => s.setHandEditSeat);
+  const setIsBgPanelOpen = useBackgroundDebugStore((s) => s.setIsPanelOpen);
 
   const [volumeOpen, setVolumeOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -90,6 +98,98 @@ export function SettingsPanel() {
                 onChange={(e) => setSeVolume(Number(e.target.value))}
               />
               <span className="hud__bgm-volume__value">{Math.round(seVolume * 100)}%</span>
+            </div>
+            {/* 立体牌(Tile3D)はCSS 3Dの合成負荷が高く、GPUが弱い/実質
+                ハードウェアアクセラレーションが効かない環境では画面が
+                真っ白のまま固まって開けなくなる不具合が実機で発覚した
+                （ブラウザのGPUプロセスがCPUを食い尽くす）。設定側で
+                いつでも2D表示に戻せるようにする。 */}
+            <div className="hud__row volume-popover__tile3d-row">
+              <button
+                type="button"
+                className={`hud__toggle-btn${tile3dEnabled ? " hud__toggle-btn--on" : ""}`}
+                onClick={() => setTile3dEnabled(!tile3dEnabled)}
+              >
+                立体牌{tile3dEnabled ? " ON" : " OFF"}
+              </button>
+            </div>
+            {/* 立体牌(Tile3D)の調整パネルは、スライダーの数が多く常時
+                画面に出しておくと邪魔になる・左下固定だと上家の手牌が
+                隠れるとの指摘のため、この設定メニューから開くモーダルに
+                した（Tile3DDebugPanel.tsx参照）。 */}
+            <div className="hud__row volume-popover__tile3d-row">
+              <button
+                type="button"
+                className="hud__toggle-btn"
+                disabled={!tile3dEnabled}
+                onClick={() => {
+                  setActiveTile3DPanel("shimocha");
+                  setVolumeOpen(false);
+                }}
+              >
+                下家の調整
+              </button>
+              <button
+                type="button"
+                className="hud__toggle-btn"
+                disabled={!tile3dEnabled}
+                onClick={() => {
+                  setActiveTile3DPanel("kamicha");
+                  setVolumeOpen(false);
+                }}
+              >
+                上家の調整
+              </button>
+            </div>
+            {/* 副露の位置は、別画面の縮小プレビューでは実際の卓の配置と
+                一致せず意味がないとの指摘のため、実際の卓の上で副露を
+                直接ドラッグして配置する編集モードに変更した
+                （MeldEditToolbar.tsx参照）。押すと卓を暗転させない小さな
+                ツールバーが出て、卓上の副露自体をつかんで動かせる。 */}
+            <div className="hud__row volume-popover__tile3d-row">
+              <button
+                type="button"
+                className="hud__toggle-btn"
+                disabled={!tile3dEnabled}
+                onClick={() => {
+                  setMeldEditSeat("shimocha");
+                  setVolumeOpen(false);
+                }}
+              >
+                副露編集モード
+              </button>
+            </div>
+            {/* 手牌の列全体の位置も、鳴いた副露の数(0〜4)ごとに実際の卓の
+                上で直接ドラッグして固定できる（副露編集モードと同じ理由:
+                手牌が短くなるたびに位置が変わって見えるとの指摘のため）。 */}
+            <div className="hud__row volume-popover__tile3d-row">
+              <button
+                type="button"
+                className="hud__toggle-btn"
+                disabled={!tile3dEnabled}
+                onClick={() => {
+                  setHandEditSeat("shimocha");
+                  setVolumeOpen(false);
+                }}
+              >
+                手牌配置編集モード
+              </button>
+            </div>
+            {/* 卓面背景画像も同じ理由でモーダル化（BackgroundDebugPanel.tsx
+                参照）。最初は理論計算で位置合わせしていたが、実機で
+                「デカすぎる、自由に調整できるように」との指摘のため、
+                実機で動かせるスライダーパネルに変更した。 */}
+            <div className="hud__row volume-popover__tile3d-row">
+              <button
+                type="button"
+                className="hud__toggle-btn"
+                onClick={() => {
+                  setIsBgPanelOpen(true);
+                  setVolumeOpen(false);
+                }}
+              >
+                背景の調整
+              </button>
             </div>
           </div>
         )}

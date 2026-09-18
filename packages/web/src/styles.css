@@ -47,6 +47,110 @@ button {
   flex-shrink: 0;
 }
 
+/* ============ タイトル画面 ============
+   AI生成の一枚絵（ボタンの見た目込み）を背景として敷き、その上に絵の
+   ボタン位置へ透明な実ボタンを座標合わせで重ねる。絵自体は静止画のため
+   押せないので、この透明ボタン層がクリックを受け取る。Stageと同じ
+   「固定解像度キャンバスをレターボックスで一律縮小」方式にして、
+   画面サイズが変わっても絵とボタン位置がずれないようにしている。 */
+.title-screen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #05030180;
+}
+.title-screen__canvas {
+  position: relative;
+  flex-shrink: 0;
+}
+.title-screen__bg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+
+.title-screen__menu-btn {
+  position: absolute;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0;
+}
+.title-screen__menu-btn:hover {
+  background: rgba(255, 221, 156, 0.14);
+  box-shadow: inset 0 0 0 2px rgba(241, 196, 83, 0.55);
+}
+.title-screen__menu-btn:active {
+  background: rgba(255, 221, 156, 0.22);
+}
+
+/* 右側メインメニュー4ボタン（プレイ/ルール/設定/終了）。 */
+.title-screen__menu {
+  position: absolute;
+  inset: 0;
+}
+.title-screen__menu .title-screen__menu-btn {
+  left: 1195px;
+  width: 456px;
+  height: 68px;
+}
+.title-screen__menu .title-screen__menu-btn:nth-child(1) {
+  top: 233px;
+}
+.title-screen__menu .title-screen__menu-btn:nth-child(2) {
+  top: 341px;
+}
+.title-screen__menu .title-screen__menu-btn:nth-child(3) {
+  top: 449px;
+}
+.title-screen__menu .title-screen__menu-btn:nth-child(4) {
+  top: 557px;
+}
+
+/* ルール/設定モーダルの共通枠。setup-picker-modalと同じ和風の緑パネル。 */
+.title-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #10281d;
+  border: 1px solid #52b788;
+  border-radius: 12px;
+  padding: 20px;
+  width: min(560px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: left;
+}
+.title-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  opacity: 0.9;
+}
+
+.setup-back-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: inherit;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.setup-back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .setup-screen {
   position: relative;
   height: 100vh;
@@ -60,9 +164,20 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 16px;
+  gap: 10px;
   text-align: center;
-  padding: 24px 16px;
+  padding: 12px 16px 20px;
+  /* 和室から夜桜と富士を望む一枚絵を背景に敷く。文字・カードの可読性を
+     保つため、上から暗いグラデーションを重ねる（下に行くほど内容が
+     詰まっているため、下側をやや濃くしている）。 */
+  background:
+    linear-gradient(180deg, rgba(8, 6, 3, 0.55) 0%, rgba(8, 6, 3, 0.72) 60%, rgba(8, 6, 3, 0.85) 100%),
+    url("/title/setup-bg.webp") center / cover no-repeat;
+}
+.setup-lead {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.8;
 }
 
 .setup-character-select {
@@ -153,12 +268,12 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  width: 160px;
-  background: rgba(255, 255, 255, 0.06);
+  gap: 3px;
+  width: 150px;
+  background: rgba(255, 255, 255, 0.08);
   border: 2px solid rgba(241, 196, 83, 0.4);
   border-radius: 12px;
-  padding: 14px 12px;
+  padding: 8px 10px;
   color: inherit;
   cursor: pointer;
   text-align: center;
@@ -332,10 +447,10 @@ button {
 .setup-cpu-difficulty {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  padding: 12px 16px;
+  padding: 8px 14px;
 }
 .setup-cpu-difficulty__row {
   display: flex;
@@ -543,10 +658,52 @@ button {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* z-index: .game-background(0)より手前、.table(1)より奥にする必要が
+     あるため、あえてz-indexは指定せずDOM順(.game-backgroundの直後、
+     .tableの直前)に委ねる——.tableが明示的にz-index:1を持つため、auto
+     (0扱い)のこの要素は常にその下に描画される。 */
+  /* ユーザー提供のAI生成卓面画像(1671x941、青いフェルト+木枠+中央の
+     表示板土台)に差し替え。以前はこの要素自体は透明な入れ物で、下の
+     .table-surface__frame/__feltがCSSグラデーションで木枠・フェルトを
+     描いていたが、今回の画像はその両方を1枚に含んでいるため、ここに
+     直接背景画像として設定し、__frame/__feltは非表示にした（元の
+     グラデーション演出に戻したい場合は下のdisplay:noneを外すだけでよい
+     ように、CSS自体は削除せず残してある）。
+     最初はピクセル解析による理論値でbackground-size/positionを固定して
+     いたが、ユーザーから「デカすぎる、自由に調整できるようにして」との
+     指摘のため、Table.tsx側でBackgroundDebugPanel/backgroundDebugStoreの
+     スライダー値をCSSカスタムプロパティとしてインラインstyleに注入し、
+     実機で見ながらサイズ・位置を自由に調整できるようにした。 */
+  background-image: url("/table/table-surface-bg.png");
+  background-repeat: no-repeat;
+  background-size: var(--bg-scale, 100%) var(--bg-scale, 100%);
+  /* 横/縦位置は「%指定」ではなくpx単位の中心からのオフセットにしている。
+     以前は`background-position: X% Y%`だったが、background-sizeが
+     ちょうど100%(コンテナと同サイズ)の時は画像がはみ出す余地が無いため
+     %指定の位置は見た目に一切影響せず、「縦が全然下に下がらない」という
+     不具合として現れた（指摘により判明）。calc(50% + Xpx)方式なら
+     scaleの値に関係なく常に一定量だけ動かせる。 */
+  background-position: calc(50% + var(--bg-pos-x, 0px)) calc(50% + var(--bg-pos-y, 0px));
+  /* この要素は.tableの外、.game-screen直下に配置している（Table.tsx参照）。
+     経緯: 最初は.game-content-plane__inner（rotateX(35deg)の3D傾き演出）
+     の内側に置き、rotateX(-35deg)で打ち消そうとしたが、perspective-origin
+     (50% 22%、上寄り)が画像中心とズレているせいで歪み方が場所によって
+     不均一になり、木枠のような画像端ほど極端に斜めになる不具合が発覚。
+     次に.game-content-planeの直接の子（3D階層の外）へ出したが、今度は
+     .table自体が持つzoom:1.46とStageのレターボックス倍率が掛かった結果、
+     このボックスが画面よりはるかに大きく・中心もずれた座標になり、
+     原画の外周（木枠部分）が常に画面の外に出て見えない状態になった。
+     最終的に、Hud/DebugPanel等と同じく.game-screen直下（3D変形もzoomも
+     持たない「本物の画面座標」）に置くことで、原画をそのままの縦横比・
+     歪みなしで画面全体に正しく表示できるようにした。そのためこの要素に
+     transformは不要（何も持たないのが正しい状態）。 */
 }
 /* 木製の卓縁本体（天面）。既存の.tableのbox-shadowバンドと似た茶系の
-   多層グラデーションで木目の濃淡を表現し、外周に厚みのある影を落とす。 */
+   多層グラデーションで木目の濃淡を表現し、外周に厚みのある影を落とす。
+   ユーザー提供の卓面画像(.table-surfaceのbackground)に木枠込みで
+   置き換わったため非表示。 */
 .table-surface__frame {
+  display: none;
   position: absolute;
   /* Phase A: 土台が1220x900→1392x748になった分、余白も新しい比率へ
      換算（縦方向の縮小率 748/900≈0.831 を基準に60px→50px）。
@@ -562,8 +719,11 @@ button {
     inset 0 0 0 8px rgba(0, 0, 0, 0.35),
     inset 0 0 50px rgba(0, 0, 0, 0.45);
 }
-/* フェルト面（既存.table__feltと同系統の深緑グラデーションを流用）。 */
+/* フェルト面（既存.table__feltと同系統の深緑グラデーションを流用）。
+   ユーザー提供の卓面画像(.table-surfaceのbackground)に置き換わったため
+   非表示。 */
 .table-surface__felt {
+  display: none;
   position: absolute;
   inset: 80px;
   border-radius: 22px;
@@ -910,15 +1070,24 @@ button {
   position: absolute;
   top: 50%;
   left: 50%;
-  /* Step3: 祖先(.game-content-plane__inner)のrotateX(55deg)により
-     局情報の文字が読みにくくならないよう、逆回転(rotateX(-55deg))で
-     正面向きに戻す（ビルボード）。translateZ()は3D空間内でz-indexが
-     効かないため、河（伏せ牌）の奥に隠れないよう手前に押し出す
-     （Step2で対面の点数バッジが河に隠れて消える不具合として発覚
-     した対策と同じ）。河の牌側に段（1段目/2段目/3段目）ごとのz-index
-     （最大100、DiscardPile.tsx参照）を追加したため、それより確実に
-     手前になるようここでも明示的にz-indexを大きく取っておく。 */
-  transform: translate(-50%, -50%) translateZ(80px) rotateX(-35deg);
+  /* 祖先(.game-content-plane__inner)のrotateX(35deg)により局情報の文字が
+     読みにくくならないよう、逆回転(rotateX(-35deg))で正面向きに戻す
+     （ビルボード）。translateZ()は3D空間内でz-indexが効かないため、河
+     （伏せ牌）の奥に隠れないよう手前に押し出す（対面の点数バッジが河に
+     隠れて消える不具合の対策と同じ）。河の牌側に段（1段目/2段目/3段目）
+     ごとのz-index（最大100、DiscardPile.tsx参照）を追加したため、それ
+     より確実に手前になるようここでも明示的にz-indexを大きく取っておく。
+     --center-board-offset-x/y・--center-board-scaleは、新しい卓面画像
+     (.table-surface参照)内にある表示板の絵にこのUIパネルを重ねる
+     ための調整——最初はピクセル解析による理論値を固定で入れていたが、
+     ユーザーから「デカすぎる、自由に調整できるようにして」との指摘の
+     ため、BackgroundDebugPanel/backgroundDebugStoreのスライダーで実機
+     から動かせるCSS変数に置き換えた（Table.tsx参照）。scaleと
+     translate(offset)はrotateX(-35deg)より記述上左（＝適用順として後）
+     に置くことで、ビルボード化されて正面向きになった後の、画面に対して
+     真っ直ぐな拡大縮小・平行移動として効かせている。 */
+  transform: translate(-50%, -50%) translate(var(--center-board-offset-x, 0px), var(--center-board-offset-y, -40px))
+    scale(var(--center-board-scale, 1)) translateZ(80px) rotateX(-35deg);
   z-index: 200;
   /* 参考画像を丸ごと切り出したパネル(center-cluster.png、512x420≒
      1.219:1、透過済み)に合わせた比率。局情報2段＋上下左右4枠が
@@ -948,11 +1117,41 @@ button {
    12.7%,50%/87.9%,50%）。.center-boardはすでに祖先のrotateXを
    打ち消すビルボードになっているため、子要素はここでは奥行き方向の
    再調整（translateZ/rotateX）をやり直す必要はなく、単純に画像内の
-   位置へ2D配置するだけでよい。左右だけ牌に合わせて90度回転させる。 */
-.center-board__seat--top { left: 50%; top: 12%; transform: translate(-50%, -50%); }
-.center-board__seat--bottom { left: 50%; top: 88%; transform: translate(-50%, -50%); }
-.center-board__seat--left { left: 14%; top: 50%; transform: translate(-50%, -50%) rotate(90deg); }
-.center-board__seat--right { left: 86%; top: 50%; transform: translate(-50%, -50%) rotate(-90deg); }
+   位置へ2D配置するだけでよい。左右だけ牌に合わせて90度回転させる。
+   実測値のままだと全体が中央から微妙にずれて見えたため、対面/自分は
+   下方向へ、上家/下家は左右外側へそれぞれ微調整している。 */
+.center-board__seat--top { left: 50%; top: 13%; transform: translate(-50%, -50%); }
+.center-board__seat--bottom { left: 50%; top: 89%; transform: translate(-50%, -50%); }
+.center-board__seat--left { left: 13%; top: 50%; transform: translate(-50%, -50%) rotate(90deg); }
+.center-board__seat--right { left: 87%; top: 50%; transform: translate(-50%, -50%) rotate(-90deg); }
+
+/* 8角形の4隅に置く自風表示。中央パネル(center-cluster.png)には元々
+   この位置に絵がないため、それぞれ独立した小さなラベルとして重ねる。 */
+.center-board__wind {
+  position: absolute;
+  min-width: 16px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(20, 15, 10, 0.65);
+  color: #ffe4a3;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+/* 各隅の文字は、その持ち主のプレイヤーが自分の座席から見て正しく読める
+   向きに回転させる（.center-board__seat--left/rightと同じ考え方）。
+   上家=左、対面=対岸、下家=右、それぞれの向きに合わせる。 */
+.center-board__wind--top-left { left: 17%; top: 17%; transform: translate(-50%, -50%) rotate(90deg); }
+.center-board__wind--top-right { left: 83%; top: 17%; transform: translate(-50%, -50%) rotate(180deg); }
+.center-board__wind--bottom-left { left: 17%; top: 85%; transform: translate(-50%, -50%); }
+.center-board__wind--bottom-right { left: 83%; top: 85%; transform: translate(-50%, -50%) rotate(-90deg); }
+/* 親番（東家）の自風だけ赤字にして目立たせる。 */
+.center-board__wind--dealer {
+  color: #ff5a4a;
+}
 
 /* カード「点棒吸収」使用時の演出。中央に「点棒吸収！」の札を一瞬出し、
    同時に各座席の点数バッジのすぐ上に増減分（+3000/-1000）を浮かせて
@@ -1065,14 +1264,21 @@ button {
   /* 帯パネルの絵はcenter-cluster.png側にすでに描かれているため、
      ここでは背景を持たせず文字だけ載せる（.center-board__seat--*が
      画像内のその枠の位置に配置してくれる）。 */
-  padding: 2px 10px;
-  font-size: 14px;
+  /* 5桁（25000等）やマイナス表記でも画像側の枠(黄色の縁)からはみ出さない
+     よう、余白・文字サイズとも控えめにする。以前はpadding 2px 10px+
+     font-size 14pxで、桁数が伸びると横幅が枠の余白いっぱいまで広がり、
+     画面サイズが大きい（＝実際のpx換算でも枠が大きく見える）時ほど、
+     はみ出しが目立つ形で顕在化していた（指摘の原因。相対的な余白の狭さ
+     自体は画面サイズに関わらず常にあったが、実ピクセル換算の絶対量が
+     大きい大画面ほどはっきり見えていた）。 */
+  padding: 1px 4px;
+  font-size: 12px;
   color: #f0f0f0;
   white-space: nowrap;
   flex-shrink: 0;
 }
 .seat-badge--active {
-  outline: 2px solid #f1c453;
+  outline: 1px solid #f1c453;
 }
 .seat-badge__score {
   font-weight: bold;
@@ -1240,7 +1446,11 @@ button {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 2;
+  /* .character-panel(z-index:2)とDOM順(SettingsPanelの方が先)の関係で
+     同じz-index:2のままだとネームプレートの方が後勝ちで手前に描画され、
+     ポップオーバーがネームプレートの下に隠れてクリックできなくなる
+     （指摘により判明）。ネームプレートより確実に手前にするため3にする。 */
+  z-index: 3;
 }
 .volume-gear {
   display: flex;
@@ -1297,6 +1507,20 @@ button {
   border-color: #52d17c;
   color: #8af0ab;
   font-weight: 600;
+}
+.hud__toggle-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* 音量スライダーとは役割が違う「立体牌の調整パネルを開く」ボタン行を、
+   ポップオーバー内で軽く区切って見せる。 */
+.volume-popover__tile3d-row {
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(212, 175, 55, 0.25);
+}
+.volume-popover__tile3d-row .hud__toggle-btn {
+  flex: 1;
 }
 
 /* ============ 対面プレイヤー（アバター・名前） ============ */
@@ -1361,7 +1585,13 @@ button {
      なって不自然」との指摘）。rotateY成分を外し、祖先のrotateXを
      打ち消すだけのrotateX(-35deg)のみにする（河と同じ最終形）。
      rotateZは牌の形（平行四辺形化）に影響しない純粋な2D回転のため、
-     真っ直ぐすぎて不自然に見えないよう、控えめに少しだけ傾きを足す。 */
+     真っ直ぐすぎて不自然に見えないよう、控えめに少しだけ傾きを足す。
+     注意: この打ち消し回転はフラットな2D牌(TileView)向けのもので、
+     下家に追加した立体牌(Tile3D)にはこのままだと効かず、箱が平行
+     四辺形にシアー変形して見える（2026-09-15に発覚、詳細は
+     project-tile3d-prototypeのメモ参照）。傾き演出を残したままTile3D
+     側の歪みも直すには、Tile3Dをこの傾いた階層の外の独立レイヤーへ
+     逃がす（CharacterPanelと同じ手法）等の対応が別途必要。 */
   transform: rotateX(-35deg) rotateZ(2deg);
 }
 .opponent-area--3 {
@@ -1453,6 +1683,20 @@ button {
   pointer-events: none;
   white-space: nowrap;
   animation: call-announce-pop 1000ms ease-out forwards;
+}
+/* 上家・下家は.opponent-areaがほぼ卓の縦幅いっぱいの縦長ボックスのため、
+   デフォルトの中央(50%/50%)がちょうどネームプレート(character-panel--
+   left/right、画面縦中央固定)の帯と同じ高さに来てしまい、鳴き発声の
+   吹き出しがネームプレートに被っていた（指摘の原因）。実測した「自分の
+   手牌(.opponent-hand-back)と自分の河(.river--left/--right)の間の
+   何もない空間」の中心へ表示位置をずらす。 */
+.opponent-area--3 .call-announce {
+  left: calc(50% + 82px);
+  top: calc(50% - 103px);
+}
+.opponent-area--1 .call-announce {
+  left: calc(50% - 81px);
+  top: calc(50% - 25px);
 }
 @keyframes call-announce-pop {
   0% {
@@ -1564,19 +1808,30 @@ button {
 .character-panel--top .riichi-badge {
   align-self: center;
 }
-.character-panel--right { top: 50%; right: 8px; transform: translateY(-50%); }
-/* 上家：下家(--right)と同じ高さ(画面縦中央)に揃え、画面左端に寄せる
+/* 画面縦中央(50%)から上寄り(28%)に調整（44%ではまだ足りないとの指摘により再調整）。 */
+.character-panel--right { top: 28%; right: 8px; transform: translateY(-50%); }
+/* 上家：下家(--right)と同じ高さに揃え、画面左端に寄せる
    （指摘により、HUD直下の固定位置から変更）。 */
-.character-panel--left { top: 50%; left: 8px; right: auto; transform: translateY(-50%); }
+.character-panel--left { top: 28%; left: 8px; right: auto; transform: translateY(-50%); }
 .character-panel--bottom {
   /* 自分の手牌の左上あたり。カード欄（.hand-top-status、手牌の直上・
-     左寄せ）に被らないよう、それよりさらに上に置く。 */
-  top: 470px;
+     左寄せ）に被らないよう、それよりさらに上に置く。
+     以前はtop:470pxだったが、リーチ表示（.riichi-badge）でパネルの
+     縦幅が増えたり、親番で風バッジの文字（東(親)）が伸びたりすると
+     パネル下端が.hand-top-status（待ち表示）に被って隠れてしまって
+     いた（指摘の原因）。上へ少し余裕を持たせるが、上げすぎると今度は
+     上家の河（.river--left）の牌の厚み(box-shadow)にパネル上端が
+     被ってしまうため、その隙間に収まる値にする。 */
+  top: 478px;
   left: 240px;
   right: auto;
   bottom: auto;
-  /* 自分は主役として一回り大きく。 */
-  max-width: 230px;
+  /* 自分は主役として一回り大きく。
+     異名が長いキャラ（例：「強気のヴィーナス」）だと、この幅の狭さで
+     名前が2段に折り返されてパネルの縦幅が余計に伸び、.hand-top-status
+     （待ち表示）と被る一因になっていたため、名前が折り返さずに収まる
+     よう少し広げる。 */
+  max-width: 268px;
   padding: 8px 18px 8px 8px;
   gap: 10px;
 }
@@ -1630,6 +1885,14 @@ button {
 .character-panel__name-line {
   white-space: normal;
   overflow-wrap: break-word;
+}
+/* 異名が長く1行に収まりきらない場合、折り返して2段になりパネルが縦に
+   伸びる（.hand-top-status＝自分の待ち表示と被る一因だった）よりは、
+   文字を少し縮めて折り返さず1行に収める方を優先する
+   （CharacterPanel.tsxのLONG_NAME_LINE_THRESHOLD参照）。 */
+.character-panel__name-line--long {
+  font-size: 11px;
+  white-space: nowrap;
 }
 /* 自分のキャラ名だけ、対局中に必殺技の効果を確認できるようクリック可能に
    している（CharacterPanel.tsx）。<button>化に伴うブラウザ既定の見た目を
@@ -1937,9 +2200,26 @@ button {
   flex-direction: column;
   /* 上家の手牌と副露の間隔が狭いとの指摘のため、基本の6pxより広げる。 */
   gap: 40px;
+  /* 下家(--1)の行には元々justify-content:centerがあったが、上家(--3)の
+     この行には無く既定のflex-start（先頭固定）のままだった。flex-startだと
+     .opponent-hand-back自身のtop辺は固定されるが、Tile3D手牌のPortal位置
+     同期(OpponentArea.tsxのsync()、anchor.top + anchor.height/2で中心を
+     計算)は手牌の「実際の高さ」に依存するため、鳴いて手牌が減って
+     高さが縮むたびに中心(cy)がtop固定のままどんどん上へ動いてしまって
+     いた——これが「上家の手牌も副露のたびに動く」の実体（下家は
+     justify-content:centerのおかげでこの効果を打ち消せていたが、上家だけ
+     打ち消されていなかった）。下家と同じくcenterにすることで、
+     .opponent-hand-back自身の中心が常に行の中心(＝一定)になり、
+     Portal同期の中心計算も安定する。 */
+  justify-content: center;
 }
 .opponent-area--1 .opponent-hand-row {
   flex-direction: column-reverse;
+}
+/* .opponent-melds--floating(下のコメント参照)の位置決めの基準にする。 */
+.opponent-area--1 .opponent-hand-row,
+.opponent-area--3 .opponent-hand-row {
+  position: relative;
 }
 
 .opponent-hand-back, .opponent-melds {
@@ -1952,6 +2232,19 @@ button {
   gap: 2px;
   flex-wrap: nowrap;
   flex-shrink: 0;
+}
+/* 副露は鳴いた順にDOM配列の後ろへ追加される(p.hand.melds.map、配列の
+   先頭=最初に鳴いた副露)。下家(--1)はrotate(-90deg)、上家(--3)は
+   rotate(90deg)という互いに逆向きの回転を.opponent-melds__innerに
+   かけているため、同じ「配列順=flexの先頭から末尾」という並べ方でも、
+   回転後に画面上でどちらの方向へ伸びるかが座席ごとに逆になる。
+   以前は両座席とも「後に鳴いた副露ほど手牌から離れる方向」に揃えて
+   いたが、実際の卓上のマナーは逆（最初の副露を手牌から最も離れた位置に
+   置き、後から鳴くほど手牌に近づいていく）という指摘を受け、両座席とも
+   逆方向に付け替えた（実測(getBoundingClientRect)で確認済み：修正前は
+   両座席とも1番目の副露が最も手牌に近く、鳴くほど離れていた）。 */
+.opponent-area--3 .opponent-melds__inner {
+  flex-direction: row-reverse;
 }
 /* 手牌は必ず1列（折り返し禁止）で実寸を確保し、副露は
    flex:1で残りの縦幅いっぱいに広げる。
@@ -1997,9 +2290,78 @@ button {
 }
 /* 下家の副露だけ、もっと奥（画面上方向、プレイヤーから見て遠い側）へ
    移動する。.opponent-hand-row（column-reverse）の主軸は縦なので、
-   横方向のtranslateXではなく縦方向のtranslateYで動かす。 */
+   横方向のtranslateXではなく縦方向のtranslateYで動かす。
+   （Tile3D使用時=.opponent-melds--floatingが付いている時はこのCSSの
+   transformごとJSX側のインラインstyleで上書きされるため、ここは
+   実質2D(reveal)フォールバック時にのみ効く。） */
 .opponent-area--1 .opponent-melds {
   transform: translateY(-60px);
+}
+/* Tile3D使用時、副露(.opponent-melds)を手牌と同じflexの行から外し
+   position:absoluteにする。理由: 元々は手牌・副露を同じ行に並べ
+   justify-content:centerで「2つ合わせた塊」を行の中央に揃えていたが、
+   副露するたびに手牌の枚数と副露の占有幅が両方変わり、「合わせた塊」の
+   サイズが変わるたびに手牌自身の位置も一緒にズレてしまっていた
+   （副露するごとに手牌がどんどん寄っていく、との指摘で発覚）。
+   副露をレイアウトから完全に切り離すことで、行のjustify-content:centerは
+   手牌1つだけを中央に置く計算になり、手牌の位置は副露の量にほぼ影響
+   されなくなる（実測で改善: 副露3回で数十px単位のズレ→1〜3px程度の
+   誤差のみに縮小）。
+   最初は単純に行の外周端(bottom:0/top:0)に固定したが、それだと副露が
+   育つにつれ手牌の実際の描画範囲と重なってしまう不具合が実機（CPU自動
+   対局を早送りで進めて）発覚した——行の外周端は「手牌の最大サイズ」を
+   考慮しない固定点だったため。手牌が取りうる最大の大きさ（13枚+ツモ1枚
+   ぶん、--hand-max-half-trackとしてOpponentArea.tsx側で計算した定数、
+   実際の現在の手牌枚数には一切依存しない固定値）の半分だけ行の中心から
+   離れた位置を副露の開始点にすることで、手牌が今何枚であっても副露との
+   重なりが原理的に起こらないようにした（手牌側は常に中心±実際の半分の
+   範囲にしか描画されず、それは定義上「最大の半分」以内に収まるため）。 */
+.opponent-melds--floating {
+  position: absolute;
+  left: 50%;
+  /* topはOpponentArea.tsx側のインラインstyleで明示的に設定する
+     （1番目の副露の固定アンカー位置、MELD_NATURAL_STEP参照）。 */
+}
+/* 共通ルール(.opponent-area--1/--3 .opponent-melds、2クラス分の詳細度)の
+   height:var(--melds-track)は実際の副露の個数・種類で伸び縮みする。
+   個々の副露をposition:absoluteにしても、この.opponent-melds自身の
+   高さがまだ可変だと、共通ルールのjustify-content:center
+   （.opponent-melds__innerを中央揃えする）が副露の増減のたびに基準点を
+   動かしてしまう（実測で確認：他の修正後もまだ数十px程度のズレが
+   残っていた——単クラスの.opponent-melds--floatingだけのheight指定は
+   詳細度が共通ルールに負けて無視されていたのが原因だった）。副露の
+   個々の位置はもうこの高さに一切依存しないため、詳細度を合わせた
+   セレクタで固定値に上書きし、中央揃えの基準点自体を完全に固定する。 */
+.opponent-area--1 .opponent-melds--floating,
+.opponent-area--3 .opponent-melds--floating {
+  height: 480px;
+}
+/* 個々の副露(.meld)をflexの自動配置ではなくposition:absoluteの明示的な
+   left値(OpponentArea.tsx側のslotStyle参照)で配置するための土台。
+   これにより「副露の個数が変わると既に置いた副露の位置までズレる」
+   問題（flexレイアウトは兄弟要素の増減で自身の位置も変わりうる）を
+   構造的に避けられる。 */
+.opponent-melds--floating .opponent-melds__inner {
+  position: relative;
+  /* rotate()の既定の基準点(50% 50%、要素自身の中心)は、要素の実寸が
+     変わるたびに動いてしまう（このスタイルシート内の他のrotate同様、
+     実寸に依存する基準点は伸び縮みする箱では使えない）。基準点を
+     常に固定の(0,0)にし、1番目の副露をこの(0,0)に置くことで
+     （OpponentArea.tsx側でleft:0指定）、副露が何個あっても1番目の
+     副露の画面位置は回転角度が変わらない限り絶対に動かない。 */
+  transform-origin: 0 0;
+}
+/* 副露配置編集モード中、その座席の.opponent-area全体を.human-area
+   （自分の手牌領域、z-index:2、実際の見た目より広い透明な判定域を持つ）
+   より手前に上げる。.opponent-melds自身にz-indexを付けても、その親
+   .opponent-area自身がz-index:autoのままだと.human-areaという別枝の
+   兄弟要素には勝てない（z-indexは同じスタッキングコンテキスト内の兄弟
+   同士でしか比較されないため）——document.elementFromPointで実測して
+   発覚した。編集中でない通常時はz-index:autoのままにして、既存の見た目
+   （opponent-areaが常にhuman-areaの奥にある想定の演出）に影響しない
+   ようにする。 */
+.opponent-area--editing-melds {
+  z-index: 3;
 }
 /* 河・点数バッジと同じ理由（.cluster-seatのコメント参照）で、回転させて
    いる手牌・副露側にも専用レイヤーへの昇格を適用し、常にくっきり
@@ -2195,17 +2557,31 @@ button {
    重ねる（手牌の位置に一切影響しない）。 */
 .hand-top-status {
   /* 手牌の左上あたりに来るよう左寄せにする（右寄せの.action-rowとは
-     反対側）。margin-bottomは手牌にかからないよう少し広めに取る。 */
+     反対側）。margin-bottomは手牌にかからないよう少し広めに取る。
+     以前はflex-direction:columnで縦に積んでいたが、未来視・待ち・
+     ベタ降りが同時に出る場面では縦に積んだ分だけ上へ伸びてしまい、
+     自分のキャラクターパネル（.character-panel--bottom、手牌左上に
+     固定配置）と高さが被って隠れてしまっていた（指摘の原因）。
+     縦方向はキャラパネルとの間にほぼ余裕がないため、複数の状態は
+     縦に積まず横に並べ、収まらない分だけ折り返す（＝基本的に
+     高さは1行ぶんのまま増えない）ようにする。 */
   position: absolute;
   left: 100px;
   right: auto;
+  max-width: 900px;
   bottom: 100%;
-  margin-bottom: 20px;
+  /* キャラクターパネル(.character-panel--bottom)の下端と被らないよう、
+     手牌側にできるだけ寄せて余白を切り詰める（.character-panel--bottom
+     側もtopを上げて余裕を作っているが、リーチ表示等でパネルが伸びた
+     場合に備えてこちらも極力手牌に寄せておく）。 */
+  margin-bottom: 0px;
   z-index: 5;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 4px;
+  column-gap: 14px;
 }
 .wait-row {
   display: flex;
@@ -2968,6 +3344,11 @@ button {
 .tenpai-list__label {
   font-weight: bold;
 }
+/* 流局時のテンパイ者ごとの手牌表示(.win-detail__hand)と、その下に添える
+   待ち牌表示(.wait-row)の間が詰まって見えないよう間隔を空ける。 */
+.win-detail .wait-row {
+  margin-top: 6px;
+}
 .win-detail__player {
   font-weight: bold;
   margin-bottom: 4px;
@@ -3137,4 +3518,541 @@ button {
 }
 .delta-negative {
   color: #ff8787;
+}
+
+/* ===== Tile3D手牌の独立レイヤー（動的位置追従） =====
+   下家(player 1)のTile3D立体牌は、祖先(.game-content-plane__inner)の
+   rotateX(35deg)＋(.opponent-area--1の)rotateX(-35deg)の打ち消しが
+   transform-style:flat（既定値）の階層を通るせいで正しく効かず、平行
+   四辺形にシアー変形する（project-tile3d-prototypeメモ参照）——flatだと
+   各階層で3D形状がいったん2D画像として平坦化されてから次の回転を受ける
+   ため、「35度回して-35度戻す」計算は3Dの厚みを持つ物体には効かない。
+   最初は.opponent-area--1と同じtransform+preserve-3dを持つ兄弟レイヤーで
+   数式的に打ち消す方式を試したが、rotateXの回転中心が
+   .game-content-plane__inner(卓全体基準)と新レイヤー(260px×卓縦幅基準)
+   とで異なるため、translateYで位置を微調整するたびに数十px単位で
+   ズレる問題を繰り返し、実機で「手牌が下に見切れる」不具合も解消し
+   きれなかった。
+   そこで方式を変更: このレイヤーは.game-screen直下（.tableの外＝
+   perspective/rotateXを一切持たない場所）に置き、3D変換を完全に
+   受けない。位置は固定値ではなく、OpponentArea.tsx側が
+   .opponent-hand-back（祖先の傾きの影響を受けたまま存在する、サイズ
+   確保用の透明なプレースホルダー）の実際の画面上の中心点を
+   getBoundingClientRect()で継続的に実測し、position:fixedのtop/leftに
+   直接反映する（動的位置追従）。ズーム("--tile3d-hand-zoom"、.tableの
+   zoom:1.46×Stageのレターボックスscaleの複合値も同様に実測して反映）
+   ため、画面サイズが変わっても常に元の場所・元の見た目サイズに一致する。 */
+.tile3d-hand-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* .table(z-index:1)や.character-panel(z-index:2)がz-indexを明示的に
+     持つため、z-index未指定(auto)のままだとdocument.body直下のDOM順で
+     最後にあっても手前に来ず、卓の下に完全に隠れてしまう（実機で確認
+     済み：レイアウト上・getBoundingClientRect()上は正しい位置に14枚
+     存在するのに、実際のスクリーンショットには一切描画されなかった）。
+     卓の要素より確実に手前になる値にする。 */
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* transform-originを左上(0 0)に固定し、scaleは常に左上を基準に拡大
+     する。中心合わせ(cx-width/2, cy-height/2)はCSSのtranslate(-50%,-50%)
+     ではなくOpponentArea.tsx側のJSでpx単位で計算する——`translate(-50%)`
+     は要素の「レイアウトサイズ(scale適用前)」基準で%を解決するため、
+     transform-originや適用順序をどう工夫してもscale≠1の時に中心が
+     ズレる（実測でX方向数十px・Y方向数百px相当のズレを確認済み）。
+     px単位の直接計算ならこの問題が起きない。 */
+  transform-origin: 0 0;
+  transform: scale(var(--tile3d-hand-zoom, 1));
+  /* 立体牌の見た目だけの層で、クリック判定は元の.opponent-area側の
+     要素（副露・河等）に譲る。 */
+  pointer-events: none;
+}
+.tile3d-hand-portal-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 手牌配置編集モード中、手牌の塊全体をドラッグできることを示す
+   （副露配置編集の.meld--editableと同じ考え方）。 */
+.tile3d-hand-portal-inner--editable {
+  cursor: grab;
+  outline: 2px dashed rgba(224, 169, 74, 0.7);
+  outline-offset: 6px;
+  /* 親.tile3d-hand-layerがpointer-events:noneのため（通常時は見た目だけの
+     層でクリック判定を持たない設計）、手牌配置編集モード中はこの要素
+     だけ明示的にautoへ戻し、ドラッグを受け取れるようにする。 */
+  pointer-events: auto;
+}
+.tile3d-hand-portal-inner--editable:active {
+  cursor: grabbing;
+  outline-color: #52d17c;
+}
+.tile3d-hand-back-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  /* 以前(祖先の傾いた3D空間の中で描画していた頃)は、.opponent-area--1の
+     rotateX(-35deg)によって列全体の縦の専有量が副作用的に
+     cos(35deg)≈0.819倍に圧縮されて見えており、Tile3DDebugPanelの
+     spacing(重なり)等のデフォルト値はその圧縮込みで「収まる」ように
+     調整されていた。祖先の3D変換を完全に受けない動的位置追従方式に
+     変えたことでこの圧縮が失われ、同じspacing設定でも列が実際の
+     (圧縮前の)高さ分だけ長くなり、画面から見切れる不具合が再発した
+     ため、ここで同じ圧縮を明示的に再現する。 */
+  transform: scaleY(0.819);
+}
+/* ===== Tile3D: CSS 3Dの厚みのある麻雀牌（上家/下家の伏せ牌向け） =====
+   packages/web/src/components/Tile3D.tsx 参照。色は既存の.tile（本体#f2f2ec・
+   帯#3f7a4f）に揃えてあり、基準サイズ32×43pxも.tile--smallと同じ実寸。 */
+.tile3d-outer {
+  --tile3d-face: #f4f2ea;
+  --tile3d-face-shade: #d9d5c6;
+  --tile3d-side: #f2f2ec;
+  --tile3d-edge: #3f7a4f;
+  --tile3d-edge-deep: #234730;
+  --tile3d-rear: #4c9463;
+  --tile3d-rear-deep: #1f5a3c;
+  --tile3d-white-w: 4.4px;
+  --tile3d-w: 32px;
+  --tile3d-h: 43px;
+  --tile3d-aspect-x: 1;
+  --tile3d-aspect-y: 1;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  /* 見た目の縦横比の引き伸ばし/縮小はここ(perspectiveと無関係な、ただの
+     display:inline-blockの要素)にscaleX/scaleYとして掛ける。3Dの箱の
+     形自体(--tile3d-w/-h)は常に32×43px固定のまま一切変えない。
+     ——最初はperspectiveを持つ.tile3d-scene自身にscaleX/scaleYを
+     直接乗せていたが、perspectiveと同じ要素のtransformはブラウザが
+     3D変換行列の一部として合成してしまい(単純に完成画像を後から
+     2D的に引き伸ばす、という意図通りの挙動にならず)、縦に伸ばすほど
+     見た目が「起き上がる=回転した」ように見える不具合が起きた。
+     perspectiveとは無関係などこにも3D transformを持たないこの要素に
+     scaleX/scaleYを移すことで、3D描画が完全に終わった後の平面画像を
+     素直に2D的に引き伸ばす、という意図通りの挙動になる。 */
+  transform: scaleX(var(--tile3d-aspect-x)) scaleY(var(--tile3d-aspect-y));
+  /* 幅・高さ(拡大後の見た目サイズ)はTile3D.tsx側でscaleに応じてインライン
+     style指定される。ここはレイアウト上の占有スペースを確保するだけの
+     役割で、perspectiveはここには置かない（下の.tile3d-scene参照）。 */
+}
+/* perspectiveと実際の牌(.tile3d)はここに置き、サイズは常に牌本来の等倍
+   (32×43px)のまま固定して.tile3d-outerの中央に揃える。ここをscaleに
+   合わせて広げてしまうと、perspective-origin（既定50% 50%＝この要素
+   自身の中心）が牌の実際の中心からズレてしまい、scaleが大きいほど
+   見た目の回転角度がプロトタイプ（.scene側が常に牌の等倍サイズのまま
+   だった）と食い違う形で歪む——ゲーム内(scale 1.4/4.4)とプロトタイプを
+   実際に並べて検証し発覚した不具合。 */
+.tile3d-scene {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tile3d-w);
+  height: var(--tile3d-h);
+  transform: translate(-50%, -50%);
+  perspective: 480px;
+}
+.tile3d {
+  width: var(--tile3d-w);
+  height: var(--tile3d-h);
+  position: relative;
+  transform: scale(var(--tile3d-scale)) rotateX(var(--tile3d-rx)) rotateY(var(--tile3d-ry));
+  transform-style: preserve-3d;
+}
+.tile3d__panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  backface-visibility: visible;
+}
+.tile3d__front {
+  width: var(--tile3d-w);
+  height: var(--tile3d-h);
+  transform: translateZ(calc(var(--tile3d-thick) / 2));
+  /* 影に加えて、地の色をごくわずか(0.12px、実寸のデフォルト表示倍率で1px未満に
+     収まる大きさ)ににじませている。サイズそのものは一切変えずbox-shadowだけで
+     隣接パネルとの継ぎ目のアンチエイリアシングによる1px未満の隙間を埋める。
+     box-shadowはレイアウトに影響しないので、他の辺のピクセルスナップがズレて
+     別の隙間が開く心配がない。 */
+  box-shadow: 0 0 1.5px rgba(0, 0, 0, 0.35), 0 0 0.12px var(--tile3d-face);
+}
+.tile3d__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+.tile3d__img--face {
+  position: absolute;
+  inset: 0;
+  object-fit: contain;
+  transform: scale(0.72);
+}
+/* 背面（卓に接する側、常に無地の緑）だけ角を少し落とす。border-radiusの円弧は
+   面取りした分を埋める手段がないため、直線45度の面取り(chamfer)をclip-pathで
+   切り取り、切り取った分と寸分違わず同じ三角形を.tile3d__rear-filletで埋める。
+   rearとfilletは同じtransform（全く同じ3D平面）に乗っていて、お互いのclip-path
+   が重なりゼロ・隙間ゼロで補完し合うため、視点によってどちらが手前に描かれるか
+   が不定になる心配自体がない。 */
+.tile3d__rear {
+  width: var(--tile3d-w);
+  height: var(--tile3d-h);
+  background: linear-gradient(155deg, var(--tile3d-rear) 0%, var(--tile3d-rear-deep) 100%);
+  clip-path: polygon(
+    3px 0,
+    calc(var(--tile3d-w) - 3px) 0,
+    var(--tile3d-w) 3px,
+    var(--tile3d-w) calc(var(--tile3d-h) - 3px),
+    calc(var(--tile3d-w) - 3px) var(--tile3d-h),
+    3px var(--tile3d-h),
+    0 calc(var(--tile3d-h) - 3px),
+    0 3px
+  );
+  box-shadow: 0 0 0.12px var(--tile3d-rear-deep);
+  transform: rotateY(180deg) translateZ(calc(var(--tile3d-thick) / 2));
+}
+.tile3d__rear-fillet {
+  width: var(--tile3d-w);
+  height: var(--tile3d-h);
+  /* rearと全く同じグラデーション（同じbox・同じ向き）を敷いて、クリップした
+     位置の"地の色"がそのまま出るようにする。単色だと場所によってrear本体の
+     明暗とズレて角だけ暗く浮いて見えていた。 */
+  background: linear-gradient(155deg, var(--tile3d-rear) 0%, var(--tile3d-rear-deep) 100%);
+  transform: rotateY(180deg) translateZ(calc(var(--tile3d-thick) / 2));
+}
+/* 三角形はrearの切り欠きよりわずかに(0.6px)大きくして、境界をぴったり合わせる
+   のではなくわざと少しだけ重ねている。clip-path同士を寸分違わず突き合わせると
+   アンチエイリアシングで1px未満の継ぎ目が見えることがあるため、その隙間を
+   この重なりで確実に潰す。 */
+.tile3d__rear-fillet--tl { clip-path: polygon(0 0, 3.6px 0, 0 3.6px); }
+.tile3d__rear-fillet--tr {
+  clip-path: polygon(var(--tile3d-w) 0, var(--tile3d-w) 3.6px, calc(var(--tile3d-w) - 3.6px) 0);
+}
+.tile3d__rear-fillet--br {
+  clip-path: polygon(
+    var(--tile3d-w) var(--tile3d-h),
+    calc(var(--tile3d-w) - 3.6px) var(--tile3d-h),
+    var(--tile3d-w) calc(var(--tile3d-h) - 3.6px)
+  );
+}
+.tile3d__rear-fillet--bl {
+  clip-path: polygon(0 var(--tile3d-h), 0 calc(var(--tile3d-h) - 3.6px), 3.6px var(--tile3d-h));
+}
+/* 4枚の側面（厚み方向の壁）。ヒンジ回転後にtranslateZ(±厚み/2)で前面
+   (z=+T/2)〜背面(z=-T/2)のあいだにちょうど中央揃えで橋渡しする。translateZを
+   回転より外側（左）に書くことで、回転の影響を受けないワールド座標系での
+   シフトとして働く。（このストラップ自体のサイズを伸ばして継ぎ目を重ねる案は
+   一度試したが、分数サイズがブラウザのピクセルスナップをズラし、無関係な
+   反対側の辺に別の隙間を作ってしまったため撤回済み。代わりに、box-shadowで
+   ほんの少し地の色をにじませて継ぎ目のアンチエイリアシングを和らげている
+   ——box-shadowはレイアウトに参加しないので他の辺には影響しない。） */
+.tile3d__edge-bottom, .tile3d__edge-top {
+  width: var(--tile3d-w);
+  height: var(--tile3d-thick);
+}
+.tile3d__edge-left, .tile3d__edge-right {
+  width: var(--tile3d-thick);
+  height: var(--tile3d-h);
+}
+/* 白(--tile3d-side)とグリーン(--tile3d-edge/-deep)の境界は、厚み(--tile3d-thick)
+   に対する割合(55%)ではなく固定px(--tile3d-white-w)で切る。割合指定だと
+   「厚み」スライダーを絞った時に白い部分まで一緒に縮んでしまい、「緑の
+   部分だけ薄くしたい」という要望に応えられない。固定pxにすることで、
+   厚みを絞るほど白は変わらずグリーンの取り分だけが優先的に減っていく。 */
+.tile3d__edge-bottom {
+  top: var(--tile3d-h);
+  background: linear-gradient(180deg, var(--tile3d-side) 0, var(--tile3d-side) var(--tile3d-white-w), var(--tile3d-edge) var(--tile3d-white-w), var(--tile3d-edge) 100%);
+  box-shadow: 0 0 0.12px var(--tile3d-side), 0 0 0.12px var(--tile3d-edge);
+  transform-origin: top;
+  transform: translateZ(calc(var(--tile3d-thick) / 2)) rotateX(-90deg);
+}
+.tile3d__edge-top {
+  top: 0;
+  background: linear-gradient(0deg, var(--tile3d-side) 0, var(--tile3d-side) var(--tile3d-white-w), var(--tile3d-edge) var(--tile3d-white-w), var(--tile3d-edge) 100%);
+  box-shadow: 0 0 0.12px var(--tile3d-side), 0 0 0.12px var(--tile3d-edge);
+  transform-origin: top;
+  transform: translateZ(calc(var(--tile3d-thick) / -2)) rotateX(90deg);
+}
+.tile3d__edge-right {
+  left: var(--tile3d-w);
+  background: linear-gradient(90deg, var(--tile3d-side) 0, var(--tile3d-side) var(--tile3d-white-w), var(--tile3d-edge-deep) var(--tile3d-white-w), var(--tile3d-edge-deep) 100%);
+  box-shadow: 0 0 0.12px var(--tile3d-side), 0 0 0.12px var(--tile3d-edge-deep);
+  transform-origin: left;
+  transform: translateZ(calc(var(--tile3d-thick) / 2)) rotateY(90deg);
+}
+.tile3d__edge-left {
+  left: 0;
+  background: linear-gradient(270deg, var(--tile3d-side) 0, var(--tile3d-side) var(--tile3d-white-w), var(--tile3d-edge-deep) var(--tile3d-white-w), var(--tile3d-edge-deep) 100%);
+  box-shadow: 0 0 0.12px var(--tile3d-side), 0 0 0.12px var(--tile3d-edge-deep);
+  transform-origin: left;
+  transform: translateZ(calc(var(--tile3d-thick) / -2)) rotateY(-90deg);
+}
+
+/* ===== Tile3D調整パネル（Tile3DDebugPanel.tsx、開発用・一時的） =====
+   実際の対局画面を見ながら下家・上家の立体牌の角度を自分で調整できる
+   ようにするためのもの。値が決まったらこのパネルごと削除してよい。
+   以前は画面左下に常時固定表示していたが、(1)左側だと上家の手牌が
+   隠れる、(2)スライダーの数が多く常時表示は画面の邪魔になる、という
+   指摘のため、SettingsPanel(歯車)の「下家の調整」「上家の調整」から
+   開く中央寄せのモーダルに変更した（Table.tsx参照）。
+   モーダル自体・オーバーレイともdocument.body直下へcreatePortalして
+   いるため、position:fixedがStage.tsxのzoom(.stage__canvasが持つ、
+   position:fixedの子要素に対して新しいcontaining blockを形成して
+   しまう非標準の挙動、project-tile3d-prototypeメモ参照)の影響を受けず
+   素直にviewport基準になる。z-indexは.tile3d-hand-layer(20、同じく
+   body直下)より確実に高くしないと、Tile3D手牌の下に隠れてしまう。 */
+.tile3d-debug-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: auto;
+}
+.tile3d-debug-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(15, 33, 24, 0.96);
+  border: 1px solid rgba(230, 225, 210, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  width: 300px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+.tile3d-debug-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.tile3d-debug-panel__title {
+  font-weight: 600;
+  color: #e0a94a;
+}
+.tile3d-debug-panel__close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  font-size: 16px;
+  color: #f4f1e8;
+  background: rgba(244, 241, 232, 0.08);
+  border: 1px solid rgba(230, 225, 210, 0.25);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.tile3d-debug-panel__close:hover {
+  background: rgba(224, 169, 74, 0.16);
+  border-color: #e0a94a;
+  color: #e0a94a;
+}
+/* 牌1枚だけを大きく単独表示するプレビュー欄。実際の手牌(13枚以上が
+   重なった状態)だと1枚の縦横比の変化が周りの牌に紛れて分かりにくい
+   ため、ここで単独確認できるようにした。
+   ——スライダーの項目数が増えるにつれパネル全体がビューポート高さを
+   超え、一番下（副露関連）がスクロールしないと見えない/一部隠れる
+   不具合が実機で発覚したため、min/max-heightを縮小してパネル全体を
+   コンパクトにした。
+   ——さらに、拡大率(scale)や牌の横幅/縦幅(aspectX/Y)を大きくすると
+   牌がこの箱を超えて下のスライダー列に重なり、操作できなくなる
+   不具合が実機で発覚したため、高さを固定しoverflow:hiddenにした
+   （実際の縮小はTile3DDebugPanel.tsx側でpreviewFitScaleとして計算し
+   .tile3d-debug-panel__preview-fitに掛けているので、通常はここまで
+   はみ出さないはずだが、計算漏れ時の保険として残す）。 */
+.tile3d-debug-panel__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 110px;
+  overflow: hidden;
+  padding: 4px 0 6px;
+  border-bottom: 1px solid rgba(230, 225, 210, 0.2);
+  margin-bottom: 2px;
+}
+.tile3d-debug-panel__preview-fit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tile3d-debug-panel__row {
+  display: grid;
+  grid-template-columns: 56px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+}
+.tile3d-debug-panel__row input[type="range"] {
+  width: 100%;
+  min-width: 0;
+}
+.tile3d-debug-panel__row output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tile3d-debug-panel__row--group-offset {
+  margin-top: 1px;
+  padding-top: 2px;
+  border-top: 1px solid rgba(230, 225, 210, 0.15);
+}
+.tile3d-debug-panel__row--group-offset span {
+  color: #e0a94a;
+}
+.tile3d-debug-panel__row--drawn-offset {
+  margin-top: 1px;
+  padding-top: 2px;
+  border-top: 1px solid rgba(230, 225, 210, 0.15);
+}
+.tile3d-debug-panel__row--drawn-offset span {
+  color: #74c69d;
+}
+.tile3d-debug-panel__group {
+  display: flex;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(230, 225, 210, 0.15);
+}
+.tile3d-debug-panel__group--wrap {
+  flex-wrap: wrap;
+}
+.tile3d-debug-panel__btn {
+  font: inherit;
+  font-size: 11.5px;
+  color: #f4f1e8;
+  background: rgba(244, 241, 232, 0.06);
+  border: 1px solid rgba(230, 225, 210, 0.25);
+  border-radius: 999px;
+  padding: 5px 10px;
+  cursor: pointer;
+  flex: 1;
+  white-space: nowrap;
+}
+.tile3d-debug-panel__group--wrap .tile3d-debug-panel__btn {
+  flex: none;
+}
+.tile3d-debug-panel__btn:hover {
+  background: rgba(224, 169, 74, 0.16);
+  border-color: #e0a94a;
+}
+.tile3d-debug-panel__btn--active {
+  background: rgba(224, 169, 74, 0.16);
+  border-color: #e0a94a;
+  color: #e0a94a;
+}
+.tile3d-debug-panel__backup-status {
+  font-size: 11px;
+  color: #74c69d;
+  text-align: center;
+  padding-top: 2px;
+}
+
+/* ============ 副露配置編集モード（実際の卓の上で直接ドラッグ） ============
+   別画面の縮小プレビューでは実際の卓の配置と一致せず意味がないという
+   指摘のため廃止し、MeldEditToolbar.tsx＋OpponentArea.tsxの直接ドラッグ
+   方式に変更した。ツールバー自体は小さく、卓全体を覆う暗転オーバーレイ
+   を持たない（卓を見ながら操作できることが必須のため）。 */
+.meld-edit-toolbar {
+  position: fixed;
+  left: 50%;
+  /* 卓の下家側の副露は画面下寄りに来ることが多く、bottom固定だと
+     ツールバー自体が副露に重なって見えなくなる実害があった
+     （実機スクリーンショットで確認）。副露と重なりにくい上部に置く。 */
+  top: 16px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(15, 33, 24, 0.96);
+  border: 1px solid rgba(230, 225, 210, 0.3);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: #f4f1e8;
+  width: min(90vw, 460px);
+}
+/* 手牌配置編集は副露配置編集と同時に開くこともあり得るため、上下で
+   重ならないようにこちらは下部に置く（.meld-edit-toolbarと併用する
+   修飾クラス、HandEditToolbar.tsx参照）。 */
+.hand-edit-toolbar {
+  top: auto;
+  bottom: 16px;
+}
+.meld-edit-toolbar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.meld-edit-toolbar__title {
+  font-weight: 600;
+  color: #e0a94a;
+}
+.meld-edit-toolbar__hint {
+  font-size: 11px;
+  color: #cfd8d2;
+  text-align: center;
+}
+.meld-edit-toolbar__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.meld-edit-toolbar__row--rotate {
+  display: grid;
+  grid-template-columns: auto 1fr 44px;
+}
+.meld-edit-toolbar__row--rotate input[type="range"] {
+  width: 100%;
+  min-width: 0;
+}
+.meld-edit-toolbar__row--rotate output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 編集モード中、卓上でドラッグ可能な副露を視覚的に示す。既存の.meldは
+   position未指定でも問題ない（既存レイアウトへの影響なし、ここでは
+   cursorとハイライトの見た目だけを追加する）。 */
+.meld--editable {
+  cursor: grab;
+  outline: 1px dashed rgba(224, 169, 74, 0.6);
+  outline-offset: 2px;
+}
+.meld--editable-active {
+  cursor: grabbing;
+  outline: 2px solid #52d17c;
+}
+.meld--mock {
+  opacity: 0.5;
+  outline: 1px dashed rgba(244, 241, 232, 0.8);
+  outline-offset: 3px;
+  position: relative;
+}
+/* 「なぜか半透明の副露が出ている」と誤解されないよう、実際の副露が
+   足りない分を仮で補っている(makeMockMeld)ことをはっきり示すラベル。
+   副露編集モードでのみ表示され、通常プレイ時にこのクラスが付くことは
+   無い（isEditingThisSeatがfalseならmockCountは常に0）。 */
+.meld--mock::before {
+  content: "仮";
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(224, 169, 74, 0.9);
+  color: #1a1a1a;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  z-index: 10;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Meld, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
-import { orderMeldTilesForDisplay } from "../meldDisplay.js";
+import { meldDisplaySlots } from "../meldDisplay.js";
 import {
   CARDS,
   CHARACTERS,
@@ -92,25 +92,42 @@ function computeSanshokuHintCodes(hand: HandShape): Set<TileCode> {
 }
 
 function MeldView({ meld }: { meld: Meld }) {
-  const displayTiles = orderMeldTilesForDisplay(meld);
+  const slots = meldDisplaySlots(meld);
   return (
     <div className="meld">
-      {displayTiles.map((t, i) => {
-        // 暗槓は実際の卓と同じく両端の2枚を伏せる（OpponentArea.tsxと同じ
-        // 扱い）。以前はdimmed（半透明）にするだけで柄が見えてしまっていた
-        // （「見え方がおかしい」との指摘の原因）。
-        const isAnkanEdge = meld.type === "ankan" && (i === 0 || i === displayTiles.length - 1);
-        return (
-          <TileView
-            key={i}
-            code={t.code}
-            faceDown={isAnkanEdge}
-            small
-            rotated={meld.calledTile?.id === t.id}
-            red={t.isRed}
-          />
-        );
-      })}
+      {slots.map((slot, i) =>
+        slot.kind === "stack" ? (
+          // 加槓：元のポンで横向きにした牌の上に4枚目を重ねて見せる
+          // （大明槓と見分けがつかない見た目になっていたとの指摘の原因）。
+          <span key={i} style={{ position: "relative", display: "inline-flex" }}>
+            <TileView
+              code={slot.base.code}
+              small
+              rotated
+              red={slot.base.isRed}
+              // 4枚目(added)と重ならないよう、台座側も少し下へずらす
+              // （added側だけを上にずらす量を増やすと、他の牌との横一列の
+              // 位置から浮いて見えてしまうため、双方を逆向きに少しずつ
+              // ずらして重なりを解消する）。
+              style={{ position: "relative", top: 16 }}
+            />
+            <TileView
+              code={slot.added.code}
+              small
+              rotated
+              red={slot.added.isRed}
+              // 上に重なるだけの牌は卓に接地していないため、他の牌と同じ
+              // 「厚み」の帯(box-shadow、白+緑の2層)をそのまま出すと、
+              // 台座にしている牌の帯とほぼ同じ位置に別の帯がもう一つ乗って
+              // 二重に見えてしまう（指摘の原因）。厚みの帯は消し、浮いている
+              // ことが分かる程度の柔らかい影だけに差し替える。
+              style={{ position: "absolute", top: -16, left: 0, zIndex: 5, boxShadow: "0 2px 3px rgba(0, 0, 0, 0.5)" }}
+            />
+          </span>
+        ) : (
+          <TileView key={i} code={slot.tile.code} faceDown={slot.faceDown} small rotated={slot.rotated} red={slot.tile.isRed} />
+        ),
+      )}
     </div>
   );
 }
@@ -161,6 +178,13 @@ export function Hand({ round }: { round: RoundState }) {
   const kyushuOk = isMyTurn && canKyushuKyuhai(round, HUMAN);
   const skillReady = isMyTurn && canUseSkill(round, HUMAN);
   const character = CHARACTERS[round.characterIds[HUMAN]];
+  // ライコの「一閃」等、usableDuringRiichi（一発中に自動発動する設計の技）を
+  // 持つキャラでゲージが満タンの時、リーチボタン自体に技名を添えて
+  // 「このままリーチすれば一発中に技が自動発動する」ことが事前に伝わるようにする
+  // （指摘により。以前はリーチ後、実際に一発中の自摸が来て初めて発動が分かり、
+  // ゲージが満タンかどうかを別途ゲージバーで確認しないと事前に気付けなかった）。
+  const riichiAutoSkillName =
+    character?.skill.usableDuringRiichi && player.skillGauge >= character.gaugeMax ? character.skill.name : null;
   // カリンの「借り物競争」用: 自分のonActivateを持たず、代わりに同卓者3人の
   // うち今借りられる相手だけを選択肢として出す（characters.tsのkarin参照）。
   const borrowTargets = isMyTurn && character?.borrowsSkill ? borrowableSkillTargets(round, HUMAN) : [];
@@ -606,8 +630,12 @@ export function Hand({ round }: { round: RoundState }) {
               </button>
             )}
             {riichiEligible && !riichiMode && !player.riichi && (
-              <button className="btn btn--riichi" onClick={() => setRiichiMode(true)}>
-                リーチ
+              <button
+                className="btn btn--riichi"
+                onClick={() => setRiichiMode(true)}
+                title={riichiAutoSkillName ? `一発中に必殺技「${riichiAutoSkillName}」が自動発動します` : undefined}
+              >
+                リーチ{riichiAutoSkillName}
               </button>
             )}
             {riichiMode && (

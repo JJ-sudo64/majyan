@@ -294,14 +294,37 @@ describe("skill gauge", () => {
     });
     expect(canUseSkill(round, 0)).toBe(false); // 一発中でないので発動不可
 
+    // 実戦では一発中(ippatsuActive)は常にリーチ中(riichi)でもある。riichi:falseの
+    // ままだと「リーチ中は必殺技を使えない」という一律ブロック(canUseSkill)を
+    // 素通りしてしまい、そのブロックがライコの一閃自体も塞いでいたバグを
+    // このテストが検出できていなかった（実戦では一閃が発動しない不具合の原因）。
+    // riichi:trueも合わせて立てて実戦の状態を再現する。
     const ippatsuRound: RoundState = {
       ...round,
-      players: [{ ...round.players[0]!, ippatsuActive: true }, round.players[1]!, round.players[2]!, round.players[3]!],
+      players: [
+        { ...round.players[0]!, ippatsuActive: true, riichi: true },
+        round.players[1]!,
+        round.players[2]!,
+        round.players[3]!,
+      ],
     };
     expect(canUseSkill(ippatsuRound, 0)).toBe(true);
+
+    // 一発が終わった後（鳴きが入った等でippatsuActiveがfalseに戻った）は、
+    // リーチ中のままでも通常通り発動できない。
+    const postIppatsuRound: RoundState = {
+      ...round,
+      players: [
+        { ...round.players[0]!, ippatsuActive: false, riichi: true },
+        round.players[1]!,
+        round.players[2]!,
+        round.players[3]!,
+      ],
+    };
+    expect(canUseSkill(postIppatsuRound, 0)).toBe(false);
   });
 
-  it("raiko's onActivate pulls a waiting tile out of the live wall in place of the current draw", () => {
+  it("raiko's onActivate (karin's 借り物 manual path) pulls a waiting tile out of the live wall in place of the current draw", () => {
     // 手牌: 1m2m3m 4p5p6p 7s8s9s 1z1z1z 2z + 自摸2z → 2z待ちのシャンポン/単騎ではなく
     // 2zをもう1枚引けば1z1z1z+2z2zで七対子ではなく通常形が完成する組み合わせにする。
     const round = makeRound({
@@ -337,7 +360,7 @@ describe("skill gauge", () => {
     expect(next.players[0]!.skillGauge).toBe(0);
   });
 
-  it("raiko's onActivate whiffs (round unchanged besides gauge reset) if no waiting tile remains in the live wall", () => {
+  it("raiko's onActivate (karin's 借り物 manual path) whiffs (round unchanged besides gauge reset) if no waiting tile remains in the live wall", () => {
     const round = makeRound({
       players: [
         { ...emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"]), skillGauge: 100, ippatsuActive: true },
@@ -366,6 +389,92 @@ describe("skill gauge", () => {
 
     expect(next.lastDrawnTile!.id).toBe(drawn.id); // 不発なので自摸牌は変わらない
     expect(next.players[0]!.skillGauge).toBe(0); // 不発でもゲージは消費される
+  });
+
+  it("raiko's onBeforeDraw auto-activates on her own ippatsu draw (no useSkill action needed)", () => {
+    // 手牌13枚(concealed)の時点で既に2z待ちのテンパイ。ツモる前なのでconcealed
+    // そのものから待ちを求められる（onActivate版と違い自摸牌を一旦外す必要が無い）。
+    const round = makeRound({
+      players: [
+        { ...emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"]), skillGauge: 100, ippatsuActive: true, riichi: true },
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer(["5m", "5m", "5m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      characterIds: ["raiko", "hiiragi", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-draw",
+      wall: makeWall(["9p", "2z", "9s"]), // 待ち牌(2z)が山の2枚目に埋まっている
+    });
+
+    const next = applyAction(round, { type: "draw", player: 0 });
+
+    expect(next.lastDrawnTile!.code).toBe("2z"); // useSkillを挟まず、引く前に山の先頭が待ち牌へすり替わっている
+    expect(next.wall.liveTiles.map((t) => t.code)).toEqual(["9p", "9s"]); // すり替えられた牌(元の先頭)は山に残る
+    expect(next.players[0]!.skillGauge).toBe(0);
+  });
+
+  it("raiko's onBeforeDraw whiffs (draws the original tile unchanged) but still resets the gauge if no waiting tile remains", () => {
+    const round = makeRound({
+      players: [
+        { ...emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"]), skillGauge: 100, ippatsuActive: true, riichi: true },
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer(["5m", "5m", "5m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      characterIds: ["raiko", "hiiragi", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-draw",
+      wall: makeWall(["5z", "5z", "9s"]), // 待ち牌(2z)が山に残っていない
+    });
+    const expectedId = round.wall.liveTiles[0]!.id;
+
+    const next = applyAction(round, { type: "draw", player: 0 });
+
+    expect(next.lastDrawnTile!.id).toBe(expectedId); // 不発なので元々の先頭牌をそのまま引く
+    expect(next.players[0]!.skillGauge).toBe(0); // 不発でもゲージは消費される
+  });
+
+  it("raiko's onBeforeDraw does not trigger outside ippatsu, even with a full gauge", () => {
+    const round = makeRound({
+      players: [
+        { ...emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"]), skillGauge: 100, ippatsuActive: false },
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer(["5m", "5m", "5m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      characterIds: ["raiko", "hiiragi", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-draw",
+      wall: makeWall(["9p", "2z", "9s"]),
+    });
+    const expectedId = round.wall.liveTiles[0]!.id;
+
+    const next = applyAction(round, { type: "draw", player: 0 });
+
+    expect(next.lastDrawnTile!.id).toBe(expectedId); // 一発中でないので通常通りの自摸
+    expect(next.players[0]!.skillGauge).toBe(100); // ゲージも消費されない
+  });
+
+  it("raiko's onBeforeDraw does not trigger on someone else's draw", () => {
+    const round = makeRound({
+      players: [
+        emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"]),
+        { ...emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]), skillGauge: 100, ippatsuActive: true, riichi: true },
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["hiiragi", "raiko", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-draw",
+      wall: makeWall(["9p", "2z", "9s"]),
+    });
+    const expectedId = round.wall.liveTiles[0]!.id;
+
+    const next = applyAction(round, { type: "draw", player: 0 });
+
+    expect(next.lastDrawnTile!.id).toBe(expectedId); // player0の自摸なのでライコ(player1)の効果は無関係
+    expect(next.players[1]!.skillGauge).toBe(100); // ライコ自身のゲージも消費されない
   });
 
   it("toki's onActivate reserves a guaranteed rinshan kaihou and resets gauge", () => {

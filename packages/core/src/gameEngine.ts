@@ -259,9 +259,11 @@ export function canRiichi(round: RoundState, player: PlayerIndex): boolean {
     ある必殺技も同様に使えない（canRetrieveDiscardと同じ理由）。 */
 export function canUseSkill(round: RoundState, player: PlayerIndex): boolean {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
-  if (round.players[player]!.riichi) return false;
   const character = CHARACTERS[round.characterIds[player]];
   if (!character || !character.skill.hooks.onActivate) return false;
+  // ライコの「一閃」はそもそも一発（＝リーチ後）中にしか発動しない設計
+  // （skill.usableDuringRiichi参照）のため、この一律ブロックの対象から外す。
+  if (round.players[player]!.riichi && !character.skill.usableDuringRiichi) return false;
   if (round.players[player]!.skillGauge < character.gaugeMax) return false;
   const canActivate = character.skill.hooks.canActivate;
   if (canActivate && !canActivate({ round, owner: player })) return false;
@@ -275,12 +277,16 @@ export function canUseSkill(round: RoundState, player: PlayerIndex): boolean {
     canUseSkillと同じ理由でリーチ中は使えない。 */
 export function canBorrowSkill(round: RoundState, player: PlayerIndex, target: PlayerIndex): boolean {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
-  if (round.players[player]!.riichi) return false;
   if (target === player) return false;
   const character = CHARACTERS[round.characterIds[player]];
   if (!character?.borrowsSkill) return false;
+  const targetSkill = CHARACTERS[round.characterIds[target]]?.skill;
+  // canUseSkillと同じ例外（ライコの「一閃」は借りた側の一発中にしか発動
+  // しない設計のため、借りた技自身がusableDuringRiichiなら一律ブロックの
+  // 対象から外す）。
+  if (round.players[player]!.riichi && !targetSkill?.usableDuringRiichi) return false;
   if (round.players[player]!.skillGauge < character.gaugeMax) return false;
-  const targetHooks = CHARACTERS[round.characterIds[target]]?.skill.hooks;
+  const targetHooks = targetSkill?.hooks;
   if (!targetHooks?.onActivate) return false;
   if (targetHooks.canActivate && !targetHooks.canActivate({ round, owner: player })) return false;
   return true;
@@ -719,7 +725,13 @@ function applyKakanAction(round: RoundState, action: KakanAction): RoundState {
   const calledIdx = existingMeld.tiles.findIndex((t) => t.id === existingMeld.calledTile?.id);
   const insertAt = calledIdx === -1 ? existingMeld.tiles.length : calledIdx + 1;
   const tiles = [...existingMeld.tiles.slice(0, insertAt), tile, ...existingMeld.tiles.slice(insertAt)];
-  const newMeld: Meld = { type: "kakan", tiles, calledFromRelative: existingMeld.calledFromRelative, calledTile: existingMeld.calledTile };
+  const newMeld: Meld = {
+    type: "kakan",
+    tiles,
+    calledFromRelative: existingMeld.calledFromRelative,
+    calledTile: existingMeld.calledTile,
+    addedKanTile: tile,
+  };
   const melds = [...handAfterRemove.melds];
   melds[meldIdx] = newMeld;
   const hand: Hand = { ...handAfterRemove, melds };

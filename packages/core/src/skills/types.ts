@@ -70,12 +70,30 @@ export interface CharacterSkill {
   /** 音声読み上げ用の読み（ひらがな/カタカナ）。ブラウザの読み上げが誤読しやすい
       熟語（「嶺上」等）を含む技名の場合のみ指定する。未指定ならnameをそのまま読む。 */
   voiceName?: string;
+  /** リーチ後（ツモ切り強制の間）でもuseSkillアクションを発動できるかどうか。
+      通常はfalse（未指定）で、gameEngine.tsのcanUseSkill/canBorrowSkillが
+      「リーチ中は手牌を動かせる余地が無いため必殺技も使えない」という原則で
+      一律ブロックする。ライコの「一閃」のように、そもそも一発（＝リーチ後）
+      中にしか発動しない設計の必殺技だけ、この原則の例外としてtrueにする
+      （trueにしないと一律ブロックに阻まれて永久に発動できなくなる）。 */
+  usableDuringRiichi?: boolean;
   hooks: SkillHooks;
 }
 
-/** 収録ボイスに対応するイベント種別。chi/pon/kan/riichi/tsumo/ronのみ
+/** 収録ボイスに対応するイベント種別。chi/pon/kan/riichi/tsumo/ron/tenpai/notenのみ
     未収録時にspeak()のTTSへフォールバックする（他イベントは未収録なら無音）。 */
-export type VoiceEvent = "chi" | "pon" | "kan" | "riichi" | "tsumo" | "ron" | "skillActivate" | "winQuote" | "greeting";
+export type VoiceEvent =
+  | "chi"
+  | "pon"
+  | "kan"
+  | "riichi"
+  | "tsumo"
+  | "ron"
+  | "skillActivate"
+  | "winQuote"
+  | "greeting"
+  | "tenpai"
+  | "noten";
 
 export interface Character {
   id: string;

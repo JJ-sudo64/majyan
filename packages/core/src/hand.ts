@@ -13,6 +13,10 @@ export interface Meld {
   /** 元々のポン/チー/大明槓で鳴いた牌（表示上、横向きにする基準）。
       加槓で4枚目を足しても、どの方向から鳴いたかの表示を保つためこの牌のまま変わらない。 */
   calledTile?: Tile;
+  /** 加槓（kakan）で後から足した4枚目の牌。実際の卓では、元のポンで
+      横向きにした牌の上にこの1枚を重ねて置くことで大明槓と見分けが
+      つくようにする（表示用。kakan以外ではundefined）。 */
+  addedKanTile?: Tile;
 }
 
 export interface Hand {

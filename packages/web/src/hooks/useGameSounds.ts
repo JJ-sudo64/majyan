@@ -146,6 +146,10 @@ export function useGameSounds(round: RoundState | undefined) {
       const result = round?.result;
       if (result?.type === "tsumo") speakPlayerVoice(round, result.winners[0]!, "tsumo", "ツモ");
       else if (result?.type === "ron") speakPlayerVoice(round, result.winners[0]!, "ron", "ロン");
+      else if (result?.type === "exhaustive-draw") {
+        const isTenpai = (result.tenpaiPlayers ?? []).includes(0);
+        speakPlayerVoice(round, 0, isTenpai ? "tenpai" : "noten", isTenpai ? "テンパイ" : "ノーテン");
+      }
     }
     prevPhaseRef.current = phase;
   }, [phase, round?.result]);

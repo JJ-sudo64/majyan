@@ -50,6 +50,10 @@ const NAOKI_DRAFT_ATTEMPTS = 10;
     行う必要があるため、値を二重管理しないよう定数として切り出している。 */
 const SAKI_GAUGE_MAX = 100;
 
+/** ライコの「一閃」用: gaugeMaxと同じ値。サキと同じ理由でonBeforeDraw側の
+    自前のゲージ満タン判定に定数として切り出している。 */
+const RAIKO_GAUGE_MAX = 100;
+
 /** ナオキの「クマクマタイム」用: 配牌済みの13枚を山からの1枚ずつの
     入れ替え（ヒルクライム法）で改善する。各試行で山から1枚引き、
     それを手牌のどれかと入れ替えた時に最もシャンテン数が良くなる組み合わせ
@@ -216,21 +220,54 @@ export const CHARACTERS: Record<string, Character> = {
     // 「一閃」は読み上げで詰まったり誤読されたりしやすいため、読み上げ専用の
     // 読みを指定する。
     voiceName: "イッセンの雷神・ライコ",
-    description: "必殺技「一閃」: 一発中に、山に残る自分の待ち牌を強制的に引き寄せて一発ツモを狙う。",
+    description: "必殺技「一閃」: 一発中の自摸で、ゲージが満タンなら自動発動し、山に残る自分の待ち牌を強制的に引き寄せて一発ツモを狙う（ボタン操作不要）。",
     winQuote: "迷いは捨てろ。考えた瞬間、負けは始まる。オレの一撃は、雷鳴とともにすべてを終わらせる。",
     avatar: "/avatars/characters/raiko.webp",
     cutin: "/avatars/characters/raiko-cutin.webp",
-    gaugeMax: 100,
+    gaugeMax: RAIKO_GAUGE_MAX,
     gaugePerTurn: 12,
     gaugePerDealIn: 20,
     skill: {
       id: "raiko-issen",
       name: "一閃",
       voiceName: "イッセン",
-      description: "一発中のみ発動可能。今の自摸牌を山の下に戻し、自分の待ち牌のうち山に残っている1枚を強制的に引き直す（山に残っていなければ不発）。",
+      description: "一発中のみ発動可能。ゲージ満タンなら自分の一発中の自摸の瞬間に自動発動し、自分の待ち牌のうち山に残っている1枚を強制的に引き寄せる（山に残っていなければ不発）。カリンが「借り物」で借りた場合のみ、借りた本人の一発中にuseSkillボタンで手動発動する（下のonActivate参照）。",
+      // 一発＝リーチ後にしか発動しない技のため、gameEngine.tsのcanUseSkill/
+      // canBorrowSkillにある「リーチ中は必殺技を使えない」という一律ブロックの
+      // 例外にする（付けないと一発中という条件そのものに阻まれて永久に
+      // 発動できなくなっていた。指摘の原因）。カリンの「借り物」経由の手動
+      // 発動（下のonActivate）にも必要。
+      usableDuringRiichi: true,
       hooks: {
-        // 一発（リーチ後、鳴きが入らず自分の番が一巡してくる前）の間しか使えない、
-        // という制約自体をこのキャラの強さと引き換えの縛りにしている。
+        // 「リーチと同時（一発中の自摸）に自動発動してほしい、ボタン操作を
+        // 挟みたくない」との指摘を受け、本人の分はonBeforeDraw（実際に
+        // ツモを引く直前に全プレイヤーのキャラクターへ呼ばれるフック）で
+        // 自動化した。ツモる前なので、サキの「特技ドラ引き」と同じ要領で
+        // 「これから引く牌」そのものを山の中ですり替えるだけでよく、以前の
+        // onActivate（一旦引いた自摸牌を山へ戻し、待ち牌を引き直す）より
+        // シンプルになっている。
+        onBeforeDraw: (ctx, drawer) => {
+          const { round, owner } = ctx;
+          if (drawer !== owner) return round; // 自分の自摸にのみ効果がある
+          const p = round.players[owner]!;
+          if (!p.ippatsuActive) return round;
+          if (p.skillGauge < RAIKO_GAUGE_MAX) return round;
+          // 成功/不発を問わずこの時点でゲージは消費される（サキと同じ）。
+          const players = updatePlayer(round, owner, (pl) => ({ ...pl, skillGauge: 0 }));
+          const waits = new Set(getWaitingTiles(p.hand));
+          const wallIndex = round.wall.liveTiles.findIndex((t) => waits.has(t.code));
+          if (wallIndex === -1) return { ...round, players }; // 不発
+          const liveTiles = [...round.wall.liveTiles];
+          const target = liveTiles[wallIndex]!;
+          liveTiles[wallIndex] = liveTiles[0]!;
+          liveTiles[0] = target;
+          return { ...round, players, wall: { ...round.wall, liveTiles } };
+        },
+        // 以降はカリンの「借り物競争」専用の手動発動経路として残す（借りた本人
+        // ＝カリン自身のctx.ownerに対して働くため、上のonBeforeDraw（本人限定、
+        // drawer!==ownerで弾く）では代替できない）。ライコ自身の分は常に
+        // onBeforeDrawが先に自動発動しゲージを消費するため、この手動経路が
+        // ライコ自身のuseSkillボタンとして表に出ることはない。
         // hasOwnPendingDrawは本来リーチ中の鳴き不可ルールにより常に満たされるはずだが、
         // nagiと同じ地雷（自摸牌すり替え系）を踏まないよう念のため二重にチェックする。
         canActivate: (ctx) => ctx.round.players[ctx.owner]!.ippatsuActive && hasOwnPendingDraw(ctx.round, ctx.owner),
@@ -385,6 +422,8 @@ export const CHARACTERS: Record<string, Character> = {
       skillActivate: "/voices/kaede/skill-activate.wav",
       winQuote: "/voices/kaede/win-quote.wav",
       greeting: "/voices/kaede/greeting.wav",
+      tenpai: "/voices/kaede/tenpai.wav",
+      noten: "/voices/kaede/noten.wav",
     },
     // yaku/index.tsのyaku名・scoring.tsのlimitNameと完全一致するキーのみ
     // 再生される。ゲーム側に無い役（九蓮宝燈等）のファイルも将来の実装に
