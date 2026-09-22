@@ -39,6 +39,14 @@ import { persist } from "zustand/middleware";
  *   見える事故が起きた（project-tile3d-prototypeメモ参照）。ユーザーは
  *   これを非常に嫌うため、原則としてこのファイルへの変更は「新規追加」
  *   のみに留め、既存フィールドの値・意味は変えない。
+ * ・唯一の例外がv4→v6(2026-09-22、経緯はv6のmigrateコメント参照)：localStorageはブラウザごとに別々な
+ *   ため、実機調整をほぼEdgeでしか行っていなかったことで、Chrome等
+ *   他ブラウザには「調整途中で放置された古い値」が残っていた
+ *   （＝配置がブラウザごとに違って見える不具合）。ユーザーから明示的に
+ *   「全ブラウザで統一した見た目にしてほしい」と要望されたため、この
+ *   1回に限りEdgeの確定値を全フィールド・全ブラウザへ強制的に再適用
+ *   した。以後は通常どおり、個別フィールドの穴埋め以外で保存値を
+ *   上書きしない。
  *
  * 開発中の調整用なので、値が決まったら packages/web/src/components/
  * OpponentArea.tsx 側の既定値を直接書き換え、このストア・パネルごと
@@ -52,7 +60,6 @@ export interface MeldSlotConfig {
   rotate: number;
 }
 
-const DEFAULT_MELD_SLOT: MeldSlotConfig = { offsetX: 0, offsetY: 0, rotate: 0 };
 /** 副露は最大4つ（4組の刻子/順子+雀頭1組が上限のルール上、鳴きは最大4つ）。 */
 export const MELD_SLOT_COUNT = 4;
 
@@ -65,6 +72,143 @@ export type HandGroupSlotConfig = MeldSlotConfig;
 const DEFAULT_HAND_GROUP_SLOT: HandGroupSlotConfig = { offsetX: 0, offsetY: 0, rotate: 0 };
 /** 副露0個(鳴いていない)〜4個の5状態。 */
 export const HAND_GROUP_SLOT_COUNT = 5;
+
+/** 河・ネームプレート・リーチ棒の座席ごとの位置調整（RiverEditToolbar/
+    NameplateEditToolbar/RiichiStickEditToolbar.tsx参照）。副露/手牌と違い
+    4人全員(自分含む)が対象で、鳴き数などの状態分岐も無いため座席ごとに
+    1つの値のみ持つ。形は同じなのでMeldSlotConfigをそのまま流用する。 */
+export type SeatSlotConfig = MeldSlotConfig;
+/** 座席は自分(0)・下家(1)・対面(2)・上家(3)の4人固定。 */
+export const SEAT_SLOT_COUNT = 4;
+
+/** 河の座席ごとの位置・角度に加え、河の牌自体の拡大率を持つ
+    （RiverEditToolbar.tsx参照）。offsetX/offsetY/rotateはSeatSlotConfigと
+    全く同じ意味・既定値のため継承し、scaleだけ追加する。 */
+export interface RiverSlotConfig extends SeatSlotConfig {
+  /** 河の牌1枚あたりの拡大率(倍率、1で等倍)。 */
+  scale: number;
+}
+
+/** 対面(player2)の手牌・副露の位置・大きさ調整（ToimenEditToolbar.tsx参照）。
+    下家/上家と違いTile3D非表示（常に通常の2D牌）で、鳴き数ごとの状態分岐や
+    副露スロット単位の個別配置も無いため、手牌全体・副露全体それぞれに
+    1つの値（横/縦オフセット+拡大率）だけを持つ、より単純な形にする。 */
+export interface ToimenSlotConfig {
+  offsetX: number;
+  offsetY: number;
+  scale: number;
+}
+
+/**
+ * ===== 実機で詰めた「確定レイアウト」の既定値 =====
+ *
+ * ここから下のINITIAL_*は、ユーザーが実機(Edge)の調整パネルで詰めて
+ * localStorageに入っていた値を、そのままソース側の初期値として固定した
+ * もの（2026-09-22時点のスナップショット）。これまでは初期値が全部0/等倍で、
+ * 実際の見た目はブラウザのlocalStorageにしか存在しない＝別のブラウザや
+ * データを消した環境では「素の崩れたレイアウト」になっていた。それを
+ * 解消するのが目的。
+ *
+ * リセットボタンの戻し先も「中立の0」ではなく「この確定レイアウト」が
+ * 期待値なので、reset系はINITIAL_*を参照する。唯一残したDEFAULT_HAND_GROUP_SLOT
+ * (全部0の中立値)はmigrateのv2→v3変換専用で、過去データの解釈を変えない
+ * ために意味を変えずそのまま残すこと。
+ *
+ * ★persistのversionは上げていない★
+ * 既存フィールドの初期値は変わるが、狙いは「まだ保存データが無い環境に
+ * 正しい見た目を出すこと」であって、既に調整済みのlocalStorageを書き換える
+ * ことではない。versionを上げてmigrateで上書きすると、ユーザーがこの
+ * スナップショット後に動かした調整まで巻き戻してしまう（過去に非常に
+ * 嫌われた事故）。保存済み環境は今まで通り自分の値を使い続ける。
+ */
+/** 下家の副露4スロット（配列index=副露の順番）。 */
+const INITIAL_MELD_SLOTS: MeldSlotConfig[] = [
+  { offsetX: 703, offsetY: -101, rotate: -12 },
+  { offsetX: 557, offsetY: -77, rotate: -12 },
+  { offsetX: 416, offsetY: -53, rotate: -11 },
+  { offsetX: 274, offsetY: -31, rotate: -12 },
+];
+/** 下家の手牌列、副露0〜4個の各状態。 */
+const INITIAL_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
+  { offsetX: 30, offsetY: 39, rotate: -3 },
+  { offsetX: 37, offsetY: 64, rotate: -3 },
+  { offsetX: 43, offsetY: 91, rotate: -3 },
+  { offsetX: 52, offsetY: 116, rotate: -3 },
+  { offsetX: 61, offsetY: 146, rotate: -3 },
+];
+/** 上家の副露4スロット。 */
+const INITIAL_KAMICHA_MELD_SLOTS: MeldSlotConfig[] = [
+  { offsetX: -70, offsetY: 59, rotate: 15 },
+  { offsetX: -152, offsetY: 30, rotate: 14 },
+  { offsetX: -231, offsetY: 2, rotate: 15 },
+  { offsetX: -303, offsetY: -25, rotate: 15 },
+];
+/** 上家の手牌列、副露0〜4個の各状態。 */
+const INITIAL_KAMICHA_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
+  { offsetX: -18, offsetY: -91, rotate: 19 },
+  { offsetX: -9, offsetY: -79, rotate: 19 },
+  { offsetX: -3, offsetY: -71, rotate: 19 },
+  { offsetX: 7, offsetY: -64, rotate: 19 },
+  { offsetX: 24, offsetY: -63, rotate: 19 },
+];
+/** 河、座席順(自分/下家/対面/上家)。対面だけ牌を少し小さくしている。 */
+const INITIAL_RIVER_SLOTS: RiverSlotConfig[] = [
+  { offsetX: 4, offsetY: -2, rotate: 0, scale: 1 },
+  { offsetX: -16, offsetY: -13, rotate: -2, scale: 1 },
+  { offsetX: -4, offsetY: -1, rotate: 0, scale: 0.9 },
+  { offsetX: 21, offsetY: 12, rotate: 1, scale: 1 },
+];
+/** リーチ棒、座席順。 */
+const INITIAL_RIICHI_STICK_SLOTS: SeatSlotConfig[] = [
+  { offsetX: -1, offsetY: 4, rotate: 0 },
+  { offsetX: 12, offsetY: -3, rotate: 0 },
+  { offsetX: 0, offsetY: -9, rotate: 0 },
+  { offsetX: -10, offsetY: -5, rotate: 0 },
+];
+/** ネームプレート、座席順。対面だけ左に寄せている。 */
+const INITIAL_NAMEPLATE_SLOTS: SeatSlotConfig[] = [
+  { offsetX: 0, offsetY: 0, rotate: 0 },
+  { offsetX: 0, offsetY: 0, rotate: 0 },
+  { offsetX: -81, offsetY: 5, rotate: 0 },
+  { offsetX: 0, offsetY: 0, rotate: 0 },
+];
+/** 対面の手牌全体。 */
+const INITIAL_TOIMEN_HAND_SLOT: ToimenSlotConfig = { offsetX: -62, offsetY: 3, scale: 0.9 };
+/** 対面の副露全体。 */
+const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: -7, offsetY: -16, scale: 0.85 };
+/** 下家の牌形状・並べ方パラメータ(配列以外のスカラー値)。初期状態と
+    v4→v6 migrate(下の「全ブラウザ統一」処理参照)の両方から参照する
+    ので、値をここに集約して二重管理を避ける。 */
+const INITIAL_SCALARS = {
+  rx: 134,
+  ry: 83,
+  scale: 1.5,
+  thickness: 13,
+  whiteWidth: 10.6,
+  aspectX: 1.2,
+  aspectY: 0.95,
+  spacing: -45,
+  fanOffsetX: 4,
+  frontIsLast: true,
+  drawnOffsetX: -24,
+  drawnOffsetY: 24,
+} as const;
+/** 上家の牌形状・並べ方パラメータ(配列以外のスカラー値)。同上の理由で集約。 */
+const INITIAL_KAMICHA_SCALARS = {
+  kamichaRx: 51,
+  kamichaRy: -102,
+  kamichaScale: 1.2,
+  kamichaThickness: 16,
+  kamichaWhiteWidth: 11.6,
+  kamichaAspectX: 1.15,
+  kamichaAspectY: 1,
+  kamichaSpacing: -30,
+  kamichaFanOffsetX: 0,
+  kamichaFrontIsLast: true,
+  kamichaDrawnOffsetX: -4,
+  kamichaDrawnOffsetY: 1,
+  kamichaShrinkReversed: false,
+} as const;
 
 export interface Tile3DDebugState {
   // ===== 下家(shimocha, player1)用 =====
@@ -170,6 +314,59 @@ export interface Tile3DDebugState {
   handEditMeldCount: number;
   setHandEditMeldCount: (v: number) => void;
 
+  /** 暗槓表示確認モード。座席ごとにON/OFFでき、ONの座席には実際の
+      副露に加えて仮の暗槓(4枚、両端伏せ)を1つ卓上に表示する——CPUが
+      暗槓を宣言するのを待たなくても見た目を確認できるようにするため
+      （指摘: 自分の暗槓は正しいのに他家の暗槓だけ厚みの位置がおかしく、
+      CPU任せだと確認しづらい）。位置調整の値ではなくその場限りの
+      確認用フラグなので、meldEditSeat等と同じく永続化しない。 */
+  ankanPreview: { shimocha: boolean; toimen: boolean; kamicha: boolean };
+  setAnkanPreview: (seat: "shimocha" | "toimen" | "kamicha", v: boolean) => void;
+  ankanPreviewPanelOpen: boolean;
+  setAnkanPreviewPanelOpen: (v: boolean) => void;
+
+  /** 河の座席ごとの位置・角度・拡大率(自分=0/下家=1/対面=2/上家=3)。 */
+  riverSlots: [RiverSlotConfig, RiverSlotConfig, RiverSlotConfig, RiverSlotConfig];
+  setRiverSlot: (player: 0 | 1 | 2 | 3, patch: Partial<RiverSlotConfig>) => void;
+  resetRiverSlot: (player: 0 | 1 | 2 | 3) => void;
+  /** 河配置編集モード。nullなら編集モードOFF。RiverEditToolbar.tsx参照。 */
+  riverEditOpen: boolean;
+  setRiverEditOpen: (v: boolean) => void;
+  riverEditActiveSeat: 0 | 1 | 2 | 3;
+  setRiverEditActiveSeat: (v: 0 | 1 | 2 | 3) => void;
+
+  /** リーチ棒(1000点棒)の座席ごとの位置・角度(自分=0/下家=1/対面=2/上家=3)。
+      河・ネームプレートと同じ形（RiichiStickEditToolbar.tsx参照）。 */
+  riichiStickSlots: [SeatSlotConfig, SeatSlotConfig, SeatSlotConfig, SeatSlotConfig];
+  setRiichiStickSlot: (player: 0 | 1 | 2 | 3, patch: Partial<SeatSlotConfig>) => void;
+  resetRiichiStickSlot: (player: 0 | 1 | 2 | 3) => void;
+  /** リーチ棒配置編集モード。nullなら編集モードOFF。RiichiStickEditToolbar.tsx参照。 */
+  riichiStickEditOpen: boolean;
+  setRiichiStickEditOpen: (v: boolean) => void;
+  riichiStickEditActiveSeat: 0 | 1 | 2 | 3;
+  setRiichiStickEditActiveSeat: (v: 0 | 1 | 2 | 3) => void;
+
+  /** ネームプレート(CharacterPanel)の座席ごとの位置・角度。河と同じ形。 */
+  nameplateSlots: [SeatSlotConfig, SeatSlotConfig, SeatSlotConfig, SeatSlotConfig];
+  setNameplateSlot: (player: 0 | 1 | 2 | 3, patch: Partial<SeatSlotConfig>) => void;
+  resetNameplateSlot: (player: 0 | 1 | 2 | 3) => void;
+  nameplateEditOpen: boolean;
+  setNameplateEditOpen: (v: boolean) => void;
+  nameplateEditActiveSeat: 0 | 1 | 2 | 3;
+  setNameplateEditActiveSeat: (v: 0 | 1 | 2 | 3) => void;
+
+  /** 対面の手牌全体・副露全体それぞれの位置・拡大率。ToimenEditToolbar.tsx参照。 */
+  toimenHandSlot: ToimenSlotConfig;
+  setToimenHandSlot: (patch: Partial<ToimenSlotConfig>) => void;
+  resetToimenHandSlot: () => void;
+  toimenMeldSlot: ToimenSlotConfig;
+  setToimenMeldSlot: (patch: Partial<ToimenSlotConfig>) => void;
+  resetToimenMeldSlot: () => void;
+  /** 対面配置編集モード。nullなら編集モードOFF。"hand"/"meld"のどちらを
+      ドラッグ対象にしているか。 */
+  toimenEditTarget: "hand" | "meld" | null;
+  setToimenEditTarget: (v: "hand" | "meld" | null) => void;
+
   setRx: (v: number) => void;
   setRy: (v: number) => void;
   setScale: (v: number) => void;
@@ -210,39 +407,16 @@ export interface Tile3DDebugState {
 export const useTile3DDebugStore = create<Tile3DDebugState>()(
   persist(
     (set) => ({
-      rx: -55,
-      ry: -20,
-      scale: 1.4,
-      thickness: 8,
-      whiteWidth: 4.4,
-      aspectX: 1,
-      aspectY: 1,
-      spacing: -20,
-      fanOffsetX: 0,
-      frontIsLast: false,
-      drawnOffsetX: 0,
-      drawnOffsetY: 10,
-      meldSlots: [DEFAULT_MELD_SLOT, DEFAULT_MELD_SLOT, DEFAULT_MELD_SLOT, DEFAULT_MELD_SLOT],
-      handGroupByMeldCount: Array.from({ length: HAND_GROUP_SLOT_COUNT }, () => ({ ...DEFAULT_HAND_GROUP_SLOT })),
+      ...INITIAL_SCALARS,
+      meldSlots: INITIAL_MELD_SLOTS.map((slot) => ({ ...slot })),
+      handGroupByMeldCount: INITIAL_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
 
-      // 上家用の既定値は下家の確定値をそのまま流用する（画面の反対側に
-      // あるだけで牌自体の形状パラメータは同じはずという想定）。位置系
-      // (handGroupByMeldCount等)は座席が違うので0からユーザーに調整してもらう。
-      kamichaRx: -55,
-      kamichaRy: -20,
-      kamichaScale: 1.4,
-      kamichaThickness: 8,
-      kamichaWhiteWidth: 4.4,
-      kamichaAspectX: 1,
-      kamichaAspectY: 1,
-      kamichaSpacing: -20,
-      kamichaFanOffsetX: 0,
-      kamichaFrontIsLast: false,
-      kamichaHandGroupByMeldCount: Array.from({ length: HAND_GROUP_SLOT_COUNT }, () => ({ ...DEFAULT_HAND_GROUP_SLOT })),
-      kamichaDrawnOffsetX: 0,
-      kamichaDrawnOffsetY: 10,
-      kamichaMeldSlots: [DEFAULT_MELD_SLOT, DEFAULT_MELD_SLOT, DEFAULT_MELD_SLOT, DEFAULT_MELD_SLOT],
-      kamichaShrinkReversed: false,
+      // 上家は下家の値の流用ではなく、実機で座席ごとに個別に詰めた確定値。
+      // 画面の反対側から見る分、牌の形状パラメータ(厚み・白幅・角度)まで
+      // 下家とは別の値になっている。
+      ...INITIAL_KAMICHA_SCALARS,
+      kamichaHandGroupByMeldCount: INITIAL_KAMICHA_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
+      kamichaMeldSlots: INITIAL_KAMICHA_MELD_SLOTS.map((slot) => ({ ...slot })),
 
       activePanel: null,
       setActivePanel: (activePanel) => set({ activePanel }),
@@ -258,6 +432,74 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       setHandEditSeat: (handEditSeat) => set({ handEditSeat }),
       handEditMeldCount: 0,
       setHandEditMeldCount: (handEditMeldCount) => set({ handEditMeldCount }),
+
+      ankanPreview: { shimocha: false, toimen: false, kamicha: false },
+      setAnkanPreview: (seat, v) => set((state) => ({ ankanPreview: { ...state.ankanPreview, [seat]: v } })),
+      ankanPreviewPanelOpen: false,
+      setAnkanPreviewPanelOpen: (ankanPreviewPanelOpen) => set({ ankanPreviewPanelOpen }),
+
+      riverSlots: INITIAL_RIVER_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riverSlots"],
+      setRiverSlot: (player, patch) =>
+        set((state) => {
+          const slots = [...state.riverSlots] as Tile3DDebugState["riverSlots"];
+          slots[player] = { ...slots[player], ...patch };
+          return { riverSlots: slots };
+        }),
+      resetRiverSlot: (player) =>
+        set((state) => {
+          const slots = [...state.riverSlots] as Tile3DDebugState["riverSlots"];
+          slots[player] = { ...INITIAL_RIVER_SLOTS[player]! };
+          return { riverSlots: slots };
+        }),
+      riverEditOpen: false,
+      setRiverEditOpen: (riverEditOpen) => set({ riverEditOpen }),
+      riverEditActiveSeat: 0,
+      setRiverEditActiveSeat: (riverEditActiveSeat) => set({ riverEditActiveSeat }),
+
+      riichiStickSlots: INITIAL_RIICHI_STICK_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riichiStickSlots"],
+      setRiichiStickSlot: (player, patch) =>
+        set((state) => {
+          const slots = [...state.riichiStickSlots] as Tile3DDebugState["riichiStickSlots"];
+          slots[player] = { ...slots[player], ...patch };
+          return { riichiStickSlots: slots };
+        }),
+      resetRiichiStickSlot: (player) =>
+        set((state) => {
+          const slots = [...state.riichiStickSlots] as Tile3DDebugState["riichiStickSlots"];
+          slots[player] = { ...INITIAL_RIICHI_STICK_SLOTS[player]! };
+          return { riichiStickSlots: slots };
+        }),
+      riichiStickEditOpen: false,
+      setRiichiStickEditOpen: (riichiStickEditOpen) => set({ riichiStickEditOpen }),
+      riichiStickEditActiveSeat: 0,
+      setRiichiStickEditActiveSeat: (riichiStickEditActiveSeat) => set({ riichiStickEditActiveSeat }),
+
+      nameplateSlots: INITIAL_NAMEPLATE_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["nameplateSlots"],
+      setNameplateSlot: (player, patch) =>
+        set((state) => {
+          const slots = [...state.nameplateSlots] as Tile3DDebugState["nameplateSlots"];
+          slots[player] = { ...slots[player], ...patch };
+          return { nameplateSlots: slots };
+        }),
+      resetNameplateSlot: (player) =>
+        set((state) => {
+          const slots = [...state.nameplateSlots] as Tile3DDebugState["nameplateSlots"];
+          slots[player] = { ...INITIAL_NAMEPLATE_SLOTS[player]! };
+          return { nameplateSlots: slots };
+        }),
+      nameplateEditOpen: false,
+      setNameplateEditOpen: (nameplateEditOpen) => set({ nameplateEditOpen }),
+      nameplateEditActiveSeat: 0,
+      setNameplateEditActiveSeat: (nameplateEditActiveSeat) => set({ nameplateEditActiveSeat }),
+
+      toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT },
+      setToimenHandSlot: (patch) => set((state) => ({ toimenHandSlot: { ...state.toimenHandSlot, ...patch } })),
+      resetToimenHandSlot: () => set({ toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT } }),
+      toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
+      setToimenMeldSlot: (patch) => set((state) => ({ toimenMeldSlot: { ...state.toimenMeldSlot, ...patch } })),
+      resetToimenMeldSlot: () => set({ toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT } }),
+      toimenEditTarget: null,
+      setToimenEditTarget: (toimenEditTarget) => set({ toimenEditTarget }),
 
       setRx: (rx) => set({ rx }),
       setRy: (ry) => set({ ry }),
@@ -282,7 +524,7 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
         set((state) => {
           const key = isKamicha ? "kamichaMeldSlots" : "meldSlots";
           const slots = state[key].slice();
-          slots[index] = { ...DEFAULT_MELD_SLOT };
+          slots[index] = { ...(isKamicha ? INITIAL_KAMICHA_MELD_SLOTS : INITIAL_MELD_SLOTS)[index]! };
           return { [key]: slots } as Partial<Tile3DDebugState>;
         }),
       setHandGroupSlot: (isKamicha, meldCount, patch) =>
@@ -296,7 +538,7 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
         set((state) => {
           const key = isKamicha ? "kamichaHandGroupByMeldCount" : "handGroupByMeldCount";
           const slots = state[key].slice();
-          slots[meldCount] = { ...DEFAULT_HAND_GROUP_SLOT };
+          slots[meldCount] = { ...(isKamicha ? INITIAL_KAMICHA_HAND_GROUP_SLOTS : INITIAL_HAND_GROUP_SLOTS)[meldCount]! };
           return { [key]: slots } as Partial<Tile3DDebugState>;
         }),
       setKamichaShrinkReversed: (kamichaShrinkReversed) => set({ kamichaShrinkReversed }),
@@ -316,14 +558,21 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
     }),
     {
       name: "tile3d-debug-store",
-      version: 3,
+      version: 6,
       // パネルの開閉状態(activePanel)は「今このセッションで開いているか」
       // だけの一時的なUI状態なので、リロードのたびに閉じた状態(null)から
       // 始まってよい——むしろpersistすると、開いたままリロードした時に
       // 変な状態で固定表示されてしまう。setActivePanelもpersist不要
       // (関数はそもそも保存できない)。手牌配置編集モードの開閉
-      // (handEditSeat)・どの副露数状態を見ているか(handEditMeldCount)も
-      // 同じ理由で除外する。
+      // (handEditSeat)・どの副露数状態を見ているか(handEditMeldCount)、
+      // 暗槓表示確認モード(ankanPreview)、河・ネームプレート配置編集モードの
+      // 開閉(riverEditOpen/nameplateEditOpen)・選択中の座席
+      // (riverEditActiveSeat/nameplateEditActiveSeat)、対面配置編集モードの
+      // 開閉・対象(toimenEditTarget)、リーチ棒配置編集モードの開閉・選択中の
+      // 座席(riichiStickEditOpen/riichiStickEditActiveSeat)も同じ理由で
+      // 除外する（riverSlots/nameplateSlots/toimenHandSlot/toimenMeldSlot/
+      // riichiStickSlots自体＝実際に調整した位置の値は、通常のフィールド
+      // としてここでは除外せずpersistする）。
       partialize: (state) => {
         const {
           activePanel,
@@ -336,6 +585,24 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
           setHandEditSeat,
           handEditMeldCount,
           setHandEditMeldCount,
+          ankanPreview,
+          setAnkanPreview,
+          ankanPreviewPanelOpen,
+          setAnkanPreviewPanelOpen,
+          riverEditOpen,
+          setRiverEditOpen,
+          riverEditActiveSeat,
+          setRiverEditActiveSeat,
+          nameplateEditOpen,
+          setNameplateEditOpen,
+          nameplateEditActiveSeat,
+          setNameplateEditActiveSeat,
+          toimenEditTarget,
+          setToimenEditTarget,
+          riichiStickEditOpen,
+          setRiichiStickEditOpen,
+          riichiStickEditActiveSeat,
+          setRiichiStickEditActiveSeat,
           ...rest
         } = state;
         return rest;
@@ -400,6 +667,69 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
               { ...DEFAULT_HAND_GROUP_SLOT },
               { ...DEFAULT_HAND_GROUP_SLOT },
             ],
+          };
+        }
+        if (version < 4) {
+          // v3→v4: 河の座席ごとの位置(riverSlots)に、河の牌自体の拡大率
+          // (scale)を追加した。既存の保存済みriverSlotsはoffsetX/offsetY/
+          // rotateしか持たないため、そのままだと各要素のscaleがundefined
+          // になる（DiscardPile側でactive.scale.toFixed()等を呼ぶと壊れる）。
+          // 既存の位置調整値(offsetX/offsetY/rotate)は一切変えず、scaleだけ
+          // 既定値1(等倍、これまでの見た目と同じ)を明示的に補う。
+          const old = s as unknown as { riverSlots?: Array<Partial<RiverSlotConfig>> };
+          const base: Array<Partial<RiverSlotConfig>> = old.riverSlots ?? [{}, {}, {}, {}];
+          const riverSlots = base.map((slot) => ({
+            offsetX: slot.offsetX ?? 0,
+            offsetY: slot.offsetY ?? 0,
+            rotate: slot.rotate ?? 0,
+            scale: slot.scale ?? 1,
+          })) as [RiverSlotConfig, RiverSlotConfig, RiverSlotConfig, RiverSlotConfig];
+          s = { ...s, riverSlots };
+        }
+        // v4→v6: ★このステップだけは「新規追加フィールドの穴埋め」ではなく、
+        // 「ブラウザ間の見た目統一」を目的にした例外的な強制上書き★
+        // （ファイル冒頭の絶対ルール＝既存フィールドの保存済み値には触れない
+        // 、に反するように見えるが、ユーザーから明示的に要望されたための
+        // 意図的な例外）。
+        //
+        // これまでこのストアはブラウザ(Chrome/Edge等)ごとに別々の
+        // localStorageへ保存されており、実機調整はほぼEdge上でだけ行って
+        // いたため、Chromeなど他ブラウザには「調整途中で放置された古い値」
+        // (例: 副露を持った後の手牌位置・河の位置が全部0のまま)が残って
+        // いた。新規追加フィールドの穴埋めでは既存キーの値は上書きされない
+        // ため、他ブラウザだけ配置が大きく崩れて見える不具合として発覚した。
+        //
+        // 対策として、Edgeで最終確定した値(=上のINITIAL_*定数、ソース側の
+        // 既定値と完全に同じ)を全ブラウザへ強制的に再適用する。
+        //
+        // ★v5→v6にした理由(2026-09-22 追記)★
+        // 最初はv5として実装したが、このファイル自体を編集している最中に
+        // Vite開発サーバーへHMR接続されたChromeタブが開いていたため、
+        // 「version:5に上げた直後・強制上書きコードをまだ足す前」という
+        // 中途半端な保存タイミングでHMRが発火してしまった。その瞬間の
+        // コードが実行され、「version:5を名乗るが実際は矯正されていない
+        // 古い値のまま」というデータがChromeのlocalStorageに書き込まれて
+        // しまい、`version < 5`のガードにより以後は再矯正されなくなって
+        // いた（Chromeだけ配置がおかしいまま直らない不具合として発覚）。
+        // v6に上げることで、この「version:5を騙る壊れたデータ」も含めて
+        // 再度強制上書きの対象にする。
+        //
+        // 以後(v6以降)は通常どおり、ユーザーが実機で動かした値を尊重し
+        // 二度と勝手に上書きしない。
+        if (version < 6) {
+          s = {
+            ...s,
+            ...INITIAL_SCALARS,
+            meldSlots: INITIAL_MELD_SLOTS.map((slot) => ({ ...slot })),
+            handGroupByMeldCount: INITIAL_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
+            ...INITIAL_KAMICHA_SCALARS,
+            kamichaHandGroupByMeldCount: INITIAL_KAMICHA_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
+            kamichaMeldSlots: INITIAL_KAMICHA_MELD_SLOTS.map((slot) => ({ ...slot })),
+            riverSlots: INITIAL_RIVER_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riverSlots"],
+            riichiStickSlots: INITIAL_RIICHI_STICK_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riichiStickSlots"],
+            nameplateSlots: INITIAL_NAMEPLATE_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["nameplateSlots"],
+            toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT },
+            toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
           };
         }
         return s as Tile3DDebugState;

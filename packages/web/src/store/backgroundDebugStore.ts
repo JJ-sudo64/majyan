@@ -18,6 +18,12 @@ import { persist } from "zustand/middleware";
  * ・既存フィールドの「初期値そのもの」を変える必要がある場合は、必ず
  *   versionを1つ上げ、migrate関数でそのフィールドだけを明示的に補正する
  *   こと（他のフィールドはmigrate内で絶対に触らない）。
+ * ・唯一の例外がv1→v2(2026-09-22)：localStorageはブラウザごとに別々なため
+ *   実機調整をほぼEdgeでしか行っておらず、Chrome等他ブラウザには未調整の
+ *   値が残っていた（＝配置がブラウザごとに違って見える不具合）。ユーザー
+ *   から明示的に「全ブラウザで統一してほしい」と要望されたため、この
+ *   1回に限りEdgeの確定値を全ブラウザへ強制再適用した
+ *   （tile3dDebugStore.tsのv4→v5と同じ理由）。
  *
  * 開発中の調整用なので、値が決まったらstyles.css側に固定値として
  * 書き換え、このストア・パネルごと削除してよい。
@@ -59,12 +65,15 @@ export interface BackgroundDebugState {
 export const useBackgroundDebugStore = create<BackgroundDebugState>()(
   persist(
     (set) => ({
-      bgScale: 100,
-      bgPosX: 0,
-      bgPosY: 0,
+      // 実機(Edge)で詰めた確定値。新しい卓面背景(table-surface-bg-2.png、
+      // tableBackgroundStore.ts参照)に合わせた位置・拡大率で、以前の
+      // 「素のまま(100%, 0, 0)」ではパネル絵とスコアUIがズレる。
+      bgScale: 101,
+      bgPosX: -2,
+      bgPosY: 9,
       centerBoardOffsetX: 0,
-      centerBoardOffsetY: -40,
-      centerBoardScale: 1,
+      centerBoardOffsetY: -3,
+      centerBoardScale: 1.1,
       isPanelOpen: false,
       setBgScale: (bgScale) => set({ bgScale }),
       setBgPosX: (bgPosX) => set({ bgPosX }),
@@ -76,20 +85,33 @@ export const useBackgroundDebugStore = create<BackgroundDebugState>()(
     }),
     {
       name: "background-debug-store",
-      version: 1,
+      version: 2,
       partialize: (state) => {
         const { isPanelOpen, setIsPanelOpen, ...rest } = state;
         return rest;
       },
-      // version 0→1: bgPosX/bgPosYの単位を「%指定」から「pxオフセット」に
-      // 変更した。旧データの%値(0〜100前後)をそのままpxとして引き継ぐと
-      // 意味が変わってしまう（例: 旧50%=中央のつもりが新50pxでは中心から
-      // 50px右にズレる）ため、この2フィールドだけ新しい既定値(0px=中央)へ
-      // 明示的にリセットする。bgScale/centerBoard*は意味が変わっていない
-      // ので絶対ルール通り一切触らない。
-      migrate: (persisted) => {
-        const state = persisted as BackgroundDebugState;
-        return { ...state, bgPosX: 0, bgPosY: 0 } as BackgroundDebugState;
+      migrate: (persisted, version) => {
+        let state = persisted as BackgroundDebugState;
+        if (version < 1) {
+          // version 0→1: bgPosX/bgPosYの単位を「%指定」から「pxオフセット」に
+          // 変更した。旧データの%値(0〜100前後)をそのままpxとして引き継ぐと
+          // 意味が変わってしまう（例: 旧50%=中央のつもりが新50pxでは中心から
+          // 50px右にズレる）ため、この2フィールドだけ新しい既定値(0px=中央)へ
+          // 明示的にリセットする。bgScale/centerBoard*は意味が変わっていない
+          // ので絶対ルール通り一切触らない。
+          state = { ...state, bgPosX: 0, bgPosY: 0 };
+        }
+        // version 1→2: ★これも「ブラウザ間の見た目統一」を目的にした例外的な
+        // 強制上書き★（tile3dDebugStore.tsのv4→v5と同じ理由・同じユーザー
+        // 要望）。このストアはブラウザごとに別々のlocalStorageを持つため、
+        // 実機調整をしたEdge以外のブラウザには「未調整(既定の100%, 0, 0)の
+        // まま」だったり「調整途中の値」が残っていた可能性がある。Edgeで
+        // 最終確定した値を全ブラウザへ今回限り強制再適用する。以後は通常
+        // どおりユーザーの調整値を尊重する。
+        if (version < 2) {
+          state = { ...state, bgScale: 101, bgPosX: -2, bgPosY: 9, centerBoardOffsetX: 0, centerBoardOffsetY: -3, centerBoardScale: 1.1 };
+        }
+        return state as BackgroundDebugState;
       },
     },
   ),
