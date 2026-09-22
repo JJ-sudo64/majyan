@@ -160,7 +160,7 @@ export const CHARACTERS: Record<string, Character> = {
   hiiragi: {
     id: "hiiragi",
     name: "開花の巫女・ヒイラギ",
-    description: "必殺技「開花」: ドラ表示牌をもう1枚めくる。",
+    description: "必殺技「開花」: ドラ表示牌をもう1枚めくって、ドラを増やす。",
     winQuote: "花は散っても、想いは散りません。だから、また咲かせましょう…！",
     avatar: "/avatars/characters/hiiragi.webp",
     cutin: "/avatars/characters/hiiragi-cutin.webp",
@@ -170,7 +170,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "hiiragi-kaika",
       name: "開花",
-      description: "ドラ表示牌をもう1枚めくる（カンドラと同じ仕組み）。",
+      description: "ドラ表示牌をもう1枚めくって、ドラを増やす。",
       hooks: {
         onActivate: (ctx) => ({ ...ctx.round, wall: revealNextDora(ctx.round.wall) }),
       },
@@ -182,7 +182,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 「積み込み師」は実在の職業名ではない造語のため、読み上げが不自然な
     // 区切り方をすることがある。表示名はそのままに読み上げ専用の読みを指定する。
     voiceName: "ツミコミシ・ナギ",
-    description: "必殺技「積み込み」: 今引いた牌を山に戻し、新しい牌を引き直す。",
+    description: "必殺技「積み込み」: 今引いた牌を山に戻し、代わりに新しい牌を引き直す。",
     winQuote: "牌の並びなんて、ちょっと手を加えるだけ。運も実力のうち、でしょう？",
     avatar: "/avatars/characters/nagi.webp",
     cutin: "/avatars/characters/nagi-cutin.webp",
@@ -195,7 +195,7 @@ export const CHARACTERS: Record<string, Character> = {
       id: "nagi-tsumikomi",
       name: "積み込み",
       voiceName: "ツミコミ",
-      description: "今の自摸牌を山の下に戻し、新しい牌を引き直す。",
+      description: "今引いた牌を山に戻し、代わりに新しい牌を引き直す。",
       hooks: {
         // チー/ポン/大明槓で手番だけ回ってきた直後（自分ではまだ何も自摸っていない）
         // は発動できない。hasOwnPendingDrawの説明コメント参照。
@@ -220,7 +220,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 「一閃」は読み上げで詰まったり誤読されたりしやすいため、読み上げ専用の
     // 読みを指定する。
     voiceName: "イッセンの雷神・ライコ",
-    description: "必殺技「一閃」: 一発中の自摸で、ゲージが満タンなら自動発動し、山に残る自分の待ち牌を強制的に引き寄せて一発ツモを狙う（ボタン操作不要）。",
+    description: "必殺技「一閃」: リーチ後の一発中、ゲージが満タンなら自動で発動し、待ち牌を引き寄せて一発ツモを狙う。",
     winQuote: "迷いは捨てろ。考えた瞬間、負けは始まる。オレの一撃は、雷鳴とともにすべてを終わらせる。",
     avatar: "/avatars/characters/raiko.webp",
     cutin: "/avatars/characters/raiko-cutin.webp",
@@ -231,7 +231,7 @@ export const CHARACTERS: Record<string, Character> = {
       id: "raiko-issen",
       name: "一閃",
       voiceName: "イッセン",
-      description: "一発中のみ発動可能。ゲージ満タンなら自分の一発中の自摸の瞬間に自動発動し、自分の待ち牌のうち山に残っている1枚を強制的に引き寄せる（山に残っていなければ不発）。カリンが「借り物」で借りた場合のみ、借りた本人の一発中にuseSkillボタンで手動発動する（下のonActivate参照）。",
+      description: "リーチ後の一発中にのみ発動できる。ゲージが満タンなら、自分がツモった瞬間に自動で発動し、山に残っている自分の待ち牌を1枚引き寄せる（山に残っていなければ不発）。",
       // 一発＝リーチ後にしか発動しない技のため、gameEngine.tsのcanUseSkill/
       // canBorrowSkillにある「リーチ中は必殺技を使えない」という一律ブロックの
       // 例外にする（付けないと一発中という条件そのものに阻まれて永久に
@@ -299,7 +299,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 「嶺上」は読み上げ(speechSynthesis)だと「みねじょう」等に誤読されやすいため、
     // 表示名はそのままに読み上げ専用の読みを別途指定する。
     voiceName: "リンシャンの予言者・トキ",
-    description: "必殺技「嶺上顕現」: 次に聴牌中でカンをした瞬間、その嶺上ツモを待ち牌にすり替えて嶺上開花を確定させる。",
+    description: "必殺技「嶺上顕現」: 発動後、次にテンパイ中にカンをすると、嶺上ツモが待ち牌にすり替わり嶺上開花で和了できる。",
     winQuote: "未来は決まっている。ただ、まだ見えないだけだ。",
     avatar: "/avatars/characters/toki.webp",
     cutin: "/avatars/characters/toki-cutin.webp",
@@ -310,7 +310,7 @@ export const CHARACTERS: Record<string, Character> = {
       id: "toki-reijou-kengen",
       name: "嶺上顕現",
       voiceName: "リンシャンケンゲン",
-      description: "発動後、次に自分が聴牌中にカン（暗槓・加槓・大明槓のいずれか）をした瞬間、その嶺上ツモが山に残る自分の待ち牌にすり替わり嶺上開花が確定する（山に残っていなければ不発。聴牌でないカンでは権利は持ち越される）。",
+      description: "発動後、次にテンパイ中にカンをした瞬間、そのカンで引く嶺上牌が自分の待ち牌にすり替わり、嶺上開花で必ず和了できる（待ち牌が山に残っていなければ不発）。テンパイでない時にカンをしても、権利はそのまま持ち越される。",
       hooks: {
         // 実際の効果はカンの解決処理側(gameEngine.tsのresolveGuaranteedRinshan)に
         // あり、ここではその権利フラグを立てるだけ。
@@ -327,7 +327,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 「千里眼」は読み上げ(speechSynthesis)だと「せんりめ」等に誤読されやすいため、
     // 表示名はそのままに読み上げ専用の読みを別途指定する。
     voiceName: "センリガンの忍・カゲロウ",
-    description: "必殺技「透視の術」: 発動すると1巡の間、他家3人の手牌が見えるようになる。",
+    description: "必殺技「透視の術」: 発動すると1巡の間、他の3人の手牌が見えるようになる。",
     winQuote: "勝負は、派手に勝つより、静かに勝つもの。誰も気づいた時には、もう終わってる。",
     avatar: "/avatars/characters/kagerou.webp",
     cutin: "/avatars/characters/kagerou-cutin.webp",
@@ -338,7 +338,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "kagerou-toushi",
       name: "透視の術",
-      description: "発動した瞬間から、次に自分の番でツモするまでの1巡の間、他家3人の手牌がすべて見えるようになる。",
+      description: "発動すると、次に自分がツモるまでの1巡の間、他の3人の手牌がすべて見えるようになる。",
       hooks: {
         // 実際の可視化はUI側(OpponentArea.tsx)がround.handsRevealedToを見て行う。
         // 効果が切れるタイミング（発動者が1巡して自分のツモを迎えた瞬間）は
@@ -352,7 +352,7 @@ export const CHARACTERS: Record<string, Character> = {
     name: "運命の配師・ルナ",
     // 「配師」は実在の職業名ではない造語のため読み上げが不自然になりやすい。
     voiceName: "運命のハイシ・ルナ",
-    description: "必殺技「運命の采配」: 発動した次の局の配牌直後、手牌のうち3枚を自由に山の新しい牌と交換できる。",
+    description: "必殺技「運命の采配」: 発動した次の局で、手牌の好きな3枚を山の新しい牌と交換できる。",
     winQuote: "配られた運命は変えられなくても、並び替えることはできる。それが、わたしのやり方。",
     avatar: "/avatars/characters/runa.webp",
     cutin: "/avatars/characters/runa-cutin.webp",
@@ -363,7 +363,7 @@ export const CHARACTERS: Record<string, Character> = {
       id: "runa-unmei-no-saihai",
       name: "運命の采配",
       voiceName: "ウンメイのサイハイ",
-      description: "発動すると、次の局の配牌直後から自分が最初の1枚を打牌・副露するまでの間に限り、手牌のうち好きな3枚を（1枚ずつ）山の新しい牌と交換できる。",
+      description: "発動すると、次の局の配牌直後から、自分が最初の1枚を切ったり鳴いたりするまでの間だけ、手牌の好きな3枚を山の新しい牌と交換できる。",
       hooks: {
         // 実際の交換権の消費・行使はgameEngine.tsのcanSwapStartingTile/
         // applySwapTileActionと、局をまたぐ橋渡しはgameStore.tsの
@@ -382,7 +382,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 「山読み」は麻雀用語の造語で、漢字のまま読み上げると「さんどく」等に
     // 誤読されやすい。
     voiceName: "ヤマヨミの軍師・スバル",
-    description: "必殺技「山読み」: 発動すると、その局が終わるまで待ち牌が実際に山へ何枚残っているかを正確に見抜けるようになる。",
+    description: "必殺技「山読み」: 発動すると、その局が終わるまで待ち牌が山に何枚残っているか正確にわかるようになる。",
     winQuote: "運任せなんて言葉は、数えることを放棄した者の言い訳だ。俺はただ、見えている数を数えただけだよ。",
     avatar: "/avatars/characters/subaru.webp",
     cutin: "/avatars/characters/subaru-cutin.webp",
@@ -395,7 +395,7 @@ export const CHARACTERS: Record<string, Character> = {
       id: "subaru-yamayomi",
       name: "山読み",
       voiceName: "ヤマヨミ",
-      description: "発動すると、その局が終わるまで、待ち牌表示の残り枚数が「見えている牌からの推測」ではなく「実際に山（liveTiles）に残っている正確な枚数」になる。",
+      description: "発動すると、その局が終わるまで、待ち牌の残り枚数が推測ではなく、実際に山に残っている正確な枚数で表示されるようになる。",
       hooks: {
         // 実際の枚数計算はUI側(Hand.tsx)がround.wallReadRevealedToを見て行う。
         // 次局まで持ち越さず、その局の間だけ効果が続く（次局の配牌でリセットされる）。
@@ -408,7 +408,7 @@ export const CHARACTERS: Record<string, Character> = {
     name: "百戦の学匠・カエデ",
     // 「学匠」は実在の一般的な単語ではない造語のため読み上げが不自然になりやすい。
     voiceName: "百戦のガクショウ・カエデ",
-    description: "必殺技「手ほどき」: 発動すると、今の自摸牌を必ずシャンテンを進める有効牌にすり替える（聴牌中は発動不可）。",
+    description: "必殺技「手ほどき」: 発動すると、今引いた牌を手が必ず良くなる牌にすり替える（テンパイ中は発動不可）。",
     winQuote: "一歩ずつでいい。だが、その一歩を疎かにする者に、大成は無い。",
     avatar: "/avatars/characters/kaede.webp",
     cutin: "/avatars/characters/kaede-cutin.webp",
@@ -507,7 +507,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "kaede-tehodoki",
       name: "手ほどき",
-      description: "発動すると、今の自摸牌を山の下に戻し、手牌のシャンテン数を必ず1つ以上進める牌を山から強制的に引き直す（該当する牌が山に残っていなければ不発）。聴牌中（あと1枚で和了の状態）は発動できない。",
+      description: "発動すると、今引いた牌を山に戻し、手が必ず良くなる牌を山から引き直す（該当する牌が山に残っていなければ不発）。テンパイ中（あと1枚で和了の状態）は発動できない。",
       hooks: {
         // 聴牌中は発動不可（有効牌＝和了牌そのものになってしまい、ライコの
         // 一発ツモ確定と役割が被って強すぎるため）。この判定は本人の現在の
@@ -550,7 +550,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 「伊達者」は「だてもの」と読む慣用読みだが、一般的なTTSの規則読みでは
     // 「いだてもの」等に誤読されやすいため、読み上げ専用の読みを指定する。
     voiceName: "捨て身のダテモノ・ジン",
-    description: "必殺技「大明立直」: 必殺技ゲージが満タンの状態で立直を宣言すると、その立直が自動的にオープンリーチ（手牌を全員に公開）になる代わりに、和了時の翻数が3翻アップする。",
+    description: "必殺技「大明立直」: ゲージが満タンの状態でリーチすると、自動的にオープンリーチ（手牌を全員に公開）になる代わりに、和了時の翻数が3翻アップする。",
     winQuote: "見せてやるよ、俺の手は。逃げも隠れもしない、それが漢の勝負ってもんだ。",
     avatar: "/avatars/characters/jin.webp",
     cutin: "/avatars/characters/jin-cutin.webp",
@@ -563,7 +563,7 @@ export const CHARACTERS: Record<string, Character> = {
       // 造語の四字熟語風の技名で、一般的な音読み規則だと「だいめいりっちょく」
       // 等に誤読されやすいため、読み上げ専用の読みを指定する。
       voiceName: "ダイミンリーチ",
-      description: "必殺技ゲージが満タンの状態で立直を宣言すると、useSkillボタンを介さずその立直が自動的にオープンリーチになる（手牌が全員に公開される。ゲージはその場で消費される）。その代わり、そのまま和了できれば「オープンリーチ」役として翻数が3翻アップする。",
+      description: "必殺技ゲージが満タンの状態でリーチを宣言すると、自動的にオープンリーチ（手牌が全員に公開されるリーチ）になる。その代わり、そのまま和了できれば「オープンリーチ」役として翻数が3翻アップする。",
       hooks: {
         // useSkillアクションを介さず、ゲージ満タンでのリーチ宣言そのものが
         // トリガーになる（gameEngine.tsのapplyRiichiAction参照）。ここでは
@@ -578,7 +578,7 @@ export const CHARACTERS: Record<string, Character> = {
   ren: {
     id: "ren",
     name: "強運の賭け師・レン",
-    description: "必殺技「捲る運命」: 必殺技ゲージが満タンの状態で立直を宣言すると自動的に発動し、そのまま和了すれば裏ドラが必ず1つ以上乗る。",
+    description: "必殺技「捲る運命」: ゲージが満タンの状態でリーチすると自動的に発動し、そのまま和了すれば裏ドラが必ず1つ以上乗る。",
     winQuote: "運は掴むものじゃない。捲るものだ。ほら、見えただろ？",
     avatar: "/avatars/characters/ren.webp",
     cutin: "/avatars/characters/ren-cutin.webp",
@@ -591,7 +591,7 @@ export const CHARACTERS: Record<string, Character> = {
       // 「捲る」は「めくる」と読ませたいが、一般的なTTSでは「まくる」等に
       // 誤読されやすいため、読み上げ専用の読みを指定する。
       voiceName: "メクルウンメイ",
-      description: "必殺技ゲージが満タンの状態で立直を宣言すると、useSkillボタンを介さず自動的に発動する（ゲージはその場で消費される）。以後この局でこのプレイヤーが立直中に和了した瞬間、手牌（+和了牌）の中で最も多い牌が裏ドラとして必ず1枚以上乗るよう、山の裏ドラ表示牌を入れ替える（対象の牌が山に残っていない場合は不発）。",
+      description: "必殺技ゲージが満タンの状態でリーチを宣言すると自動的に発動する。以後その局でリーチ中に和了できれば、手牌の中で一番多い牌が裏ドラとして必ず1枚以上乗る。",
       hooks: {
         // useSkillアクションを介さず、ゲージ満タンでのリーチ宣言そのものが
         // トリガーになる（gameEngine.tsのapplyRiichiAction参照）。実際の
@@ -608,7 +608,7 @@ export const CHARACTERS: Record<string, Character> = {
   masato: {
     id: "masato",
     name: "卓上のてんこしゃんこ・マサト",
-    description: "必殺技「三色の煌めき」: 発動すると、三色同順に絡みそうな牌が5秒間光って見える。",
+    description: "必殺技「三色の煌めき」: 発動すると、三色同順に近づく牌が5秒間光って見える演出。",
     winQuote: "てんこしゃんこ、っと。……あれ、三色乗ってる？ラッキー。",
     avatar: "/avatars/characters/masato.webp",
     cutin: "/avatars/characters/masato-cutin.webp",
@@ -620,7 +620,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "masato-sanshoku-kirameki",
       name: "三色の煌めき",
-      description: "発動すると、現在の手牌の中で三色同順（同じ数字の順子を萬子・筒子・索子で1組ずつ揃える役）に最も絡んでいる牌が5秒間光って見える。局面や点数には一切影響しない、見た目だけの演出。",
+      description: "発動すると、三色同順（萬子・筒子・索子で同じ数字の順子を1組ずつ揃える役）に近づいている牌が5秒間光る。見た目だけの演出で、局面や点数には影響しない。",
       hooks: {
         // roundの状態を一切変えない純粋な見た目だけの効果。ハイライト対象
         // の計算・表示はUI側(Hand.tsxのcomputeSanshokuHintCodes)が
@@ -632,7 +632,7 @@ export const CHARACTERS: Record<string, Character> = {
   mirai: {
     id: "mirai",
     name: "先読みの巫女・ミライ",
-    description: "必殺技「未来視」: 発動すると、自分がこれから自摸ってくる牌が3回ぶん見える。誰かが鳴いて手番の巡りがズレると、以降の予知は外れる。",
+    description: "必殺技「未来視」: 発動すると、これから自分がツモる牌を3回分先に見られる。誰かが鳴いて順番がズレると予知は外れる。",
     winQuote: "見えていたもの、そのまま。……たまには外れてくれても面白いのにね。",
     avatar: "/avatars/characters/mirai.webp",
     cutin: "/avatars/characters/mirai-cutin.webp",
@@ -642,7 +642,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "mirai-miraishi",
       name: "未来視",
-      description: "発動すると、通常のローテーション（誰も鳴かない前提）でこの後自分の番に自摸ってくるはずの牌を3回ぶん、あらかじめ見ることができる。発動はcanUseSkillの制約上必ず自分の手番（自摸直後）のため、次の自分の自摸は山の4番目・8番目・12番目の牌になる。誰かが鳴いて手番の巡りがズレた場合、その時点で予知は外れる（それ自体が仕様）。",
+      description: "発動すると、誰も鳴かない前提で、この先3回分の自分のツモ牌をあらかじめ見ることができる。途中で誰かが鳴いて順番がズレると、それ以降の予知は外れてしまう。",
       hooks: {
         onActivate: (ctx) => {
           const liveTiles = ctx.round.wall.liveTiles;
@@ -662,7 +662,7 @@ export const CHARACTERS: Record<string, Character> = {
   saki: {
     id: "saki",
     name: "強気のヴィーナス・サキ",
-    description: "必殺技「特技ドラ引き」: 必殺技ゲージが満タンになると、次に自分がツモる瞬間、useSkillボタンを介さず自動的にその自摸がドラ（赤ドラ含む）になる。",
+    description: "必殺技「特技ドラ引き」: 必殺技ゲージが満タンになると、次に自分がツモる瞬間、自動的にその牌がドラ（赤ドラ含む）になる。",
     winQuote: "運も実力のうち？　いいえ、これは実力よ。持ってる女に、外れなんて無いの。",
     avatar: "/avatars/characters/saki.webp",
     cutin: "/avatars/characters/saki-cutin.webp",
@@ -672,7 +672,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "saki-dora-biki",
       name: "特技ドラ引き",
-      description: "必殺技ゲージが満タンになると、次に自分がツモる瞬間に自動的に発動する（無条件でドラが手に入る効果のため、狙って外れ牌を引く意味が無い＝ボタンで選んで使う必要が無い）。現在ドラとして数えられる牌（表示牌から求まるドラ、および赤ドラの5m/5p/5s）のいずれかを、実際にツモる前に山の先頭とすり替える。山に複数種類残っていてもどれが引けるかはランダム（山の並び順依存）で、該当する牌が1枚も残っていなければ不発（ゲージは消費される）。",
+      description: "必殺技ゲージが満タンになると、次に自分がツモる瞬間に自動的に発動する。今数えられるドラ（表ドラと赤ドラ5m/5p/5sのいずれか）のうち山に残っている1枚を、実際にツモる前にすり替える。複数種類残っていてもどれが引けるかはランダムで、1枚も残っていなければ不発（ゲージは消費される）。",
       hooks: {
         // ナギ/ライコ/カエデ/コウキと違い、「今引いた牌を見てから選んで使う」
         // タイプの必殺技ではない（無条件でドラが手に入るだけなので、見てから
@@ -709,7 +709,7 @@ export const CHARACTERS: Record<string, Character> = {
   naoki: {
     id: "naoki",
     name: "卓上の暴君・ナオキ",
-    description: "必殺技「クマクマタイム」: パッシブスキル。自分の親番で（自分の和了によって）連荘すると自動的に発動し、次の局から配牌が良くなる。連荘が止まると通常に戻る。",
+    description: "必殺技「クマクマタイム」: パッシブスキル。自分が和了して親のまま連荘すると自動的に発動し、次の局から配牌が良くなる。連荘が止まると元に戻る。",
     winQuote: "誰の卓だ？　俺の卓だ。親が続く限り、この場はずっと俺のものだ。",
     avatar: "/avatars/characters/naoki.webp",
     cutin: "/avatars/characters/naoki-cutin.webp",
@@ -721,7 +721,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "naoki-kuma-kuma-time",
       name: "クマクマタイム",
-      description: "パッシブスキル。自分がツモ/ロン和了して親のまま連荘し、次局を迎えると自動的に発動し、その局の配牌が山からの入れ替えである程度強化される（できる限りシャンテンを進めた状態からスタートする）。荒牌流局の親テンパイ継続や九種九牌流局による連荘（本場は付くが和了ではない）では発動しない。連荘が途切れて親が変わった時点で自動的に効果が切れ、通常の配牌に戻る。",
+      description: "パッシブスキル。自分が和了して親のまま連荘し、次の局を迎えると自動的に発動し、その局の配牌がある程度強化される（できるだけ良い手からスタートできる）。和了以外の理由での連荘（流局によるものなど）では発動しない。親が変わると効果は元に戻る。",
       hooks: {
         // ゲージ・useSkillアクションを一切使わない完全パッシブ。実際の
         // 発動判定・効果はここ（配牌直後に呼ばれるonDealHand）で完結する。
@@ -752,7 +752,7 @@ export const CHARACTERS: Record<string, Character> = {
   tomohiro: {
     id: "tomohiro",
     name: "ヤンチャな貴公子・トモヒロ",
-    description: "必殺技「手牌が一枚しかない人」: パッシブスキル。自分の手牌が4面子を副露し尽くした裸単騎になっている間、他家が聴牌していてもその当たり牌を引かせない。",
+    description: "必殺技「手牌が一枚しかない人」: パッシブスキル。手牌が4面子すべて鳴き終わって残り1枚（単騎待ち）の間、他の誰かがテンパイしていてもその当たり牌を引かせない。",
     winQuote: "たった1枚で待つ男に、隙なんて見せられるわけないだろ？",
     avatar: "/avatars/characters/tomohiro.webp",
     cutin: "/avatars/characters/tomohiro-cutin.webp",
@@ -764,7 +764,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "tomohiro-tefuda-ichimai",
       name: "手牌が一枚しかない人",
-      description: "パッシブスキル。自分の手牌が4面子すべて副露済み・濃厚1枚（裸単騎）になっている間、常に効果を発揮する。他家の誰かが聴牌している状態でツモ番を迎えても、次に引くはずの牌がその他家の当たり牌（和了牌）であれば、山に残る当たり牌でない別の1枚と入れ替えて引かせない（当たり牌以外が山に残っていない場合は入れ替えられず不発）。自分自身のツモには影響しない。",
+      description: "パッシブスキル。手牌が4面子すべて鳴き終わって残り1枚（単騎待ち）の間、常に効果を発揮する。他の誰かがテンパイしている時、その人が次に引くはずの牌が当たり牌であれば、山に残る別の安全な牌とすり替えて引かせない（山に安全な牌が残っていなければ不発）。自分自身のツモには影響しない。",
       hooks: {
         // 実際の入れ替えはgameEngine.tsのapplyDrawActionが実際のツモを
         // 引く直前、盤上の全キャラに対して呼ぶonBeforeDrawで行う。
@@ -799,7 +799,7 @@ export const CHARACTERS: Record<string, Character> = {
   koki: {
     id: "koki",
     name: "気前の良い散財家・コウキ",
-    description: "必殺技「太っ腹」: 発動した局の間、ドラ（赤ドラ含む）を切るたびその瞬間から次のツモが必ず有効牌（シャンテンを進める、またはテンパイなら和了牌）になる。この効果は消費されず、局が終わるまで何度でもドラを切るたび発動する。",
+    description: "必殺技「太っ腹」: 発動した局の間、ドラ（赤ドラ含む）を切るたびに次のツモが必ず手の良くなる牌（テンパイ中なら和了牌）になる。局が終わるまで何度でも繰り返し使える。",
     winQuote: "ケチケチしても始まらない。パーッと捨てて、パーッと拾おうぜ。",
     avatar: "/avatars/characters/koki.webp",
     cutin: "/avatars/characters/koki-cutin.webp",
@@ -811,7 +811,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "koki-futoppara",
       name: "太っ腹",
-      description: "発動すると、その局が終わるまで「ドラ（表ドラ・赤ドラいずれも）を切った瞬間、次の自分のツモが必ず有効牌になる」効果がずっと有効になる。ドラを切るたびに、次に自分がツモった瞬間、山から手牌のシャンテン数を必ず1つ以上進める牌（テンパイ中なら和了牌そのもの）を強制的に引き寄せる（該当する牌が山に残っていなければ不発）。この効果自体は消費されず、局が終わるまで何度でもドラを切るたび繰り返し発動する（発動済みの間は再発動できない）。局をまたいでは持ち越さない。",
+      description: "発動すると、その局が終わるまで効果が続く。ドラ（表ドラ・赤ドラいずれも）を切るたびに、次の自分のツモが必ず手の良くなる牌（テンパイ中なら和了牌そのもの）になる（該当する牌が山に残っていなければ不発）。この効果は何度でも繰り返し使えるが、次の局には持ち越されない。",
       hooks: {
         canActivate: (ctx) => {
           const p = ctx.round.players[ctx.owner]!;
@@ -866,7 +866,7 @@ export const CHARACTERS: Record<string, Character> = {
   takaharu: {
     id: "takaharu",
     name: "最速最強・タカハル",
-    description: "必殺技「アトミックベタ降り」: 発動後、手牌のメンツ（刻子または順子の3枚組）を1枚切って崩すたびに盾が立ち、その盾が立っている間にロンされるはずだった牌を切っても1度だけロンを無効化する。盾は局が終わるまで何度でも張り直せる。",
+    description: "必殺技「アトミックベタ降り」: 発動後、手牌の完成した面子（刻子や順子）を崩すたびに盾が立ち、盾がある間はロンされるはずの牌を切っても1度だけ無効化される。盾は局が終わるまで何度でも張り直せる。",
     winQuote: "最速も最強も、生き残ってこそだろ？降りる時はきっちり降りる、それだけの話だ。",
     avatar: "/avatars/characters/takaharu.webp",
     cutin: "/avatars/characters/takaharu-cutin.webp",
@@ -878,7 +878,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "takaharu-atomic-bettaori",
       name: "アトミックベタ降り",
-      description: "発動すると、その局が終わるまで「アトミックベタ降り」が有効になる（発動済みで未消費の間は再発動できない）。有効な間、手牌で既に完成しているメンツ（同じ牌3枚の刻子、または連続する3つの数牌の順子）から1枚切って崩すたびに盾が立つ。盾が立っている間は、本来なら他家にロンされてしまう牌を切ってもロンされない（フリテンとは別枠の無効化）。ただし盾は「実際にロンを防いだ瞬間」にのみ消費される（安全な牌を切っている間は温存される）。盾が消費された後も、また別のメンツを崩せば何度でも盾を張り直せる。",
+      description: "発動すると、その局が終わるまで効果が続く。手牌の完成した面子（同じ牌3枚の刻子、または連続する3つの数牌の順子）を1枚切って崩すたびに盾が1つ立つ。盾がある間は、本来ロンされてしまう牌を切っても見逃してもらえる。盾はロンを実際に防いだ時だけ消費され、また別の面子を崩せば何度でも張り直せる。",
       hooks: {
         canActivate: (ctx) => !ctx.round.players[ctx.owner]!.bettaoriActive,
         onActivate: (ctx) => ({
@@ -906,7 +906,7 @@ export const CHARACTERS: Record<string, Character> = {
   nyanjiro: {
     id: "nyanjiro",
     name: "怪鳥・にゃん次郎",
-    description: "必殺技「アトミックリーチ」: 必殺技ゲージが溜まった状態でリーチすると、そのリーチがアトミックリーチになる。アトミックリーチが発動した局は、他のプレイヤーはリーチができなくなる。",
+    description: "必殺技「アトミックリーチ」: ゲージが満タンの状態でリーチすると、自動的にアトミックリーチになる。発動した局は、他の3人がリーチできなくなる。",
     winQuote: "鳴くのはオレだけでいい。お前らの声は、もう聞こえなくなる。",
     avatar: "/avatars/characters/nyanjiro.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
@@ -920,7 +920,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "nyanjiro-atomic-riichi",
       name: "アトミックリーチ",
-      description: "必殺技ゲージが満タンの状態で立直を宣言すると、useSkillボタンを介さずその立直が自動的にアトミックリーチになる（ゲージはその場で消費される）。アトミックリーチが成立した局は、以後その局が終わるまで他家3人が誰もリーチを宣言できなくなる。",
+      description: "必殺技ゲージが満タンの状態でリーチを宣言すると、自動的にアトミックリーチになる。成立した局は、以後その局が終わるまで他の3人が誰もリーチを宣言できなくなる。",
       hooks: {
         // useSkillアクションを介さず、ゲージ満タンでのリーチ宣言そのものが
         // トリガーになる（gameEngine.tsのapplyRiichiAction参照）。ここでは
@@ -940,7 +940,7 @@ export const CHARACTERS: Record<string, Character> = {
     // TTSの規則読みだと「はいはい」等に誤読されやすい（正しくは
     // 「はいぱい」）ため、読み上げ専用の読みを指定する。
     voiceName: "表裏のハイパイシ・メビウス",
-    description: "必殺技「陰陽配牌」: パッシブスキル。親番でない局は配牌に必ず面子（刻子または順子）が1つ以上最初から揃っている。その代わり、自分が親番の局は逆に配牌が必ず面子0個の完全にバラバラな形になる。",
+    description: "必殺技「陰陽配牌」: パッシブスキル。親番でない局は配牌に面子（刻子や順子）が必ず1つ以上揃っている。その代わり、親番の局は逆に配牌が必ず面子0個のバラバラな形になる。",
     winQuote: "表があれば、裏がある。今のわたしは、ちゃんと表側。",
     avatar: "/avatars/characters/mebius.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
@@ -958,7 +958,7 @@ export const CHARACTERS: Record<string, Character> = {
       // 「配牌」も一般的なTTSの規則読みだと「はいはい」等に誤読されやすい
       // （正しくは「はいぱい」）ため、読み上げ専用の読みを指定する。
       voiceName: "インヨウハイパイ",
-      description: "パッシブスキル。配牌のたびに自動的に効果を発揮する。自分が親番でない局は、配牌に完成した面子（同じ牌3枚の刻子、または連続する3つの数牌の順子）が1つも無ければ、山から調達できる面子を1つ手牌の適当な3枚と入れ替えて必ず1つ以上揃える（山にも該当する3枚が無ければ不発）。逆に自分が親番の局は、配牌に完成した面子が1つでもあれば、それが無くなるまで山の牌と入れ替え続け、必ず面子0個の完全にバラバラな配牌にする（安全な入れ替え先が見つからなければそこで諦める。極めて稀な不発）。",
+      description: "パッシブスキル。配牌のたびに自動で発動する。親番でない局は、配牌に完成した面子（同じ牌3枚の刻子、または連続する3つの数牌の順子）が1つも無ければ、山の牌と入れ替えて必ず1つ以上揃える。逆に親番の局は、配牌に完成した面子があれば、無くなるまで山の牌と入れ替え、必ず面子0個のバラバラな配牌にする。",
       hooks: {
         // 「自分が親かどうか」で効果が正反対になる唯一のキャラ。onDealHandは
         // 盤上の全プレイヤーのキャラクターに対して呼ばれるため、ここで
@@ -983,7 +983,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 「こく」（時刻・深刻等）に誤読されやすいため、読み上げ専用の読みを
     // 指定する。
     voiceName: "トキを止める者・ゼノ",
-    description: "必殺技「時間停止」: 発動すると時間が止まり、自分だけが2巡連続で行動できる（他家は打牌に一切反応できない）。",
+    description: "必殺技「時間停止」: 発動すると時間が止まり、自分だけが2巡連続で行動できる（他の3人は一切反応できない）。",
     winQuote: "止まった刻の中で足掻いたところで、何も変わりはしないさ。",
     avatar: "/avatars/characters/zeno.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
@@ -995,7 +995,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "zeno-jikan-teishi",
       name: "時間停止",
-      description: "発動すると、以後自分の打牌が2回解決されるまで時間が止まる。この間、他家はロン・チー・ポン・カン・槍槓を含め一切反応できない。1回目の打牌が解決された直後は次家に手番が渡らずそのまま自分がもう一度ツモり（＝2巡連続で行動できる）、2回目の打牌が解決された時点で通常通り次家へ手番が進む。",
+      description: "発動すると、自分が2回打牌するまで時間が止まる。この間、他の3人はロン・チー・ポン・カンなどで一切反応できない。1回目の打牌の後もそのまま自分の番が続き、2回連続でツモ・打牌ができる。",
       hooks: {
         // 既に発動中（timeStopTurnsRemaining>0）の間は再発動できないように
         // しておく（二重発動しても意味が無い）。
@@ -1017,7 +1017,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 「うつしみ」自体は問題無いものの「百面」は「ひゃくめん」「ひゃくおもて」
     // のどちらでも読まれうるため、読み上げ専用の読みを指定する。
     voiceName: "ヒャクメンのウツシミ・カガミ",
-    description: "必殺技「写し身」: 発動すると、同卓者が直近に発動した必殺技をそのまま自分に対して再現する（発動者が自分自身だった場合や、まだ誰も発動していない場合は不発）。",
+    description: "必殺技「写し身」: 発動すると、直前に他の誰かが使った必殺技を自分に対してそのまま再現する（自分自身が直前に使った場合や、まだ誰も使っていない場合は不発）。",
     winQuote: "見せてもらった技は、もう私のもの。真似ることだって、立派な才能でしょう？",
     avatar: "/avatars/characters/kagami.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
@@ -1030,7 +1030,7 @@ export const CHARACTERS: Record<string, Character> = {
       id: "kagami-utsushimi",
       name: "写し身",
       voiceName: "ウツシミ",
-      description: "発動すると、同卓者（自分以外）がuseSkillで直近に発動した必殺技（round.lastActivatedSkill）を、自分に対してそのまま再現する。直近の発動が自分自身によるものだった場合、まだ誰も必殺技を発動していない場合、またはコピー元の追加発動条件（一発中のみ等）を自分が満たしていない場合は発動自体ができない（ボタンが出ない）。",
+      description: "発動すると、直前に他の誰かが使った必殺技を、自分に対してそのまま再現する。直前の発動が自分自身によるものだった場合や、まだ誰も必殺技を使っていない場合、コピー元の技に必要な条件（一発中のみ、など）を自分が満たしていない場合は発動できない。",
       hooks: {
         canActivate: (ctx) => canCopyLastSkill(ctx),
         onActivate: (ctx) => {
@@ -1055,7 +1055,7 @@ export const CHARACTERS: Record<string, Character> = {
   karin: {
     id: "karin",
     name: "何でも屋・カリン",
-    description: "必殺技「借り物競争」: 発動すると、同卓者3人のうち好きな1人を選び、その必殺技を代わりに発動できる（選んだ相手の追加発動条件も自分が満たしている必要がある）。その代わりゲージの溜まりは他のキャラの半分とかなり遅い。",
+    description: "必殺技「借り物競争」: 発動すると、他の3人のうち好きな1人を選び、その必殺技を代わりに発動できる。その代わりゲージの溜まりは他のキャラの半分とかなり遅い。",
     winQuote: "困った時はお互い様でしょ？ ちょっとその技、借りてくね！",
     avatar: "/avatars/characters/karin.webp",
     cutin: "/avatars/characters/karin-cutin.webp",
@@ -1069,7 +1069,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "karin-karimono-kyousou",
       name: "借り物競争",
-      description: "発動時、同卓者3人（自分以外）のうち必殺技を借りられる相手を選び、その必殺技をそのまま自分に対して発動する（選んだ相手の追加発動条件を満たしていない場合は選択肢に出ない。onActivateを持たないパッシブ専用キャラの技は借りられない）。",
+      description: "発動時、他の3人のうち1人を選び、その人の必殺技をそのまま自分に対して発動する。相手の技に必要な条件を満たしていない場合は選べない。パッシブ専用の技は借りられない。",
       // 実際の発動処理はborrowSkillアクション経由（gameEngine.tsの
       // canBorrowSkill/applyBorrowSkillAction）で行われ、karin自身は
       // onActivateを持たない（skills/types.tsのCharacter.borrowsSkill参照）。
@@ -1079,7 +1079,7 @@ export const CHARACTERS: Record<string, Character> = {
   sena: {
     id: "sena",
     name: "石橋の番人・セナ",
-    description: "必殺技「様子見」: 発動すると今の自摸を山に戻し、打牌を一切行わずにそのまま次家に手番を渡す（自摸も打牌もしないため、その巡は安全に過ごせる）。弱い技のためゲージの溜まりは早い。",
+    description: "必殺技「様子見」: 発動すると今引いた牌を山に戻し、打牌せずにそのまま次の人へ手番を渡す。安全に1巡やり過ごせる技で、弱い分ゲージの溜まりは早い。",
     winQuote: "危ない橋は渡らない。それだけで、案外生き残れるものでしょう？",
     avatar: "/avatars/characters/sena.webp",
     cutin: "/avatars/characters/sena-cutin.webp",
@@ -1092,7 +1092,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "sena-yousumi",
       name: "様子見",
-      description: "発動すると、今の自摸牌を山の下に戻し、打牌を一切行わずにそのまま次家へ手番を渡す（自摸も打牌もしないため、ロン・鳴きのどちらのリスクも一切負わない）。敵のリーチ等で安全牌が無い時に、その1巡だけ安全に見送るための技。",
+      description: "発動すると、今引いた牌を山に戻し、打牌をせずにそのまま次の人へ手番を渡す。ロンされる心配も鳴かれる心配もない、安全に1巡やり過ごすための技。敵のリーチ等で安全牌が無い時に使うとよい。",
       hooks: {
         // チー/ポン/大明槓で手番だけ回ってきた直後（自分ではまだ何も自摸っていない）
         // は発動できない。hasOwnPendingDrawの説明コメント参照。
@@ -1123,7 +1123,7 @@ export const CHARACTERS: Record<string, Character> = {
   mio: {
     id: "mio",
     name: "やり直し請負人・ミオ",
-    description: "必殺技「取り返し」: 発動すると、自分の河（鳴かれていないもの限定）から好きな1枚を選んで手牌に戻し、代わりに手牌の別の1枚をその場で切り直す（実質的な打牌交換）。過去に切って裏目った1枚を、今から切り直せる。",
+    description: "必殺技「取り返し」: 発動すると、自分の河（まだ誰にも鳴かれていない牌）から好きな1枚を選んで手牌に戻し、代わりに手牌の別の1枚をその場で切り直せる。過去に切って裏目った1枚を、今から切り直せる。",
     winQuote: "やり直しなんて、いくらでも利くのよ。過去の一手くらい、今から書き換えてあげる。",
     avatar: "/avatars/characters/mio.webp",
     cutin: "/avatars/characters/mio-cutin.webp",
@@ -1134,7 +1134,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "mio-torikaeshi",
       name: "取り返し",
-      description: "発動時、自分の河（他家に鳴かれていない牌限定）から1枚選んで手牌に戻し、代わりに手牌の中から選んだ別の1枚をその場で切り直す（打牌の交換。鳴き・ロンの応答ウィンドウは通常の打牌と同じく開く）。リーチ中は打牌を選べない（ツモ切り強制）ため発動できない。",
+      description: "発動時、自分の河（まだ誰にも鳴かれていない牌）から1枚選んで手牌に戻し、代わりに手牌から選んだ別の1枚をその場で切り直せる。リーチ中は打牌を選べないため発動できない。",
       // 実際の発動処理はretrieveDiscardアクション経由（gameEngine.tsの
       // canRetrieveDiscard/applyRetrieveDiscardAction）で行われ、ミオ自身は
       // onActivateを持たない（skills/types.tsのCharacter.retrievesDiscard参照）。
