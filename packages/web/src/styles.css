@@ -674,7 +674,10 @@ button {
      指摘のため、Table.tsx側でBackgroundDebugPanel/backgroundDebugStoreの
      スライダー値をCSSカスタムプロパティとしてインラインstyleに注入し、
      実機で見ながらサイズ・位置を自由に調整できるようにした。 */
-  background-image: url("/table/table-surface-bg.png");
+  /* 実際にどの画像を使うかはtableBackgroundStore.tsで管理し、Table.tsx
+     側からCSSカスタムプロパティ--table-bg-imageとして注入する
+     （複数の背景画像を切り替えられるようにするため）。 */
+  background-image: var(--table-bg-image, url("/table/table-surface-bg.png"));
   background-repeat: no-repeat;
   background-size: var(--bg-scale, 100%) var(--bg-scale, 100%);
   /* 横/縦位置は「%指定」ではなくpx単位の中心からのオフセットにしている。
@@ -901,13 +904,15 @@ button {
   position: absolute;
   top: -10px;
   left: 50%;
-  transform: translateX(-50%);
+  /* --river-rotateはRiverEditToolbar.tsx（河の配置編集）用。未設定時は
+     rotate(0deg)でno-op、これまでの見た目に一切影響しない。 */
+  transform: translateX(-50%) rotate(var(--river-rotate, 0deg));
 }
 .table-cluster .river--human {
   position: absolute;
   bottom: -8px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) rotate(var(--river-rotate, 0deg));
 }
 .table-cluster .river--left {
   position: absolute;
@@ -928,13 +933,16 @@ button {
      祖先の傾きを一旦打ち消し、90度回転後の見た目に対応する軸
      (rotateY)で改めて傾け直すことで、段の直線性を保ったまま
      「卓の斜め方向に自然に沿う」奥行きを表現する。 */
-  transform: translateY(-50%) rotateX(-35deg) rotateY(0deg) rotateZ(0deg);
+  /* --river-rotateはRiverEditToolbar.tsx用。rotateZ(0deg)だった箇所を
+     このカスタムプロパティに置き換えているだけなので、未設定時
+     (0deg)は既存の見た目と完全に同じ。 */
+  transform: translateY(-50%) rotateX(-35deg) rotateY(0deg) rotateZ(var(--river-rotate, 0deg));
 }
 .table-cluster .river--right {
   position: absolute;
   right: -70px;
   top: 50%;
-  transform: translateY(-50%) rotateX(-35deg) rotateY(0deg) rotateZ(0deg);
+  transform: translateY(-50%) rotateX(-35deg) rotateY(0deg) rotateZ(var(--river-rotate, 0deg));
 }
 
 .river {
@@ -962,7 +970,11 @@ button {
    backface-visibility:hiddenで専用のレイヤーに昇格させ、常時その解像度で
    描き直させることで解消する（点数バッジ・河・上家/下家の手牌側にも
    同じ対策を横展開している）。 */
-.river--top .discard-pile { transform: rotate(180deg); will-change: transform; backface-visibility: hidden; }
+/* --river-scaleはRiverEditToolbar.tsx（河の牌の拡大縮小）用。.river側の
+   インラインstyleに設定されたカスタムプロパティを、子要素の.discard-pile
+   側で継承して読む（未設定時はscale(1)でno-op、これまでの見た目に一切
+   影響しない）。 */
+.river--top .discard-pile { transform: rotate(180deg) scale(var(--river-scale, 1)); will-change: transform; backface-visibility: hidden; }
 /* rotate(90deg)/(-90deg)は回転前の自分自身のサイズを中心に回るため、
    捨て牌が増えて縦幅(=回転後の見た目の幅)が伸びるたびに回転の中心点が
    ズレて、卓に対して全体がじわっと動いて見えてしまう（180度回転の
@@ -979,8 +991,11 @@ button {
 .river--right .discard-pile {
   height: 133px;
 }
-.river--left .discard-pile { transform: rotate(90deg); will-change: transform; backface-visibility: hidden; }
-.river--right .discard-pile { transform: rotate(-90deg); will-change: transform; backface-visibility: hidden; }
+.river--left .discard-pile { transform: rotate(90deg) scale(var(--river-scale, 1)); will-change: transform; backface-visibility: hidden; }
+.river--right .discard-pile { transform: rotate(-90deg) scale(var(--river-scale, 1)); will-change: transform; backface-visibility: hidden; }
+/* .river--humanの.discard-pileは元々rotateを持たないため、scaleだけの
+   新規ルールを追加する（他方向と同じ--river-scale、既定1でno-op）。 */
+.river--human .discard-pile { transform: scale(var(--river-scale, 1)); }
 
 /* 幅は「牌6枚×3段」を基準にしつつ、1段あたり最大1枚だけ有り得る
    リーチ宣言牌（tile--rotated、横向きで幅が32→43pxに広がる）が混ざって
@@ -1038,16 +1053,22 @@ button {
    table-cluster基準のtop/leftを調整した（3D回転(rotateX)+遠近感
    (perspective)の影響で単純な比率計算が効かないため、実測値ベースで
    決めている）。祖先のrotateXにより上下左右で見え方の縮尺が異なるため、
-   4方向とも個別の値になっている。 */
+   4方向とも個別の値になっている。
+   --riichi-offset-x/-y/-rotateはRiichiStickEditToolbar.tsx用。4座席とも
+   共通してtranslate(-50%,-50%)で中心寄せしているため、河・ネームプレート
+   と違いmarginではなく、その直後に追加のtranslate()を足すだけで統一的に
+   位置調整できる（要素自身の実寸に依存せず常に一定量だけ動かせる）。
+   未設定時はtranslate(0px,0px) rotate(0deg)でno-op、これまでの見た目に
+   一切影響しない。 */
 .riichi-stick--top {
   top: 161px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) translate(var(--riichi-offset-x, 0px), var(--riichi-offset-y, 0px)) rotate(var(--riichi-rotate, 0deg));
 }
 .riichi-stick--human {
   top: 219px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) translate(var(--riichi-offset-x, 0px), var(--riichi-offset-y, 0px)) rotate(var(--riichi-rotate, 0deg));
 }
 .riichi-stick--left {
   top: 50%;
@@ -1057,12 +1078,12 @@ button {
      要素を持たないため未検証。装飾的な棒でテキストも無く優先度が低い
      ため、今回は無補正のまま祖先のrotateXを素直に継承させるに留める
      （見た目を実機で確認し、必要なら次段で個別対応する）。 */
-  transform: translate(-50%, -50%) rotate(90deg);
+  transform: translate(-50%, -50%) translate(var(--riichi-offset-x, 0px), var(--riichi-offset-y, 0px)) rotate(90deg) rotate(var(--riichi-rotate, 0deg));
 }
 .riichi-stick--right {
   top: 50%;
   left: 230px;
-  transform: translate(-50%, -50%) rotate(90deg);
+  transform: translate(-50%, -50%) translate(var(--riichi-offset-x, 0px), var(--riichi-offset-y, 0px)) rotate(90deg) rotate(var(--riichi-rotate, 0deg));
 }
 
 /* ============ 中央スコアボード（八角形） ============ */
@@ -1443,14 +1464,21 @@ button {
    出す（指摘により）。歯車はcharacter-panel--top（right:230px）より外側の
    右端の隙間（right:8〜190px）に置く。 */
 .volume-gear-wrap {
-  position: absolute;
+  /* 以前は.game-screen直下(zoomスケールされた.stage__canvasのサブツリー
+     内)にposition:absoluteで置いていたが、z-index:3をどれだけ上げても
+     document.body直下に別途Portalされている.tile3d-hand-layer(z-index:20、
+     下家/上家の立体牌)とはそもそも比較対象にならず、右側の座席の
+     ネームプレート付近に来る歯車・ポップオーバーがその手牌の下に隠れて
+     見えなくなる不具合があった（指摘により判明。SkillActivationOverlay等
+     と同じ原因・同じ解決策——document.body直下へPortalする、
+     SettingsPanel.tsx参照）。Portal後はposition:fixedで実画面の右上隅に
+     固定する。 */
+  position: fixed;
   top: 8px;
   right: 8px;
-  /* .character-panel(z-index:2)とDOM順(SettingsPanelの方が先)の関係で
-     同じz-index:2のままだとネームプレートの方が後勝ちで手前に描画され、
-     ポップオーバーがネームプレートの下に隠れてクリックできなくなる
-     （指摘により判明）。ネームプレートより確実に手前にするため3にする。 */
-  z-index: 3;
+  /* .tile3d-hand-layer(20)より確実に手前になるよう、他の編集ツールバー
+     (.meld-edit-toolbar等)と同じz-index:60にする。 */
+  z-index: 60;
 }
 .volume-gear {
   display: flex;
@@ -1766,7 +1794,9 @@ button {
 /* 対面の手牌右端（副露を左へ寄せた分、手牌自体は中央よりやや右に
    広がる）と被らないよう、横長だった頃のright:200pxより少し外側へ。
    歯車(.volume-gear-wrap、right:8〜190pxの隙間)より内側なのは変わらない。 */
-.character-panel--top { top: 8px; right: 230px; }
+/* --nameplate-rotateはNameplateEditToolbar.tsx用。未設定時はrotate(0deg)
+   でno-op、これまでの見た目に一切影響しない。 */
+.character-panel--top { top: 8px; right: 230px; transform: rotate(var(--nameplate-rotate, 0deg)); }
 /* 上家・下家・対面は、顔・名前・点数・必殺技ゲージを全部縦並びにする
    （指摘により）。自分だけ従来通り横並びのまま。 */
 .character-panel--left,
@@ -1809,10 +1839,10 @@ button {
   align-self: center;
 }
 /* 画面縦中央(50%)から上寄り(28%)に調整（44%ではまだ足りないとの指摘により再調整）。 */
-.character-panel--right { top: 28%; right: 8px; transform: translateY(-50%); }
+.character-panel--right { top: 28%; right: 8px; transform: translateY(-50%) rotate(var(--nameplate-rotate, 0deg)); }
 /* 上家：下家(--right)と同じ高さに揃え、画面左端に寄せる
    （指摘により、HUD直下の固定位置から変更）。 */
-.character-panel--left { top: 28%; left: 8px; right: auto; transform: translateY(-50%); }
+.character-panel--left { top: 28%; left: 8px; right: auto; transform: translateY(-50%) rotate(var(--nameplate-rotate, 0deg)); }
 .character-panel--bottom {
   /* 自分の手牌の左上あたり。カード欄（.hand-top-status、手牌の直上・
      左寄せ）に被らないよう、それよりさらに上に置く。
@@ -1834,6 +1864,7 @@ button {
   max-width: 268px;
   padding: 8px 18px 8px 8px;
   gap: 10px;
+  transform: rotate(var(--nameplate-rotate, 0deg));
 }
 
 .character-panel__portrait {
@@ -2829,7 +2860,14 @@ button {
    上家・下家も同様に本人側を向く。牌に接する側を緑・先端を白にするのは
    変えない（見えている緑の裏面と帯の色がそこだけ白く途切れて不自然に
    なるため）。白の帯（先端側）を緑（牌に接する側、ごく細い帯として
-   残す）より広めの比率にしてある。 */
+   残す）より広めの比率にしてある。
+   これらのルールは全て.opponent-hand-back（伏せた手牌本体）の中だけに
+   スコープする——暗槓の伏せ牌(.opponent-melds内、meldDisplaySlots参照)は
+   同じ.tile--face-downクラスを使うが、手牌の「厚みだけ見せる」細切れの
+   見た目ではなく、副露の他の牌と同じ通常サイズの牌裏を見せるべきなので、
+   ここでのdisplay:none/clip-path等を巻き込んではいけない（指摘の原因：
+   自分の暗槓は正しいのに他家の暗槓だけ厚みが変な位置に出ていたのは、
+   本来手牌専用のこのルールが副露の暗槓にまで誤って効いていたため）。 */
 /* 上家・下家は「対面の手牌グラフィックをそのまま左右90度回転させた
    もの」にする（指示の通り）。対面(.opponent-area--2)と全く同じ牌の
    見た目・並べ方をここでも使い、.opponent-hand-back__inner側の既存の
@@ -2837,9 +2875,9 @@ button {
    回転させる。牌側のCSSは対面と完全に同一（帯の向き・比率も同じ）に
    しておくことで、「対面のグラフィックを回転させた」状態を正確に再現
    する。 */
-.opponent-area--1 .tile--face-down,
-.opponent-area--2 .tile--face-down,
-.opponent-area--3 .tile--face-down {
+.opponent-area--1 .opponent-hand-back .tile--face-down,
+.opponent-area--2 .opponent-hand-back .tile--face-down,
+.opponent-area--3 .opponent-hand-back .tile--face-down {
   box-shadow:
     0 -6px 0 0 #3f7a4f,
     0 -22px 0 0 #f2f2ec,
@@ -2849,24 +2887,24 @@ button {
 /* 上家・下家は対面のグラフィックを回転させただけだと帯の向きが逆に
    見えたため、牌を180度回転させて向きを合わせる（厚みの帯=box-shadowは
    対面と同じ値のまま、見た目だけ180度反転させる）。 */
-.opponent-area--1 .tile--face-down,
-.opponent-area--3 .tile--face-down {
+.opponent-area--1 .opponent-hand-back .tile--face-down,
+.opponent-area--3 .opponent-hand-back .tile--face-down {
   transform: rotate(180deg);
 }
 /* 本体の高さ(--tile-h)を縮めても、画像は幅高さとも100%で box を
    埋めるため縦だけでなく見た目の比率全体が変わってしまう。牌の本体
    （緑の縦長部分＝.tile__img--backの背面画像）自体をもう表示せず、
    厚みを表す帯（box-shadow、緑+白とも）だけを見せる形にする。 */
-.opponent-area--1 .tile--face-down .tile__face,
-.opponent-area--3 .tile--face-down .tile__face {
+.opponent-area--1 .opponent-hand-back .tile--face-down .tile__face,
+.opponent-area--3 .opponent-hand-back .tile--face-down .tile__face {
   display: none;
 }
 /* 本体を非表示にしても、box-shadowのうすいぼかし影レイヤー
    （rgba(0,0,0,...)、接地影用）が牌の本来の枠の位置にうっすら
    残って見えてしまっていた。帯の色（緑・白の2枚）だけ残し、
    ぼかし影の2枚は外す。 */
-.opponent-area--1 .tile--face-down,
-.opponent-area--3 .tile--face-down {
+.opponent-area--1 .opponent-hand-back .tile--face-down,
+.opponent-area--3 .opponent-hand-back .tile--face-down {
   box-shadow:
     0 -6px 0 0 #3f7a4f,
     0 -22px 0 0 #f2f2ec;
@@ -2878,8 +2916,8 @@ button {
    原因はこれ。帯の範囲（牌の上端から-22px分）だけ描画されるよう
    clip-pathで切り取り、それより下（元の牌の本体があった範囲）は
    描画自体させない。 */
-.opponent-area--1 .tile--face-down,
-.opponent-area--3 .tile--face-down {
+.opponent-area--1 .opponent-hand-back .tile--face-down,
+.opponent-area--3 .opponent-hand-back .tile--face-down {
   clip-path: inset(-22px 0 100% 0);
 }
 /* 対面・自分の河は横並び＝同じ段の牌同士は左右にしか接していないため、
@@ -3985,6 +4023,39 @@ button {
   top: auto;
   bottom: 16px;
 }
+/* 副露配置編集(中央上)・手牌配置編集(中央下)と同時に開いても重ならない
+   よう、暗槓表示確認だけ右上に寄せる。 */
+.ankan-preview-panel {
+  left: auto;
+  right: 16px;
+  top: 16px;
+  transform: none;
+}
+.river-edit-toolbar {
+  left: 16px;
+  top: 16px;
+  transform: none;
+}
+.nameplate-edit-toolbar {
+  left: auto;
+  right: 16px;
+  top: auto;
+  bottom: 16px;
+  transform: none;
+}
+.toimen-edit-toolbar {
+  left: 16px;
+  top: auto;
+  bottom: 16px;
+  transform: none;
+}
+/* 他の編集ツールバー(上下左右の四隅)が既に埋まっているため、リーチ棒だけ
+   画面左端の中央に寄せる。 */
+.riichi-stick-edit-toolbar {
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
 .meld-edit-toolbar__header {
   display: flex;
   align-items: center;
@@ -4029,6 +4100,59 @@ button {
 .meld--editable-active {
   cursor: grabbing;
   outline: 2px solid #52d17c;
+}
+/* 河・ネームプレートの配置編集モード用ハイライト（.meld--editable/
+   -activeと同じ考え方）。RiverEditToolbar/NameplateEditToolbar.tsx参照。 */
+.river--editable {
+  cursor: grab;
+  outline: 2px dashed rgba(224, 169, 74, 0.7);
+  outline-offset: 4px;
+}
+.river--editable-active {
+  cursor: grabbing;
+  outline: 2px solid #52d17c;
+}
+/* リーチ棒の配置編集モード用ハイライト（RiichiStickEditToolbar.tsx参照）。
+   .river--editable/-activeと同じ考え方。装飾用の小さな棒のため
+   pointer-eventsは.riichi-stickの既定(auto)のまま変更不要。 */
+.riichi-stick--editable {
+  cursor: grab;
+  outline: 2px dashed rgba(224, 169, 74, 0.7);
+  outline-offset: 4px;
+}
+.riichi-stick--editable-active {
+  cursor: grabbing;
+  outline: 2px solid #52d17c;
+}
+/* 編集中の座席がまだ実際にはリーチしていない時の仮表示（.meld--mockと
+   同じ考え方）。位置決めのために半透明で仮に出しているだけとひと目で
+   わかるようにする。 */
+.riichi-stick--mock {
+  opacity: 0.5;
+}
+.character-panel--editable {
+  cursor: grab;
+  outline: 2px dashed rgba(224, 169, 74, 0.7);
+  outline-offset: 4px;
+}
+.character-panel--edit-active {
+  cursor: grabbing;
+  outline: 2px solid #52d17c;
+}
+/* .character-panel自体は素通し(pointer-events:none、上のコメント参照)の
+   ため、そのままではドラッグ用のpointerイベントを一切受け取れない。
+   配置編集モード中だけ明示的にautoへ戻す（.tile3d-hand-portal-inner--
+   editableと同じ理由）。 */
+.character-panel--editable {
+  pointer-events: auto;
+}
+/* 対面の配置編集モード用ハイライト（ToimenEditToolbar.tsx参照）。
+   .meld--editableと同じ考え方。 */
+.opponent-hand-back--editable,
+.opponent-melds--editable {
+  cursor: grab;
+  outline: 2px dashed rgba(224, 169, 74, 0.7);
+  outline-offset: 4px;
 }
 .meld--mock {
   opacity: 0.5;

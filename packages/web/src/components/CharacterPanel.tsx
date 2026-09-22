@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { CHARACTERS, WIND_NAMES, seatWindOf, type PlayerIndex, type RoundState } from "@majyan/core";
 import { TIME_STOP_FAKE_TURN_STEP_MS } from "../store/gameStore.js";
 import { SkillGauge } from "./SkillGauge.js";
@@ -42,6 +42,13 @@ export function CharacterPanel({
   corner,
   isSelf,
   onShowSkillInfo,
+  style,
+  editable,
+  editActive,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
 }: {
   round: RoundState;
   player: PlayerIndex;
@@ -49,6 +56,17 @@ export function CharacterPanel({
   corner: PanelCorner;
   isSelf?: boolean;
   onShowSkillInfo?: () => void;
+  /** 配置編集モード用の位置オフセット・角度（CSSカスタムプロパティ
+      --nameplate-rotate経由）。NameplateEditToolbar.tsx/Table.tsx参照。 */
+  style?: CSSProperties;
+  /** 配置編集モードが開いているかどうか（4枚とも破線表示になる）。 */
+  editable?: boolean;
+  /** 4枚のうち、今まさにドラッグ対象として選択中の1枚かどうか（実線・緑）。 */
+  editActive?: boolean;
+  onPointerDown?: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerMove?: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerUp?: (e: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerCancel?: (e: ReactPointerEvent<HTMLDivElement>) => void;
 }) {
   const p = round.players[player];
   const character = CHARACTERS[round.characterIds[player]];
@@ -66,7 +84,12 @@ export function CharacterPanel({
 
   return (
     <div
-      className={`character-panel character-panel--${corner}${isCurrent ? " character-panel--active" : ""}${frozen ? " character-panel--frozen" : ""}`}
+      className={`character-panel character-panel--${corner}${isCurrent ? " character-panel--active" : ""}${frozen ? " character-panel--frozen" : ""}${editable ? " character-panel--editable" : ""}${editActive ? " character-panel--edit-active" : ""}`}
+      style={style}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       <div
         className={`character-panel__portrait${fakeTurnStepIndex > 0 ? " character-panel__portrait--fake-turn" : ""}`}

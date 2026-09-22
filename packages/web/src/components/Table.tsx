@@ -1,14 +1,15 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { CHARACTERS, doraIndicators, nextTileForDora, type PlayerIndex, type TileCode } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useTile3DDebugStore } from "../store/tile3dDebugStore.js";
 import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
+import { tableBackgroundPath, useTableBackgroundStore } from "../store/tableBackgroundStore.js";
 import { useRetrieveDiscardStore } from "../store/retrieveDiscardStore.js";
 import { useGameSounds } from "../hooks/useGameSounds.js";
 import { useBgm } from "../hooks/useBgm.js";
 import { DoraProvider } from "../doraContext.js";
-import { OpponentArea } from "./OpponentArea.js";
+import { OpponentArea, getTableZoomRatio } from "./OpponentArea.js";
 import { Hand } from "./Hand.js";
 import { DiscardPile } from "./DiscardPile.js";
 import { ScoreResult } from "./ScoreResult.js";
@@ -20,7 +21,12 @@ import { DebugPanel } from "./DebugPanel.js";
 import { Tile3DDebugPanel } from "./Tile3DDebugPanel.js";
 import { BackgroundDebugPanel } from "./BackgroundDebugPanel.js";
 import { MeldEditToolbar } from "./MeldEditToolbar.js";
+import { AnkanPreviewPanel } from "./AnkanPreviewPanel.js";
 import { HandEditToolbar } from "./HandEditToolbar.js";
+import { RiverEditToolbar } from "./RiverEditToolbar.js";
+import { NameplateEditToolbar } from "./NameplateEditToolbar.js";
+import { ToimenEditToolbar } from "./ToimenEditToolbar.js";
+import { RiichiStickEditToolbar } from "./RiichiStickEditToolbar.js";
 import { SkillActivationOverlay } from "./SkillActivationOverlay.js";
 
 /**
@@ -63,6 +69,193 @@ export function Table() {
   // 手牌配置編集モード（HandEditToolbar.tsx参照）。nullでなければ実際の
   // 卓上でその座席の手牌の塊をドラッグできる。
   const handEditSeat = useTile3DDebugStore((s) => s.handEditSeat);
+  // 暗槓表示確認モード（AnkanPreviewPanel.tsx参照）。
+  const ankanPreviewPanelOpen = useTile3DDebugStore((s) => s.ankanPreviewPanelOpen);
+  // 河・ネームプレートの配置編集モード（RiverEditToolbar/
+  // NameplateEditToolbar.tsx参照）。座席ごとの位置・角度はriverSlots/
+  // nameplateSlotsにpersistされ、編集モードOFF中もその値がそのまま
+  // 表示に使われる（副露/手牌と同じ考え方）。
+  const riverEditOpen = useTile3DDebugStore((s) => s.riverEditOpen);
+  const riverEditActiveSeat = useTile3DDebugStore((s) => s.riverEditActiveSeat);
+  const setRiverEditActiveSeat = useTile3DDebugStore((s) => s.setRiverEditActiveSeat);
+  const riverSlots = useTile3DDebugStore((s) => s.riverSlots);
+  const setRiverSlotStore = useTile3DDebugStore((s) => s.setRiverSlot);
+  const nameplateEditOpen = useTile3DDebugStore((s) => s.nameplateEditOpen);
+  const nameplateEditActiveSeat = useTile3DDebugStore((s) => s.nameplateEditActiveSeat);
+  const setNameplateEditActiveSeat = useTile3DDebugStore((s) => s.setNameplateEditActiveSeat);
+  const nameplateSlots = useTile3DDebugStore((s) => s.nameplateSlots);
+  const setNameplateSlotStore = useTile3DDebugStore((s) => s.setNameplateSlot);
+  // リーチ棒の配置編集モード（RiichiStickEditToolbar.tsx参照）。河・
+  // ネームプレートと全く同じ考え方。
+  const riichiStickEditOpen = useTile3DDebugStore((s) => s.riichiStickEditOpen);
+  const riichiStickEditActiveSeat = useTile3DDebugStore((s) => s.riichiStickEditActiveSeat);
+  const setRiichiStickEditActiveSeat = useTile3DDebugStore((s) => s.setRiichiStickEditActiveSeat);
+  const riichiStickSlots = useTile3DDebugStore((s) => s.riichiStickSlots);
+  const setRiichiStickSlotStore = useTile3DDebugStore((s) => s.setRiichiStickSlot);
+  // 対面の手牌・副露の配置編集モード（ToimenEditToolbar.tsx参照）。
+  // ドラッグそのものはOpponentArea.tsx側（対面自身のコンポーネント）で
+  // 完結しており、Table.tsxはツールバーの開閉状態を読んでPortalするだけ。
+  const toimenEditTarget = useTile3DDebugStore((s) => s.toimenEditTarget);
+  // 河・ネームプレートいずれも「今どの座席をドラッグ中か」だけを覚えれば
+  // 十分（同時に複数はドラッグできない）。ポインタが離れた要素からでも
+  // 追従できるよう、pointermoveはdocument.body相当にせず各要素自身の
+  // イベントで受け、setPointerCaptureで捕捉する（副露/手牌編集と同じ方式）。
+  const riverDragRef = useRef<{ player: 0 | 1 | 2 | 3; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const nameplateDragRef = useRef<{ player: 0 | 1 | 2 | 3; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const riichiStickDragRef = useRef<{ player: 0 | 1 | 2 | 3; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const isPrimaryButtonDown = (e: ReactPointerEvent<HTMLElement>) => (e.buttons & 1) === 1;
+  const handleRiverPointerDown = (player: 0 | 1 | 2 | 3) => (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setRiverEditActiveSeat(player);
+    riverDragRef.current = { player, startX: e.clientX, startY: e.clientY, baseX: riverSlots[player].offsetX, baseY: riverSlots[player].offsetY };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const handleRiverPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = riverDragRef.current;
+    if (!drag) return;
+    if (!isPrimaryButtonDown(e)) {
+      riverDragRef.current = null;
+      return;
+    }
+    const zoom = getTableZoomRatio(e.currentTarget);
+    const dx = (e.clientX - drag.startX) / zoom;
+    const dy = (e.clientY - drag.startY) / zoom;
+    setRiverSlotStore(drag.player, { offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
+  };
+  const handleRiverPointerUp = () => {
+    riverDragRef.current = null;
+  };
+  const handleNameplatePointerDown = (player: 0 | 1 | 2 | 3) => (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setNameplateEditActiveSeat(player);
+    nameplateDragRef.current = { player, startX: e.clientX, startY: e.clientY, baseX: nameplateSlots[player].offsetX, baseY: nameplateSlots[player].offsetY };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const handleNameplatePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = nameplateDragRef.current;
+    if (!drag) return;
+    if (!isPrimaryButtonDown(e)) {
+      nameplateDragRef.current = null;
+      return;
+    }
+    // ネームプレートは.tableの外（.game-screen直下）にあり、.tableのzoom
+    // (1.46)ではなくStageのレターボックス用zoomだけを受ける。祖先に
+    // .tableを持たないためgetTableZoomRatioは使えず、DiscardPile.tsxと
+    // 同じ.stage__canvas基準の比率をここで直接測る。
+    const stageEl = document.querySelector<HTMLElement>(".stage__canvas");
+    const zoom = stageEl && stageEl.offsetWidth > 0 ? stageEl.getBoundingClientRect().width / stageEl.offsetWidth : 1;
+    const dx = (e.clientX - drag.startX) / zoom;
+    const dy = (e.clientY - drag.startY) / zoom;
+    setNameplateSlotStore(drag.player, { offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
+  };
+  const handleNameplatePointerUp = () => {
+    nameplateDragRef.current = null;
+  };
+  // リーチ棒は河と同じ.table-cluster内(.tableのzoom/3D傾きを継承する空間)
+  // に置かれているため、河のドラッグ(handleRiverPointerMove)と同じく
+  // getTableZoomRatioで画面px→ローカルpxへ変換する。
+  const handleRiichiStickPointerDown = (player: 0 | 1 | 2 | 3) => (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    setRiichiStickEditActiveSeat(player);
+    riichiStickDragRef.current = {
+      player,
+      startX: e.clientX,
+      startY: e.clientY,
+      baseX: riichiStickSlots[player].offsetX,
+      baseY: riichiStickSlots[player].offsetY,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const handleRiichiStickPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = riichiStickDragRef.current;
+    if (!drag) return;
+    if (!isPrimaryButtonDown(e)) {
+      riichiStickDragRef.current = null;
+      return;
+    }
+    const zoom = getTableZoomRatio(e.currentTarget);
+    const dx = (e.clientX - drag.startX) / zoom;
+    const dy = (e.clientY - drag.startY) / zoom;
+    setRiichiStickSlotStore(drag.player, { offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
+  };
+  const handleRiichiStickPointerUp = () => {
+    riichiStickDragRef.current = null;
+  };
+  // 編集モードを閉じた瞬間にドラッグ中だった場合の保険（副露/手牌編集と
+  // 同じ理由。onPointerDownの発生時にしかriverEditOpen/nameplateEditOpen
+  // を見ていないpointermove側だけでは、モードを閉じた直後の1回だけ古い
+  // 値のまま動いてしまう可能性がある）。
+  useEffect(() => {
+    if (!riverEditOpen) riverDragRef.current = null;
+  }, [riverEditOpen]);
+  useEffect(() => {
+    if (!nameplateEditOpen) nameplateDragRef.current = null;
+  }, [nameplateEditOpen]);
+  useEffect(() => {
+    if (!riichiStickEditOpen) riichiStickDragRef.current = null;
+  }, [riichiStickEditOpen]);
+  // 河・ネームプレートのtransformは座席ごとにCSS側で既に固有の値
+  // （河は3D傾き補正込み、ネームプレートは--left/--right限定のtranslateY）
+  // を持っているため、inline styleでtransformを丸ごと上書きすると
+  // それらが消えてしまう。角度調整だけをCSSカスタムプロパティ経由で
+  // 末尾に追加してもらう方式にし、実際のtransform文字列の組み立ては
+  // styles.css側（.table-cluster .river--*/.character-panel--*）に閉じる
+  // （角度=0の時はrotate(0deg)でno-op、これまでの見た目に一切影響しない）。
+  //
+  // 位置オフセットはmargin経由で加算する（transformと違い、既存の3D補正
+  // transformを一切崩さず済むため）。ただしmarginは「どちらの辺を基準に
+  // 配置されているか」によって効く向きが変わる（例:
+  // bottom指定の要素はmarginTopでは動かず、marginBottomを負の値で
+  // 与える必要がある）。styles.cssの実際のtop/left/right/bottom指定
+  // （.table-cluster .river--*/.character-panel--*参照）に合わせて
+  // 座席ごとに正しいmarginプロパティを選ぶ。
+  // 河: human(0)=bottom+left, right(1)=top+right, top(2)=top+left, left(3)=top+left
+  const riverOffsetStyle = (player: 0 | 1 | 2 | 3): CSSProperties => {
+    const slot = riverSlots[player];
+    // scaleは後から追加したフィールド。HMR経由の再読み込み等でstoreの
+    // migrateが走らず古い形のriverSlotsが残っているとundefinedになり
+    // 得るため、RiverEditToolbar.tsxと同じく既定値(等倍)へフォールバックする。
+    const style: Record<string, string | number> = { "--river-rotate": `${slot.rotate}deg`, "--river-scale": slot.scale ?? 1 };
+    if (player === 1) style.marginRight = -slot.offsetX;
+    else style.marginLeft = slot.offsetX;
+    if (player === 0) style.marginBottom = -slot.offsetY;
+    else style.marginTop = slot.offsetY;
+    return style as CSSProperties;
+  };
+  // ネームプレート: top(2)=top+right, right(1)=top+right, left(3)=top+left, bottom(0)=top+left
+  const nameplateOffsetStyle = (player: 0 | 1 | 2 | 3): CSSProperties => {
+    const slot = nameplateSlots[player];
+    const style: Record<string, string | number> = { "--nameplate-rotate": `${slot.rotate}deg`, marginTop: slot.offsetY };
+    if (player === 1 || player === 2) style.marginRight = -slot.offsetX;
+    else style.marginLeft = slot.offsetX;
+    return style as CSSProperties;
+  };
+  // リーチ棒: 4座席とも共通してtop/left+translate(-50%,-50%)で中心寄せして
+  // いる（河・ネームプレートと違い座席ごとに基準の辺がバラバラではない）
+  // ため、marginではなくtransformにtranslate(offsetXpx, offsetYpx)を
+  // 追加する方式で統一できる（styles.cssの.riichi-stick--*参照。
+  // translate(-50%,-50%)の後に足すことで、要素自身の実寸に依存せず
+  // 常に一定量だけ動かせる）。
+  const riichiStickOffsetStyle = (player: 0 | 1 | 2 | 3): CSSProperties => {
+    const slot = riichiStickSlots[player];
+    return {
+      "--riichi-offset-x": `${slot.offsetX}px`,
+      "--riichi-offset-y": `${slot.offsetY}px`,
+      "--riichi-rotate": `${slot.rotate}deg`,
+    } as CSSProperties;
+  };
+  // CharacterPanelへ渡す配置編集用propsをまとめるヘルパー（4座席分の
+  // JSXが冗長になるのを避ける）。編集モードOFF中はstyleだけ渡し
+  // （persistされた位置は常に反映する）、ドラッグ用ハンドラは付けない。
+  const nameplateEditProps = (player: 0 | 1 | 2 | 3) => ({
+    style: nameplateOffsetStyle(player),
+    editable: nameplateEditOpen,
+    editActive: nameplateEditOpen && nameplateEditActiveSeat === player,
+    onPointerDown: nameplateEditOpen ? handleNameplatePointerDown(player) : undefined,
+    onPointerMove: nameplateEditOpen ? handleNameplatePointerMove : undefined,
+    onPointerUp: nameplateEditOpen ? handleNameplatePointerUp : undefined,
+    onPointerCancel: nameplateEditOpen ? handleNameplatePointerUp : undefined,
+  });
   // 卓面背景画像(.table-surface)のサイズ・位置を実機で調整できるように
   // するためのCSS変数。BackgroundDebugPanel.tsx参照。
   const bgScale = useBackgroundDebugStore((s) => s.bgScale);
@@ -70,10 +263,15 @@ export function Table() {
   const bgPosY = useBackgroundDebugStore((s) => s.bgPosY);
   const isBgPanelOpen = useBackgroundDebugStore((s) => s.isPanelOpen);
   const setIsBgPanelOpen = useBackgroundDebugStore((s) => s.setIsPanelOpen);
+  // どの背景画像を使うか（複数の背景を切り替えられるようにするための
+  // tableBackgroundStore.ts）。サイズ・位置(--bg-scale等)とは独立して
+  // 管理し、画像自体はCSSカスタムプロパティとして注入する。
+  const tableBackgroundId = useTableBackgroundStore((s) => s.backgroundId);
   const tableSurfaceStyle = {
     "--bg-scale": `${bgScale}%`,
     "--bg-pos-x": `${bgPosX}px`,
     "--bg-pos-y": `${bgPosY}px`,
+    "--table-bg-image": `url("${tableBackgroundPath(tableBackgroundId)}")`,
   } as CSSProperties;
   useGameSounds(match?.round);
   useBgm(match?.round);
@@ -182,6 +380,11 @@ export function Table() {
             （.tile3d-hand-layerより手前に表示する必要があるため）。 */}
         {meldEditSeat && createPortal(<MeldEditToolbar />, document.body)}
         {handEditSeat && createPortal(<HandEditToolbar />, document.body)}
+        {ankanPreviewPanelOpen && createPortal(<AnkanPreviewPanel />, document.body)}
+        {riverEditOpen && createPortal(<RiverEditToolbar />, document.body)}
+        {nameplateEditOpen && createPortal(<NameplateEditToolbar />, document.body)}
+        {riichiStickEditOpen && createPortal(<RiichiStickEditToolbar />, document.body)}
+        {toimenEditTarget && createPortal(<ToimenEditToolbar />, document.body)}
 
         <div className="table">
           {/* Step3/Phase C-2: 卓面（フェルト+木枠）と「ゲーム内容」を
@@ -197,33 +400,85 @@ export function Table() {
             <div className="game-content-plane__inner">
               <div className="table__center">
                 <div className="table-cluster">
-                  <div className="river river--top">
+                  <div
+                    className={`river river--top${riverEditOpen ? ` river--editable${riverEditActiveSeat === 2 ? " river--editable-active" : ""}` : ""}`}
+                    style={riverOffsetStyle(2)}
+                    onPointerDown={riverEditOpen ? handleRiverPointerDown(2) : undefined}
+                    onPointerMove={riverEditOpen ? handleRiverPointerMove : undefined}
+                    onPointerUp={riverEditOpen ? handleRiverPointerUp : undefined}
+                    onPointerCancel={riverEditOpen ? handleRiverPointerUp : undefined}
+                  >
                     <DiscardPile discards={round.players[2].discards} direction="top" callTargetTileId={callTargetTileId} frozen={riverFrozen(2)} />
                   </div>
-                  <div className="river river--left">
+                  <div
+                    className={`river river--left${riverEditOpen ? ` river--editable${riverEditActiveSeat === 3 ? " river--editable-active" : ""}` : ""}`}
+                    style={riverOffsetStyle(3)}
+                    onPointerDown={riverEditOpen ? handleRiverPointerDown(3) : undefined}
+                    onPointerMove={riverEditOpen ? handleRiverPointerMove : undefined}
+                    onPointerUp={riverEditOpen ? handleRiverPointerUp : undefined}
+                    onPointerCancel={riverEditOpen ? handleRiverPointerUp : undefined}
+                  >
                     <DiscardPile discards={round.players[3].discards} direction="left" callTargetTileId={callTargetTileId} frozen={riverFrozen(3)} />
                   </div>
-                  <div className="river river--right">
+                  <div
+                    className={`river river--right${riverEditOpen ? ` river--editable${riverEditActiveSeat === 1 ? " river--editable-active" : ""}` : ""}`}
+                    style={riverOffsetStyle(1)}
+                    onPointerDown={riverEditOpen ? handleRiverPointerDown(1) : undefined}
+                    onPointerMove={riverEditOpen ? handleRiverPointerMove : undefined}
+                    onPointerUp={riverEditOpen ? handleRiverPointerUp : undefined}
+                    onPointerCancel={riverEditOpen ? handleRiverPointerUp : undefined}
+                  >
                     <DiscardPile discards={round.players[1].discards} direction="right" callTargetTileId={callTargetTileId} frozen={riverFrozen(1)} />
                   </div>
-                  <div className="river river--human">
+                  <div
+                    className={`river river--human${riverEditOpen ? ` river--editable${riverEditActiveSeat === 0 ? " river--editable-active" : ""}` : ""}`}
+                    style={riverOffsetStyle(0)}
+                    onPointerDown={riverEditOpen ? handleRiverPointerDown(0) : undefined}
+                    onPointerMove={riverEditOpen ? handleRiverPointerMove : undefined}
+                    onPointerUp={riverEditOpen ? handleRiverPointerUp : undefined}
+                    onPointerCancel={riverEditOpen ? handleRiverPointerUp : undefined}
+                  >
                     <DiscardPile
                       discards={round.players[0].discards}
                       direction="human"
                       callTargetTileId={callTargetTileId}
                       frozen={riverFrozen(0)}
-                      onTileClick={humanRiverClickable ? selectRetrieveReclaimTile : undefined}
+                      onTileClick={riverEditOpen ? undefined : humanRiverClickable ? selectRetrieveReclaimTile : undefined}
                       selectedTileId={retrieveReclaimTileId ?? undefined}
                     />
                   </div>
                   <CenterBoard round={round} scores={match.scores} />
                   {/* リーチ棒（1000点棒）。点数バッジ（外側）と中央の局情報
                       「東◯局」「残りN枚」（内側）の隙間に置く（位置の詳細は
-                      styles.cssの.riichi-stick--*参照）。 */}
-                  {round.players[2].riichi && <div className={`riichi-stick riichi-stick--top${riverFrozen(2) ? " table__frozen" : ""}`} />}
-                  {round.players[3].riichi && <div className={`riichi-stick riichi-stick--left${riverFrozen(3) ? " table__frozen" : ""}`} />}
-                  {round.players[1].riichi && <div className={`riichi-stick riichi-stick--right${riverFrozen(1) ? " table__frozen" : ""}`} />}
-                  {round.players[0].riichi && <div className={`riichi-stick riichi-stick--human${riverFrozen(0) ? " table__frozen" : ""}`} />}
+                      styles.cssの.riichi-stick--*参照）。配置編集モード中は、
+                      副露/手牌編集と同じ考え方で、選択中の座席がまだリーチ
+                      していなくても「仮」のリーチ棒を表示し、実際にリーチ
+                      するのを待たずに位置を調整できるようにする。 */}
+                  {(
+                    [
+                      { player: 2 as const, cls: "top" },
+                      { player: 3 as const, cls: "left" },
+                      { player: 1 as const, cls: "right" },
+                      { player: 0 as const, cls: "human" },
+                    ]
+                  ).map(({ player, cls }) => {
+                    const isRiichi = round.players[player].riichi;
+                    const isMock = riichiStickEditOpen && riichiStickEditActiveSeat === player && !isRiichi;
+                    if (!isRiichi && !isMock) return null;
+                    return (
+                      <div
+                        key={player}
+                        className={`riichi-stick riichi-stick--${cls}${riverFrozen(player) ? " table__frozen" : ""}${isMock ? " riichi-stick--mock" : ""}${
+                          riichiStickEditOpen ? ` riichi-stick--editable${riichiStickEditActiveSeat === player ? " riichi-stick--editable-active" : ""}` : ""
+                        }`}
+                        style={riichiStickOffsetStyle(player)}
+                        onPointerDown={riichiStickEditOpen ? handleRiichiStickPointerDown(player) : undefined}
+                        onPointerMove={riichiStickEditOpen ? handleRiichiStickPointerMove : undefined}
+                        onPointerUp={riichiStickEditOpen ? handleRiichiStickPointerUp : undefined}
+                        onPointerCancel={riichiStickEditOpen ? handleRiichiStickPointerUp : undefined}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 
@@ -255,9 +510,9 @@ export function Table() {
         {/* キャラクターレイヤー: 卓の外に独立した4枚のパネル。河・手牌の
             伸縮とは一切連動しない固定位置のため、以前のようなクリック
             優先度の奪い合いが起きない。 */}
-        <CharacterPanel round={round} player={2 as PlayerIndex} score={match.scores[2]} corner="top" />
-        <CharacterPanel round={round} player={1 as PlayerIndex} score={match.scores[1]} corner="right" />
-        <CharacterPanel round={round} player={3 as PlayerIndex} score={match.scores[3]} corner="left" />
+        <CharacterPanel round={round} player={2 as PlayerIndex} score={match.scores[2]} corner="top" {...nameplateEditProps(2)} />
+        <CharacterPanel round={round} player={1 as PlayerIndex} score={match.scores[1]} corner="right" {...nameplateEditProps(1)} />
+        <CharacterPanel round={round} player={3 as PlayerIndex} score={match.scores[3]} corner="left" {...nameplateEditProps(3)} />
         <CharacterPanel
           round={round}
           player={0 as PlayerIndex}
@@ -265,6 +520,7 @@ export function Table() {
           corner="bottom"
           isSelf
           onShowSkillInfo={() => setShowOwnSkillInfo(true)}
+          {...nameplateEditProps(0)}
         />
 
         {/* 全画面演出レイヤー。卓・キャラパネルのレイアウトが今後変わっても
