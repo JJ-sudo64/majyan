@@ -677,7 +677,7 @@ button {
   /* 実際にどの画像を使うかはtableBackgroundStore.tsで管理し、Table.tsx
      側からCSSカスタムプロパティ--table-bg-imageとして注入する
      （複数の背景画像を切り替えられるようにするため）。 */
-  background-image: var(--table-bg-image, url("/table/table-surface-bg.png"));
+  background-image: var(--table-bg-image, url("/table/table-surface-bg-sakura.png"));
   background-repeat: no-repeat;
   background-size: var(--bg-scale, 100%) var(--bg-scale, 100%);
   /* 横/縦位置は「%指定」ではなくpx単位の中心からのオフセットにしている。
@@ -1549,6 +1549,17 @@ button {
 }
 .volume-popover__tile3d-row .hud__toggle-btn {
   flex: 1;
+}
+/* 卓の背景の選択ボタン。素材が増えても歯車メニュー自体の幅が広がら
+   ないよう、この行はメニューの幅の決定に参加させず(width:0 +
+   min-width:100%で「他の行が決めた幅」にぴったり合わせる)、2列ずつ
+   折り返して並べる。 */
+.volume-popover__bg-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: 0;
+  min-width: 100%;
 }
 
 /* ============ 対面プレイヤー（アバター・名前） ============ */

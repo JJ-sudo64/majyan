@@ -30,7 +30,7 @@ function importSettingsJson(json: string): void {
 }
 
 /**
- * 卓面背景画像(.table-surface、public/table/table-surface-bg.png)の
+ * 卓面背景画像(.table-surface、public/table/以下、tableBackgroundStore.tsで選択中の画像)の
  * サイズ・位置と、中央パネル(.center-board)の位置・拡大率を、実際の
  * 対局画面を見ながらその場で調整するためのデバッグパネル。
  *

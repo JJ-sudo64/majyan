@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 /**
- * 卓面背景画像(.table-surface、packages/web/public/table/table-surface-bg.png)
+ * 卓面背景画像(.table-surface、packages/web/public/table/以下、tableBackgroundStore.tsで選択中の画像)
  * のサイズ・位置・中央パネル(.center-board)の位置を、実際の対局画面を見ながら
  * その場で調整するための一時的なデバッグ用ストア。
  *

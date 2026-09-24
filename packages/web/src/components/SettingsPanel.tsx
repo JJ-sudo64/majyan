@@ -285,7 +285,7 @@ export function SettingsPanel() {
             <div className="hud__row volume-popover__tile3d-row">
               <span className="hud__dora-label">卓の背景</span>
             </div>
-            <div className="hud__row volume-popover__tile3d-row">
+            <div className="hud__row volume-popover__tile3d-row volume-popover__bg-row">
               {TABLE_BACKGROUND_OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
