@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type CSSProperties } from "react";
 import type { DiscardedTile } from "@majyan/core";
 import { TileView } from "./TileView.js";
 import { STAGE_WIDTH } from "./Stage.js";
+import { handDrawnSlotClass, handSplitMidClass } from "./OpponentArea.js";
 
 // 川の表示枠は横6枚×3段(18枚)分しか確保していないため、CSSのoverflowでの
 // クリップに頼らずここで頭打ちにする。それ以上は溢れて隣と被ってしまうため。
@@ -96,6 +97,73 @@ function toLocalDelta(direction: RiverDirection, screenDx: number, screenDy: num
   return [cos * screenDx - sin * screenDy, sin * screenDx + cos * screenDy];
 }
 
+function rectCenter(el: Element): [number, number] | null {
+  const r = el.getBoundingClientRect();
+  if (r.width === 0 && r.height === 0) return null;
+  return [r.left + r.width / 2, r.top + r.height / 2];
+}
+
+// 上家・下家の入場演出の起点＝「実際に描画されている手牌の牌」の画面上の
+// 中心。ツモ切りはツモ牌の枠(打牌後はvisibility:hiddenで同じ位置に残る)、
+// 手出しは手牌中央の2枚の中間（開く演出の隙間の中心）。上家・下家の手牌は
+// Tile3DとしてPortal先(document.body直下)に、手牌位置調整のオフセット込みで
+// 描かれるため、.opponent-hand-back(プレースホルダー)から推定すると
+// 実際の見た目の位置とズレる。そのため牌そのものを実測する。
+function sideHandOrigin(player: number, tsumogiri: boolean): [number, number] | null {
+  if (tsumogiri) {
+    const slot = document.querySelector(`.${handDrawnSlotClass(player)}`);
+    return slot ? rectCenter(slot) : null;
+  }
+  const centers = Array.from(document.querySelectorAll(`.${handSplitMidClass(player)}`))
+    .map(rectCenter)
+    .filter((c): c is [number, number] => c !== null);
+  if (centers.length === 0) return null;
+  return [centers.reduce((sum, c) => sum + c[0], 0) / centers.length, centers.reduce((sum, c) => sum + c[1], 0) / centers.length];
+}
+
+// 河の牌に掛けるローカルなtranslate(dx,dy)を、「その牌の画面上の中心が
+// target(画面座標)に来る」ように実測で求める。河は.discard-pileの回転・
+// --river-scale・.tableのzoom・卓の3D傾き(遠近)の中にあり、式で逆算すると
+// どれか1つの取りこぼしで起点がズレる。そこで実際にtranslateを当てて
+// 画面上の移動量を測り、ヤコビアンを作ってニュートン法で数回詰める
+// （遠近による非線形分もこれで吸収される）。計測中はアニメーションを
+// 止め、終わったらインラインのtranslate/animationを必ず元に戻す。
+function solveLocalOffset(tileEl: HTMLElement, target: [number, number]): [number, number] | null {
+  const prevAnimation = tileEl.style.animation;
+  const prevTranslate = tileEl.style.translate;
+  tileEl.style.animation = "none";
+  const at = (x: number, y: number): [number, number] | null => {
+    tileEl.style.translate = `${x}px ${y}px`;
+    return rectCenter(tileEl);
+  };
+  try {
+    let x = 0;
+    let y = 0;
+    const PROBE = 40;
+    for (let iter = 0; iter < 4; iter++) {
+      const f0 = at(x, y);
+      const fx = at(x + PROBE, y);
+      const fy = at(x, y + PROBE);
+      if (!f0 || !fx || !fy) return null;
+      const a = (fx[0] - f0[0]) / PROBE;
+      const c = (fx[1] - f0[1]) / PROBE;
+      const b = (fy[0] - f0[0]) / PROBE;
+      const d = (fy[1] - f0[1]) / PROBE;
+      const det = a * d - b * c;
+      if (Math.abs(det) < 1e-6) return null;
+      const ex = target[0] - f0[0];
+      const ey = target[1] - f0[1];
+      if (Math.hypot(ex, ey) < 0.5) break;
+      x += (d * ex - b * ey) / det;
+      y += (-c * ex + a * ey) / det;
+    }
+    return [x, y];
+  } finally {
+    tileEl.style.translate = prevTranslate;
+    tileEl.style.animation = prevAnimation;
+  }
+}
+
 export function DiscardPile({
   discards,
   direction,
@@ -137,8 +205,23 @@ export function DiscardPile({
   // 要る。useLayoutEffectはブラウザが描画する前に同期実行されるため、
   // ここで--enter-x/yを書き換えても入場アニメーションが古い値のまま
   // 一瞬再生されてしまうことはない。
+  const isSideSeat = direction === "left" || direction === "right";
   useLayoutEffect(() => {
-    if (!latest?.isTsumogiri) return;
+    if (!latest || !isSideSeat) return;
+    const tileEl = latestTileRef.current;
+    if (!tileEl) return;
+    const origin = sideHandOrigin(DIRECTION_TO_PLAYER[direction], latest.isTsumogiri);
+    const solved = origin ? solveLocalOffset(tileEl, origin) : null;
+    // 実測できなかった時（手牌が0枚等）は、起点をずらさず河の定位置で
+    // そのまま演出する（見当違いの場所から飛んでくるよりは安全）。
+    const [dx, dy] = solved ?? [0, 0];
+    tileEl.style.setProperty("--enter-x", `${dx}px`);
+    tileEl.style.setProperty("--enter-y", `${dy}px`);
+  }, [latest, direction, isSideSeat]);
+
+  // 対面・自分の河（上家・下家は上のuseLayoutEffectで扱う）。
+  useLayoutEffect(() => {
+    if (!latest?.isTsumogiri || isSideSeat) return;
     const tileEl = latestTileRef.current;
     if (!tileEl) return;
     const handEl = document.querySelector<HTMLElement>(`[data-hand-anchor="${DIRECTION_TO_PLAYER[direction]}"]`);
@@ -196,7 +279,7 @@ export function DiscardPile({
     const [dx, dy] = toLocalDelta(direction, screenDx, screenDy);
     tileEl.style.setProperty("--enter-x", `${dx}px`);
     tileEl.style.setProperty("--enter-y", `${dy}px`);
-  }, [latest, direction]);
+  }, [latest, direction, isSideSeat]);
 
   return (
     <div className={`discard-pile${frozen ? " table__frozen" : ""}`}>
@@ -205,7 +288,7 @@ export function DiscardPile({
         const isLatestTsumogiri = isLatest && d.isTsumogiri;
         const style: CSSProperties = {
           zIndex: tileZIndex(direction, i),
-          ...(isLatest && !isLatestTsumogiri ? tegiriOffset(direction) : undefined),
+          ...(isLatest && !isLatestTsumogiri && !isSideSeat ? tegiriOffset(direction) : undefined),
         };
         return (
           <TileView
@@ -217,7 +300,7 @@ export function DiscardPile({
             red={d.tile.isRed}
             callTarget={d.tile.id === callTargetTileId}
             selected={d.tile.id === selectedTileId}
-            slideIn={isLatest ? (d.isTsumogiri ? "tsumogiri" : "default") : undefined}
+            slideIn={isLatest ? (d.isTsumogiri ? "tsumogiri" : isSideSeat ? "tegiri" : "default") : undefined}
             style={style}
             onClick={onTileClick ? () => onTileClick(d.tile.id) : undefined}
           />

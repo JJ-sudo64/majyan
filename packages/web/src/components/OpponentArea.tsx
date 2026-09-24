@@ -107,6 +107,21 @@ const CALL_ANNOUNCE_MS = 1000;
 // 差がつく）。CSSアニメーションの実時間(tile-slide-in, 300ms)と揃える。
 const HAND_SPLIT_MS = 320;
 const HAND_SPLIT_DISTANCE = 16;
+// 上家・下家(1/3)の手出し: 「手牌の中央が一度開く→その隙間から牌が河へ
+// 出ていく→閉じる」演出（styles.cssの.hand-split-open / .tile--slide-in-tegiri、
+// 実時間520msと揃える）。開き終わるまではsplitting状態を保つ。
+const SIDE_HAND_SPLIT_MS = 560;
+const SIDE_HAND_SPLIT_DISTANCE_2D = 12;
+
+// 河の入場演出(DiscardPile.tsx)が「実際に描画されている手牌の牌」の画面位置を
+// 実測するための目印クラス（見た目は一切持たない）。上家・下家のTile3Dは
+// document.body直下へPortalされるため、座席番号込みのクラス名で探す。
+export function handDrawnSlotClass(player: number): string {
+  return `hand-drawn-slot--${player}`;
+}
+export function handSplitMidClass(player: number): string {
+  return `hand-split-mid--${player}`;
+}
 
 export function OpponentArea({
   round,
@@ -316,21 +331,28 @@ export function OpponentArea({
   const concealedCount = p.hand.concealed.length;
   const discardCount = p.discards.length;
 
+  const isSideSeat = player === 1 || player === 3;
   const prevDiscardCountRef = useRef(discardCount);
   const [splitting, setSplitting] = useState(false);
 
+  // 解除タイマーはrefで持ち、アンマウント時だけ片付ける。以前はeffectの
+  // クリーンアップで消していたが、p.discardsは他家のツモ等の無関係な
+  // 状態更新でも参照が変わるためeffectが再実行され、そのたびに解除
+  // タイマーだけが消えてsplittingがtrueのまま残る（＝次の手出しで
+  // クラスが付け直されず演出が再生されない）ことがあった。
+  const splitTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(splitTimerRef.current), []);
   useEffect(() => {
     const prevCount = prevDiscardCountRef.current;
     prevDiscardCountRef.current = discardCount;
     if (discardCount > prevCount) {
       const latest = p.discards[discardCount - 1];
       if (latest && !latest.isTsumogiri) {
+        clearTimeout(splitTimerRef.current);
         setSplitting(true);
-        const timer = setTimeout(() => setSplitting(false), HAND_SPLIT_MS);
-        return () => clearTimeout(timer);
+        splitTimerRef.current = setTimeout(() => setSplitting(false), isSideSeat ? SIDE_HAND_SPLIT_MS : HAND_SPLIT_MS);
       }
     }
-    return undefined;
   }, [discardCount, p.discards]);
 
   // 加槓は新しい副露を追加するのではなく、既存のポンをその場でカンへ
@@ -488,6 +510,7 @@ export function OpponentArea({
     /** 縦一列の中での並び順（0が先頭）。重なり量(縦)・横のずらし量(扇状)・
         手前/奥の重なり順は、全部この番号を基準に計算する。 */
     index: number;
+    className?: string;
   }) {
     // 手前/奥(tile3dFrontIsLast)は、どちらの端の牌を一番手前に重ねるかを
     // z-indexの符号で切り替える——プロトタイプの「Aが手前/Bが手前」に相当。
@@ -527,6 +550,7 @@ export function OpponentArea({
         whiteWidth={tile3dWhiteWidth}
         aspectX={tile3dAspectX}
         aspectY={tile3dAspectY}
+        className={args.className}
         style={{ ...args.style, ...extraStyle, zIndex }}
       />
     );
@@ -550,9 +574,9 @@ export function OpponentArea({
       // mainTiles.length(末尾)固定にする（呼び出し側でも描画順を本体と
       // 入れ替えている、handInner参照）。
       const index = player === 3 ? mainTiles.length : 0;
-      return renderConcealed3D({ code, faceDown, red, style, drawn: true, index });
+      return renderConcealed3D({ code, faceDown, red, style, drawn: true, index, className: handDrawnSlotClass(player) });
     }
-    return <TileView key="drawn" code={code} faceDown={faceDown} red={red} small drawn style={style} />;
+    return <TileView key="drawn" code={code} faceDown={faceDown} red={red} small drawn className={isSideSeat ? handDrawnSlotClass(player) : undefined} style={style} />;
   }
 
   // Tile3D立体牌は祖先の「傾いた卓」演出(rotateX)の中にいるとシアー変形
@@ -585,7 +609,22 @@ export function OpponentArea({
         // 牌の帯を手前の牌の絵の下に隠す。
         const zIndexStyle: CSSProperties | undefined =
           player === 1 ? { zIndex: -i } : player === 3 ? { zIndex: i } : undefined;
-        const enterStyle: CSSProperties | undefined = splitting
+        // 上家・下家は「中央が一度開いてから閉じる」演出（.hand-split-open）。
+        // 開く量は立体牌なら列の縦方向(1枚ぶんの送り量)、2D(公開時)なら
+        // 回転前の横一列方向。translateプロパティだけを使うため、牌の定位置
+        // (margin/transform)には一切触れず、終了時は必ず元の位置に戻る。
+        const splitDist = useTile3D ? Math.max(12, tile3dScale * 43 + tile3dSpacing) : SIDE_HAND_SPLIT_DISTANCE_2D;
+        const splitSign = i < leftCount ? -1 : 1;
+        const sideSplitStyle: CSSProperties | undefined =
+          splitting && isSideSeat
+            ? ((useTile3D
+                ? { "--split-x": "0px", "--split-y": `${splitSign * splitDist}px` }
+                : { "--split-x": `${splitSign * splitDist}px`, "--split-y": "0px" }) as CSSProperties)
+            : undefined;
+        const midClass = isSideSeat && (i === leftCount - 1 || i === leftCount) ? handSplitMidClass(player) : undefined;
+        const enterStyle: CSSProperties | undefined = isSideSeat
+          ? sideSplitStyle
+          : splitting
           ? i < leftCount
             ? ({ "--enter-x": `${-HAND_SPLIT_DISTANCE}px`, "--enter-y": "0px" } as CSSProperties)
             : ({ "--enter-x": `${HAND_SPLIT_DISTANCE}px`, "--enter-y": "0px" } as CSSProperties)
@@ -604,6 +643,7 @@ export function OpponentArea({
             red,
             style: { ...zIndexStyle, ...enterStyle },
             index: player === 3 ? i : i + 1,
+            className: [midClass, splitting ? "hand-split-open" : undefined].filter(Boolean).join(" ") || undefined,
           });
         }
         return (
@@ -613,7 +653,8 @@ export function OpponentArea({
             faceDown={faceDown}
             red={red}
             small
-            slideIn={splitting ? "default" : undefined}
+            slideIn={splitting ? (isSideSeat ? "split" : "default") : undefined}
+            className={midClass}
             style={{ ...zIndexStyle, ...enterStyle }}
           />
         );

@@ -29,8 +29,15 @@ export interface TileViewProps {
   sanshokuHint?: boolean;
   /** styleの--enter-x/--enter-yを起点に静止位置へ滑り込むアニメーションを再生する。
       "default"はそのまま滑り込むだけ、"tsumogiri"は起点でいったん静止して
-      間を置いてから運ばれる2段階演出（河のツモ切り牌専用）。 */
-  slideIn?: "default" | "tsumogiri";
+      間を置いてから運ばれる2段階演出（河のツモ切り牌専用）。
+      "tegiri"は上家・下家の手出し専用: 手牌の中央が開くのを待ってから、
+      その隙間(--enter-x/y)に現れて河へ運ばれる。
+      "split"は上家・下家の手出しの瞬間、手牌側の牌が--split-x/yの方向へ
+      一度開いてから元の位置へ閉じる演出（終了時は必ず元の位置に戻る）。 */
+  slideIn?: "default" | "tsumogiri" | "tegiri" | "split";
+  /** 見た目を持たない目印用のクラス（河の入場演出が手牌の実DOMを
+      探すのに使う）。 */
+  className?: string;
   /** このインスタンス自身（=盤面上の同じcodeの他の牌ではなく）へのホバー開始/終了を
       個別に知りたい呼び出し元向けのコールバック（例：リーチ選択中の待ちプレビューは
       自分の手牌の候補牌そのものにカーソルを合わせた時だけ発動させたく、
@@ -42,7 +49,7 @@ export interface TileViewProps {
 }
 
 export const TileView = forwardRef<HTMLButtonElement, TileViewProps>(function TileView(
-  { code, faceDown, selected, rotated, dimmed, small, tiny, drawn, red, highlightable = true, callTarget, sanshokuHint, slideIn, onHoverChange, style, onClick },
+  { code, faceDown, selected, rotated, dimmed, small, tiny, drawn, red, highlightable = true, callTarget, sanshokuHint, slideIn, onHoverChange, className, style, onClick },
   ref,
 ) {
   // じゃんたま風に、同じ牌にカーソルを合わせたら河・副露など盤面上の
@@ -94,7 +101,10 @@ export const TileView = forwardRef<HTMLButtonElement, TileViewProps>(function Ti
   if (sanshokuHint) classes.push("tile--sanshoku-hint");
   if (isDora) classes.push("tile--dora");
   if (slideIn === "tsumogiri") classes.push("tile--slide-in-tsumogiri");
+  else if (slideIn === "tegiri") classes.push("tile--slide-in-tegiri");
+  else if (slideIn === "split") classes.push("hand-split-open");
   else if (slideIn) classes.push("tile--slide-in");
+  if (className) classes.push(className);
   if (onClick) classes.push("tile--clickable");
 
   return (

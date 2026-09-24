@@ -3319,6 +3319,54 @@ button {
   }
 }
 
+/* 上家・下家の手出し専用（2箇所で同じ520msの時間軸を共有する）:
+   - .hand-split-open: 手牌側。残った牌が中央から--split-x/yの方向へ
+     一度開き(0%〜30%)、牌が出ていく間は開いたまま(〜60%)、元の位置へ
+     閉じる(100%)。translateプロパティだけを使うため、Tile3D(transformで
+     縦横比を掛けている)や2D牌の定位置には一切影響せず、終了時は必ず
+     translate:0に戻る。
+   - .tile--slide-in-tegiri: 河側。手牌が開くまでは隙間の位置(--enter-x/y)
+     で透明のまま待ち、開いた所で現れて河の定位置へ運ばれる。 */
+.hand-split-open {
+  animation: hand-split-open 520ms ease-in-out;
+}
+@keyframes hand-split-open {
+  0% {
+    translate: 0 0;
+  }
+  30% {
+    translate: var(--split-x, 0) var(--split-y, 0);
+  }
+  60% {
+    translate: var(--split-x, 0) var(--split-y, 0);
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+.tile--slide-in-tegiri {
+  animation: tile-slide-in-tegiri 520ms linear;
+}
+@keyframes tile-slide-in-tegiri {
+  0% {
+    translate: var(--enter-x, 0) var(--enter-y, 0);
+    opacity: 0;
+  }
+  22% {
+    translate: var(--enter-x, 0) var(--enter-y, 0);
+    opacity: 0;
+  }
+  32% {
+    translate: var(--enter-x, 0) var(--enter-y, 0);
+    opacity: 1;
+    animation-timing-function: ease-in-out;
+  }
+  100% {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
 .call-actions {
   display: flex;
   gap: 8px;
