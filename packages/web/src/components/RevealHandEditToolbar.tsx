@@ -21,6 +21,7 @@ export function RevealHandEditToolbar() {
   const setOpen = useTile3DDebugStore((s) => s.setRevealEditOpen);
   const offset = useTile3DDebugStore((s) => s.revealHandOffset);
   const setOffset = useTile3DDebugStore((s) => s.setRevealHandOffset);
+  const resetSeat = useTile3DDebugStore((s) => s.resetRevealHand);
 
   return (
     <div className="meld-edit-toolbar reveal-hand-edit-toolbar">
@@ -46,10 +47,7 @@ export function RevealHandEditToolbar() {
             <button
               type="button"
               className="tile3d-debug-panel__btn"
-              onClick={() => {
-                setRotate(seat, 0);
-                setOffset(seat, { x: 0, y: 0 });
-              }}
+              onClick={() => resetSeat(seat)}
             >
               {label}をリセット
             </button>

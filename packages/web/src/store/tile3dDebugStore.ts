@@ -155,11 +155,19 @@ const INITIAL_KAMICHA_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
 ];
 /** 河、座席順(自分/下家/対面/上家)。対面だけ牌を少し小さくしている。 */
 const INITIAL_RIVER_SLOTS: RiverSlotConfig[] = [
-  { offsetX: 4, offsetY: -2, rotate: 0, scale: 1 },
+  { offsetX: 6, offsetY: 2, rotate: 0, scale: 1 },
   { offsetX: -16, offsetY: -13, rotate: -2, scale: 1 },
   { offsetX: -4, offsetY: -1, rotate: 0, scale: 0.9 },
   { offsetX: 21, offsetY: 12, rotate: 1, scale: 1 },
 ];
+/** 公開手牌(透視の術・大明立直)の座席ごとの角度・位置。2026-09-25に
+    実機(Edge)で詰めた値。 */
+const INITIAL_REVEAL_HAND_ROTATE: Record<RevealSeat, number> = { shimocha: -11, toimen: 0, kamicha: 13 };
+const INITIAL_REVEAL_HAND_OFFSET: Record<RevealSeat, { x: number; y: number }> = {
+  shimocha: { x: 23, y: 0 },
+  toimen: { x: 0, y: 0 },
+  kamicha: { x: -14, y: -101 },
+};
 /** リーチ棒、座席順。 */
 const INITIAL_RIICHI_STICK_SLOTS: SeatSlotConfig[] = [
   { offsetX: -1, offsetY: 4, rotate: 0 },
@@ -379,6 +387,8 @@ export interface Tile3DDebugState {
       卓上で直接ドラッグ、またはツールバーのスライダーで調整する。 */
   revealHandOffset: Record<RevealSeat, { x: number; y: number }>;
   setRevealHandOffset: (seat: RevealSeat, patch: Partial<{ x: number; y: number }>) => void;
+  /** その座席の角度・位置を確定値(INITIAL_REVEAL_HAND_*)に戻す。 */
+  resetRevealHand: (seat: RevealSeat) => void;
   /** 公開手牌の角度編集モードの開閉。永続化しない。 */
   revealEditOpen: boolean;
   setRevealEditOpen: (v: boolean) => void;
@@ -522,11 +532,20 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       toimenEditTarget: null,
       setToimenEditTarget: (toimenEditTarget) => set({ toimenEditTarget }),
 
-      revealHandRotate: { shimocha: 0, toimen: 0, kamicha: 0 },
+      revealHandRotate: { ...INITIAL_REVEAL_HAND_ROTATE },
       setRevealHandRotate: (seat, v) => set((state) => ({ revealHandRotate: { ...state.revealHandRotate, [seat]: v } })),
-      revealHandOffset: { shimocha: { x: 0, y: 0 }, toimen: { x: 0, y: 0 }, kamicha: { x: 0, y: 0 } },
+      revealHandOffset: {
+        shimocha: { ...INITIAL_REVEAL_HAND_OFFSET.shimocha },
+        toimen: { ...INITIAL_REVEAL_HAND_OFFSET.toimen },
+        kamicha: { ...INITIAL_REVEAL_HAND_OFFSET.kamicha },
+      },
       setRevealHandOffset: (seat, patch) =>
         set((state) => ({ revealHandOffset: { ...state.revealHandOffset, [seat]: { ...state.revealHandOffset[seat], ...patch } } })),
+      resetRevealHand: (seat) =>
+        set((state) => ({
+          revealHandRotate: { ...state.revealHandRotate, [seat]: INITIAL_REVEAL_HAND_ROTATE[seat] },
+          revealHandOffset: { ...state.revealHandOffset, [seat]: { ...INITIAL_REVEAL_HAND_OFFSET[seat] } },
+        })),
       revealEditOpen: false,
       setRevealEditOpen: (revealEditOpen) => set({ revealEditOpen }),
       revealPreview: { shimocha: false, toimen: false, kamicha: false },
