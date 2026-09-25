@@ -513,9 +513,26 @@ export function OpponentArea({
   // 公開手牌の角度・位置編集中で、この座席の手牌が実際に公開表示中なら
   // 卓上で直接ドラッグできるようにする。
   const isEditingReveal = revealEditOpen && revealHand;
-  const drawnTileId = hasPendingDraw ? round.lastDrawnTile?.id : undefined;
+  const lastDrawnId = hasPendingDraw ? round.lastDrawnTile?.id : undefined;
+  const realDrawnTile = lastDrawnId ? p.hand.concealed.find((t) => t.id === lastDrawnId) : undefined;
+  // 上家・下家の副露直後（ツモ無しで打牌待ち）は、ツモ牌の枠が空のまま
+  // 手牌が11枚などになっており、打牌した瞬間に列の要素数が1つ減る。列は
+  // 中心合わせで配置されているため両端が半牌ずつ内側へ跳び、傾いた列だと
+  // 手出しの「割れる」演出と重なって手牌が斜めに動いて見えていた（指摘
+  // により判明、実測で打牌の瞬間だけ要素数12→11・両端が±(5,13)px移動）。
+  // 通常の手出し（ツモ牌の枠+13枚→空の枠+13枚、要素数一定）と同じ状態に
+  // するため、この間だけ枠側の端の1枚をツモ牌の枠に入れて表示する。
+  // 枠がどちらの端かは下のdrawnAtStart/drawnAtEndと同じ（Tile3Dの下家
+  // だけ先頭、それ以外の上家・下家は末尾）。
+  const postCallFiller =
+    hasPendingDraw && !realDrawnTile && isSideSeat && p.hand.concealed.length > 0
+      ? useTile3D && player !== 3
+        ? p.hand.concealed[0]
+        : p.hand.concealed[p.hand.concealed.length - 1]
+      : undefined;
+  const drawnTile = realDrawnTile ?? postCallFiller;
+  const drawnTileId = drawnTile?.id;
   const mainTiles = drawnTileId ? p.hand.concealed.filter((t) => t.id !== drawnTileId) : p.hand.concealed;
-  const drawnTile = drawnTileId ? p.hand.concealed.find((t) => t.id === drawnTileId) : undefined;
   const mainCount = mainTiles.length;
   const leftCount = Math.ceil(mainCount / 2);
   // 上家・下家(opponent-area--1/3)の手牌枠(.opponent-hand-back)は、以前は
@@ -706,12 +723,19 @@ export function OpponentArea({
         // 開く量は立体牌なら列の縦方向(1枚ぶんの送り量)、2D(公開時)なら
         // 回転前の横一列方向。translateプロパティだけを使うため、牌の定位置
         // (margin/transform)には一切触れず、終了時は必ず元の位置に戻る。
-        const splitDist = useTile3D ? Math.max(12, tile3dScale * 43 + tile3dSpacing) : SIDE_HAND_SPLIT_DISTANCE_2D;
+        // 立体牌の列は1枚ごとに横へtile3dFanOffsetXずつずれて斜めに並ぶ
+        // （renderConcealed3DのmarginLeft）ため、縦だけに開くと上下の半分が
+        // 列の線から横へ外れて見える（指摘により判明、下家は実測で列の傾き
+        // dx/dy=0.29に対し開く向きが0.05だった）。1枚ぶんの並びの向き
+        // (fanOffsetX, 縦の送り量)と同じ向きに開く。
+        const splitStepY = tile3dScale * 43 + tile3dSpacing;
+        const splitDist = useTile3D ? Math.max(12, splitStepY) : SIDE_HAND_SPLIT_DISTANCE_2D;
+        const splitDistX = useTile3D && splitStepY > 0 ? (tile3dFanOffsetX * splitDist) / splitStepY : 0;
         const splitSign = i < leftCount ? -1 : 1;
         const sideSplitStyle: CSSProperties | undefined =
           splitting && isSideSeat
             ? ((useTile3D
-                ? { "--split-x": "0px", "--split-y": `${splitSign * splitDist}px` }
+                ? { "--split-x": `${splitSign * splitDistX}px`, "--split-y": `${splitSign * splitDist}px` }
                 : { "--split-x": `${splitSign * splitDist}px`, "--split-y": "0px" }) as CSSProperties)
             : undefined;
         const midClass = isSideSeat && (i === leftCount - 1 || i === leftCount) ? handSplitMidClass(player) : undefined;
