@@ -49,6 +49,37 @@ export function getTableZoomRatio(el: HTMLElement): number {
   return tableEl && tableEl.offsetWidth > 0 ? tableEl.getBoundingClientRect().width / tableEl.offsetWidth : 1;
 }
 
+/** 要素のローカルな平行移動(CSSのtranslateプロパティ＝transformより外側、
+    親座標系での移動)が画面上でどう動くかを実際に当てて測り、その逆行列
+    (画面px→ローカルpx)を返す。卓の3D傾き(rotateX+遠近)で縦方向が縮む等、
+    zoom倍率で割るだけでは合わない分をこれで吸収する（DiscardPile.tsxの
+    solveLocalOffsetと同じ考え方）。測れなければnull。 */
+function measureScreenToLocal(el: HTMLElement): [number, number, number, number] | null {
+  const prev = el.style.translate;
+  const center = (): [number, number] => {
+    const r = el.getBoundingClientRect();
+    return [r.left + r.width / 2, r.top + r.height / 2];
+  };
+  try {
+    const PROBE = 40;
+    el.style.translate = "0px 0px";
+    const f0 = center();
+    el.style.translate = `${PROBE}px 0px`;
+    const fx = center();
+    el.style.translate = `0px ${PROBE}px`;
+    const fy = center();
+    const a = (fx[0] - f0[0]) / PROBE;
+    const c = (fx[1] - f0[1]) / PROBE;
+    const b = (fy[0] - f0[0]) / PROBE;
+    const d = (fy[1] - f0[1]) / PROBE;
+    const det = a * d - b * c;
+    if (Math.abs(det) < 1e-6) return null;
+    return [d / det, -b / det, -c / det, a / det];
+  } finally {
+    el.style.translate = prev;
+  }
+}
+
 /** 副露(.meld)の直接の親(.opponent-melds__inner)がrotate(-90deg)(下家)/
     rotate(90deg)(上家)されているため、.meld自身のtransform: translate()に
     渡すoffsetX/Yのローカル座標系は、画面上の左右/上下とは90度ズレている
@@ -185,6 +216,28 @@ export function OpponentArea({
   const ankanPreview = useTile3DDebugStore((s) => s.ankanPreview);
   const ankanPreviewActive =
     (player === 1 && ankanPreview.shimocha) || (player === 2 && ankanPreview.toimen) || (player === 3 && ankanPreview.kamicha);
+  // 公開手牌の角度編集モード（RevealHandEditToolbar.tsx参照）。編集中は
+  // プレビューONの座席だけ、実際にスキルが発動していなくても手牌を公開
+  // 状態で表示し、その状態で角度を追い込めるようにする。
+  const revealSeat = player === 1 ? "shimocha" : player === 2 ? "toimen" : "kamicha";
+  const revealHandRotate = useTile3DDebugStore((s) => s.revealHandRotate[revealSeat]);
+  const revealHandOffset = useTile3DDebugStore((s) => s.revealHandOffset[revealSeat]);
+  const setRevealHandOffset = useTile3DDebugStore((s) => s.setRevealHandOffset);
+  const revealEditOpen = useTile3DDebugStore((s) => s.revealEditOpen);
+  const revealPreviewActive = useTile3DDebugStore((s) => s.revealEditOpen && s.revealPreview[revealSeat]);
+  // 公開手牌のドラッグ移動。ドラッグ開始時に実測した変換行列
+  // (measureScreenToLocal)で画面上の移動量をローカルpxに換算し、カーソルに
+  // 1:1で追従させる。測れなかった時だけ卓のzoomで割る近似に落とす。
+  const revealDragRef = useRef<{
+    startX: number;
+    startY: number;
+    baseX: number;
+    baseY: number;
+    inv: [number, number, number, number] | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!revealEditOpen) revealDragRef.current = null;
+  }, [revealEditOpen]);
   const meldDragRef = useRef<{ index: number; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   // 編集モードを閉じた瞬間にドラッグ中だった場合の保険——isEditingThisSeat
   // はpointerdown発生時にしか見ていないため、これも上のpointermove側の
@@ -307,6 +360,43 @@ export function OpponentArea({
   const handleToimenPointerUp = () => {
     toimenDragRef.current = null;
   };
+  const handleRevealPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+    revealDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      baseX: revealHandOffset.x,
+      baseY: revealHandOffset.y,
+      inv: measureScreenToLocal(e.currentTarget),
+    };
+  };
+  const handleRevealPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = revealDragRef.current;
+    if (!drag) return;
+    if (!isPrimaryButtonDown(e)) {
+      revealDragRef.current = null;
+      return;
+    }
+    e.stopPropagation();
+    const sx = e.clientX - drag.startX;
+    const sy = e.clientY - drag.startY;
+    let dx: number;
+    let dy: number;
+    if (drag.inv) {
+      const [i00, i01, i10, i11] = drag.inv;
+      dx = i00 * sx + i01 * sy;
+      dy = i10 * sx + i11 * sy;
+    } else {
+      const zoomRatio = getTableZoomRatio(e.currentTarget);
+      dx = sx / zoomRatio;
+      dy = sy / zoomRatio;
+    }
+    setRevealHandOffset(revealSeat, { x: Math.round(drag.baseX + dx), y: Math.round(drag.baseY + dy) });
+  };
+  const handleRevealPointerUp = () => {
+    revealDragRef.current = null;
+  };
   // 手牌配置編集モード中は、実際の対局データではなく「鳴いた副露が
   // handEditMeldCount個ある体」を仮に表示する——別画面のプレビューでは
   // なく実際の卓の上で見ながら配置したいという副露編集と同じ理由。
@@ -402,7 +492,7 @@ export function OpponentArea({
   // カゲロウの「透視の術」発動中（自分＝人間プレイヤーに見えている間）、
   // またはこの対面がジンの「大明立直」でオープンリーチ中（p.openRiichi）
   // なら、伏せ牌の代わりに実際の牌柄を表示する。
-  const revealHand = round.handsRevealedTo === HUMAN || p.openRiichi;
+  const revealHand = round.handsRevealedTo === HUMAN || p.openRiichi || revealPreviewActive;
   // 立体牌(Tile3D)は伏せ牌の見た目だけを詰めてきたため、カゲロウの
   // 「透視の術」等で手牌が公開された時にどう見えるかは未検証。公開時は
   // 見た目が破綻する心配のない従来のTileView表示（2D、帯だけの表現）に
@@ -420,6 +510,9 @@ export function OpponentArea({
   // 決めは手牌の表示方式と無関係に、常にこの座席がTile3D対象かどうか
   // だけで決めるべきなので、専用のフラグに分離する。
   const isTile3DSeat = tile3dEnabled && TILE3D_PLAYERS.has(player);
+  // 公開手牌の角度・位置編集中で、この座席の手牌が実際に公開表示中なら
+  // 卓上で直接ドラッグできるようにする。
+  const isEditingReveal = revealEditOpen && revealHand;
   const drawnTileId = hasPendingDraw ? round.lastDrawnTile?.id : undefined;
   const mainTiles = drawnTileId ? p.hand.concealed.filter((t) => t.id !== drawnTileId) : p.hand.concealed;
   const drawnTile = drawnTileId ? p.hand.concealed.find((t) => t.id === drawnTileId) : undefined;
@@ -800,7 +893,7 @@ export function OpponentArea({
       {callAnnounce && <div className="call-announce">{callAnnounce}</div>}
       <div className="opponent-hand-row">
         <div
-          className={`opponent-hand-back${isEditingToimenHand ? " opponent-hand-back--editable" : ""}`}
+          className={`opponent-hand-back${isEditingToimenHand ? " opponent-hand-back--editable" : ""}${isEditingReveal ? " opponent-hand-back--reveal-editing" : ""}`}
           data-hand-anchor={player}
           ref={handBackRef}
           style={
@@ -834,13 +927,25 @@ export function OpponentArea({
           onPointerCancel={isEditingToimenHand ? handleToimenPointerUp : undefined}
         >
           <div
-            className="opponent-hand-back__inner"
+            className={`opponent-hand-back__inner${isEditingReveal ? " opponent-hand-back__inner--editable" : ""}`}
+            onPointerDown={isEditingReveal ? handleRevealPointerDown : undefined}
+            onPointerMove={isEditingReveal ? handleRevealPointerMove : undefined}
+            onPointerUp={isEditingReveal ? handleRevealPointerUp : undefined}
+            onPointerCancel={isEditingReveal ? handleRevealPointerUp : undefined}
             style={
               useTile3D && !portalActive
                 ? // gapは負の値を取れない(CSS仕様)ため、重なりは各牌の
                   // marginTop(renderConcealed3D参照)で表現し、ここでは
                   // 既定のgap:2pxを打ち消しておく。
                   { transform: "none", flexDirection: "column", gap: 0 }
+                : revealHand
+                ? // 公開時(2D表示)だけ、座席ごとに調整した位置・角度を列全体へ
+                  // 追加で乗せる。上家・下家は元々CSS側でrotate(±90deg)
+                  // されているため、その基準角に足し込む。translateを
+                  // rotateの左に書き、移動方向が角度に左右されないようにする。
+                  {
+                    transform: `translate(${revealHandOffset.x}px, ${revealHandOffset.y}px) rotate(${(player === 1 ? -90 : player === 3 ? 90 : 0) + revealHandRotate}deg)`,
+                  }
                 : undefined
             }
           >

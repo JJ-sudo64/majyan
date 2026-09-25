@@ -93,6 +93,8 @@ export interface RiverSlotConfig extends SeatSlotConfig {
     下家/上家と違いTile3D非表示（常に通常の2D牌）で、鳴き数ごとの状態分岐や
     副露スロット単位の個別配置も無いため、手牌全体・副露全体それぞれに
     1つの値（横/縦オフセット+拡大率）だけを持つ、より単純な形にする。 */
+export type RevealSeat = "shimocha" | "toimen" | "kamicha";
+
 export interface ToimenSlotConfig {
   offsetX: number;
   offsetY: number;
@@ -367,6 +369,25 @@ export interface Tile3DDebugState {
   toimenEditTarget: "hand" | "meld" | null;
   setToimenEditTarget: (v: "hand" | "meld" | null) => void;
 
+  /** カゲロウの「透視の術」やジンの「大明立直」(オープンリーチ)で手牌が
+      公開された時(2D表示に切り替わった時)だけ、その手牌の列全体に追加で
+      かける回転角(度、正=時計回り)。伏せ牌時の見た目には一切影響しない。
+      RevealHandEditToolbar.tsx参照。 */
+  revealHandRotate: Record<RevealSeat, number>;
+  setRevealHandRotate: (seat: RevealSeat, v: number) => void;
+  /** 同じく公開時だけ、手牌の列全体を平行移動する量(卓のローカルpx)。
+      卓上で直接ドラッグ、またはツールバーのスライダーで調整する。 */
+  revealHandOffset: Record<RevealSeat, { x: number; y: number }>;
+  setRevealHandOffset: (seat: RevealSeat, patch: Partial<{ x: number; y: number }>) => void;
+  /** 公開手牌の角度編集モードの開閉。永続化しない。 */
+  revealEditOpen: boolean;
+  setRevealEditOpen: (v: boolean) => void;
+  /** 編集モード中、実際にスキルが発動していなくてもその座席の手牌を
+      公開状態で表示する（見た目確認用、対局データには触れない）。
+      編集モードを閉じると無効になる。永続化しない。 */
+  revealPreview: Record<RevealSeat, boolean>;
+  setRevealPreview: (seat: RevealSeat, v: boolean) => void;
+
   setRx: (v: number) => void;
   setRy: (v: number) => void;
   setScale: (v: number) => void;
@@ -501,6 +522,16 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       toimenEditTarget: null,
       setToimenEditTarget: (toimenEditTarget) => set({ toimenEditTarget }),
 
+      revealHandRotate: { shimocha: 0, toimen: 0, kamicha: 0 },
+      setRevealHandRotate: (seat, v) => set((state) => ({ revealHandRotate: { ...state.revealHandRotate, [seat]: v } })),
+      revealHandOffset: { shimocha: { x: 0, y: 0 }, toimen: { x: 0, y: 0 }, kamicha: { x: 0, y: 0 } },
+      setRevealHandOffset: (seat, patch) =>
+        set((state) => ({ revealHandOffset: { ...state.revealHandOffset, [seat]: { ...state.revealHandOffset[seat], ...patch } } })),
+      revealEditOpen: false,
+      setRevealEditOpen: (revealEditOpen) => set({ revealEditOpen }),
+      revealPreview: { shimocha: false, toimen: false, kamicha: false },
+      setRevealPreview: (seat, v) => set((state) => ({ revealPreview: { ...state.revealPreview, [seat]: v } })),
+
       setRx: (rx) => set({ rx }),
       setRy: (ry) => set({ ry }),
       setScale: (scale) => set({ scale }),
@@ -569,7 +600,8 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       // 開閉(riverEditOpen/nameplateEditOpen)・選択中の座席
       // (riverEditActiveSeat/nameplateEditActiveSeat)、対面配置編集モードの
       // 開閉・対象(toimenEditTarget)、リーチ棒配置編集モードの開閉・選択中の
-      // 座席(riichiStickEditOpen/riichiStickEditActiveSeat)も同じ理由で
+      // 座席(riichiStickEditOpen/riichiStickEditActiveSeat)、公開手牌の角度
+      // 編集モードの開閉・プレビュー(revealEditOpen/revealPreview)も同じ理由で
       // 除外する（riverSlots/nameplateSlots/toimenHandSlot/toimenMeldSlot/
       // riichiStickSlots自体＝実際に調整した位置の値は、通常のフィールド
       // としてここでは除外せずpersistする）。
@@ -603,6 +635,10 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
           setRiichiStickEditOpen,
           riichiStickEditActiveSeat,
           setRiichiStickEditActiveSeat,
+          revealEditOpen,
+          setRevealEditOpen,
+          revealPreview,
+          setRevealPreview,
           ...rest
         } = state;
         return rest;

@@ -4108,6 +4108,24 @@ button {
   bottom: 16px;
   transform: none;
 }
+/* 四隅と左端中央が埋まっており、右端中央だと下家の手牌に被るため、
+   公開手牌の角度は卓の中央（点数表示の上）に置く——調整対象の手牌は
+   どれも卓の外周側にあるので、中央なら被らない。 */
+.reveal-hand-edit-toolbar {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+}
+.reveal-hand-edit-toolbar .meld-edit-toolbar__row--rotate {
+  grid-template-columns: 32px 1fr 52px;
+}
+.reveal-hand-edit-toolbar__seat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(230, 225, 210, 0.15);
+}
 /* 他の編集ツールバー(上下左右の四隅)が既に埋まっているため、リーチ棒だけ
    画面左端の中央に寄せる。 */
 .riichi-stick-edit-toolbar {
@@ -4207,7 +4225,15 @@ button {
 }
 /* 対面の配置編集モード用ハイライト（ToimenEditToolbar.tsx参照）。
    .meld--editableと同じ考え方。 */
+/* 上家・下家の.opponent-melds--floating(position:absolute)は手牌の上にも
+   広く被っており、そのままだと公開手牌のドラッグを奪ってしまうため、
+   公開手牌の編集中だけ手牌側を前面に出す。 */
+.opponent-hand-back--reveal-editing {
+  position: relative;
+  z-index: 5;
+}
 .opponent-hand-back--editable,
+.opponent-hand-back__inner--editable,
 .opponent-melds--editable {
   cursor: grab;
   outline: 2px dashed rgba(224, 169, 74, 0.7);
