@@ -1096,10 +1096,14 @@ function applyBorrowSkillAction(round: RoundState, player: PlayerIndex, target: 
   return { ...activated, players, lastActivatedSkill };
 }
 
-/** ミオの「取り返し」。retrieveDiscardアクションの実処理。自分の河から1枚を
-    手牌へ戻し、代わりに手牌の別の1枚をその場で切り直す（実質的な打牌交換）。
-    交換後の1枚は通常の打牌と全く同じ扱いで河へ追加され、鳴き/ロンの応答
-    ウィンドウも通常どおり開く（applyDiscardActionと同じ後処理を踏襲する）。 */
+/** ミオの「取り返し」。retrieveDiscardアクションの実処理。過去の打牌のやり直し:
+    自分の河から1枚を手牌へ戻し、代わりに手牌の別の1枚を河の同じ位置へ置く
+    （河の並びと枚数は変わらない）。置き直した牌は「過去の打牌」の扱いのため
+    鳴き/ロンの対象にはならず、手番もそのまま続く（この後、通常どおり1枚切る）。
+    以前は置き直した1枚をその手番の打牌として扱い、手番を次の人へ渡していたが、
+    ツモ後(14枚)に1枚戻して1枚切っても14枚のまま手番が終わってしまい、
+    手牌が1枚多い状態になっていた（14枚の手を「テンパイ」と数えてしまうため、
+    ノーテンでもリーチできる等の不具合につながっていた。指摘により判明）。 */
 function applyRetrieveDiscardAction(round: RoundState, player: PlayerIndex, reclaimTileId: string, replacementTileId: string): RoundState {
   if (!canRetrieveDiscard(round, player, reclaimTileId, replacementTileId)) {
     throw new Error("retrieveDiscard: 現在この牌を取り返せません");
@@ -1107,32 +1111,24 @@ function applyRetrieveDiscardAction(round: RoundState, player: PlayerIndex, recl
   const character = CHARACTERS[round.characterIds[player]]!;
   const p = round.players[player]!;
   const discardIndex = p.discards.findIndex((d) => d.tile.id === reclaimTileId);
-  const reclaimed = p.discards[discardIndex]!.tile;
-  const discardsWithoutReclaimed = [...p.discards.slice(0, discardIndex), ...p.discards.slice(discardIndex + 1)];
+  const original = p.discards[discardIndex]!;
+  const reclaimed = original.tile;
   const handWithReclaimed = addTileToHand(p.hand, reclaimed);
   const { tile: replaced, hand } = removeTileFromHand(handWithReclaimed, replacementTileId);
-  const isTsumogiri = replacementTileId === round.lastDrawnTile?.id;
-  const players = updatePlayer(round.players, player, (pl) => ({
-    ...pl,
-    hand,
-    discards: [...discardsWithoutReclaimed, { tile: replaced, calledAway: false, isRiichiDeclaration: false, isTsumogiri }],
-    skillGauge: 0,
-  }));
+  const discards = [...p.discards];
+  discards[discardIndex] = { ...original, tile: replaced, isTsumogiri: false };
+  const players = updatePlayer(round.players, player, (pl) => ({ ...pl, hand, discards, skillGauge: 0 }));
+  // ツモ牌そのものを河へ置き直した場合、手牌に残っていないツモ牌を指したままだと
+  // UIのツモ牌表示（右端に離して置く）が消えるため、取り返した牌を代わりに
+  // ツモ牌の位置として扱う。
+  const lastDrawnTile = round.lastDrawnTile?.id === replacementTileId ? reclaimed : round.lastDrawnTile;
 
   // 「取り返し」自身がlastActivatedSkillに記録される必要がある（カガミの
   // canCopyLastSkillが「直近に発動した技」として正しく認識できるように）。
   // ただしミオのskill.hooksにはonActivateが無いため、カガミ側は
   // copiedHooks?.onActivateが無いと判定して結局コピー不可になる
   // （カリンのborrowsSkill同様、この技自体はカガミの写し身の対象外）。
-  let afterRound: RoundState = { ...round, players, lastActivatedSkill: { owner: player, characterId: character.id } };
-  const onAfterDiscard = character.skill.hooks.onAfterDiscard;
-  if (onAfterDiscard) afterRound = onAfterDiscard({ round: afterRound, owner: player }, replaced);
-
-  const timeStopped = (afterRound.players[player]!.timeStopTurnsRemaining ?? 0) > 0;
-  if (liveTilesRemaining(round.wall) === 0 && (timeStopped || !hasAnyoneWhoCanRon(afterRound, afterRound.players, player, replaced.code))) {
-    return buildExhaustiveDrawResult(afterRound);
-  }
-  return resolveDiscardTurnTransition(afterRound, player, replaced);
+  return { ...round, players, lastDrawnTile, lastActivatedSkill: { owner: player, characterId: character.id } };
 }
 
 function applyUseCardAction(round: RoundState, player: PlayerIndex): RoundState {

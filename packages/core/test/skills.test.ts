@@ -2194,7 +2194,7 @@ describe("mio's 取り返し (retrieveDiscard)", () => {
       players: [
         {
           ...playerWithDiscards(
-            ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"],
+            ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z", "3z"],
             [
               { code: "5z", calledAway: false },
               { code: "6z", calledAway: true },
@@ -2219,11 +2219,15 @@ describe("mio's 取り返し (retrieveDiscard)", () => {
     expect(next.players[0]!.hand.concealed.some((t) => t.code === "5z")).toBe(true); // 取り返した牌が手牌に入る
     expect(next.players[0]!.hand.concealed.some((t) => t.id === replacement.id)).toBe(false); // 代わりに切った牌は手牌から消える
     expect(next.players[0]!.discards.some((d) => d.tile.id === reclaimId)).toBe(false); // 取り返した牌は河から消える
-    expect(next.players[0]!.discards.some((d) => d.tile.id === replacement.id && !d.calledAway)).toBe(true); // 代わりの1枚が新たに河に並ぶ
+    expect(next.players[0]!.discards[0]!.tile.id).toBe(replacement.id); // 代わりの1枚は取り返した牌と同じ位置に置き直される
+    expect(next.players[0]!.discards).toHaveLength(2); // 河の枚数は変わらない
     expect(next.players[0]!.discards.some((d) => d.tile.code === "6z" && d.calledAway)).toBe(true); // 鳴かれていた既存の河はそのまま
+    expect(next.players[0]!.hand.concealed).toHaveLength(round.players[0]!.hand.concealed.length); // 手牌の枚数も変わらない
     expect(next.players[0]!.skillGauge).toBe(0);
-    expect(next.lastDiscard).toEqual({ player: 0, tile: replacement });
-    expect(next.phase).toBe("awaiting-calls");
+    // 過去の打牌のやり直しなので鳴き/ロンの対象にはならず、手番もそのまま続く（この後に通常の打牌をする）。
+    expect(next.lastDiscard).toEqual(round.lastDiscard);
+    expect(next.phase).toBe("awaiting-discard");
+    expect(next.currentTurn).toBe(0);
     expect(next.lastActivatedSkill).toEqual({ owner: 0, characterId: "mio" });
   });
 });

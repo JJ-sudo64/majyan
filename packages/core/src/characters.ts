@@ -1131,7 +1131,7 @@ export const CHARACTERS: Record<string, Character> = {
   mio: {
     id: "mio",
     name: "やり直し請負人・ミオ",
-    description: "必殺技「取り返し」: 発動すると、自分の河（まだ誰にも鳴かれていない牌）から好きな1枚を選んで手牌に戻し、代わりに手牌の別の1枚をその場で切り直せる。過去に切って裏目った1枚を、今から切り直せる。",
+    description: "必殺技「取り返し」: 発動すると、自分の河（まだ誰にも鳴かれていない牌）から好きな1枚を選んで手牌に戻し、代わりに手牌の別の1枚を河の同じ場所へ置き直せる。過去に切って裏目った1枚を、なかったことにできる。",
     winQuote: "やり直しなんて、いくらでも利くのよ。過去の一手くらい、今から書き換えてあげる。",
     avatar: "/avatars/characters/mio.webp",
     cutin: "/avatars/characters/mio-cutin.webp",
@@ -1142,7 +1142,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "mio-torikaeshi",
       name: "取り返し",
-      description: "発動時、自分の河（まだ誰にも鳴かれていない牌）から1枚選んで手牌に戻し、代わりに手牌から選んだ別の1枚をその場で切り直せる。リーチ中は打牌を選べないため発動できない。",
+      description: "ツモの後に発動できる。自分の河（まだ誰にも鳴かれていない牌）から1枚選んで手牌に戻し、代わりに手牌から選んだ別の1枚を河の同じ場所へ置き直す（過去の打牌のやり直しのため、置き直した牌は鳴き・ロンの対象にならない）。その後は通常どおり1枚切る。リーチ中は発動できない。",
       // 実際の発動処理はretrieveDiscardアクション経由（gameEngine.tsの
       // canRetrieveDiscard/applyRetrieveDiscardAction）で行われ、ミオ自身は
       // onActivateを持たない（skills/types.tsのCharacter.retrievesDiscard参照）。
