@@ -3,14 +3,41 @@ import { create } from "zustand";
 const STORAGE_KEY = "majyan.bgmVolume";
 // 以前は0.35固定だったが「音量がデカすぎる」との指摘を受けて控えめな値に
 // 下げつつ、ユーザーが自分で調整できるようにする（下のuseSettingsStore参照）。
-const DEFAULT_BGM_VOLUME = 0.15;
+const DEFAULT_BGM_VOLUME = 0.16;
 const SE_STORAGE_KEY = "majyan.seVolume";
 // 打牌/ツモ/リーチ棒等の効果音、キャラのボイス・掛け声のTTSが対象。
 // BGMより前面で聞こえてほしいのでBGMのデフォルトより高めにしておく。
-const DEFAULT_SE_VOLUME = 0.6;
+const DEFAULT_SE_VOLUME = 0.86;
 const AUTO_TSUMOGIRI_KEY = "majyan.autoTsumogiri";
 const AUTO_WIN_KEY = "majyan.autoWin";
 const TILE3D_ENABLED_KEY = "majyan.tile3dEnabled";
+
+/**
+ * 既定値の改訂番号。2026-09-27、ユーザーの指示「今のAvastの全ての設定を
+ * デフォルトにして、全てのブラウザで適用されるよう徹底する」により、
+ * 上の既定値(音量)をAvastの値に揃えた（自動ツモ切り・自動和了はOFF、
+ * 立体牌はONのまま）。これらの設定はpersistのversionを持たない生の
+ * localStorageキーなので、代わりにこの番号で「まだ新しい既定値を
+ * 適用していないブラウザ」を見分け、そのブラウザに残っている保存値を
+ * 一度だけ消して既定値に戻す。以後はユーザーが変えた値をそのまま使う。
+ * 既定値を再び全ブラウザへ強制したい時だけ、この番号を変える。
+ */
+const DEFAULTS_REVISION_KEY = "majyan.settingsDefaultsRevision";
+const DEFAULTS_REVISION = "2026-09-27";
+
+function applyDefaultsRevision(): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (window.localStorage.getItem(DEFAULTS_REVISION_KEY) === DEFAULTS_REVISION) return;
+    for (const key of [STORAGE_KEY, SE_STORAGE_KEY, AUTO_TSUMOGIRI_KEY, AUTO_WIN_KEY, TILE3D_ENABLED_KEY]) {
+      window.localStorage.removeItem(key);
+    }
+    window.localStorage.setItem(DEFAULTS_REVISION_KEY, DEFAULTS_REVISION);
+  } catch {
+    // localStorageが使えない環境では、そもそも既定値で始まるので何もしなくてよい
+  }
+}
+applyDefaultsRevision();
 
 function loadInitialBooleanDefaultTrue(key: string): boolean {
   if (typeof window === "undefined") return true;

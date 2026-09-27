@@ -24,7 +24,7 @@ export interface TableBackgroundOption {
   path: string;
 }
 
-// 先頭が既定の背景（未知のidのフォールバック先も先頭）。旧「初期背景」
+// 未知のidのフォールバック先は先頭。既定の背景はDEFAULT_BACKGROUND_ID。旧「初期背景」
 // (id:"default"、table-surface-bg.png)は2026-09-24に削除した。
 export const TABLE_BACKGROUND_OPTIONS: TableBackgroundOption[] = [
   { id: "sakura-2026-09-24", label: "桜(紫)", path: "/table/table-surface-bg-sakura.png" },
@@ -37,7 +37,9 @@ export const TABLE_BACKGROUND_OPTIONS: TableBackgroundOption[] = [
   { id: "blue-2026-09-18", label: "新背景(青)", path: "/table/table-surface-bg-2.png" },
 ];
 
-const DEFAULT_BACKGROUND_ID = "sakura-2026-09-24";
+const DEFAULT_BACKGROUND_ID = "neon-2026-09-24";
+/** 「元に戻す」の戻し先の既定値。2026-09-27のAvastの状態に合わせた。 */
+const DEFAULT_PREVIOUS_BACKGROUND_ID = "seigaiha-2026-09-24";
 
 const FALLBACK_PATH = TABLE_BACKGROUND_OPTIONS[0]!.path;
 
@@ -61,7 +63,7 @@ export const useTableBackgroundStore = create<TableBackgroundState>()(
   persist(
     (set, get) => ({
       backgroundId: DEFAULT_BACKGROUND_ID,
-      previousBackgroundId: null,
+      previousBackgroundId: DEFAULT_PREVIOUS_BACKGROUND_ID,
       setBackgroundId: (id) => {
         const current = get().backgroundId;
         if (current === id) return;
@@ -78,15 +80,17 @@ export const useTableBackgroundStore = create<TableBackgroundState>()(
       // どのブラウザでも同じ値になるようファイルに保存する（sharedTuningStorage.ts参照）
       storage: createJSONStorage(() => sharedTuningStorage),
       // version 1(2026-09-24): 既定の背景を桜(紫)に変更し、旧「初期背景」
-      // (id:"default")を削除。保存済みのbackgroundIdを新しい既定値へ
-      // 切り替え、それまでの背景は「元に戻す」の戻し先に残す。削除済みの
-      // "default"はどちらにも残さない。
-      version: 1,
+      // (id:"default")を削除した。version 2(2026-09-27): 既定をネオンに変更。
+      version: 2,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<TableBackgroundState>;
-        if (version < 1) {
-          const previous = state.backgroundId && state.backgroundId !== "default" ? state.backgroundId : null;
-          return { ...state, backgroundId: DEFAULT_BACKGROUND_ID, previousBackgroundId: previous === DEFAULT_BACKGROUND_ID ? null : previous };
+        // v1→v2: 2026-09-27、Avastの選択(ネオン、戻し先は青海波)を全ブラウザの
+        // 既定にするため、他ブラウザの保存値を一度だけ上書きする（ユーザーの
+        // 明示的な指示による。tile3dDebugStore.tsのv6→v7と同じ）。v0(旧
+        // "default"を含む)もこの上書きでまとめて解消されるので、v0→v1の
+        // 個別処理は不要になった。
+        if (version < 2) {
+          return { ...state, backgroundId: DEFAULT_BACKGROUND_ID, previousBackgroundId: DEFAULT_PREVIOUS_BACKGROUND_ID };
         }
         return state;
       },

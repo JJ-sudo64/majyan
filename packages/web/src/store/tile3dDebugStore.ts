@@ -105,6 +105,12 @@ export interface ToimenSlotConfig {
 /**
  * ===== 実機で詰めた「確定レイアウト」の既定値 =====
  *
+ * ★2026-09-27更新★ ユーザーの指示「今のAvastの全ての設定をデフォルトに
+ * して、全てのブラウザで適用されるよう徹底する」により、Avastの
+ * localStorageの値をそのまま書き出して、INITIAL_*をすべてその値に
+ * 揃えた。あわせてversionを7に上げ、他ブラウザに残っている古い保存値も
+ * migrateで一度だけこの値へ上書きする（下のv6→v7参照）。
+ *
  * ここから下のINITIAL_*は、ユーザーが実機(Edge)の調整パネルで詰めて
  * localStorageに入っていた値を、そのままソース側の初期値として固定した
  * もの（2026-09-22時点のスナップショット）。これまでは初期値が全部0/等倍で、
@@ -156,18 +162,18 @@ const INITIAL_KAMICHA_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
 ];
 /** 河、座席順(自分/下家/対面/上家)。対面だけ牌を少し小さくしている。 */
 const INITIAL_RIVER_SLOTS: RiverSlotConfig[] = [
-  { offsetX: 6, offsetY: 2, rotate: 0, scale: 1 },
+  { offsetX: 7, offsetY: 3, rotate: 0, scale: 1 },
   { offsetX: -16, offsetY: -13, rotate: -2, scale: 1 },
   { offsetX: -4, offsetY: -1, rotate: 0, scale: 0.9 },
   { offsetX: 21, offsetY: 12, rotate: 1, scale: 1 },
 ];
-/** 公開手牌(透視の術・大明立直)の座席ごとの角度・位置。2026-09-25に
-    実機(Edge)で詰めた値。 */
+/** 公開手牌(透視の術・大明立直)の座席ごとの角度・位置。2026-09-27に
+    実機(Avast)で詰めた値。 */
 const INITIAL_REVEAL_HAND_ROTATE: Record<RevealSeat, number> = { shimocha: -11, toimen: 0, kamicha: 13 };
 const INITIAL_REVEAL_HAND_OFFSET: Record<RevealSeat, { x: number; y: number }> = {
-  shimocha: { x: 23, y: 0 },
+  shimocha: { x: 47, y: 109 },
   toimen: { x: 0, y: 0 },
-  kamicha: { x: -14, y: -101 },
+  kamicha: { x: 5, y: -173 },
 };
 /** リーチ棒、座席順。 */
 const INITIAL_RIICHI_STICK_SLOTS: SeatSlotConfig[] = [
@@ -183,6 +189,8 @@ const INITIAL_NAMEPLATE_SLOTS: SeatSlotConfig[] = [
   { offsetX: -81, offsetY: 5, rotate: 0 },
   { offsetX: 0, offsetY: 0, rotate: 0 },
 ];
+/** 副露配置編集モードで仮表示する副露の数。 */
+const INITIAL_MELD_EDIT_PREVIEW_COUNT = 4;
 /** 対面の手牌全体。 */
 const INITIAL_TOIMEN_HAND_SLOT: ToimenSlotConfig = { offsetX: -62, offsetY: 3, scale: 0.9 };
 /** 対面の副露全体。 */
@@ -191,13 +199,13 @@ const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: -7, offsetY: -16, 
     v4→v6 migrate(下の「全ブラウザ統一」処理参照)の両方から参照する
     ので、値をここに集約して二重管理を避ける。 */
 const INITIAL_SCALARS = {
-  rx: 134,
+  rx: 136,
   ry: 83,
   scale: 1.5,
-  thickness: 13,
-  whiteWidth: 10.6,
-  aspectX: 1.2,
-  aspectY: 0.95,
+  thickness: 12,
+  whiteWidth: 8.3,
+  aspectX: 1.25,
+  aspectY: 1.25,
   spacing: -45,
   fanOffsetX: 4,
   frontIsLast: true,
@@ -455,7 +463,7 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
 
       meldEditSeat: null,
       setMeldEditSeat: (meldEditSeat) => set({ meldEditSeat }),
-      meldEditPreviewCount: 1,
+      meldEditPreviewCount: INITIAL_MELD_EDIT_PREVIEW_COUNT,
       setMeldEditPreviewCount: (meldEditPreviewCount) => set({ meldEditPreviewCount }),
       meldEditActiveSlot: 0,
       setMeldEditActiveSlot: (meldEditActiveSlot) => set({ meldEditActiveSlot }),
@@ -611,7 +619,7 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       name: "tile3d-debug-store",
       // どのブラウザでも同じ値になるようファイルに保存する（sharedTuningStorage.ts参照）
       storage: createJSONStorage(() => sharedTuningStorage),
-      version: 6,
+      version: 7,
       // パネルの開閉状態(activePanel)は「今このセッションで開いているか」
       // だけの一時的なUI状態なので、リロードのたびに閉じた状態(null)から
       // 始まってよい——むしろpersistすると、開いたままリロードした時に
@@ -788,6 +796,34 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
             nameplateSlots: INITIAL_NAMEPLATE_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["nameplateSlots"],
             toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT },
             toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
+          };
+        }
+        // v6→v7: 2026-09-27、Avastで詰めた全設定を全ブラウザの既定にする
+        // （ユーザーの明示的な指示による強制上書き。ファイル冒頭の★参照）。
+        // v6のステップと違い、公開手牌の角度・位置と副露編集の仮表示数も含めて
+        // 保存対象のフィールドをすべてINITIAL_*で置き換える。以後(v7以降)は
+        // 通常どおり、ユーザーが動かした値を尊重して上書きしない。
+        if (version < 7) {
+          s = {
+            ...s,
+            ...INITIAL_SCALARS,
+            meldSlots: INITIAL_MELD_SLOTS.map((slot) => ({ ...slot })),
+            handGroupByMeldCount: INITIAL_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
+            ...INITIAL_KAMICHA_SCALARS,
+            kamichaHandGroupByMeldCount: INITIAL_KAMICHA_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
+            kamichaMeldSlots: INITIAL_KAMICHA_MELD_SLOTS.map((slot) => ({ ...slot })),
+            meldEditPreviewCount: INITIAL_MELD_EDIT_PREVIEW_COUNT,
+            riverSlots: INITIAL_RIVER_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riverSlots"],
+            riichiStickSlots: INITIAL_RIICHI_STICK_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riichiStickSlots"],
+            nameplateSlots: INITIAL_NAMEPLATE_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["nameplateSlots"],
+            toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT },
+            toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
+            revealHandRotate: { ...INITIAL_REVEAL_HAND_ROTATE },
+            revealHandOffset: {
+              shimocha: { ...INITIAL_REVEAL_HAND_OFFSET.shimocha },
+              toimen: { ...INITIAL_REVEAL_HAND_OFFSET.toimen },
+              kamicha: { ...INITIAL_REVEAL_HAND_OFFSET.kamicha },
+            },
           };
         }
         return s as Tile3DDebugState;

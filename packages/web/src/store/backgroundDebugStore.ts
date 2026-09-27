@@ -88,7 +88,7 @@ export const useBackgroundDebugStore = create<BackgroundDebugState>()(
       name: "background-debug-store",
       // どのブラウザでも同じ値になるようファイルに保存する（sharedTuningStorage.ts参照）
       storage: createJSONStorage(() => sharedTuningStorage),
-      version: 2,
+      version: 3,
       partialize: (state) => {
         const { isPanelOpen, setIsPanelOpen, ...rest } = state;
         return rest;
@@ -111,7 +111,10 @@ export const useBackgroundDebugStore = create<BackgroundDebugState>()(
         // まま」だったり「調整途中の値」が残っていた可能性がある。Edgeで
         // 最終確定した値を全ブラウザへ今回限り強制再適用する。以後は通常
         // どおりユーザーの調整値を尊重する。
-        if (version < 2) {
+        // v2→v3: 2026-09-27、Avastの値(=上の初期値と同じ)を全ブラウザの既定に
+        // するため、他ブラウザに残っている古い保存値を一度だけ上書きする
+        // （ユーザーの明示的な指示による。tile3dDebugStore.tsのv6→v7と同じ）。
+        if (version < 3) {
           state = { ...state, bgScale: 101, bgPosX: -2, bgPosY: 9, centerBoardOffsetX: 0, centerBoardOffsetY: -3, centerBoardScale: 1.1 };
         }
         return state as BackgroundDebugState;
