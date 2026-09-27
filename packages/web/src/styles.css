@@ -551,6 +551,21 @@ button {
   color: #fff;
   animation: skill-gauge-ready-pulse 0.9s ease-in-out infinite;
 }
+/* カリンの「借り物」で今借りられない相手。理由を添えてグレーアウト表示する
+   （黙って選択肢から消すと不具合に見えるとの指摘により）。 */
+.btn--skill:disabled {
+  background: linear-gradient(180deg, #6d6475, #413a48);
+  border-color: #8a8192;
+  color: #cfc8d6;
+  animation: none;
+  cursor: not-allowed;
+}
+.btn__block-reason {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #f0d8a8;
+}
 /* ポン/チー/カンのボタンには、じゃんたま同様「ポン」「チー」等の文字に
    加えて実際に鳴く牌の絵を並べて出す（以前は牌コードのテキスト表記
    だったが、直感的に分かりにくいとの指摘のため）。 */

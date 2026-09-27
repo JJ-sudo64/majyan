@@ -276,20 +276,35 @@ export function canUseSkill(round: RoundState, player: PlayerIndex): boolean {
     必要がある（カガミのcanCopyLastSkillと同様の考え方。characters.ts参照）。
     canUseSkillと同じ理由でリーチ中は使えない。 */
 export function canBorrowSkill(round: RoundState, player: PlayerIndex, target: PlayerIndex): boolean {
-  if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
-  if (target === player) return false;
+  return borrowSkillBlockReason(round, player, target) === null;
+}
+
+/** canBorrowSkillの判定理由版。借りられるならnull、借りられないならその理由
+    （UIにそのまま表示する短い文言）を返す。借りられない相手を黙って選択肢から
+    消すと不具合に見えるため、UI側（Hand.tsx）で理由付きのグレーアウト表示に使う。 */
+export function borrowSkillBlockReason(round: RoundState, player: PlayerIndex, target: PlayerIndex): string | null {
+  if (round.currentTurn !== player || round.phase !== "awaiting-discard") return "自分の番ではありません";
+  if (target === player) return "自分の技は借りられません";
   const character = CHARACTERS[round.characterIds[player]];
-  if (!character?.borrowsSkill) return false;
-  const targetSkill = CHARACTERS[round.characterIds[target]]?.skill;
+  if (!character?.borrowsSkill) return "借り物を使えないキャラクターです";
+  const targetCharacter = CHARACTERS[round.characterIds[target]];
+  const targetSkill = targetCharacter?.skill;
+  const targetHooks = targetSkill?.hooks;
+  // 手動発動の処理（onActivate）を持たない技は、状況に関わらず借りられない。
+  if (!targetSkill || !targetHooks?.onActivate) {
+    return targetCharacter?.borrowsSkill || targetCharacter?.retrievesDiscard
+      ? "特殊な技のため借りられません"
+      : "自動発動・常時効果の技のため借りられません";
+  }
   // canUseSkillと同じ例外（ライコの「一閃」は借りた側の一発中にしか発動
   // しない設計のため、借りた技自身がusableDuringRiichiなら一律ブロックの
   // 対象から外す）。
-  if (round.players[player]!.riichi && !targetSkill?.usableDuringRiichi) return false;
-  if (round.players[player]!.skillGauge < character.gaugeMax) return false;
-  const targetHooks = targetSkill?.hooks;
-  if (!targetHooks?.onActivate) return false;
-  if (targetHooks.canActivate && !targetHooks.canActivate({ round, owner: player })) return false;
-  return true;
+  if (round.players[player]!.riichi && !targetSkill.usableDuringRiichi) return "リーチ中は使えません";
+  if (round.players[player]!.skillGauge < character.gaugeMax) return "ゲージが満タンではありません";
+  if (targetHooks.canActivate && !targetHooks.canActivate({ round, owner: player })) {
+    return targetSkill.activationCondition ?? "今は発動条件を満たしていません";
+  }
+  return null;
 }
 
 /** カリンが今借りられる相手の一覧（自分以外で条件を満たす席）。UI側の選択肢表示用。 */

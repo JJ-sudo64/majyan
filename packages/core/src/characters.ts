@@ -194,6 +194,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "nagi-tsumikomi",
       name: "積み込み",
+      activationCondition: "鳴いた直後は使えません",
       voiceName: "ツミコミ",
       description: "今引いた牌を山に戻し、代わりに新しい牌を引き直す。",
       hooks: {
@@ -230,6 +231,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "raiko-issen",
       name: "一閃",
+      activationCondition: "リーチ後の一発中のみ",
       voiceName: "イッセン",
       description: "リーチ後の一発中にのみ発動できる。ゲージが満タンなら、自分がツモった瞬間に自動で発動し、山に残っている自分の待ち牌を1枚引き寄せる（山に残っていなければ不発）。",
       // 一発＝リーチ後にしか発動しない技のため、gameEngine.tsのcanUseSkill/
@@ -507,6 +509,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "kaede-tehodoki",
       name: "手ほどき",
+      activationCondition: "テンパイ中・鳴いた直後は使えません",
       description: "発動すると、今引いた牌を山に戻し、手が必ず良くなる牌を山から引き直す（該当する牌が山に残っていなければ不発）。テンパイ中（あと1枚で和了の状態）は発動できない。",
       hooks: {
         // 聴牌中は発動不可（有効牌＝和了牌そのものになってしまい、ライコの
@@ -811,6 +814,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "koki-futoppara",
       name: "太っ腹",
+      activationCondition: "すでに効果が続いています",
       description: "発動すると、その局が終わるまで効果が続く。ドラ（表ドラ・赤ドラいずれも）を切るたびに、次の自分のツモが必ず手の良くなる牌（テンパイ中なら和了牌そのもの）になる（該当する牌が山に残っていなければ不発）。この効果は何度でも繰り返し使えるが、次の局には持ち越されない。",
       hooks: {
         canActivate: (ctx) => {
@@ -878,6 +882,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "takaharu-atomic-bettaori",
       name: "アトミックベタ降り",
+      activationCondition: "すでに効果が続いています",
       description: "発動すると、その局が終わるまで効果が続く。手牌の完成した面子（同じ牌3枚の刻子、または連続する3つの数牌の順子）を1枚切って崩すたびに盾が1つ立つ。盾がある間は、本来ロンされてしまう牌を切っても見逃してもらえる。盾はロンを実際に防いだ時だけ消費され、また別の面子を崩せば何度でも張り直せる。",
       hooks: {
         canActivate: (ctx) => !ctx.round.players[ctx.owner]!.bettaoriActive,
@@ -995,6 +1000,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "zeno-jikan-teishi",
       name: "時間停止",
+      activationCondition: "時間停止の効果中は使えません",
       description: "発動すると、自分が2回打牌するまで時間が止まる。この間、他の3人はロン・チー・ポン・カンなどで一切反応できない。1回目の打牌の後もそのまま自分の番が続き、2回連続でツモ・打牌ができる。",
       hooks: {
         // 既に発動中（timeStopTurnsRemaining>0）の間は再発動できないように
@@ -1029,6 +1035,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "kagami-utsushimi",
       name: "写し身",
+      activationCondition: "写せる直前の技がありません",
       voiceName: "ウツシミ",
       description: "発動すると、直前に他の誰かが使った必殺技を、自分に対してそのまま再現する。直前の発動が自分自身によるものだった場合や、まだ誰も必殺技を使っていない場合、コピー元の技に必要な条件（一発中のみ、など）を自分が満たしていない場合は発動できない。",
       hooks: {
@@ -1092,6 +1099,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "sena-yousumi",
       name: "様子見",
+      activationCondition: "鳴いた直後は使えません",
       description: "発動すると、今引いた牌を山に戻し、打牌をせずにそのまま次の人へ手番を渡す。ロンされる心配も鳴かれる心配もない、安全に1巡やり過ごすための技。敵のリーチ等で安全牌が無い時に使うとよい。",
       hooks: {
         // チー/ポン/大明槓で手番だけ回ってきた直後（自分ではまだ何も自摸っていない）

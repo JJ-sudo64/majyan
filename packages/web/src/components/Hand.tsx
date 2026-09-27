@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Meld, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
+import type { Meld, PlayerIndex, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
 import { meldDisplaySlots } from "../meldDisplay.js";
 import {
   CARDS,
@@ -12,7 +12,7 @@ import {
   canKyushuKyuhai,
   canUseCard,
   canUseSkill,
-  borrowableSkillTargets,
+  borrowSkillBlockReason,
   reclaimableDiscardTileIds,
   canSwapStartingTile,
   getWaitingTiles,
@@ -186,8 +186,14 @@ export function Hand({ round }: { round: RoundState }) {
   const riichiAutoSkillName =
     character?.skill.usableDuringRiichi && player.skillGauge >= character.gaugeMax ? character.skill.name : null;
   // カリンの「借り物競争」用: 自分のonActivateを持たず、代わりに同卓者3人の
-  // うち今借りられる相手だけを選択肢として出す（characters.tsのkarin参照）。
-  const borrowTargets = isMyTurn && character?.borrowsSkill ? borrowableSkillTargets(round, HUMAN) : [];
+  // 3人を選択肢として出す（characters.tsのkarin参照）。ゲージ満タン時は、今借りられない
+  // 相手も理由付きのグレーアウトで残す（黙って消すと不具合に見えるとの指摘により）。
+  const borrowTargets =
+    isMyTurn && character?.borrowsSkill && player.skillGauge >= character.gaugeMax
+      ? ([0, 1, 2, 3] as PlayerIndex[])
+          .filter((seat) => seat !== HUMAN)
+          .map((seat) => ({ target: seat, blockReason: borrowSkillBlockReason(round, HUMAN, seat) }))
+      : [];
   // ミオの「取り返し」用: 自分のonActivateを持たず、代わりにゲージ満タン時
   // （リーチ中は不可）に自分の河から取り返せる牌がある場合だけボタンを出す
   // （characters.tsのmio参照）。
@@ -598,16 +604,18 @@ export function Hand({ round }: { round: RoundState }) {
                 必殺技: {character.skill.name}
               </button>
             )}
-            {borrowTargets.map((target) => {
+            {borrowTargets.map(({ target, blockReason }) => {
               const targetCharacter = CHARACTERS[round.characterIds[target]]!;
               return (
                 <button
                   key={target}
                   className="btn btn--skill"
+                  disabled={blockReason !== null}
                   onClick={() => humanBorrowSkill(target)}
                   title={targetCharacter.skill.description}
                 >
                   借り物: {targetCharacter.name}の「{targetCharacter.skill.name}」
+                  {blockReason !== null && <span className="btn__block-reason">{blockReason}</span>}
                 </button>
               );
             })}

@@ -6,6 +6,7 @@ import type { PlayerIndex } from "../src/actions.js";
 import {
   applyAction,
   borrowableSkillTargets,
+  borrowSkillBlockReason,
   canBorrowSkill,
   canDeclareRon,
   canDeclareTsumo,
@@ -1985,6 +1986,18 @@ describe("karin's 借り物競争 (borrowSkill)", () => {
       phase: "awaiting-discard",
     });
     expect(canBorrowSkill(round, 1, 3)).toBe(false);
+  });
+
+  it("explains why each tablemate can or cannot be borrowed from", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), { ...emptyPlayer([]), skillGauge: 100 }, emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "karin", "naoki", "raiko"],
+      currentTurn: 1,
+      phase: "awaiting-discard",
+    });
+    expect(borrowSkillBlockReason(round, 1, 0)).toBeNull();
+    expect(borrowSkillBlockReason(round, 1, 2)).toBe("自動発動・常時効果の技のため借りられません");
+    expect(borrowSkillBlockReason(round, 1, 3)).toBe("リーチ後の一発中のみ");
   });
 
   it("lists only the borrowable tablemates", () => {

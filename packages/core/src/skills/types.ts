@@ -77,6 +77,10 @@ export interface CharacterSkill {
       中にしか発動しない設計の必殺技だけ、この原則の例外としてtrueにする
       （trueにしないと一律ブロックに阻まれて永久に発動できなくなる）。 */
   usableDuringRiichi?: boolean;
+  /** hooks.canActivateが偽になる条件の短い説明（例: 「一発中のみ」）。カリンの
+      「借り物」で、この技を今借りられない理由としてUIに表示する
+      （gameEngine.tsのborrowSkillBlockReason参照）。canActivateを持つ技のみ指定する。 */
+  activationCondition?: string;
   hooks: SkillHooks;
 }
 
