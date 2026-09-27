@@ -618,5 +618,9 @@ function calcFu(cand: Candidate, isOpen: boolean, context: WinContext, yakuList:
     fu += concealed ? (terminalOrHonor ? 8 : 4) : terminalOrHonor ? 4 : 2;
   });
 
+  // 喰い平和形（鳴いた手で符の加算が一切無いロン）は20符のままになるが、
+  // ルール上30符に切り上げる。これが無いと喰いタンのみのロンが
+  // 1翻20符=700点になっていた（正しくは1翻30符=1000点）。
+  if (fu === 20) return 30;
   return Math.ceil(fu / 10) * 10;
 }

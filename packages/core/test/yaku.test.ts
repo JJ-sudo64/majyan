@@ -65,6 +65,18 @@ describe("analyzeWin - regular hands", () => {
     expect(yakuNames(result!.yaku)).toEqual(expect.arrayContaining(["断幺九", "立直", "平和"]));
   });
 
+  it("open tanyao-only ron with no fu (kui-pinfu shape) is rounded up to 30fu, not 20fu", () => {
+    const melds: Meld[] = [
+      { type: "chi", tiles: [tile("3s"), tile("4s"), tile("5s")], calledFromRelative: 3, calledTile: tile("3s") },
+    ];
+    const h = hand(["2m","3m","4m","4p","5p","6p","6s","7s","8s","5m","5m"], melds);
+    const result = analyzeWin(h, ctx({ winTile: "4m", isTsumo: false }));
+    expect(result).not.toBeNull();
+    expect(yakuNames(result!.yaku)).toEqual(["断幺九"]);
+    expect(result!.han).toBe(1);
+    expect(result!.fu).toBe(30);
+  });
+
   it("yakuhai dragon triplet (open pon allowed)", () => {
     const melds: Meld[] = [
       { type: "pon", tiles: [tile("5z"), tile("5z"), tile("5z")], calledFromRelative: 1, calledTile: tile("5z") },
