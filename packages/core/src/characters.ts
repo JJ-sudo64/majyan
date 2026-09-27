@@ -164,6 +164,13 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "花は散っても、想いは散りません。だから、また咲かせましょう…！",
     avatar: "/avatars/characters/hiiragi.webp",
     cutin: "/avatars/characters/hiiragi-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    declarationArt: {
+      riichi: { src: "/declarations/hiiragi-riichi.webp" },
+      tsumo: { src: "/declarations/hiiragi-tsumo.webp" },
+      ron: { src: "/declarations/hiiragi-ron.webp" },
+    },
+    declarationAccent: "#ff4fa3",
     gaugeMax: 100,
     gaugePerTurn: 10,
     gaugePerDealIn: 20,
@@ -186,6 +193,13 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "牌の並びなんて、ちょっと手を加えるだけ。運も実力のうち、でしょう？",
     avatar: "/avatars/characters/nagi.webp",
     cutin: "/avatars/characters/nagi-cutin.webp",
+    // リーチの絵は絵コンテの1コマを切り抜いたもので文字が無いため、演出側で重ねる。
+    declarationArt: {
+      riichi: { src: "/declarations/nagi-riichi.webp", addWord: true },
+      tsumo: { src: "/declarations/nagi-tsumo.webp" },
+      ron: { src: "/declarations/nagi-ron.webp" },
+    },
+    declarationAccent: "#a866ff",
     // 引き直す牌はランダム（カエデと違い有効牌が保証されない賭け）なので、
     // 制約なしで発動できる点を割り引いてカエデより速くする。
     gaugeMax: 100,
@@ -225,6 +239,13 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "迷いは捨てろ。考えた瞬間、負けは始まる。オレの一撃は、雷鳴とともにすべてを終わらせる。",
     avatar: "/avatars/characters/raiko.webp",
     cutin: "/avatars/characters/raiko-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    declarationArt: {
+      riichi: { src: "/declarations/raiko-riichi.webp" },
+      tsumo: { src: "/declarations/raiko-tsumo.webp" },
+      ron: { src: "/declarations/raiko-ron.webp" },
+    },
+    declarationAccent: "#ffc83d",
     gaugeMax: RAIKO_GAUGE_MAX,
     gaugePerTurn: 12,
     gaugePerDealIn: 20,

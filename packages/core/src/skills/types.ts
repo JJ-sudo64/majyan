@@ -126,6 +126,14 @@ export interface Character {
   avatar: string;
   /** 必殺技発動演出（カットイン）用の縦長立ち絵。未指定ならavatarを代わりに使う。 */
   cutin?: string;
+  /** リーチ・ツモ・ロンを宣言した瞬間に画面いっぱいに出す1枚絵（public/配下、
+      横長）。用意したキャラ・宣言だけ演出を出し、無ければ何も出さない
+      （web側のDeclarationCutinOverlay.tsx参照）。絵に「リーチ」等の文字が
+      描き込まれていない場合だけaddWord:trueにすると、演出側で文字を重ねる。 */
+  declarationArt?: Partial<Record<"riichi" | "tsumo" | "ron", { src: string; addWord?: boolean }>>;
+  /** 宣言カットインのフラッシュ・光・重ねる文字の色（CSSの色）。絵の色調に
+      合わせる。未指定なら紫。 */
+  declarationAccent?: string;
   /** 対局で1位（最終順位トップ）になった時に表示する勝利台詞。 */
   winQuote: string;
   /** ゲージの上限。これに達するとonActivateが発動可能になる。 */

@@ -2226,6 +2226,153 @@ button {
     0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
+/* リーチ・ツモ・ロンの宣言カットイン(DeclarationCutinOverlay.tsx)。キャラの
+   横長1枚絵を、画面中央を横切る斜めカットの帯として叩き付けるように出す。
+   body直下にPortalされ、Tile3D手牌(.tile3d-hand-layer、z-index:20)より手前、
+   調整用モーダル(50)・編集ツールバー(60)よりは奥に置く。 */
+.declaration-cutin {
+  --dur: 2.2s;
+  /* キャラごとの色(Character.declarationAccent)。DeclarationCutinOverlay.tsxがstyleで上書きする。 */
+  --accent: #a866ff;
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  overflow: hidden;
+}
+.declaration-cutin--riichi {
+  --dur: 1.6s;
+}
+.declaration-cutin__flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 35%, transparent) 0%, rgba(6, 2, 16, 0.82) 70%);
+  animation: declaration-cutin-flash var(--dur) ease-out forwards;
+}
+@keyframes declaration-cutin-flash {
+  0% {
+    opacity: 0;
+    background-color: color-mix(in srgb, var(--accent) 60%, rgba(255, 255, 255, 0.9));
+  }
+  6% {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--accent) 45%, rgba(255, 255, 255, 0.35));
+  }
+  18% {
+    background-color: transparent;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-color: transparent;
+  }
+}
+.declaration-cutin__band {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(118vw, 164vh);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
+  animation: declaration-cutin-slam var(--dur) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes declaration-cutin-slam {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.35) skewX(-8deg);
+    filter: brightness(2.2);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.98) skewX(0deg);
+    filter: brightness(1.3);
+  }
+  14% {
+    transform: translate(calc(-50% + 6px), calc(-50% - 4px)) scale(1);
+  }
+  18% {
+    transform: translate(calc(-50% - 5px), calc(-50% + 3px)) scale(1);
+  }
+  22% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: brightness(1);
+  }
+  82% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+.declaration-cutin__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* 絵の上を斜めの光が一度だけ走り抜ける。 */
+.declaration-cutin__sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.55) 48%, color-mix(in srgb, var(--accent) 35%, transparent) 52%, transparent 65%);
+  mix-blend-mode: screen;
+  transform: translateX(-100%);
+  animation: declaration-cutin-sweep var(--dur) ease-out forwards;
+}
+@keyframes declaration-cutin-sweep {
+  0%,
+  12% {
+    transform: translateX(-100%);
+  }
+  40%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+/* 絵に文字が描き込まれていない時(declarationArtのaddWord)だけ、絵の筆文字に寄せた発光文字を重ねる。 */
+.declaration-cutin__word {
+  position: absolute;
+  /* 絵の右寄りにある顔に被らないよう、光の筋しかない左上に置く。 */
+  top: 27%;
+  left: 9%;
+  font-size: min(16vw, 22vh);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--accent) 12%, white);
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--accent) 80%, black);
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--accent) 95%, transparent),
+    0 0 48px color-mix(in srgb, var(--accent) 85%, transparent),
+    0 6px 14px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  animation: declaration-cutin-word var(--dur) cubic-bezier(0.2, 1.6, 0.4, 1) forwards;
+}
+@keyframes declaration-cutin-word {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.8) rotate(-8deg);
+  }
+  22% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1) rotate(-6deg);
+  }
+  82% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.03) rotate(-6deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.06) rotate(-6deg);
+  }
+}
+
 .opponent-hand-row {
   display: flex;
   gap: 6px;

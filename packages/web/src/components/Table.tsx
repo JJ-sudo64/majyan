@@ -29,6 +29,8 @@ import { ToimenEditToolbar } from "./ToimenEditToolbar.js";
 import { RiichiStickEditToolbar } from "./RiichiStickEditToolbar.js";
 import { RevealHandEditToolbar } from "./RevealHandEditToolbar.js";
 import { SkillActivationOverlay } from "./SkillActivationOverlay.js";
+import { DeclarationCutinOverlay } from "./DeclarationCutinOverlay.js";
+import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 
 /**
  * 画面全体のレイヤー構造（View再設計）:
@@ -51,6 +53,8 @@ export function Table() {
   const match = useGameStore((s) => s.match);
   const pendingRoundEnd = useGameStore((s) => s.pendingRoundEnd);
   const lastRoundOutcome = useGameStore((s) => s.lastRoundOutcome);
+  // ツモ・ロンの宣言カットイン中は点数画面を出さずに待つ（DeclarationCutinOverlay.tsx参照）。
+  const winCutinPlaying = useDeclarationCutinStore((s) => s.winCutinPlaying);
   // 下家(player 1)・上家(player 3)の立体牌(Tile3D)手牌を描画するPortal先。
   // .tableの外（祖先にperspective/rotateXを持たない.game-screen直下）に
   // 置くことで、3D形状のTile3Dが「傾いた卓」演出の影響でシアー変形する
@@ -537,6 +541,7 @@ export function Table() {
             （指摘により発覚。Tile3DDebugPanel等と同じ理由でPortal化して
             解決する）。 */}
         {createPortal(<SkillActivationOverlay round={round} />, document.body)}
+        {createPortal(<DeclarationCutinOverlay round={round} />, document.body)}
 
         {showOwnSkillInfo && selfCharacter && (
           <div className="modal-overlay" onClick={() => setShowOwnSkillInfo(false)}>
@@ -553,7 +558,7 @@ export function Table() {
           </div>
         )}
 
-        {pendingRoundEnd && lastRoundOutcome && <ScoreResult round={round} outcome={lastRoundOutcome} />}
+        {pendingRoundEnd && lastRoundOutcome && !winCutinPlaying && <ScoreResult round={round} outcome={lastRoundOutcome} />}
       </div>
     </DoraProvider>
   );
