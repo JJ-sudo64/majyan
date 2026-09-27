@@ -1182,7 +1182,17 @@ export function OpponentArea({
                               // 台座にしている牌と同じ「厚み」の帯(box-shadow)を
                               // 重ねて出すと二重に見えるため、浮いている程度の
                               // 柔らかい影に差し替える（Hand.tsxのMeldViewと同じ理由）。
-                              style={{ position: "absolute", top: -16, left: 0, zIndex: 999, boxShadow: "0 2px 3px rgba(0, 0, 0, 0.5)" }}
+                              // ただし下家・上家は帯の向きが台座と重ならない横向き
+                              // （画面上は2枚が隣り合って並ぶだけで二重にならない）
+                              // ため、差し替えると4枚目だけ厚みが欠けて見えていた
+                              // （指摘により）。下家・上家では通常の帯のままにする。
+                              style={{
+                                position: "absolute",
+                                top: -16,
+                                left: 0,
+                                zIndex: 999,
+                                ...(player === 1 || player === 3 ? {} : { boxShadow: "0 2px 3px rgba(0, 0, 0, 0.5)" }),
+                              }}
                             />
                           </span>
                         );
