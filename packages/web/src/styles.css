@@ -91,27 +91,52 @@ button {
   background: rgba(255, 221, 156, 0.22);
 }
 
-/* 右側メインメニュー4ボタン（プレイ/ルール/設定/終了）。 */
+/* 右側メインメニュー4ボタン（プレイ/ルール/設定/終了）。
+   位置・サイズは背景画像(title-bg.webp、1672x940)に描かれたボタン絵の
+   外枠（金縁の外側の暗い縁まで）をピクセル実測した値。絵のボタンは
+   1つずつ微妙に大きさが違うため、ボタンごとに個別指定する。絵は左右が
+   尖った六角形なので、clip-pathで同じ形に切り抜き、ホバー時の光る範囲も
+   絵の形に一致させる（--bevel＝先端から斜めの角までの横幅、実測28〜30px）。 */
 .title-screen__menu {
   position: absolute;
   inset: 0;
 }
 .title-screen__menu .title-screen__menu-btn {
-  left: 1195px;
-  width: 456px;
-  height: 68px;
+  --bevel: 29px;
+  border-radius: 0;
+  clip-path: polygon(var(--bevel) 0, calc(100% - var(--bevel)) 0, 100% 50%, calc(100% - var(--bevel)) 100%, var(--bevel) 100%, 0 50%);
+}
+.title-screen__menu .title-screen__menu-btn:hover {
+  box-shadow: none;
+  background: rgba(255, 221, 156, 0.18);
 }
 .title-screen__menu .title-screen__menu-btn:nth-child(1) {
-  top: 233px;
+  left: 1196px;
+  top: 221px;
+  width: 394px;
+  height: 96px;
+  --bevel: 30px;
 }
 .title-screen__menu .title-screen__menu-btn:nth-child(2) {
-  top: 341px;
+  left: 1208px;
+  top: 342px;
+  width: 376px;
+  height: 89px;
+  --bevel: 28px;
 }
 .title-screen__menu .title-screen__menu-btn:nth-child(3) {
-  top: 449px;
+  left: 1209px;
+  top: 455px;
+  width: 375px;
+  height: 88px;
+  --bevel: 28px;
 }
 .title-screen__menu .title-screen__menu-btn:nth-child(4) {
-  top: 557px;
+  left: 1208px;
+  top: 570px;
+  width: 376px;
+  height: 88px;
+  --bevel: 28px;
 }
 
 /* ルール/設定モーダルの共通枠。setup-picker-modalと同じ和風の緑パネル。 */
