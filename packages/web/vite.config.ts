@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { tuningFilePlugin } from "./tuningFilePlugin";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tuningFilePlugin()],
   server: {
     port: 5173,
     // ポート5173が塞がっている時に黙って別ポートへ逃げると、その別
@@ -11,5 +12,8 @@ export default defineConfig({
     // いて設定が消えたように見えた」事故が実際に起きたため、その場合は
     // 自動フォールバックせず起動時にエラーで教えるようにする。
     strictPort: true,
+    // 調整値ファイル(tuning/、tuningFilePlugin.ts参照)は調整のたびに書き
+    // 換わるので、ファイル監視によるリロードの対象にしない。
+    watch: { ignored: ["**/tuning/**"] },
   },
 });

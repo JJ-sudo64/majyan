@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { sharedTuningStorage } from "./sharedTuningStorage.js";
 
 /**
  * Tile3D（上家・下家の手牌に使っている立体牌）の角度・拡大率・厚み・
@@ -608,6 +609,8 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
     }),
     {
       name: "tile3d-debug-store",
+      // どのブラウザでも同じ値になるようファイルに保存する（sharedTuningStorage.ts参照）
+      storage: createJSONStorage(() => sharedTuningStorage),
       version: 6,
       // パネルの開閉状態(activePanel)は「今このセッションで開いているか」
       // だけの一時的なUI状態なので、リロードのたびに閉じた状態(null)から

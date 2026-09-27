@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { sharedTuningStorage } from "./sharedTuningStorage.js";
 
 /**
  * 卓面背景画像(.table-surface)の「どの画像を使うか」を管理するストア。
@@ -74,6 +75,8 @@ export const useTableBackgroundStore = create<TableBackgroundState>()(
     }),
     {
       name: "table-background-store",
+      // どのブラウザでも同じ値になるようファイルに保存する（sharedTuningStorage.ts参照）
+      storage: createJSONStorage(() => sharedTuningStorage),
       // version 1(2026-09-24): 既定の背景を桜(紫)に変更し、旧「初期背景」
       // (id:"default")を削除。保存済みのbackgroundIdを新しい既定値へ
       // 切り替え、それまでの背景は「元に戻す」の戻し先に残す。削除済みの

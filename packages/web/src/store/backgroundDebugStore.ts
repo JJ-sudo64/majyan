@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { sharedTuningStorage } from "./sharedTuningStorage.js";
 
 /**
  * 卓面背景画像(.table-surface、packages/web/public/table/以下、tableBackgroundStore.tsで選択中の画像)
@@ -85,6 +86,8 @@ export const useBackgroundDebugStore = create<BackgroundDebugState>()(
     }),
     {
       name: "background-debug-store",
+      // どのブラウザでも同じ値になるようファイルに保存する（sharedTuningStorage.ts参照）
+      storage: createJSONStorage(() => sharedTuningStorage),
       version: 2,
       partialize: (state) => {
         const { isPanelOpen, setIsPanelOpen, ...rest } = state;
