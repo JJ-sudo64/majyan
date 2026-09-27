@@ -1526,6 +1526,13 @@ button {
   padding: 8px 12px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   white-space: nowrap;
+  /* 項目が増えて画面の下にはみ出すと、下の方の調整ボタンに届かなく
+     なっていた（指摘により）。歯車の下(top:8px+42px)から画面下端までに
+     高さを収め、はみ出した分は縦スクロールさせる。 */
+  max-height: calc(100vh - 58px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 /* じゃんたま等の「自動ツモ切り」「自動和了」相当のトグル。ONのまま対局を
    跨いでも意図が分かるよう、押している間だけでなくON/OFFの状態が常に
