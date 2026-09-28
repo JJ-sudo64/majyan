@@ -99,6 +99,21 @@ export type VoiceEvent =
   | "tenpai"
   | "noten";
 
+/** 宣言カットインの1枚絵（Character.declarationArt）。 */
+export interface DeclarationArt {
+  src: string;
+  addWord?: boolean;
+  /** 絵のうち表示する範囲。絵の幅・高さに対する割合(0〜1)で、左上(x,y)と
+      幅・高さ(w,h)。演出の帯はこの範囲の縦横比になる。未指定なら絵全体。
+      帯は四隅が斜めに欠けるので、文字が範囲の端ぎりぎりにならないようにする。 */
+  crop?: { x: number; y: number; w: number; h: number };
+  /** 帯は通常、左上と右下の角が斜めに欠ける平行四辺形。文字が絵の端ぎりぎり
+      にあって欠けてしまう絵だけ指定する。
+      "top-left": 斜めを逆向きにして左上と右下の角を残す（右上と左下が欠ける）。
+      "right": 右辺をまっすぐにして右端を丸ごと残す（左辺だけ斜め）。 */
+  keepEdge?: "top-left" | "right";
+}
+
 export interface Character {
   id: string;
   name: string;
@@ -129,8 +144,10 @@ export interface Character {
   /** リーチ・ツモ・ロンを宣言した瞬間に画面いっぱいに出す1枚絵（public/配下、
       横長）。用意したキャラ・宣言だけ演出を出し、無ければ何も出さない
       （web側のDeclarationCutinOverlay.tsx参照）。絵に「リーチ」等の文字が
-      描き込まれていない場合だけaddWord:trueにすると、演出側で文字を重ねる。 */
-  declarationArt?: Partial<Record<"riichi" | "tsumo" | "ron", { src: string; addWord?: boolean }>>;
+      描き込まれていない場合だけaddWord:trueにすると、演出側で文字を重ねる。
+      絵の中の牌(中・東など)は実際の和了牌・宣言牌と食い違って見えるので、
+      牌が写っている絵はcropで牌を外した範囲だけを見せる。 */
+  declarationArt?: Partial<Record<"riichi" | "tsumo" | "ron", DeclarationArt>>;
   /** 宣言カットインのフラッシュ・光・重ねる文字の色（CSSの色）。絵の色調に
       合わせる。未指定なら紫。 */
   declarationAccent?: string;

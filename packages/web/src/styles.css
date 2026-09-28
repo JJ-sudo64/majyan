@@ -2273,11 +2273,21 @@ button {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(118vw, 164vh);
-  aspect-ratio: 16 / 9;
+  /* 絵の端ぎりぎりに「リーチ」等の文字が描き込まれた絵があるので、どんな
+     画面比でも画面幅を超えないようにする（超えると文字が画面外に出る）。
+     --band-aspectはcropした範囲の縦横比（DeclarationCutinOverlay.tsxが指定）。 */
+  width: min(100vw, calc(92vh * var(--band-aspect, 16 / 9)));
+  aspect-ratio: var(--band-aspect, 16 / 9);
   overflow: hidden;
   clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
   animation: declaration-cutin-slam var(--dur) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+/* 文字が絵の端ぎりぎりにある絵(declarationArtのkeepEdge)は、その端が欠けない形にする。 */
+.declaration-cutin--keep-top-left .declaration-cutin__band {
+  clip-path: polygon(0 0, 94% 0, 100% 100%, 6% 100%);
+}
+.declaration-cutin--keep-right .declaration-cutin__band {
+  clip-path: polygon(6% 0, 100% 0, 100% 100%, 0 100%);
 }
 @keyframes declaration-cutin-slam {
   0% {

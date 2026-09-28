@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { CHARACTERS, type RoundState } from "@majyan/core";
+import { CHARACTERS, type DeclarationArt, type RoundState } from "@majyan/core";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 
 type Declaration = "riichi" | "tsumo" | "ron";
@@ -9,6 +9,9 @@ const DISPLAY_MS: Record<Declaration, number> = { riichi: 1600, tsumo: 2200, ron
 
 const WORDS: Record<Declaration, string> = { riichi: "リーチ", tsumo: "ツモ", ron: "ロン" };
 
+/** 1枚絵の縦横比。生成した絵はどれも16:9(1671x941)。cropの帯の縦横比はこれから求める。 */
+const ART_ASPECT = 16 / 9;
+
 /** Character.declarationAccent未指定時の色。 */
 const DEFAULT_ACCENT = "#a866ff";
 
@@ -17,6 +20,8 @@ interface ActiveCutin {
   src: string;
   /** 絵に文字が描き込まれていない時だけtrue（演出側で文字を重ねる）。 */
   addWord: boolean;
+  crop: DeclarationArt["crop"];
+  keepEdge: DeclarationArt["keepEdge"];
   accent: string;
   /** 同じ宣言が続いた時もCSSアニメーションを最初からやり直させるための一意キー。 */
   key: number;
@@ -26,7 +31,7 @@ function cutinFor(round: RoundState, seat: number, kind: Declaration): Omit<Acti
   const character = CHARACTERS[round.characterIds[seat]!];
   const art = character?.declarationArt?.[kind];
   if (!art) return null;
-  return { kind, src: art.src, addWord: art.addWord ?? false, accent: character.declarationAccent ?? DEFAULT_ACCENT };
+  return { kind, src: art.src, addWord: art.addWord ?? false, crop: art.crop, keepEdge: art.keepEdge, accent: character.declarationAccent ?? DEFAULT_ACCENT };
 }
 
 /**
@@ -97,15 +102,28 @@ export function DeclarationCutinOverlay({ round }: { round: RoundState }) {
   useEffect(() => () => setWinCutinPlaying(false), [setWinCutinPlaying]);
 
   if (!active) return null;
+  const { crop } = active;
+  // cropがあれば、帯をその範囲の縦横比にし、絵を拡大・ずらして範囲だけを帯に写す。
+  const bandStyle = crop ? ({ "--band-aspect": (crop.w / crop.h) * ART_ASPECT } as CSSProperties) : undefined;
+  const artStyle: CSSProperties | undefined = crop
+    ? {
+        position: "absolute",
+        width: `${100 / crop.w}%`,
+        height: `${100 / crop.h}%`,
+        left: `${(-100 * crop.x) / crop.w}%`,
+        top: `${(-100 * crop.y) / crop.h}%`,
+        maxWidth: "none",
+      }
+    : undefined;
   return (
     <div
-      className={`declaration-cutin declaration-cutin--${active.kind}`}
+      className={`declaration-cutin declaration-cutin--${active.kind}${active.keepEdge ? ` declaration-cutin--keep-${active.keepEdge}` : ""}`}
       key={active.key}
       style={{ "--accent": active.accent } as CSSProperties}
     >
       <div className="declaration-cutin__flash" />
-      <div className="declaration-cutin__band">
-        <img className="declaration-cutin__art" src={active.src} alt="" />
+      <div className="declaration-cutin__band" style={bandStyle}>
+        <img className="declaration-cutin__art" src={active.src} alt="" style={artStyle} />
         <div className="declaration-cutin__sweep" />
       </div>
       {active.addWord && <div className="declaration-cutin__word">{WORDS[active.kind]}</div>}

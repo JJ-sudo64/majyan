@@ -165,10 +165,12 @@ export const CHARACTERS: Record<string, Character> = {
     avatar: "/avatars/characters/hiiragi.webp",
     cutin: "/avatars/characters/hiiragi-cutin.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // 絵の中の牌は実際の牌と食い違うので、牌が写る絵はcropで外す。右端ぎりぎりの
+    // 文字は帯の斜めの欠けで削れるのでkeepEdge: "right"にする。
     declarationArt: {
-      riichi: { src: "/declarations/hiiragi-riichi.webp" },
-      tsumo: { src: "/declarations/hiiragi-tsumo.webp" },
-      ron: { src: "/declarations/hiiragi-ron.webp" },
+      riichi: { src: "/declarations/hiiragi-riichi.webp", crop: { x: 0, y: 0, w: 1, h: 0.72 } },
+      tsumo: { src: "/declarations/hiiragi-tsumo.webp", crop: { x: 0.2, y: 0, w: 0.8, h: 0.55 }, keepEdge: "right" },
+      ron: { src: "/declarations/hiiragi-ron.webp", crop: { x: 0.2, y: 0, w: 0.8, h: 0.62 }, keepEdge: "right" },
     },
     declarationAccent: "#ff4fa3",
     gaugeMax: 100,
@@ -194,10 +196,11 @@ export const CHARACTERS: Record<string, Character> = {
     avatar: "/avatars/characters/nagi.webp",
     cutin: "/avatars/characters/nagi-cutin.webp",
     // リーチの絵は絵コンテの1コマを切り抜いたもので文字が無いため、演出側で重ねる。
+    // 絵の中の牌(中・卓の手牌)は実際の牌と食い違うので、cropで外す。
     declarationArt: {
-      riichi: { src: "/declarations/nagi-riichi.webp", addWord: true },
-      tsumo: { src: "/declarations/nagi-tsumo.webp" },
-      ron: { src: "/declarations/nagi-ron.webp" },
+      riichi: { src: "/declarations/nagi-riichi.webp", crop: { x: 0, y: 0, w: 1, h: 0.72 }, addWord: true },
+      tsumo: { src: "/declarations/nagi-tsumo.webp", crop: { x: 0, y: 0.12, w: 1, h: 0.73 } },
+      ron: { src: "/declarations/nagi-ron.webp", crop: { x: 0.33, y: 0, w: 0.67, h: 0.7 } },
     },
     declarationAccent: "#a866ff",
     // 引き直す牌はランダム（カエデと違い有効牌が保証されない賭け）なので、
@@ -240,10 +243,12 @@ export const CHARACTERS: Record<string, Character> = {
     avatar: "/avatars/characters/raiko.webp",
     cutin: "/avatars/characters/raiko-cutin.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // 絵の中の牌は実際の牌と食い違うので、牌が写る絵はcropで外す。右端ぎりぎりの
+    // 文字は帯の斜めの欠けで削れるのでkeepEdge: "right"にする。
     declarationArt: {
-      riichi: { src: "/declarations/raiko-riichi.webp" },
-      tsumo: { src: "/declarations/raiko-tsumo.webp" },
-      ron: { src: "/declarations/raiko-ron.webp" },
+      riichi: { src: "/declarations/raiko-riichi.webp", keepEdge: "right" },
+      tsumo: { src: "/declarations/raiko-tsumo.webp", crop: { x: 0.38, y: 0, w: 0.62, h: 1 }, keepEdge: "right" },
+      ron: { src: "/declarations/raiko-ron.webp", keepEdge: "right" },
     },
     declarationAccent: "#ffc83d",
     gaugeMax: RAIKO_GAUGE_MAX,
@@ -326,6 +331,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "未来は決まっている。ただ、まだ見えないだけだ。",
     avatar: "/avatars/characters/toki.webp",
     cutin: "/avatars/characters/toki-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // 絵の中の牌は実際の牌と食い違うので、牌が写る絵はcropで外す。文字が
+    // 右端ぎりぎりにあり帯の斜めの欠けで削れるためkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/toki-riichi.webp", keepEdge: "right" },
+      tsumo: { src: "/declarations/toki-tsumo.webp", crop: { x: 0, y: 0.02, w: 1, h: 0.6 }, keepEdge: "right" },
+      ron: { src: "/declarations/toki-ron.webp", crop: { x: 0, y: 0, w: 1, h: 0.7 }, keepEdge: "right" },
+    },
+    declarationAccent: "#8a5cff",
     gaugeMax: 100,
     gaugePerTurn: 14,
     gaugePerDealIn: 22,
@@ -354,6 +368,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "勝負は、派手に勝つより、静かに勝つもの。誰も気づいた時には、もう終わってる。",
     avatar: "/avatars/characters/kagerou.webp",
     cutin: "/avatars/characters/kagerou-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // 牌が写っていないのでcrop不要。文字が左上に寄っていて帯の斜めの欠けで
+    // 削れるためkeepEdge: "top-left"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/kagerou-riichi.webp", keepEdge: "top-left" },
+      tsumo: { src: "/declarations/kagerou-tsumo.webp", keepEdge: "top-left" },
+      ron: { src: "/declarations/kagerou-ron.webp", keepEdge: "top-left" },
+    },
+    declarationAccent: "#9d6bff",
     // 他家3人の手牌が丸見えになる情報アドバンテージは大きいため、標準(10)より遅くする。
     gaugeMax: 100,
     gaugePerTurn: 8,
@@ -379,6 +402,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "配られた運命は変えられなくても、並び替えることはできる。それが、わたしのやり方。",
     avatar: "/avatars/characters/runa.webp",
     cutin: "/avatars/characters/runa-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // 牌は写っていないのでcrop不要。文字が左上ぎりぎりにあり、帯の斜めの
+    // 欠けで削れるためkeepEdge: "top-left"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/luna-riichi.webp", keepEdge: "top-left" },
+      tsumo: { src: "/declarations/luna-tsumo.webp", keepEdge: "top-left" },
+      ron: { src: "/declarations/luna-ron.webp", keepEdge: "top-left" },
+    },
+    declarationAccent: "#b57bff",
     gaugeMax: 100,
     gaugePerTurn: 10,
     gaugePerDealIn: 20,
@@ -409,6 +441,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "運任せなんて言葉は、数えることを放棄した者の言い訳だ。俺はただ、見えている数を数えただけだよ。",
     avatar: "/avatars/characters/subaru.webp",
     cutin: "/avatars/characters/subaru-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // ツモの絵は手元と下隅に牌が写っているのでcropで外す。文字が左上（リーチ・
+    // ロン）や右下（ツモ）の端にあり帯の斜めの欠けで削れるためkeepEdge: "top-left"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/subaru-riichi.webp", keepEdge: "top-left" },
+      tsumo: { src: "/declarations/subaru-tsumo.webp", crop: { x: 0, y: 0, w: 1, h: 0.675 }, keepEdge: "top-left" },
+      ron: { src: "/declarations/subaru-ron.webp", keepEdge: "top-left" },
+    },
+    declarationAccent: "#4f8dff",
     // 手牌が見えるカゲロウと違い「残り枚数の精度が上がる」だけの地味な効果
     // のため、標準(10)より速くする。
     gaugeMax: 100,
@@ -435,6 +476,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "一歩ずつでいい。だが、その一歩を疎かにする者に、大成は無い。",
     avatar: "/avatars/characters/kaede.webp",
     cutin: "/avatars/characters/kaede-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // 牌は写っていないのでcrop不要。文字が右端ぎりぎりにあり、帯の斜めの欠け
+    // (どちら向きでも)で削れるためkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/kaede-riichi.webp", keepEdge: "right" },
+      tsumo: { src: "/declarations/kaede-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/kaede-ron.webp", keepEdge: "right" },
+    },
+    declarationAccent: "#ff4a3d",
     voiceClips: {
       chi: "/voices/kaede/chi.wav",
       pon: "/voices/kaede/pon.wav",
@@ -578,6 +628,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "見せてやるよ、俺の手は。逃げも隠れもしない、それが漢の勝負ってもんだ。",
     avatar: "/avatars/characters/jin.webp",
     cutin: "/avatars/characters/jin-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // リーチの絵は左下の牌(筒子)が「チ」の払いと同じ高さにあり上下では外せない
+    // ので、左側を切って外す。文字が右端ぎりぎりにあるためkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/jin-riichi.webp", crop: { x: 0.42, y: 0, w: 0.58, h: 1 }, keepEdge: "right" },
+      tsumo: { src: "/declarations/jin-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/jin-ron.webp", keepEdge: "right" },
+    },
+    declarationAccent: "#ff2e3a",
     gaugeMax: 100,
     gaugePerTurn: 10,
     gaugePerDealIn: 20,
@@ -636,6 +695,16 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "てんこしゃんこ、っと。……あれ、三色乗ってる？ラッキー。",
     avatar: "/avatars/characters/masato.webp",
     cutin: "/avatars/characters/masato-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // リーチの絵の卓の牌は裏向き・ぼやけで種類が分からず、実際の牌と食い違って
+    // 見えないのでcrop不要（切ると「チ」の払いも切れる）。文字が右端ぎりぎりに
+    // あるためkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/masato-riichi.webp", keepEdge: "right" },
+      tsumo: { src: "/declarations/masato-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/masato-ron.webp", keepEdge: "right" },
+    },
+    declarationAccent: "#d9a441",
     // 局面・点数に一切影響しない純粋な見た目だけの効果（このゲーム内で
     // 最も弱い必殺技）なので、全キャラ中最速で溜まるようにする。
     gaugeMax: 100,
@@ -660,6 +729,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "見えていたもの、そのまま。……たまには外れてくれても面白いのにね。",
     avatar: "/avatars/characters/mirai.webp",
     cutin: "/avatars/characters/mirai-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // リーチの絵は左下と中央下に表向きの牌が写っているので、左と下を切って
+    // 外す（「チ」の払いは残る）。文字が右端ぎりぎりにあるためkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/mirai-riichi.webp", crop: { x: 0.24, y: 0, w: 0.76, h: 0.91 }, keepEdge: "right" },
+      tsumo: { src: "/declarations/mirai-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/mirai-ron.webp", keepEdge: "right" },
+    },
+    declarationAccent: "#b05cff",
     gaugeMax: 100,
     gaugePerTurn: 10,
     gaugePerDealIn: 20,
@@ -690,6 +768,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "運も実力のうち？　いいえ、これは実力よ。持ってる女に、外れなんて無いの。",
     avatar: "/avatars/characters/saki.webp",
     cutin: "/avatars/characters/saki-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // リーチ・ロンは卓の手牌が下に、ツモは手に持った牌が左に写っているので
+    // cropで外す。文字が右端ぎりぎりにあるためkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/saki-riichi.webp", crop: { x: 0, y: 0, w: 1, h: 0.81 }, keepEdge: "right" },
+      tsumo: { src: "/declarations/saki-tsumo.webp", crop: { x: 0.35, y: 0, w: 0.65, h: 1 }, keepEdge: "right" },
+      ron: { src: "/declarations/saki-ron.webp", crop: { x: 0, y: 0, w: 1, h: 0.79 }, keepEdge: "right" },
+    },
+    declarationAccent: "#c86bff",
     gaugeMax: SAKI_GAUGE_MAX,
     gaugePerTurn: 8,
     gaugePerDealIn: 20,
@@ -737,6 +824,16 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "誰の卓だ？　俺の卓だ。親が続く限り、この場はずっと俺のものだ。",
     avatar: "/avatars/characters/naoki.webp",
     cutin: "/avatars/characters/naoki-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // リーチの絵は下に卓の牌(手牌・つまんだ牌)が写っているのでcropで外す
+    // (「チ」の払いの先端も少し切れる)。文字が右端ぎりぎりにあるため
+    // keepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/naoki-riichi.webp", crop: { x: 0, y: 0, w: 1, h: 0.815 }, keepEdge: "right" },
+      tsumo: { src: "/declarations/naoki-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/naoki-ron.webp", keepEdge: "right" },
+    },
+    declarationAccent: "#a45cff",
     // パッシブ専用（onActivateが無い）ため、ゲージ関連の値は実質未使用
     // （SkillGauge.tsxがonActivateの無いキャラのバー自体を表示しない）。
     gaugeMax: 100,
@@ -780,6 +877,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "たった1枚で待つ男に、隙なんて見せられるわけないだろ？",
     avatar: "/avatars/characters/tomohiro.webp",
     cutin: "/avatars/characters/tomohiro-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // ツモの絵は左下の端に牌の頭が少し写っているのでcropで外す。リーチは文字が
+    // 左上、ツモ・ロンは右端ぎりぎりにあるため、それぞれkeepEdgeを付ける。
+    declarationArt: {
+      riichi: { src: "/declarations/tomohiro-riichi.webp", keepEdge: "top-left" },
+      tsumo: { src: "/declarations/tomohiro-tsumo.webp", crop: { x: 0, y: 0, w: 1, h: 0.96 }, keepEdge: "right" },
+      ron: { src: "/declarations/tomohiro-ron.webp", keepEdge: "right" },
+    },
+    declarationAccent: "#b070ff",
     // パッシブ専用（onActivateが無い）ため、ゲージ関連の値は実質未使用
     // （SkillGauge.tsxがonActivateの無いキャラのバー自体を表示しない）。
     gaugeMax: 100,
@@ -827,6 +933,15 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "ケチケチしても始まらない。パーッと捨てて、パーッと拾おうぜ。",
     avatar: "/avatars/characters/koki.webp",
     cutin: "/avatars/characters/koki-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
+    // 牌は写っていない(お札・グラス・葉巻のみ)のでcrop不要。文字が右端
+    // ぎりぎりにあるためkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/koki-riichi.webp", keepEdge: "right" },
+      tsumo: { src: "/declarations/koki-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/koki-ron.webp", keepEdge: "right" },
+    },
+    declarationAccent: "#f0b83c",
     // 発動後は局が終わるまで何度でも（ドラを切るたび）再発動する持続効果で
     // 単発の必殺技より価値が高いため、標準(10)より遅くする。
     gaugeMax: 100,
