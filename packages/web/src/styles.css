@@ -516,6 +516,16 @@ button {
   cursor: pointer;
 }
 
+/* デバッグモードの下の、確認用ページ（カットイン一覧・勝利台詞一覧）へのボタン。 */
+.setup-gallery-links {
+  display: flex;
+  gap: 8px;
+}
+.setup-gallery-links .btn {
+  font-size: 13px;
+  text-decoration: none;
+}
+
 .btn {
   background: #1b4332;
   color: #fff;
@@ -2288,6 +2298,9 @@ button {
 }
 .declaration-cutin--keep-right .declaration-cutin__band {
   clip-path: polygon(6% 0, 100% 0, 100% 100%, 0 100%);
+}
+.declaration-cutin--keep-left .declaration-cutin__band {
+  clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%);
 }
 @keyframes declaration-cutin-slam {
   0% {
@@ -4468,4 +4481,151 @@ button {
   line-height: 16px;
   text-align: center;
   z-index: 10;
+}
+
+/* ===== カットイン一覧（?cutin-gallery、CutinGallery.tsx） ===== */
+.cutin-gallery {
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 16px;
+  background: #120a1e;
+  color: #eee;
+  font-family: sans-serif;
+  overflow: auto;
+}
+.cutin-gallery__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.cutin-gallery__header h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.cutin-gallery__hint {
+  color: #aaa;
+  font-size: 13px;
+}
+.cutin-gallery__table {
+  border-collapse: separate;
+  border-spacing: 8px;
+}
+.cutin-gallery__table th {
+  font-weight: normal;
+  color: #ccc;
+}
+.cutin-gallery__name {
+  text-align: right;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.cutin-gallery__thumb {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+}
+/* iframeは実際の画面サイズで描いて、左上基準で縮小する。クリックは外側の枠で受ける。 */
+.cutin-gallery__thumb iframe {
+  border: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.cutin-gallery__missing {
+  display: grid;
+  place-items: center;
+  background: #222;
+  color: #777;
+  font-size: 13px;
+}
+/* 1コマの中身。静止モードでは、演出の途中（開始から1秒後＝絵がしっかり見えている所）で止める。 */
+.cutin-frame {
+  position: fixed;
+  inset: 0;
+  background: #2a2036;
+}
+.cutin-frame--still *,
+.cutin-frame--still *::before,
+.cutin-frame--still *::after {
+  animation-delay: -1s !important;
+  animation-play-state: paused !important;
+}
+
+/* ===== 勝利台詞一覧（?quote-gallery、QuoteGallery.tsx） ===== */
+.quote-gallery {
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 16px 24px 40px;
+  background: #120a1e;
+  color: #eee;
+  font-family: sans-serif;
+  overflow: auto;
+}
+.quote-gallery__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.quote-gallery__header h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.quote-gallery__search {
+  width: 280px;
+  padding: 6px 10px;
+  border: 1px solid #4a3d5e;
+  border-radius: 6px;
+  background: #1d1428;
+  color: #eee;
+  font-size: 14px;
+}
+.quote-gallery__count {
+  color: #aaa;
+  font-size: 13px;
+}
+.quote-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 12px;
+}
+.quote-gallery__card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid #33284a;
+  border-radius: 10px;
+  background: #1d1428;
+}
+.quote-gallery__avatar {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.quote-gallery__name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  font-weight: bold;
+  font-size: 15px;
+}
+.quote-gallery__skill {
+  color: #c9a0ff;
+  font-weight: normal;
+  font-size: 12px;
+}
+.quote-gallery__quote {
+  margin: 6px 0 0;
+  line-height: 1.8;
+  font-size: 14px;
+}
+.quote-gallery__empty {
+  color: #999;
 }

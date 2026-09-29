@@ -294,6 +294,16 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
         <input type="checkbox" checked={debugMode} onChange={(e) => setDebugMode(e.target.checked)} />
         デバッグモード（CPUは和了しない・CPUの手番を早送り・巻き戻し可能）
       </label>
+      {/* 何度も見返す確認用ページ（CutinGallery.tsx / QuoteGallery.tsx）。別タブで
+          開くので、この画面で選んだキャラや設定はそのまま残る。 */}
+      <div className="setup-gallery-links">
+        <a className="btn" href="?cutin-gallery" target="_blank" rel="noreferrer">
+          カットイン一覧
+        </a>
+        <a className="btn" href="?quote-gallery" target="_blank" rel="noreferrer">
+          勝利台詞一覧
+        </a>
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import { CHARACTERS, type DeclarationArt, type RoundState } from "@majyan/core";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 
-type Declaration = "riichi" | "tsumo" | "ron";
+export type Declaration = "riichi" | "tsumo" | "ron";
 
 /** リーチは対局が止まらないので短め、ツモ・ロンは点数画面の前にじっくり見せる。 */
 const DISPLAY_MS: Record<Declaration, number> = { riichi: 1600, tsumo: 2200, ron: 2200 };
@@ -28,7 +28,12 @@ interface ActiveCutin {
 }
 
 function cutinFor(round: RoundState, seat: number, kind: Declaration): Omit<ActiveCutin, "key"> | null {
-  const character = CHARACTERS[round.characterIds[seat]!];
+  return characterCutin(round.characterIds[seat]!, kind);
+}
+
+/** キャラIDと宣言から、カットインの表示内容を作る。1枚絵が無ければnull。 */
+export function characterCutin(characterId: string, kind: Declaration): Omit<ActiveCutin, "key"> | null {
+  const character = CHARACTERS[characterId];
   const art = character?.declarationArt?.[kind];
   if (!art) return null;
   return { kind, src: art.src, addWord: art.addWord ?? false, crop: art.crop, keepEdge: art.keepEdge, accent: character.declarationAccent ?? DEFAULT_ACCENT };
@@ -102,7 +107,15 @@ export function DeclarationCutinOverlay({ round }: { round: RoundState }) {
   useEffect(() => () => setWinCutinPlaying(false), [setWinCutinPlaying]);
 
   if (!active) return null;
-  const { crop } = active;
+  return <DeclarationCutinView cutin={active} key={active.key} />;
+}
+
+/**
+ * 宣言カットインの見た目だけ（検知やタイマーは持たない）。対局中の
+ * DeclarationCutinOverlayと、全キャラ一覧(CutinGallery.tsx)の両方で使う。
+ */
+export function DeclarationCutinView({ cutin }: { cutin: Omit<ActiveCutin, "key"> }) {
+  const { crop } = cutin;
   // cropがあれば、帯をその範囲の縦横比にし、絵を拡大・ずらして範囲だけを帯に写す。
   const bandStyle = crop ? ({ "--band-aspect": (crop.w / crop.h) * ART_ASPECT } as CSSProperties) : undefined;
   const artStyle: CSSProperties | undefined = crop
@@ -117,16 +130,15 @@ export function DeclarationCutinOverlay({ round }: { round: RoundState }) {
     : undefined;
   return (
     <div
-      className={`declaration-cutin declaration-cutin--${active.kind}${active.keepEdge ? ` declaration-cutin--keep-${active.keepEdge}` : ""}`}
-      key={active.key}
-      style={{ "--accent": active.accent } as CSSProperties}
+      className={`declaration-cutin declaration-cutin--${cutin.kind}${cutin.keepEdge ? ` declaration-cutin--keep-${cutin.keepEdge}` : ""}`}
+      style={{ "--accent": cutin.accent } as CSSProperties}
     >
       <div className="declaration-cutin__flash" />
       <div className="declaration-cutin__band" style={bandStyle}>
-        <img className="declaration-cutin__art" src={active.src} alt="" style={artStyle} />
+        <img className="declaration-cutin__art" src={cutin.src} alt="" style={artStyle} />
         <div className="declaration-cutin__sweep" />
       </div>
-      {active.addWord && <div className="declaration-cutin__word">{WORDS[active.kind]}</div>}
+      {cutin.addWord && <div className="declaration-cutin__word">{WORDS[cutin.kind]}</div>}
     </div>
   );
 }

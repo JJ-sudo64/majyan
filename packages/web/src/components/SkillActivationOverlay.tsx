@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CHARACTERS, type RoundState } from "@majyan/core";
+import { CHARACTERS, type Character, type RoundState } from "@majyan/core";
 
 const DISPLAY_MS = 1700;
 
@@ -80,9 +80,16 @@ export function SkillActivationOverlay({ round }: { round: RoundState }) {
   if (!active) return null;
   const character = CHARACTERS[active.characterId];
   if (!character) return null;
+  return <SkillActivationView character={character} key={active.key} />;
+}
 
+/**
+ * 必殺技カットインの見た目だけ（検知やタイマーは持たない）。対局中の
+ * SkillActivationOverlayと、全キャラ一覧(CutinGallery.tsx)の両方で使う。
+ */
+export function SkillActivationView({ character }: { character: Character }) {
   return (
-    <div className="skill-activation-overlay" key={active.key}>
+    <div className="skill-activation-overlay">
       <div className="skill-activation-overlay__flash" />
       <div className="skill-activation-overlay__burst" />
       <div className="skill-activation-overlay__cutin-wrap">

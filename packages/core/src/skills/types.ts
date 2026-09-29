@@ -110,8 +110,9 @@ export interface DeclarationArt {
   /** 帯は通常、左上と右下の角が斜めに欠ける平行四辺形。文字が絵の端ぎりぎり
       にあって欠けてしまう絵だけ指定する。
       "top-left": 斜めを逆向きにして左上と右下の角を残す（右上と左下が欠ける）。
-      "right": 右辺をまっすぐにして右端を丸ごと残す（左辺だけ斜め）。 */
-  keepEdge?: "top-left" | "right";
+      "right": 右辺をまっすぐにして右端を丸ごと残す（左辺だけ斜め）。
+      "left": 左辺をまっすぐにして左端を丸ごと残す（右辺だけ斜め）。 */
+  keepEdge?: "top-left" | "right" | "left";
 }
 
 export interface Character {
