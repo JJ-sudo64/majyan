@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { onlineLink } from "../online/onlineLink.js";
 import {
   advanceToNextRound,
   applyMatchAction,
@@ -14,14 +15,17 @@ import {
   settleRound,
   DEFAULT_AI_DIFFICULTY,
   type AiDifficulty,
+  type ClockDisplay,
   type GameAction,
   type MatchActionResult,
   type MatchFormat,
   type MatchState,
+  type OnlineSeatView,
   type PendingDecision,
   type PlayerIndex,
   type RoundScoreOutcome,
   type RoundState,
+  type SeatInfo,
   type SeatOptions,
   type TileCode,
 } from "@majyan/core";
@@ -97,6 +101,19 @@ interface GameStoreState {
   history: MatchState[];
   /** 席ごとのCPU難易度（1〜5）。対局開始時に固定され、対局中は変わらない。 */
   cpuDifficulty: CpuDifficultySettings;
+  /** ネット対戦中か。trueの間は対局をサーバーが進め、このストアは
+      サーバーから届いた画面の状態（applyOnlineView）を持つだけになる
+      （fullMatchは常にnull、操作はonlineLink経由でサーバーへ送る）。 */
+  online: boolean;
+  /** ネット対戦の各席の名前・CPUか・切断中か（自分=0の座席番号）。ローカル対戦ではnull。 */
+  onlineSeats: SeatInfo[] | null;
+  /** 制限時間の表示（ネット対戦のみ）。receivedAtはperformance.now()基準の受信時刻で、
+      画面側はそこからの経過時間を引いて残り時間を出す。 */
+  clock: (ClockDisplay & { receivedAt: number }) | null;
+  /** ネット対戦で、自分はもう「次の局へ」を押したか。 */
+  roundEndAcknowledged: boolean;
+  roundEndDeadline: number | null;
+  applyOnlineView: (view: OnlineSeatView) => void;
   startMatch: (
     format: MatchFormat,
     debugMode?: boolean,
@@ -168,6 +185,11 @@ function scheduleTick(get: Get, set: Set, delay = 0) {
  * その操作だけ静かに無視し、ゲーム全体をクラッシュさせないようにする。
  */
 function dispatch(get: Get, set: Set, action: GameAction) {
+  // ネット対戦では判定も適用もサーバーが行う（不正な操作はサーバーが弾く）。
+  if (get().online) {
+    onlineLink.send({ t: "action", action });
+    return;
+  }
   const match = get().fullMatch;
   if (!match) return;
   let result: MatchActionResult;
@@ -284,6 +306,33 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   debugPaused: false,
   history: [],
   cpuDifficulty: DEFAULT_CPU_DIFFICULTY,
+  online: false,
+  onlineSeats: null,
+  clock: null,
+  roundEndAcknowledged: false,
+  roundEndDeadline: null,
+
+  applyOnlineView: (view) => {
+    const prev = get().lastScoreAdjustment;
+    const now = performance.now();
+    set({
+      online: true,
+      fullMatch: null,
+      match: view.match,
+      humanOptions: view.options,
+      humanCallOptions: view.options.call,
+      pendingRoundEnd: view.pendingRoundEnd,
+      lastRoundOutcome: view.lastRoundOutcome,
+      // keyが変わった時だけ差し替える（同じ増減の演出を状態が届くたびに出さないため）。
+      lastScoreAdjustment: view.lastScoreAdjustment && view.lastScoreAdjustment.key !== prev?.key ? view.lastScoreAdjustment : prev,
+      onlineSeats: view.seats,
+      clock: view.clock && { ...view.clock, receivedAt: now },
+      roundEndAcknowledged: view.roundEndAcknowledged,
+      roundEndDeadline: view.roundEndRemainingMs === null ? null : now + view.roundEndRemainingMs,
+      debugMode: false,
+      history: [],
+    });
+  },
 
   debugSetSpeed: (speed) => set({ debugSpeed: speed }),
 
@@ -334,7 +383,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   humanDiscard: (tileId) => {
-    const round = get().fullMatch?.round;
+    // 自分のツモ牌は伏せた版(match)にもそのまま入っている。
+    const round = get().match?.round;
     if (!round) return;
     dispatch(get, set, { type: "discard", player: HUMAN, tileId, tsumogiri: tileId === round.lastDrawnTile?.id });
   },
@@ -366,6 +416,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   acknowledgeRoundEnd: () => {
     const state = get();
+    if (state.online) {
+      onlineLink.send({ t: "nextRound" });
+      set({ roundEndAcknowledged: true });
+      return;
+    }
     // 対局終了時はボタンが「タイトルへ戻る」(backToTitle)に切り替わっており
     // このメソッドは呼ばれない想定だが、念のため二重呼び出しをガードしておく。
     if (!state.fullMatch || !state.fullMatch.round.result || state.fullMatch.finished) return;
@@ -379,7 +434,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   backToTitle: () => {
+    if (get().online) onlineLink.close();
     set({
+      online: false,
+      onlineSeats: null,
+      clock: null,
+      roundEndAcknowledged: false,
+      roundEndDeadline: null,
       ...viewStateFor(null),
       pendingRoundEnd: false,
       lastRoundOutcome: null,

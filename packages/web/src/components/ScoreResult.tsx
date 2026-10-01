@@ -108,6 +108,8 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
   const acknowledgeRoundEnd = useGameStore((s) => s.acknowledgeRoundEnd);
   const backToTitle = useGameStore((s) => s.backToTitle);
   const match = useGameStore((s) => s.match);
+  const online = useGameStore((s) => s.online);
+  const roundEndAcknowledged = useGameStore((s) => s.roundEndAcknowledged);
 
   const winnerEntries = Object.entries(outcome.winAnalyses) as [string, { analysis: import("@majyan/core").WinAnalysis; score: import("@majyan/core").ScoreResult }][];
 
@@ -263,8 +265,8 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
             </button>
           </div>
         ) : (
-          <button className="btn btn--primary" onClick={acknowledgeRoundEnd}>
-            次の局へ
+          <button className="btn btn--primary" onClick={acknowledgeRoundEnd} disabled={online && roundEndAcknowledged}>
+            {online && roundEndAcknowledged ? "他のプレイヤーを待っています…" : "次の局へ"}
           </button>
         )}
       </div>

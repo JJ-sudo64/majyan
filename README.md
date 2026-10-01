@@ -7,6 +7,7 @@
 
 - `packages/core` — 麻雀ルールエンジン（牌・役判定・点数計算・ゲーム進行・簡易CPU）。UI非依存の純粋なTypeScript。
 - `packages/web` — Vite + React のフロントエンド。`packages/core` を利用してブラウザ上で対局できる。
+- `packages/server` — ネット対戦サーバー（Node + WebSocket）。`packages/core` を共有し、本物の対局状態はサーバーだけが持つ。
 
 ## セットアップ
 
@@ -18,9 +19,19 @@ npm install
 
 ```
 npm run dev          # web の開発サーバーを起動 (http://localhost:5173)
-npm test              # core のユニットテスト（役判定・点数計算・シャンテン計算・ゲーム進行・AI対AIの通しシミュレーションを含む）
-npm run typecheck     # core / web の型チェック
+npm run dev:server   # ネット対戦サーバーを起動 (ws://localhost:8787/ws、web からは /ws で中継される)
+npm test              # core / server のユニットテスト
+npm run typecheck     # core / web / server の型チェック
 ```
+
+### ネット対戦（友人戦）を試す
+
+1. `npm run dev:server` と `npm run dev` を両方起動する
+2. 「プレイ」→「ネット対戦（合言葉で友人と遊ぶ）」で名前と合言葉を入れて部屋に入る
+3. 同じ合言葉の人が集まったら部屋主（最初に入った人）が開始する。空いた席は CPU が入る
+
+打牌・鳴きには制限時間（毎回5秒＋持ち時間20秒）があり、切れると自動でツモ切り／見送りになる。
+対局中に接続が切れても、同じ合言葉・同じ名前で入り直せば同じ席に戻れる。
 
 ## 実装済みのスコープ
 
@@ -31,6 +42,6 @@ npm run typecheck     # core / web の型チェック
 
 ## 今回のスコープ外（次フェーズ以降）
 
-- ネット対戦（WebSocket）
+- ネット対戦の公開ホスティング・アカウント・再接続トークン
 - キャラクター性能・必殺技の実際の効果（`packages/core/src/skills/types.ts` にフックの型だけ用意）
 - 三人打ち、赤ドラ、リプレイ機能

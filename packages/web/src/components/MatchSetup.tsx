@@ -34,7 +34,7 @@ const CPU_SEATS: { player: 1 | 2 | 3; label: string }[] = [
   { player: 3, label: "上家CPU" },
 ];
 
-export function MatchSetup({ onBack }: { onBack: () => void }) {
+export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline: () => void }) {
   const startMatch = useGameStore((s) => s.startMatch);
   const [debugMode, setDebugMode] = useState(false);
   // デフォルトは箱割れ（誰かが0点未満になった時点で）即終了。チェックを入れると
@@ -95,6 +95,9 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
         ← タイトルへ戻る
       </button>
       <p className="setup-lead">CPU3人と対局します。対局形式を選んでください。</p>
+      <button type="button" className="btn setup-online-btn" onClick={onOnline}>
+        ネット対戦（合言葉で友人と遊ぶ）
+      </button>
 
       <div className="setup-summary-row">
         <button type="button" className="setup-summary-card" onClick={() => setShowCharacterPicker(true)}>

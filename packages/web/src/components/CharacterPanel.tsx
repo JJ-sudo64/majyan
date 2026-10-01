@@ -1,6 +1,6 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { CHARACTERS, WIND_NAMES, seatWindOf, type PlayerIndex, type RoundState } from "@majyan/core";
-import { TIME_STOP_FAKE_TURN_STEP_MS } from "../store/gameStore.js";
+import { TIME_STOP_FAKE_TURN_STEP_MS, useGameStore } from "../store/gameStore.js";
 import { SkillGauge } from "./SkillGauge.js";
 
 const SEAT_LABELS: Record<number, string> = { 1: "下家CPU", 2: "対面CPU", 3: "上家CPU" };
@@ -69,6 +69,8 @@ export function CharacterPanel({
   onPointerCancel?: (e: ReactPointerEvent<HTMLDivElement>) => void;
 }) {
   const p = round.players[player];
+  // ネット対戦では各席のプレイヤー名も出す（ローカル対戦ではnull）。
+  const onlineSeat = useGameStore((s) => s.onlineSeats?.[player] ?? null);
   const character = CHARACTERS[round.characterIds[player]];
   const isCurrent = round.currentTurn === player;
   const wind = seatWindOf(round.dealerSeat, player);
@@ -130,6 +132,12 @@ export function CharacterPanel({
                 {line}
               </span>
             ))}
+          </div>
+        )}
+        {onlineSeat && (
+          <div className="character-panel__player-name">
+            {onlineSeat.name}
+            {onlineSeat.disconnected ? "（切断中）" : ""}
           </div>
         )}
         <div className="character-panel__meta">

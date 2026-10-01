@@ -17,3 +17,4 @@ export * from "./turnClock.js";
 export * from "./skills/types.js";
 export * from "./characters.js";
 export * from "./cards.js";
+export * from "./onlineProtocol.js";

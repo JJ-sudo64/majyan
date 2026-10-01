@@ -4633,3 +4633,114 @@ button {
 .quote-gallery__empty {
   color: #999;
 }
+
+/* ---------------------------------------------------------------------------
+   ネット対戦（OnlineLobby.tsx / OnlineTurnTimer.tsx / OnlineConnectionOverlay.tsx）
+   --------------------------------------------------------------------------- */
+.setup-online-btn {
+  font-size: 14px;
+}
+.online-lobby__form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+.online-lobby__field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 13px;
+}
+.online-lobby__field input,
+.online-lobby__field select {
+  min-width: 200px;
+  padding: 6px 8px;
+  font-size: 15px;
+  border-radius: 6px;
+  border: 1px solid #52b788;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+.online-lobby__error {
+  margin: 0;
+  color: #ff8a8a;
+  font-size: 14px;
+}
+.online-lobby__room {
+  font-size: 16px;
+  font-weight: bold;
+}
+.online-lobby__members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(420px, 100%);
+}
+.online-lobby__members li {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  text-align: left;
+}
+.online-lobby__member--you {
+  outline: 1px solid #52b788;
+}
+.online-lobby__member--cpu {
+  opacity: 0.6;
+  font-size: 13px;
+}
+.online-lobby__loadout {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.character-panel__player-name {
+  font-size: 11px;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.online-turn-timer {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  pointer-events: none;
+}
+.online-turn-timer__who {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.online-turn-timer__time {
+  font-size: 22px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+.online-turn-timer--mine .online-turn-timer__time {
+  font-size: 32px;
+  color: #ffe066;
+}
+.online-turn-timer--urgent .online-turn-timer__time {
+  color: #ff6b6b;
+}
+.online-turn-timer__bank {
+  font-size: 0.6em;
+  opacity: 0.8;
+}
+.online-connection-overlay {
+  z-index: 1000;
+}
