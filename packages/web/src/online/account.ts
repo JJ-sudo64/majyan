@@ -9,6 +9,7 @@ import { create } from "zustand";
 import {
   ONLINE_API_PREFIX,
   type AccountProfile,
+  type FirstGachaState,
   type ApiErrorResponse,
   type GuestAccountResponse,
   type MeResponse,
@@ -29,10 +30,32 @@ interface AccountState {
   status: AccountStatus;
   profile: AccountProfile | null;
   rank: RankView | null;
+  /** 持っているキャラのID。 */
+  characters: string[];
+  firstGacha: FirstGachaState | null;
   error: string | null;
 }
 
-export const useAccountStore = create<AccountState>(() => ({ status: "unknown", profile: null, rank: null, error: null }));
+export const useAccountStore = create<AccountState>(() => ({
+  status: "unknown",
+  profile: null,
+  rank: null,
+  characters: [],
+  firstGacha: null,
+  error: null,
+}));
+
+/** /api/me 等の返り値をストアに反映する。 */
+function applyMe(me: MeResponse) {
+  useAccountStore.setState({
+    status: "ready",
+    profile: me.profile,
+    rank: me.rank,
+    characters: me.characters,
+    firstGacha: me.firstGacha,
+    error: null,
+  });
+}
 
 function loadToken(): string | null {
   try {
@@ -86,8 +109,7 @@ export async function loadAccount(): Promise<void> {
   // 読み込み済みのアカウントを最新にするだけ（段位の更新等）なら、画面を「確認中」に戻さない。
   if (useAccountStore.getState().status !== "ready") useAccountStore.setState({ status: "loading", error: null });
   try {
-    const { profile, rank } = await api<MeResponse>("/me");
-    useAccountStore.setState({ status: "ready", profile, rank });
+    applyMe(await api<MeResponse>("/me"));
   } catch (err) {
     if ((err as { status?: number }).status === 401) {
       // サーバー側にアカウントが無い（鍵が古い等）。作り直してもらう。
@@ -119,8 +141,25 @@ export async function createGuestAccount(displayName: string): Promise<void> {
 
 export async function renameAccount(displayName: string): Promise<void> {
   try {
-    const { profile, rank } = await api<MeResponse>("/me/name", { method: "POST", body: JSON.stringify({ displayName }) });
-    useAccountStore.setState({ profile, rank, error: null });
+    applyMe(await api<MeResponse>("/me/name", { method: "POST", body: JSON.stringify({ displayName }) }));
+  } catch (err) {
+    useAccountStore.setState({ error: (err as Error).message });
+  }
+}
+
+/** 最初の10連を引く（確定するまで何度でも引き直せる）。抽選はサーバーで行う。 */
+export async function rollFirstGacha(): Promise<void> {
+  try {
+    applyMe(await api<MeResponse>("/first-gacha/roll", { method: "POST", body: "{}" }));
+  } catch (err) {
+    useAccountStore.setState({ error: (err as Error).message });
+  }
+}
+
+/** 今出ている10連の結果で確定して、キャラを受け取る。 */
+export async function confirmFirstGacha(): Promise<void> {
+  try {
+    applyMe(await api<MeResponse>("/first-gacha/confirm", { method: "POST", body: "{}" }));
   } catch (err) {
     useAccountStore.setState({ error: (err as Error).message });
   }

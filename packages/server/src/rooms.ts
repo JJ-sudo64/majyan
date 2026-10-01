@@ -27,6 +27,7 @@ import {
 import { randomBytes, randomUUID } from "node:crypto";
 import { MatchSession, type SessionSeat, type SessionTiming } from "./matchSession.js";
 import type { RankService } from "./ranks.js";
+import type { CollectionService } from "./collection.js";
 
 export interface Client {
   readonly id: string;
@@ -72,6 +73,8 @@ export interface RoomManagerOptions {
   maxRooms?: number;
   /** 段位（席の表示と、段位戦の結果の反映に使う）。無ければ段位を扱わない。 */
   ranks?: RankService;
+  /** 所持キャラ。あれば、持っていないキャラは使えない（おまかせは持っている中から選ぶ）。 */
+  collections?: CollectionService;
 }
 
 const MAX_MEMBERS = 4;
@@ -342,7 +345,9 @@ export class RoomManager {
     for (const seat of [0, 1, 2, 3] as PlayerIndex[]) {
       const m = room.members.find((x) => x.seat === seat);
       if (m) {
-        if (m.characterId) characterIds[seat] = m.characterId;
+        const collections = this.options.collections;
+        if (collections) characterIds[seat] = collections.resolveCharacter(m.userId, m.characterId);
+        else if (m.characterId) characterIds[seat] = m.characterId;
         cardIds[seat] = m.cardId;
         seats[seat] = { kind: "human", name: m.name, connected: !!m.client, rankLabel: this.rankLabelOf(m.userId) };
       } else {

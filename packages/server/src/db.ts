@@ -65,6 +65,32 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX ranked_results_user ON ranked_results(user_id);
   `,
+  // 3: 所持キャラと最初の10連、ガチャの記録
+  `
+  CREATE TABLE user_characters (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    character_id TEXT NOT NULL,
+    -- 同じキャラが重なった数（重なった分の使い道は今後決める）
+    copies INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    acquired_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, character_id)
+  );
+  CREATE TABLE first_gacha (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    pending_json TEXT,
+    rolls INTEGER NOT NULL,
+    confirmed_at INTEGER
+  );
+  CREATE TABLE gacha_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    results_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX gacha_log_user ON gacha_log(user_id);
+  `,
 ];
 
 export type Database = DatabaseSyncType;

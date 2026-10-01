@@ -24,6 +24,7 @@ import { AccountService } from "./accounts.js";
 import { openDatabase } from "./db.js";
 import { createApiHandler } from "./httpApi.js";
 import { RankService } from "./ranks.js";
+import { CollectionService } from "./collection.js";
 import { DEFAULT_CPU_FILL_MS, Matchmaker } from "./matchmaking.js";
 import type { IncomingMessage } from "node:http";
 import { createStaticHandler } from "./staticFiles.js";
@@ -50,15 +51,16 @@ const clientIp = (req: IncomingMessage) =>
 const db = openDatabase(databasePath);
 const accounts = new AccountService(db);
 const ranks = new RankService(db);
+const collections = new CollectionService(db);
 const authenticate = (token: string) => accounts.authenticate(token);
-const rooms = new RoomManager({ authenticate, ranks });
+const rooms = new RoomManager({ authenticate, ranks, collections });
 const matchmaker = new Matchmaker({
   rooms,
   ranks,
   authenticate,
   cpuFillMs: Number(process.env.RANKED_CPU_FILL_MS) || DEFAULT_CPU_FILL_MS,
 });
-const handleApi = createApiHandler({ accounts, ranks, clientIp });
+const handleApi = createApiHandler({ accounts, ranks, collections, clientIp });
 const serveStatic = createStaticHandler(staticDir);
 const httpServer = createServer(async (req, res) => {
   if (req.url === "/healthz") {

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, rarityOf, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
+import { FirstGacha } from "./FirstGacha.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
 const CARD_LIST = Object.values(CARDS);
@@ -37,6 +38,12 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const profile = useAccountStore((s) => s.profile);
   const accountError = useAccountStore((s) => s.error);
   const rank = useAccountStore((s) => s.rank);
+  const ownedIds = useAccountStore((s) => s.characters);
+  const firstGacha = useAccountStore((s) => s.firstGacha);
+  // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
+  const needsFirstGacha = accountStatus === "ready" && firstGacha !== null && !firstGacha.confirmed;
+  /** ネット対戦の操作（段位戦・友人戦）を出してよいか。 */
+  const ready = !!profile && !needsFirstGacha;
   const queue = useOnlineStore((s) => s.queue);
   const [now, setNow] = useState(() => performance.now());
   const [name, setName] = useState("");
@@ -158,7 +165,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
       )}
       {profile && renaming && accountError && <p className="online-lobby__error">{accountError}</p>}
-      {profile && rank && (
+      {needsFirstGacha && <FirstGacha />}
+      {!needsFirstGacha && profile && rank && (
         <div className="online-lobby__rank">
           <span className="online-lobby__rank-label">{rank.label}</span>
           <span className="online-lobby__rank-points">
@@ -168,7 +176,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      {profile && !busy && (
+      {ready && !busy && (
         <div className="online-lobby__section">
           <div className="online-lobby__section-title">段位戦</div>
           <div className="setup-buttons">
@@ -195,8 +203,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      {profile && !busy && <div className="online-lobby__section-title">友人戦</div>}
-      {profile && !busy && (
+      {ready && !busy && <div className="online-lobby__section-title">友人戦</div>}
+      {ready && !busy && (
         <div className="online-lobby__form">
           <label className="online-lobby__field">
             <span>合言葉</span>
@@ -212,14 +220,15 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
+      {ready && (
       <div className="online-lobby__form">
         <label className="online-lobby__field">
           <span>キャラクター</span>
           <select value={characterId ?? ""} onChange={(e) => changeLoadout(e.target.value || null, cardId)}>
             <option value="">おまかせ</option>
-            {CHARACTER_LIST.map((c) => (
+            {CHARACTER_LIST.filter((c) => ownedIds.includes(c.id)).map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {"★".repeat(rarityOf(c.id))} {c.name}
               </option>
             ))}
           </select>
@@ -236,8 +245,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           </select>
         </label>
       </div>
+      )}
 
-      {profile && !inRoom && !queued && (
+      {ready && !inRoom && !queued && (
         <button
           type="button"
           className="btn btn--primary btn--large"

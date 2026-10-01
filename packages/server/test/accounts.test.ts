@@ -9,6 +9,7 @@ import { AccountService, normalizeDisplayName } from "../src/accounts.js";
 import { openDatabase } from "../src/db.js";
 import { createApiHandler } from "../src/httpApi.js";
 import { RankService } from "../src/ranks.js";
+import { CollectionService } from "../src/collection.js";
 
 describe("AccountService", () => {
   it("creates a guest and finds it again by its token", () => {
@@ -65,7 +66,7 @@ describe("account HTTP API", () => {
   beforeAll(async () => {
     const db = openDatabase(":memory:");
     const accounts = new AccountService(db);
-    const handleApi = createApiHandler({ accounts, ranks: new RankService(db), guestsPerHourPerIp: 3 });
+    const handleApi = createApiHandler({ accounts, ranks: new RankService(db), collections: new CollectionService(db), guestsPerHourPerIp: 3 });
     server = createServer(async (req, res) => {
       if (!(await handleApi(req, res))) res.writeHead(418).end();
     });
@@ -93,6 +94,20 @@ describe("account HTTP API", () => {
 
     const renamed = await post("/api/me/name", { displayName: "新しい名前" }, token);
     expect(((await renamed.json()) as MeResponse).profile.displayName).toBe("新しい名前");
+
+    // 最初の10連: 引き直せて、確定するとキャラが増え、もう引けなくなる。
+    const fresh = (await (await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${token}` } })).json()) as MeResponse;
+    expect([...fresh.characters].sort()).toEqual(["hiiragi", "nagi", "sena"]);
+    expect(fresh.firstGacha).toEqual({ confirmed: false, pending: null, rolls: 0 });
+    const roll1 = (await (await post("/api/first-gacha/roll", {}, token)).json()) as MeResponse;
+    expect(roll1.firstGacha.pending).toHaveLength(10);
+    await new Promise((r) => setTimeout(r, 350));
+    const roll2 = (await (await post("/api/first-gacha/roll", {}, token)).json()) as MeResponse;
+    expect(roll2.firstGacha.rolls).toBe(2);
+    const confirmed = (await (await post("/api/first-gacha/confirm", {}, token)).json()) as MeResponse;
+    expect(confirmed.firstGacha.confirmed).toBe(true);
+    for (const id of roll2.firstGacha.pending!) expect(confirmed.characters).toContain(id);
+    expect((await post("/api/first-gacha/roll", {}, token)).status).toBe(409);
   });
 
   it("rejects missing/unknown tokens, bad input and unknown routes", async () => {

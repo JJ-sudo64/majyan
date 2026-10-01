@@ -27,6 +27,8 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/guest  {displayName}            → GuestAccountResponse  ゲストアカウントを作る
 //   GET  /api/me     (Authorization: Bearer)   → MeResponse
 //   POST /api/me/name {displayName} (Bearer)   → MeResponse            名前を変える
+//   POST /api/first-gacha/roll    (Bearer)     → MeResponse            最初の10連を引く（確定するまで何度でも引き直せる）
+//   POST /api/first-gacha/confirm (Bearer)     → MeResponse            今の結果で確定してキャラを受け取る
 //   失敗時は 4xx と ApiErrorResponse
 // ---------------------------------------------------------------------------
 
@@ -51,9 +53,22 @@ export interface RankView extends RankState {
   gamesPlayed: number;
 }
 
+/** 最初の10連の状態。 */
+export interface FirstGachaState {
+  /** 確定して受け取り済みか（受け取った後はもう引けない）。 */
+  confirmed: boolean;
+  /** 今出ている（まだ確定していない）結果。まだ1回も引いていなければnull。 */
+  pending: string[] | null;
+  /** 引き直した回数（表示用）。 */
+  rolls: number;
+}
+
 export interface MeResponse {
   profile: AccountProfile;
   rank: RankView;
+  /** 持っているキャラのID。 */
+  characters: string[];
+  firstGacha: FirstGachaState;
 }
 
 export interface ApiErrorResponse {

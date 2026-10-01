@@ -5,6 +5,7 @@ import { AccountService } from "../src/accounts.js";
 import { openDatabase, type Database } from "../src/db.js";
 import { RankService } from "../src/ranks.js";
 import { Matchmaker } from "../src/matchmaking.js";
+import { CollectionService } from "../src/collection.js";
 import type { SessionTiming } from "../src/matchSession.js";
 
 function makeRng(seed: number): () => number {
@@ -44,6 +45,7 @@ class TestClient implements Client {
 let db: Database;
 let accounts: AccountService;
 let ranks: RankService;
+let collections: CollectionService;
 let rooms: RoomManager;
 let matchmaker: Matchmaker | undefined;
 
@@ -52,7 +54,8 @@ function setup(cpuFillMs = 20_000) {
   accounts = new AccountService(db);
   ranks = new RankService(db);
   const authenticate = (token: string) => accounts.authenticate(token);
-  rooms = new RoomManager({ authenticate, ranks, rng: makeRng(5), timing: FAST });
+  collections = new CollectionService(db, makeRng(9), () => Date.now());
+  rooms = new RoomManager({ authenticate, ranks, collections, rng: makeRng(5), timing: FAST });
   matchmaker = new Matchmaker({ rooms, ranks, authenticate, cpuFillMs });
   return matchmaker;
 }
@@ -151,6 +154,29 @@ describe("Matchmaker", () => {
     matchmaker!.handleMessage(c, { t: "queueRanked", authToken: "y".repeat(43), format: "hanchan", characterId: null, cardId: null });
     expect(c.last("error")?.fatal).toBe(true);
     expect(matchmaker!.waitingCount).toBe(0);
+  });
+});
+
+describe("character ownership", () => {
+  it("replaces a character the player does not own with one they do", () => {
+    setup();
+    const ps = ["A", "B", "C", "D"].map(player);
+    collections.rollFirstGacha(ps[1]!.profile.id);
+    collections.confirmFirstGacha(ps[1]!.profile.id);
+    const bOwned = collections.owned(ps[1]!.profile.id);
+    const notOwnedByA = "zeno";
+    for (const [i, p] of ps.entries()) {
+      matchmaker!.handleMessage(p.client, {
+        t: "queueRanked",
+        authToken: p.token,
+        format: "tonpuusen",
+        characterId: i === 1 ? bOwned.at(-1)! : notOwnedByA,
+        cardId: null,
+      });
+    }
+    const aChar = ps[0]!.client.view.match.round.characterIds[0];
+    expect(collections.owned(ps[0]!.profile.id)).toContain(aChar);
+    expect(ps[1]!.client.view.match.round.characterIds[0]).toBe(bOwned.at(-1));
   });
 });
 

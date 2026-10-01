@@ -4805,3 +4805,88 @@ button {
 .score-rank-result__delta--down {
   color: #ff8a8a;
 }
+
+/* 最初の10連（FirstGacha.tsx） */
+.first-gacha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 900px;
+}
+.first-gacha__title {
+  margin: 0;
+  font-size: 24px;
+  color: #ffe08a;
+}
+.first-gacha__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .first-gacha__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.gacha-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid #8a8a8a;
+  animation: gacha-card-in 0.35s ease-out both;
+}
+.gacha-card--r2 {
+  border-color: #6fb7ff;
+  box-shadow: 0 0 10px rgba(111, 183, 255, 0.45);
+}
+.gacha-card--r3 {
+  border-color: #ffd34d;
+  box-shadow: 0 0 16px rgba(255, 211, 77, 0.8);
+  background: linear-gradient(180deg, rgba(90, 60, 0, 0.75), rgba(0, 0, 0, 0.6));
+}
+.gacha-card__stars {
+  font-size: 12px;
+  color: #ffd34d;
+  letter-spacing: 1px;
+}
+.gacha-card__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.gacha-card__name {
+  font-size: 14px;
+  font-weight: bold;
+}
+.gacha-card__skill {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.first-gacha__confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+@keyframes gacha-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gacha-card {
+    animation: none;
+  }
+}
