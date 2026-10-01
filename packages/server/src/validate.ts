@@ -64,8 +64,7 @@ export function parseClientMessage(raw: string): ClientMessage | null {
   if (!isObj(m) || !isStr(m.t, 20)) return null;
   switch (m.t) {
     case "join":
-      if (!isStr(m.room) || !isStr(m.name) || !isNullableStr(m.characterId) || !isNullableStr(m.cardId)) return null;
-      if (m.token !== undefined && !isStr(m.token)) return null;
+      if (!isStr(m.room) || !isStr(m.authToken) || !isNullableStr(m.characterId) || !isNullableStr(m.cardId)) return null;
       return m as ClientMessage;
     case "setLoadout":
       return isNullableStr(m.characterId) && isNullableStr(m.cardId) ? (m as ClientMessage) : null;

@@ -15,10 +15,11 @@ export default defineConfig({
     // 調整値ファイル(tuning/、tuningFilePlugin.ts参照)は調整のたびに書き
     // 換わるので、ファイル監視によるリロードの対象にしない。
     watch: { ignored: ["**/tuning/**"] },
-    // ネット対戦サーバー(packages/server、npm run dev:server)への中継。
+    // ネット対戦サーバー(packages/server、npm run dev:server)への中継（対局=/ws、アカウント=/api）。
     // 画面は同じオリジンの /ws につなぐだけでよく、本番でも同じ形にできる。
     proxy: {
       "/ws": { target: "ws://localhost:8787", ws: true },
+      "/api": { target: "http://localhost:8787" },
     },
   },
 });

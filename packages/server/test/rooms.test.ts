@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_TIME_LIMIT_RULES, type ServerMessage, type OnlineSeatView } from "@majyan/core";
-import { RoomManager, type Client } from "../src/rooms.js";
+import { RoomManager, type Client, type RoomManagerOptions } from "../src/rooms.js";
+import { AccountService } from "../src/accounts.js";
+import { openDatabase } from "../src/db.js";
 import type { SessionTiming } from "../src/matchSession.js";
 
 function makeRng(seed: number): () => number {
@@ -38,8 +40,27 @@ class TestClient implements Client {
   }
 }
 
-function join(rooms: RoomManager, client: TestClient, name: string, room = "abc", token?: string) {
-  rooms.handleMessage(client, { t: "join", room, name, characterId: null, cardId: null, ...(token ? { token } : {}) });
+let accounts: AccountService;
+/** 名前 → その名前で作ったテスト用アカウントのログイン用の鍵（テストごとに作り直す）。 */
+let tokens: Map<string, string>;
+
+function makeRooms(options: Omit<RoomManagerOptions, "authenticate">): RoomManager {
+  return new RoomManager({ ...options, authenticate: (token) => accounts.authenticate(token) });
+}
+
+/** その名前のアカウントの鍵（無ければ作る）。 */
+function tokenFor(name: string): string {
+  let token = tokens.get(name);
+  if (!token) {
+    token = accounts.createGuest(name).token;
+    tokens.set(name, token);
+  }
+  return token;
+}
+
+/** 名前のアカウントで部屋に入る。authTokenを渡すとそのアカウントで入る。 */
+function join(rooms: RoomManager, client: TestClient, name: string, room = "abc", authToken = tokenFor(name)) {
+  rooms.handleMessage(client, { t: "join", room, authToken, characterId: null, cardId: null });
 }
 
 /** 対局が終わるまで（または上限まで）時間を進める。 */
@@ -53,14 +74,35 @@ function runUntilFinished(client: TestClient, limitMs = 60 * 60_000) {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  accounts = new AccountService(openDatabase(":memory:"));
+  tokens = new Map();
 });
 afterEach(() => {
   vi.useRealTimers();
 });
 
 describe("lobby", () => {
+  it("refuses to join without a valid account", () => {
+    const rooms = makeRooms({ rng: makeRng(1), timing: FAST });
+    const c = new TestClient("c");
+    join(rooms, c, "誰か", "abc", "not-a-real-token-but-long-enough");
+    expect(c.last("error")?.fatal).toBe(true);
+    expect(c.last("lobby")).toBeUndefined();
+    expect(rooms.roomCount).toBe(0);
+  });
+
+  it("uses the account's display name and lets the same account rejoin the lobby from another tab", () => {
+    const rooms = makeRooms({ rng: makeRng(1), timing: FAST });
+    const a = new TestClient("a");
+    const a2 = new TestClient("a2");
+    join(rooms, a, "あゆむ");
+    join(rooms, a2, "あゆむ");
+    expect(a.last("error")?.fatal).toBe(true);
+    expect(a2.last("lobby")!.members).toEqual([expect.objectContaining({ name: "あゆむ", isYou: true, isHost: true })]);
+  });
+
   it("gathers players under the same passphrase and makes the first one host", () => {
-    const rooms = new RoomManager({ rng: makeRng(1), timing: FAST });
+    const rooms = makeRooms({ rng: makeRng(1), timing: FAST });
     const a = new TestClient("a");
     const b = new TestClient("b");
     const other = new TestClient("c");
@@ -73,18 +115,16 @@ describe("lobby", () => {
       ["ともだち", false, false],
     ]);
     expect(b.last("lobby")!.members[1]!.isYou).toBe(true);
-    // 再接続用のtokenは本人にだけ、1人ずつ別のものが届く。
-    expect(a.last("joined")!.token).toMatch(/^[\w-]{20,}$/);
-    expect(a.last("joined")!.token).not.toBe(b.last("joined")!.token);
     expect(other.last("lobby")!.members).toHaveLength(1);
   });
 
   it("rejects duplicate names and a fifth player", () => {
-    const rooms = new RoomManager({ rng: makeRng(1), timing: FAST });
+    const rooms = makeRooms({ rng: makeRng(1), timing: FAST });
     const clients = [0, 1, 2, 3].map((i) => new TestClient(`c${i}`));
     clients.forEach((c, i) => join(rooms, c, `p${i}`));
+    // 別のアカウントが同じ名前で入ろうとした。
     const dup = new TestClient("dup");
-    join(rooms, dup, "p0");
+    join(rooms, dup, "p0", "abc", accounts.createGuest("p0").token);
     expect(dup.last("error")?.fatal).toBe(true);
     const fifth = new TestClient("fifth");
     join(rooms, fifth, "p4");
@@ -92,7 +132,7 @@ describe("lobby", () => {
   });
 
   it("only lets the host start", () => {
-    const rooms = new RoomManager({ rng: makeRng(1), timing: FAST });
+    const rooms = makeRooms({ rng: makeRng(1), timing: FAST });
     const a = new TestClient("a");
     const b = new TestClient("b");
     join(rooms, a, "A");
@@ -106,7 +146,7 @@ describe("lobby", () => {
   });
 
   it("hands the host to the next member when the host leaves, and removes empty rooms", () => {
-    const rooms = new RoomManager({ rng: makeRng(1), timing: FAST });
+    const rooms = makeRooms({ rng: makeRng(1), timing: FAST });
     const a = new TestClient("a");
     const b = new TestClient("b");
     join(rooms, a, "A");
@@ -120,7 +160,7 @@ describe("lobby", () => {
 
 describe("match over the network", () => {
   function startTwoPlayers(seed: number) {
-    const rooms = new RoomManager({ rng: makeRng(seed), timing: FAST });
+    const rooms = makeRooms({ rng: makeRng(seed), timing: FAST });
     const a = new TestClient("a");
     const b = new TestClient("b");
     join(rooms, a, "A");
@@ -192,16 +232,16 @@ describe("match over the network", () => {
     join(rooms, intruder, "C");
     expect(intruder.last("error")?.fatal).toBe(true);
 
-    // 名前が同じでも、再接続用のtokenが無い・違う人は入れない（なりすまし防止）。
+    // 名前が同じでも別のアカウント・知らない鍵では入れない（なりすまし防止）。
     const fake = new TestClient("fake");
-    join(rooms, fake, "B");
+    join(rooms, fake, "B", "abc", accounts.createGuest("B").token);
     expect(fake.last("error")?.fatal).toBe(true);
-    join(rooms, fake, "B", "abc", "wrong-token");
+    join(rooms, fake, "B", "abc", "x".repeat(43));
+    expect(fake.last("error")?.message).toContain("ログイン");
     expect(fake.last("state")).toBeUndefined();
 
     const b2 = new TestClient("b2");
-    join(rooms, b2, "B", "abc", b.last("joined")!.token);
-    expect(b2.last("joined")?.token).toBe(b.last("joined")!.token);
+    join(rooms, b2, "B");
     expect(b2.view.seats[0]!.name).toBe("B");
     expect(a.view.seats.map((s) => s.name)).toEqual(seatsBefore);
     expect(a.view.seats.find((s) => s.name === "B")?.disconnected).toBe(false);
@@ -223,7 +263,7 @@ describe("match over the network", () => {
 
 describe("clock visibility", () => {
   it("never shows another player's call-decision clock", () => {
-    const rooms = new RoomManager({ rng: makeRng(8), timing: FAST });
+    const rooms = makeRooms({ rng: makeRng(8), timing: FAST });
     const a = new TestClient("a");
     const b = new TestClient("b");
     join(rooms, a, "A");
@@ -246,12 +286,12 @@ describe("clock visibility", () => {
 
 describe("taking over a seat", () => {
   it("moves the seat to a new connection with the same name and kicks the old one", () => {
-    const rooms = new RoomManager({ rng: makeRng(9), timing: FAST });
+    const rooms = makeRooms({ rng: makeRng(9), timing: FAST });
     const a = new TestClient("a");
     join(rooms, a, "A");
     rooms.handleMessage(a, { t: "start", format: "tonpuusen", continueBelowZero: false });
     const a2 = new TestClient("a2");
-    join(rooms, a2, "A", "abc", a.last("joined")!.token);
+    join(rooms, a2, "A");
     expect(a.last("error")?.fatal).toBe(true);
     expect(a2.view.seats[0]!.name).toBe("A");
     // 古い接続が後から切れても、新しい接続の席は切断扱いにならない。
@@ -265,7 +305,7 @@ describe("taking over a seat", () => {
 
 describe("call responses", () => {
   it("asks every seat at once, so CPUs answer a discard in parallel", () => {
-    const rooms = new RoomManager({ rng: makeRng(10), timing: FAST });
+    const rooms = makeRooms({ rng: makeRng(10), timing: FAST });
     const a = new TestClient("a");
     join(rooms, a, "A");
     rooms.handleMessage(a, { t: "start", format: "tonpuusen", continueBelowZero: false });
@@ -286,7 +326,7 @@ describe("call responses", () => {
   });
 
   it("lets a human answer while other seats are still thinking, with their own clock running", () => {
-    const rooms = new RoomManager({ rng: makeRng(11), timing: { ...FAST, cpuThinkMs: 5000 } });
+    const rooms = makeRooms({ rng: makeRng(11), timing: { ...FAST, cpuThinkMs: 5000 } });
     const a = new TestClient("a");
     const b = new TestClient("b");
     join(rooms, a, "A");

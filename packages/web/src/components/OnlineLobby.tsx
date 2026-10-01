@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
+import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
 const CARD_LIST = Object.values(CARDS);
-/** 次回の入力を省くため、名前と合言葉だけ覚えておく（ブラウザごと）。 */
-const NAME_KEY = "majyan.online.name";
+/** 次回の入力を省くため、合言葉を覚えておく（ブラウザごと）。 */
 const ROOM_KEY = "majyan.online.room";
 
 function loadSaved(key: string): string {
@@ -33,7 +33,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const room = useOnlineStore((s) => s.room);
   const members = useOnlineStore((s) => s.members);
   const error = useOnlineStore((s) => s.error);
-  const [name, setName] = useState(() => loadSaved(NAME_KEY));
+  const accountStatus = useAccountStore((s) => s.status);
+  const profile = useAccountStore((s) => s.profile);
+  const accountError = useAccountStore((s) => s.error);
+  const [name, setName] = useState("");
+  const [renaming, setRenaming] = useState(false);
   const [roomCode, setRoomCode] = useState(() => loadSaved(ROOM_KEY));
   const [characterId, setCharacterId] = useState<string | null>(null);
   const [cardId, setCardId] = useState<string | null>(null);
@@ -42,13 +46,26 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const inRoom = status === "lobby";
   const me = members.find((m) => m.isYou);
 
+  useEffect(() => {
+    if (accountStatus === "unknown") void loadAccount();
+  }, [accountStatus]);
+
   function join() {
-    const trimmedName = name.trim();
     const trimmedRoom = roomCode.trim();
-    if (!trimmedName || !trimmedRoom) return;
-    save(NAME_KEY, trimmedName);
+    if (!trimmedRoom || !profile) return;
     save(ROOM_KEY, trimmedRoom);
-    onlineLink.join({ room: trimmedRoom, name: trimmedName, characterId, cardId });
+    onlineLink.join({ room: trimmedRoom, characterId, cardId });
+  }
+
+  async function submitName() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (profile) {
+      await renameAccount(trimmed);
+      setRenaming(false);
+    } else {
+      await createGuestAccount(trimmed);
+    }
   }
 
   function changeLoadout(nextCharacterId: string | null, nextCardId: string | null) {
@@ -75,12 +92,65 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         ネット対戦（友人戦）: 同じ合言葉を入れた人どうしが同じ卓に座ります。空いた席にはCPUが入ります。
       </p>
 
-      {!inRoom && (
+      {(accountStatus === "unknown" || accountStatus === "loading") && !accountError && <p className="setup-lead">アカウントを確認しています…</p>}
+      {accountStatus === "unknown" && accountError && (
+        <>
+          <p className="online-lobby__error">{accountError}</p>
+          <button type="button" className="btn" onClick={() => void loadAccount()}>
+            もう一度試す
+          </button>
+        </>
+      )}
+
+      {(accountStatus === "none" || renaming) && (
         <div className="online-lobby__form">
           <label className="online-lobby__field">
-            <span>名前</span>
-            <input value={name} maxLength={PLAYER_NAME_MAX_LENGTH} onChange={(e) => setName(e.target.value)} />
+            <span>{profile ? "新しい名前" : "名前（あとで変えられます）"}</span>
+            <input
+              value={name}
+              maxLength={PLAYER_NAME_MAX_LENGTH}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void submitName();
+              }}
+            />
           </label>
+          <button type="button" className="btn btn--primary" disabled={!name.trim()} onClick={() => void submitName()}>
+            {profile ? "変更する" : "はじめる"}
+          </button>
+          {renaming && (
+            <button type="button" className="btn btn--secondary" onClick={() => setRenaming(false)}>
+              やめる
+            </button>
+          )}
+        </div>
+      )}
+      {accountStatus === "none" && (
+        <p className="setup-lead">アカウントはこのブラウザに保存されます（ブラウザのデータを消すと戻れなくなります）。</p>
+      )}
+      {accountStatus === "none" && accountError && <p className="online-lobby__error">{accountError}</p>}
+
+      {profile && !renaming && (
+        <div className="online-lobby__account">
+          {profile.displayName} さん
+          {!inRoom && (
+            <button
+              type="button"
+              className="btn online-lobby__rename"
+              onClick={() => {
+                setName(profile.displayName);
+                setRenaming(true);
+              }}
+            >
+              名前を変える
+            </button>
+          )}
+        </div>
+      )}
+      {profile && renaming && accountError && <p className="online-lobby__error">{accountError}</p>}
+
+      {profile && !inRoom && (
+        <div className="online-lobby__form">
           <label className="online-lobby__field">
             <span>合言葉</span>
             <input
@@ -120,11 +190,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </label>
       </div>
 
-      {!inRoom && (
+      {profile && !inRoom && (
         <button
           type="button"
           className="btn btn--primary btn--large"
-          disabled={status === "connecting" || !name.trim() || !roomCode.trim()}
+          disabled={status === "connecting" || !roomCode.trim()}
           onClick={join}
         >
           {status === "connecting" ? "接続中…" : "部屋に入る"}

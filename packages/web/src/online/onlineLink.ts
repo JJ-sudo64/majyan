@@ -9,6 +9,7 @@
 import { create } from "zustand";
 import { ONLINE_WS_PATH, type ClientMessage, type LobbyMember, type ServerMessage } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
+import { accountToken } from "./account.js";
 
 export type OnlineStatus =
   /** 接続していない（タイトル・入室前） */
@@ -17,12 +18,11 @@ export type OnlineStatus =
   /** 待合室（対局開始待ち） */
   | "lobby"
   | "playing"
-  /** 対局中に接続が切れた（同じ名前で入り直せば席に戻れる） */
+  /** 対局中に接続が切れた（同じアカウントで入り直せば席に戻れる） */
   | "disconnected";
 
 export interface JoinRequest {
   room: string;
-  name: string;
   characterId: string | null;
   cardId: string | null;
 }
@@ -45,32 +45,6 @@ export const useOnlineStore = create<OnlineStoreState>(() => ({
 let socket: WebSocket | null = null;
 let lastJoin: JoinRequest | null = null;
 
-/** 再接続用のtoken（サーバーのjoined参照）。ページを読み込み直しても同じ席へ
-    戻れるよう、部屋・名前と組でブラウザに覚えておく。 */
-const SESSION_KEY = "majyan.online.session";
-interface SavedSession {
-  room: string;
-  name: string;
-  token: string;
-}
-
-function loadSession(): SavedSession | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as SavedSession) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveSession(session: SavedSession) {
-  try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch {
-    // 保存できなくても対局はできる（ページを読み込み直すと席に戻れなくなるだけ）。
-  }
-}
-
 function wsUrl(): string {
   const scheme = location.protocol === "https:" ? "wss" : "ws";
   return `${scheme}://${location.host}${ONLINE_WS_PATH}`;
@@ -78,9 +52,6 @@ function wsUrl(): string {
 
 function handleMessage(message: ServerMessage) {
   switch (message.t) {
-    case "joined":
-      saveSession({ room: message.room, name: message.name, token: message.token });
-      return;
     case "lobby":
       // 対局中に入り直したのに待合室が返ってきた＝サーバーの再起動等で対局が
       // 消えている。新しい待合室に入ったままにせず、抜けて知らせる。
@@ -117,9 +88,8 @@ export const onlineLink = {
     const ws = new WebSocket(wsUrl());
     socket = ws;
     ws.onopen = () => {
-      const saved = loadSession();
-      const token = saved && saved.room === request.room.trim() && saved.name === request.name.trim() ? saved.token : undefined;
-      const message: ClientMessage = { t: "join", ...request, ...(token ? { token } : {}) };
+      // 名前はアカウントの表示名が使われ、対局中に入り直すと同じアカウントの席に戻れる。
+      const message: ClientMessage = { t: "join", ...request, authToken: accountToken() ?? "" };
       ws.send(JSON.stringify(message));
     };
     ws.onmessage = (event) => {
@@ -144,7 +114,7 @@ export const onlineLink = {
     };
   },
 
-  /** 対局中に切れた接続を、同じ合言葉・同じ名前で入り直して席に戻す。 */
+  /** 対局中に切れた接続を、同じ合言葉・同じアカウントで入り直して席に戻す。 */
   rejoin() {
     if (lastJoin) onlineLink.join(lastJoin);
   },

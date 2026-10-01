@@ -10,6 +10,8 @@
  *   STATIC_DIR        配る画面のビルド結果（既定 packages/web/dist。無ければ/wsだけ）
  *   ALLOWED_ORIGINS   WebSocketの接続を許すページのオリジン（カンマ区切り）。
  *                     未指定ならチェックしない。公開する時は自分のURLを入れる。
+ *   DATABASE_PATH     アカウント等を保存するSQLiteファイル（既定 packages/server/data/majyan.db）
+ *   TRUST_PROXY       "1"ならX-Forwarded-Forを接続元として信用する（リバースプロキシの後ろに置く時）
  */
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
@@ -17,6 +19,10 @@ import { resolve } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import { ONLINE_DEFAULT_PORT, ONLINE_WS_PATH, type ServerMessage } from "@majyan/core";
 import { RoomManager, type Client } from "./rooms.js";
+import { AccountService } from "./accounts.js";
+import { openDatabase } from "./db.js";
+import { createApiHandler } from "./httpApi.js";
+import type { IncomingMessage } from "node:http";
 import { createStaticHandler } from "./staticFiles.js";
 import { parseClientMessage } from "./validate.js";
 
@@ -33,13 +39,22 @@ const port = Number(process.env.PORT) || ONLINE_DEFAULT_PORT;
 const staticDir = process.env.STATIC_DIR ?? resolve(import.meta.dirname, "../../web/dist");
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",").map((s) => s.trim()).filter(Boolean) ?? null;
 
-const rooms = new RoomManager();
+const databasePath = process.env.DATABASE_PATH ?? resolve(import.meta.dirname, "../data/majyan.db");
+const trustProxy = process.env.TRUST_PROXY === "1";
+const clientIp = (req: IncomingMessage) =>
+  (trustProxy ? String(req.headers["x-forwarded-for"] ?? "").split(",")[0]?.trim() : "") || req.socket.remoteAddress || "unknown";
+
+const db = openDatabase(databasePath);
+const accounts = new AccountService(db);
+const rooms = new RoomManager({ authenticate: (token) => accounts.authenticate(token) });
+const handleApi = createApiHandler({ accounts, clientIp });
 const serveStatic = createStaticHandler(staticDir);
-const httpServer = createServer((req, res) => {
+const httpServer = createServer(async (req, res) => {
   if (req.url === "/healthz") {
     res.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
     return;
   }
+  if (await handleApi(req, res)) return;
   if (serveStatic) serveStatic(req, res);
   else res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("画面は開発サーバー(Vite)から開いてください");
 });
@@ -108,5 +123,6 @@ wss.on("close", () => clearInterval(heartbeat));
 
 httpServer.listen(port, () => {
   console.log(`[majyan-server] http://localhost:${port} で待ち受け中（WebSocket: ${ONLINE_WS_PATH}）`);
-  console.log(serveStatic ? `[majyan-server] 画面を配信: ${staticDir}` : "[majyan-server] 画面のビルドが無いため /ws だけ提供します");
+  console.log(serveStatic ? `[majyan-server] 画面を配信: ${staticDir}` : "[majyan-server] 画面のビルドが無いため /api と /ws だけ提供します");
+  console.log(`[majyan-server] データベース: ${databasePath}`);
 });

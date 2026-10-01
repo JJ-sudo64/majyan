@@ -15,18 +15,48 @@ import type { ClockDisplay } from "./turnClock.js";
 
 /** WebSocketの接続先パス（開発時はViteがこのパスをサーバーへ中継する）。 */
 export const ONLINE_WS_PATH = "/ws";
+/** アカウント等のHTTP APIのパス（開発時はViteがサーバーへ中継する）。 */
+export const ONLINE_API_PREFIX = "/api";
 export const ONLINE_DEFAULT_PORT = 8787;
 export const ROOM_CODE_MAX_LENGTH = 20;
 export const PLAYER_NAME_MAX_LENGTH = 12;
+
+// ---------------------------------------------------------------------------
+// アカウント（HTTP API）
+//   POST /api/guest  {displayName}            → GuestAccountResponse  ゲストアカウントを作る
+//   GET  /api/me     (Authorization: Bearer)   → MeResponse
+//   POST /api/me/name {displayName} (Bearer)   → MeResponse            名前を変える
+//   失敗時は 4xx と ApiErrorResponse
+// ---------------------------------------------------------------------------
+
+export interface AccountProfile {
+  id: string;
+  displayName: string;
+  createdAt: number;
+}
+
+export interface GuestAccountResponse {
+  /** ログイン用の鍵。この時しか受け取れないので、画面側はブラウザに保存しておく。 */
+  token: string;
+  profile: AccountProfile;
+}
+
+export interface MeResponse {
+  profile: AccountProfile;
+}
+
+export interface ApiErrorResponse {
+  error: string;
+}
 
 // ---------------------------------------------------------------------------
 // 画面 → サーバー
 // ---------------------------------------------------------------------------
 
 export type ClientMessage =
-  /** 合言葉の部屋に入る。対局中の部屋には、前回入った時にもらった再接続用の
-      token を付けて同じ名前で入り直すと、その席に復帰できる。 */
-  | { t: "join"; room: string; name: string; characterId: string | null; cardId: string | null; token?: string }
+  /** 合言葉の部屋に入る。authTokenはアカウントのログイン用の鍵で、名前はアカウントの
+      表示名が使われる。対局中の部屋に同じアカウントで入り直すと、その席に戻れる。 */
+  | { t: "join"; room: string; authToken: string; characterId: string | null; cardId: string | null }
   /** 部屋のキャラクター・カードを選び直す（対局開始前のみ）。 */
   | { t: "setLoadout"; characterId: string | null; cardId: string | null }
   /** 対局開始（部屋主のみ）。空いている席はCPUが入る。 */
@@ -75,10 +105,6 @@ export interface OnlineSeatView {
 }
 
 export type ServerMessage =
-  /** 入室できた。tokenは対局中に接続が切れた時、同じ席へ戻るための再接続用の
-      合言葉（本人にだけ送る）。名前だけでは戻れないようにして、合言葉を知って
-      いる他人が席を乗っ取れないようにしている。 */
-  | { t: "joined"; room: string; name: string; token: string }
   | { t: "lobby"; room: string; members: LobbyMember[] }
   | { t: "state"; view: OnlineSeatView }
   /** 操作が受け付けられなかった等。fatal なら接続を閉じてタイトルへ戻す。 */

@@ -6,3 +6,4 @@ node_modules
 packages/web/asset-backups
 packages/web/tuning
 *.log
+packages/server/data

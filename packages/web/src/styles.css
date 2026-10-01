@@ -4744,3 +4744,15 @@ button {
 .online-connection-overlay {
   z-index: 1000;
 }
+.online-lobby__account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: bold;
+}
+.online-lobby__rename {
+  font-size: 12px;
+  font-weight: normal;
+  padding: 4px 10px;
+}
