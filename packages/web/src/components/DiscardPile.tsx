@@ -206,22 +206,29 @@ export function DiscardPile({
   // ここで--enter-x/yを書き換えても入場アニメーションが古い値のまま
   // 一瞬再生されてしまうことはない。
   const isSideSeat = direction === "left" || direction === "right";
+  // 依存は「最新の牌のid・ツモ切りか」という値で持つ（latestオブジェクトそのもの
+  // ではなく）。solveLocalOffsetは計測中にanimationを一度外して戻すため、走るたびに
+  // 入場アニメーションが最初から再生される。ネット対戦ではサーバーから状態が届く
+  // たびに牌のオブジェクトが作り直されるため、オブジェクトで依存すると他家の
+  // 打牌・ツモのたびにこの計測が走り直し、同じ牌が何度も河へ飛び直していた。
+  const latestId = latest?.tile.id;
+  const latestTsumogiri = latest?.isTsumogiri ?? false;
   useLayoutEffect(() => {
-    if (!latest || !isSideSeat) return;
+    if (!latestId || !isSideSeat) return;
     const tileEl = latestTileRef.current;
     if (!tileEl) return;
-    const origin = sideHandOrigin(DIRECTION_TO_PLAYER[direction], latest.isTsumogiri);
+    const origin = sideHandOrigin(DIRECTION_TO_PLAYER[direction], latestTsumogiri);
     const solved = origin ? solveLocalOffset(tileEl, origin) : null;
     // 実測できなかった時（手牌が0枚等）は、起点をずらさず河の定位置で
     // そのまま演出する（見当違いの場所から飛んでくるよりは安全）。
     const [dx, dy] = solved ?? [0, 0];
     tileEl.style.setProperty("--enter-x", `${dx}px`);
     tileEl.style.setProperty("--enter-y", `${dy}px`);
-  }, [latest, direction, isSideSeat]);
+  }, [latestId, latestTsumogiri, direction, isSideSeat]);
 
   // 対面・自分の河（上家・下家は上のuseLayoutEffectで扱う）。
   useLayoutEffect(() => {
-    if (!latest?.isTsumogiri || isSideSeat) return;
+    if (!latestId || !latestTsumogiri || isSideSeat) return;
     const tileEl = latestTileRef.current;
     if (!tileEl) return;
     const handEl = document.querySelector<HTMLElement>(`[data-hand-anchor="${DIRECTION_TO_PLAYER[direction]}"]`);
@@ -279,7 +286,7 @@ export function DiscardPile({
     const [dx, dy] = toLocalDelta(direction, screenDx, screenDy);
     tileEl.style.setProperty("--enter-x", `${dx}px`);
     tileEl.style.setProperty("--enter-y", `${dy}px`);
-  }, [latest, direction, isSideSeat]);
+  }, [latestId, latestTsumogiri, direction, isSideSeat]);
 
   return (
     <div className={`discard-pile${frozen ? " table__frozen" : ""}`}>

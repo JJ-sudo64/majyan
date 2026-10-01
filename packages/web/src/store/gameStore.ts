@@ -13,6 +13,7 @@ import {
   randomCharacterIds,
   redactMatchForSeat,
   settleRound,
+  shareUnchanged,
   DEFAULT_AI_DIFFICULTY,
   type AiDifficulty,
   type ClockDisplay,
@@ -313,14 +314,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   roundEndDeadline: null,
 
   applyOnlineView: (view) => {
-    const prev = get().lastScoreAdjustment;
+    const state = get();
+    const prev = state.lastScoreAdjustment;
     const now = performance.now();
+    // 届いた状態はJSONから作られた新しいオブジェクトなので、前回から変わっていない
+    // 部分は前回のオブジェクトを使い回す（core の shareUnchanged 参照）。そうしないと
+    // 「オブジェクトが変わった＝変化があった」とみなす演出が、他家の打牌のたびに
+    // 無関係な牌まで再生し直してしまう（上家・下家の河の牌が何度も飛び直す不具合）。
+    const match = shareUnchanged(state.online ? state.match : null, view.match);
+    const humanOptions = shareUnchanged(state.online ? state.humanOptions : null, view.options);
     set({
       online: true,
       fullMatch: null,
-      match: view.match,
-      humanOptions: view.options,
-      humanCallOptions: view.options.call,
+      match,
+      humanOptions,
+      humanCallOptions: humanOptions.call,
       pendingRoundEnd: view.pendingRoundEnd,
       lastRoundOutcome: view.lastRoundOutcome,
       // keyが変わった時だけ差し替える（同じ増減の演出を状態が届くたびに出さないため）。

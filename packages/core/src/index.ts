@@ -20,3 +20,4 @@ export * from "./cards.js";
 export * from "./onlineProtocol.js";
 export * from "./ranked.js";
 export * from "./gacha.js";
+export * from "./shareUnchanged.js";
