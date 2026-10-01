@@ -118,6 +118,13 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (user_id, kind, date)
   );
   `,
+  // 5: 天井の交換ポイント
+  `
+  CREATE TABLE gacha_points (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    points INTEGER NOT NULL CHECK (points >= 0)
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

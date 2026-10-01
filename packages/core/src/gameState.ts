@@ -220,6 +220,10 @@ export interface RoundState {
       ことで「コピーのコピー」でも本来の効果が正しく連鎖する）。局をまたいでは
       持ち越さない（次局の配牌でnullにリセット）。 */
   lastActivatedSkill: { owner: PlayerIndex; characterId: string } | null;
+  /** 座席ごとの必殺技ゲージの溜まりやすさの上乗せ（0.1なら+10%）。ネット対戦で
+      同じキャラを重ねて持っている（凸）ほど大きい（gacha.tsのgaugeBonusForCopies）。
+      対局を通して固定。省略時は全員0。 */
+  gaugeRateBonus?: [number, number, number, number];
 }
 
 export interface MatchState {

@@ -52,8 +52,8 @@ const clientIp = (req: IncomingMessage) =>
 const db = openDatabase(databasePath);
 const accounts = new AccountService(db);
 const ranks = new RankService(db);
-const collections = new CollectionService(db);
 const wallet = new WalletService(db);
+const collections = new CollectionService(db, Math.random, Date.now, wallet);
 const authenticate = (token: string) => accounts.authenticate(token);
 const rooms = new RoomManager({ authenticate, ranks, collections, wallet });
 const matchmaker = new Matchmaker({

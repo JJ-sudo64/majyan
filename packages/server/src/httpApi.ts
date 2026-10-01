@@ -82,6 +82,8 @@ export function createApiHandler(options: HttpApiOptions) {
     jade: wallet.balance(profile.id),
     dailyBonus,
     characters: collections.owned(profile.id),
+    characterCopies: collections.copies(profile.id),
+    exchangePoints: collections.exchangePoints(profile.id),
     firstGacha: collections.firstGachaState(profile.id),
   });
   const now = options.now ?? Date.now;
@@ -153,6 +155,21 @@ export function createApiHandler(options: HttpApiOptions) {
             throw err;
           }
           sendJson(res, 200, { ...rolled, me: me(profile) } satisfies GachaRollResponse);
+          return true;
+        }
+        case "POST /gacha/exchange": {
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { characterId?: unknown };
+          if (typeof body.characterId !== "string") return fail(res, 400, "キャラを選んでください"), true;
+          let exchanged;
+          try {
+            exchanged = collections.exchange(profile.id, body.characterId, wallet);
+          } catch (err) {
+            if (err instanceof GachaError) return fail(res, 409, err.message), true;
+            throw err;
+          }
+          sendJson(res, 200, { ...exchanged, me: me(profile) } satisfies GachaRollResponse);
           return true;
         }
         case "POST /first-gacha/roll":

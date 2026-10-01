@@ -34,6 +34,9 @@ interface AccountState {
   rank: RankView | null;
   /** 持っているキャラのID。 */
   characters: string[];
+  /** 持っているキャラごとの数（1なら0凸）。 */
+  characterCopies: Record<string, number>;
+  exchangePoints: number;
   firstGacha: FirstGachaState | null;
   jade: JadeBalance | null;
   /** 直前に受け取ったログインボーナス（お知らせを出したら画面側でnullに戻す）。 */
@@ -46,6 +49,8 @@ export const useAccountStore = create<AccountState>(() => ({
   profile: null,
   rank: null,
   characters: [],
+  characterCopies: {},
+  exchangePoints: 0,
   firstGacha: null,
   jade: null,
   dailyBonusNotice: null,
@@ -59,6 +64,8 @@ function applyMe(me: MeResponse) {
     profile: me.profile,
     rank: me.rank,
     characters: me.characters,
+    characterCopies: me.characterCopies,
+    exchangePoints: me.exchangePoints,
     firstGacha: me.firstGacha,
     jade: me.jade,
     ...(me.dailyBonus ? { dailyBonusNotice: me.dailyBonus } : {}),
@@ -178,6 +185,18 @@ export async function confirmFirstGacha(): Promise<void> {
 export async function rollGacha(count: 1 | 10): Promise<GachaRollResponse | null> {
   try {
     const res = await api<GachaRollResponse>("/gacha/roll", { method: "POST", body: JSON.stringify({ count }) });
+    applyMe(res.me);
+    return res;
+  } catch (err) {
+    useAccountStore.setState({ error: (err as Error).message });
+    return null;
+  }
+}
+
+/** 交換ポイントで★3のキャラを1人もらう（天井）。 */
+export async function exchangeCharacter(characterId: string): Promise<GachaRollResponse | null> {
+  try {
+    const res = await api<GachaRollResponse>("/gacha/exchange", { method: "POST", body: JSON.stringify({ characterId }) });
     applyMe(res.me);
     return res;
   } catch (err) {

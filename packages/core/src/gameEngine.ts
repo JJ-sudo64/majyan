@@ -138,7 +138,9 @@ function gainGauge(round: RoundState, player: PlayerIndex, players: RoundState["
   if (players[player].pendingTileSwapNextRound) return players;
   // カード「最後の粘り」: 持っているだけの常時効果。オーラスの間だけゲージ
   // 増加量が2倍になる（消費はされない）。
-  const boosted = round.cardIds[player] === "last-stand" && isFinalHand(round) ? amount * 2 : amount;
+  const carded = round.cardIds[player] === "last-stand" && isFinalHand(round) ? amount * 2 : amount;
+  // 同じキャラを重ねて持っている（凸）ぶんの上乗せ（RoundState.gaugeRateBonus）。
+  const boosted = carded * (1 + (round.gaugeRateBonus?.[player] ?? 0));
   return updatePlayer(players, player, (pl) => ({ ...pl, skillGauge: Math.min(character.gaugeMax, pl.skillGauge + boosted) }));
 }
 

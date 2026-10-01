@@ -235,6 +235,22 @@ describe("gameEngine win detection", () => {
     expect(total).toBe(0);
   });
 
+  it("fills the skill gauge faster by the seat's gaugeRateBonus (limit break)", () => {
+    const hand = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"] as TileCode[];
+    const gaugeAfterDiscard = (bonus: number) => {
+      let round = makeRound({
+        players: [emptyPlayer(hand), emptyPlayer(hand), emptyPlayer(hand), emptyPlayer(hand)],
+        characterIds: ["hiiragi", "", "", ""], // ヒイラギ: 1打牌ごとにゲージ+10
+        gaugeRateBonus: [bonus, 0, 0, 0],
+      });
+      round = applyAction(round, { type: "draw", player: 0 });
+      round = applyAction(round, { type: "discard", player: 0, tileId: round.lastDrawnTile!.id, tsumogiri: true });
+      return round.players[0].skillGauge;
+    };
+    expect(gaugeAfterDiscard(0)).toBe(10);
+    expect(gaugeAfterDiscard(0.2)).toBeCloseTo(12, 10);
+  });
+
   it("double ron gives the riichi sticks to the winner nearest the discarder, whatever the response order", () => {
     // 座席2が4mを放銃し、座席0(放銃者の対面)と座席3(下家)が同じ形でダブロン。
     // 下家の座席3が「1人目」で供託を受け取る。座席0が先に宣言しても変わらない。

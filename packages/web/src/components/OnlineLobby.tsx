@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, rarityOf, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, limitBreakOf, rarityOf, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
@@ -40,6 +40,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const accountError = useAccountStore((s) => s.error);
   const rank = useAccountStore((s) => s.rank);
   const ownedIds = useAccountStore((s) => s.characters);
+  const copies = useAccountStore((s) => s.characterCopies);
   const firstGacha = useAccountStore((s) => s.firstGacha);
   const jade = useAccountStore((s) => s.jade);
   const dailyBonusNotice = useAccountStore((s) => s.dailyBonusNotice);
@@ -245,6 +246,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             {CHARACTER_LIST.filter((c) => ownedIds.includes(c.id)).map((c) => (
               <option key={c.id} value={c.id}>
                 {"★".repeat(rarityOf(c.id))} {c.name}
+                {limitBreakOf(copies[c.id] ?? 1) > 0 ? `（${limitBreakOf(copies[c.id] ?? 1)}凸）` : ""}
               </option>
             ))}
           </select>

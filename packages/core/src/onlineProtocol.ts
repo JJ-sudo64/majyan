@@ -30,6 +30,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/first-gacha/roll    (Bearer)     → MeResponse            最初の10連を引く（確定するまで何度でも引き直せる）
 //   POST /api/first-gacha/confirm (Bearer)     → MeResponse            今の結果で確定してキャラを受け取る
 //   POST /api/gacha/roll {count: 1|10} (Bearer) → GachaRollResponse    雀玉でガチャを引く
+//   POST /api/gacha/exchange {characterId} (Bearer) → GachaRollResponse 交換ポイントで★3を1人もらう（天井）
 //   失敗時は 4xx と ApiErrorResponse
 // ---------------------------------------------------------------------------
 
@@ -78,6 +79,10 @@ export interface MeResponse {
   dailyBonus: number | null;
   /** 持っているキャラのID。 */
   characters: string[];
+  /** 持っているキャラごとの数（1なら0凸、gacha.tsのlimitBreakOf）。 */
+  characterCopies: Record<string, number>;
+  /** 天井の交換ポイント（gacha.tsのEXCHANGE_COST）。 */
+  exchangePoints: number;
   firstGacha: FirstGachaState;
 }
 
@@ -85,6 +90,8 @@ export interface GachaRollResponse {
   results: string[];
   /** resultsのうち、今回初めて手に入れたキャラ。 */
   newCharacterIds: string[];
+  /** 凸の上限を超えて重なり、代わりにもらえた雀玉。 */
+  overflowJade: number;
   me: MeResponse;
 }
 

@@ -179,6 +179,24 @@ describe("character ownership", () => {
     expect(collections.owned(ps[0]!.profile.id)).toContain(aChar);
     expect(ps[1]!.client.view.match.round.characterIds[0]).toBe(bOwned.at(-1));
   });
+
+  it("applies the player's limit break to the match as a gauge bonus", () => {
+    setup();
+    const ps = ["A", "B", "C", "D"].map(player);
+    // Aにナギを3枚重ねる（2凸 = +10%）。
+    collections.owned(ps[0]!.profile.id); // 初期キャラの行を作っておく
+    db.prepare("UPDATE user_characters SET copies = 3 WHERE user_id = ? AND character_id = 'nagi'").run(ps[0]!.profile.id);
+    for (const [i, p] of ps.entries()) {
+      matchmaker!.handleMessage(p.client, { t: "queueRanked", authToken: p.token, format: "tonpuusen", characterId: i === 0 ? "nagi" : null, cardId: null });
+    }
+    const round = ps[0]!.client.view.match.round;
+    expect(round.characterIds[0]).toBe("nagi");
+    expect(round.gaugeRateBonus?.[0]).toBe(0.1);
+    // 他の人の画面でも、Aの席にAの上乗せが見える（座席は回して届く）。
+    const fromB = ps[1]!.client.view.match.round;
+    const aSeatFromB = ps[1]!.client.view.seats.findIndex((s) => s.name === "A");
+    expect(fromB.gaugeRateBonus?.[aSeatFromB]).toBe(0.1);
+  });
 });
 
 describe("ranked match", () => {

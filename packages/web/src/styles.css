@@ -4971,3 +4971,52 @@ button {
   font-size: 10px;
   font-weight: bold;
 }
+.gacha-screen__exchange {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.gacha-screen__exchange strong {
+  font-size: 16px;
+  color: #ffd34d;
+  font-variant-numeric: tabular-nums;
+}
+.gacha-screen__exchange-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+.gacha-screen__exchange-list .first-gacha__confirm {
+  grid-column: 1 / -1;
+}
+.gacha-screen__exchange-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid #8a6d1f;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.gacha-screen__exchange-item img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.gacha-screen__exchange-item--selected {
+  border-color: #ffd34d;
+  box-shadow: 0 0 10px rgba(255, 211, 77, 0.7);
+}
+.gacha-screen__exchange-owned {
+  font-size: 11px;
+  opacity: 0.75;
+}

@@ -339,6 +339,8 @@ export class RoomManager {
       [seatOrder[i], seatOrder[j]] = [seatOrder[j]!, seatOrder[i]!];
     }
     const characterIds = randomCharacterIds(this.rng);
+    // 同じキャラを重ねて持っている（凸）ぶんの必殺技ゲージの上乗せ。CPUは0。
+    const gaugeRateBonus: [number, number, number, number] = [0, 0, 0, 0];
     const cardIds: [string | null, string | null, string | null, string | null] = [null, null, null, null];
     const seats: SessionSeat[] = [];
     room.members.forEach((m, i) => {
@@ -349,8 +351,12 @@ export class RoomManager {
       const m = room.members.find((x) => x.seat === seat);
       if (m) {
         const collections = this.options.collections;
-        if (collections) characterIds[seat] = collections.resolveCharacter(m.userId, m.characterId);
-        else if (m.characterId) characterIds[seat] = m.characterId;
+        if (collections) {
+          characterIds[seat] = collections.resolveCharacter(m.userId, m.characterId);
+          gaugeRateBonus[seat] = collections.gaugeBonus(m.userId, characterIds[seat]);
+        } else if (m.characterId) {
+          characterIds[seat] = m.characterId;
+        }
         cardIds[seat] = m.cardId;
         seats[seat] = { kind: "human", name: m.name, connected: !!m.client, rankLabel: this.rankLabelOf(m.userId) };
       } else {
@@ -359,7 +365,7 @@ export class RoomManager {
       }
     }
 
-    const match = createMatch(format, this.rng, characterIds, continueBelowZero, cardIds);
+    const match = createMatch(format, this.rng, characterIds, continueBelowZero, cardIds, gaugeRateBonus);
     room.session = new MatchSession({
       match,
       seats: seats as [SessionSeat, SessionSeat, SessionSeat, SessionSeat],

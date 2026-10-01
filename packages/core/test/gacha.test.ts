@@ -11,6 +11,8 @@ import {
   TEN_PULL_GUARANTEED_RARITY,
   jstDate,
   rankedJadeReward,
+  gaugeBonusForCopies,
+  limitBreakOf,
 } from "../src/gacha.js";
 
 function makeRng(seed: number): () => number {
@@ -79,5 +81,14 @@ describe("jade helpers", () => {
       const results = rollGacha(makeRng(seed), 10, TEN_PULL_GUARANTEED_RARITY);
       expect(results.some((id) => rarityOf(id) >= 2)).toBe(true);
     }
+  });
+});
+
+describe("limit break", () => {
+  it("adds 5% gauge speed per duplicate up to 4", () => {
+    expect([1, 2, 3, 5, 6, 30].map(limitBreakOf)).toEqual([0, 1, 2, 4, 4, 4]);
+    expect(gaugeBonusForCopies(1)).toBe(0);
+    expect(gaugeBonusForCopies(3)).toBe(0.1);
+    expect(gaugeBonusForCopies(99)).toBe(0.2);
   });
 });

@@ -120,3 +120,35 @@ export function rankedJadeReward(format: "hanchan" | "tonpuusen", place: 1 | 2 |
 export function jstDate(epochMs: number): string {
   return new Date(epochMs + 9 * 60 * 60_000).toISOString().slice(0, 10);
 }
+
+// ---------------------------------------------------------------------------
+// 天井（交換ポイント）と重複（凸）
+// ---------------------------------------------------------------------------
+
+/** 通常のガチャ1回でたまる交換ポイント（最初の10連は対象外）。 */
+export const EXCHANGE_POINTS_PER_PULL = 1;
+
+/** この交換ポイントで★3の中から好きなキャラを1人もらえる（天井）。 */
+export const EXCHANGE_COST = 200;
+
+/** 交換でもらえるレア度。 */
+export const EXCHANGE_RARITY: Rarity = 3;
+
+/** 凸（同じキャラを重ねた数）の上限。 */
+export const MAX_LIMIT_BREAK = 4;
+
+/** 1凸あたりの必殺技ゲージの溜まりやすさの上乗せ（0.05 = +5%）。 */
+export const GAUGE_BONUS_PER_LIMIT_BREAK = 0.05;
+
+/** 凸の上限を超えて重なった時に代わりにもらえる雀玉（レア度ごと）。 */
+export const OVERFLOW_JADE: Record<Rarity, number> = { 1: 15, 2: 50, 3: 150 };
+
+/** 持っている数（1なら0凸）から凸数を出す。 */
+export function limitBreakOf(copies: number): number {
+  return Math.max(0, Math.min(MAX_LIMIT_BREAK, copies - 1));
+}
+
+/** 凸数に応じた必殺技ゲージの上乗せ（RoundState.gaugeRateBonus）。 */
+export function gaugeBonusForCopies(copies: number): number {
+  return Math.round(limitBreakOf(copies) * GAUGE_BONUS_PER_LIMIT_BREAK * 1000) / 1000;
+}

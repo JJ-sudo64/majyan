@@ -2,13 +2,18 @@ import { useState } from "react";
 import {
   CHARACTERS,
   charactersOfRarity,
+  EXCHANGE_COST,
+  EXCHANGE_RARITY,
+  limitBreakOf,
+  MAX_LIMIT_BREAK,
+  GAUGE_BONUS_PER_LIMIT_BREAK,
   GACHA_PRICE,
   GACHA_RARITY_RATES,
   TEN_PULL_GUARANTEED_RARITY,
   type GachaRollResponse,
   type Rarity,
 } from "@majyan/core";
-import { rollGacha, useAccountStore } from "../online/account.js";
+import { exchangeCharacter, rollGacha, useAccountStore } from "../online/account.js";
 import { GachaCard, RARITY_STARS } from "./GachaCard.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
@@ -29,6 +34,10 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<GachaRollResponse | null>(null);
   const [showRates, setShowRates] = useState(false);
+  const [showExchange, setShowExchange] = useState(false);
+  const [exchangeTarget, setExchangeTarget] = useState<string | null>(null);
+  const exchangePoints = useAccountStore((s) => s.exchangePoints);
+  const copies = useAccountStore((s) => s.characterCopies);
   const total = jade ? jade.free + jade.paid : 0;
 
   async function roll(count: 1 | 10) {
@@ -37,6 +46,21 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
     try {
       const res = await rollGacha(count);
       if (res) setResult(res);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function exchange(characterId: string) {
+    setBusy(true);
+    useAccountStore.setState({ error: null });
+    try {
+      const res = await exchangeCharacter(characterId);
+      if (res) {
+        setResult(res);
+        setShowExchange(false);
+        setExchangeTarget(null);
+      }
     } finally {
       setBusy(false);
     }
@@ -69,6 +93,9 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
+        {result && result.overflowJade > 0 && (
+          <p className="setup-lead">凸が最大のキャラが重なったため、雀玉 {result.overflowJade} に変わりました。</p>
+        )}
         {error && <p className="online-lobby__error">{error}</p>}
 
         <div className="setup-buttons">
@@ -80,6 +107,61 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <p className="setup-lead">10連は★{TEN_PULL_GUARANTEED_RARITY}以上が1人確定。雀玉は段位戦の報酬とログインボーナスでもらえます。</p>
+
+        <div className="gacha-screen__exchange">
+          <span>
+            交換ポイント <strong>{exchangePoints}</strong> / {EXCHANGE_COST}（1回引くごとに1ポイント。{EXCHANGE_COST}で★{EXCHANGE_RARITY}を1人選んでもらえます）
+          </span>
+          <button
+            type="button"
+            className="btn"
+            disabled={busy || exchangePoints < EXCHANGE_COST}
+            onClick={() => setShowExchange((v) => !v)}
+          >
+            ★{EXCHANGE_RARITY}と交換
+          </button>
+        </div>
+        {showExchange && (
+          <div className="gacha-screen__exchange-list">
+            {charactersOfRarity(EXCHANGE_RARITY).map((id) => {
+              const owned = copies[id];
+              const maxed = owned !== undefined && limitBreakOf(owned) >= MAX_LIMIT_BREAK;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`gacha-screen__exchange-item${exchangeTarget === id ? " gacha-screen__exchange-item--selected" : ""}`}
+                  onClick={() => setExchangeTarget(id)}
+                >
+                  {CHARACTERS[id] && <img src={CHARACTERS[id]!.avatar} alt="" />}
+                  <span>{CHARACTERS[id]?.name ?? id}</span>
+                  <span className="gacha-screen__exchange-owned">
+                    {owned === undefined ? "未所持" : maxed ? "凸最大（雀玉に変わります）" : `${limitBreakOf(owned)}凸`}
+                  </span>
+                </button>
+              );
+            })}
+            {exchangeTarget && (
+              <div className="first-gacha__confirm">
+                <p>
+                  {CHARACTERS[exchangeTarget]?.name} と交換しますか？（交換ポイント {EXCHANGE_COST} を使います）
+                </p>
+                <div className="setup-buttons">
+                  <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void exchange(exchangeTarget)}>
+                    交換する
+                  </button>
+                  <button type="button" className="btn btn--secondary" onClick={() => setExchangeTarget(null)}>
+                    やめる
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        <p className="gacha-screen__rate-note">
+          同じキャラが重なると「凸」が上がり、1凸ごとに必殺技ゲージが{Math.round(GAUGE_BONUS_PER_LIMIT_BREAK * 100)}%溜まりやすくなります（最大{MAX_LIMIT_BREAK}凸）。
+          最大を超えて重なった分は雀玉に変わります。
+        </p>
 
         <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRates((v) => !v)}>
           提供割合{showRates ? "を閉じる" : "を見る"}

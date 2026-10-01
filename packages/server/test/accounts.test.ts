@@ -120,8 +120,11 @@ describe("account HTTP API", () => {
     expect(meAgain.dailyBonus).toBeNull();
     const rolled = (await (await post("/api/gacha/roll", { count: 10 }, token)).json()) as GachaRollResponse;
     expect(rolled.results).toHaveLength(10);
-    expect(rolled.me.jade.free).toBe(meAgain.jade.free - 1500);
-    expect((await post("/api/gacha/roll", { count: 10 }, token)).status).toBe(409); // 雀玉が足りない
+    // 凸が最大のキャラが重なると、その分は雀玉で戻ってくる。
+    expect(rolled.me.jade.free).toBe(meAgain.jade.free - 1500 + rolled.overflowJade);
+    if (rolled.me.jade.free < 1500) {
+      expect((await post("/api/gacha/roll", { count: 10 }, token)).status).toBe(409); // 雀玉が足りない
+    }
     expect((await post("/api/gacha/roll", { count: 5 }, token)).status).toBe(400);
   });
 
