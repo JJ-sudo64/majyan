@@ -431,7 +431,7 @@ export function OpponentArea({
           })),
         },
       }
-    : round.players[player];
+    : basePlayer;
   const isCurrent = round.currentTurn === player;
   const concealedCount = p.hand.concealed.length;
   const discardCount = p.discards.length;
@@ -995,7 +995,7 @@ export function OpponentArea({
           tile3dPortalTarget &&
           createPortal(
             <div
-              className={`tile3d-hand-portal-inner${isEditingHandThisSeat ? " tile3d-hand-portal-inner--editable" : ""}`}
+              className={`tile3d-hand-portal-inner${isEditingHandThisSeat ? " tile3d-hand-portal-inner--editable" : ""}${frozen ? " tile3d-hand-portal-inner--frozen" : ""}`}
               style={{ transform: tile3dGroupTransform }}
               onPointerDown={isEditingHandThisSeat ? handleHandGroupPointerDown : undefined}
               onPointerMove={isEditingHandThisSeat ? handleHandGroupPointerMove : undefined}

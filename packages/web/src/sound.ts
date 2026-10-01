@@ -1,7 +1,7 @@
 /**
  * 効果音・音声まわり。
  *
- * 打牌・ツモ・配牌・リーチ棒の効果音は収録された実音源（public/sfx/配下）を
+ * 打牌・ツモ・配牌・リーチ・和了の効果音は収録された実音源（public/sfx/配下）を
  * 再生する。「ポン」「チー」「カン」「ロン」「ツモ」等の掛け声は、
  * キャラクターごとに収録ボイス（Character.voiceClips）が用意されていれば
  * それを再生し、未収録のキャラ/イベントはブラウザ内蔵のSpeechSynthesis
@@ -57,7 +57,8 @@ export function playVoiceClip(url: string) {
 const DISCARD_SFX = "/sfx/discard.mp3";
 const DRAW_SFX = "/sfx/draw.mp3";
 const DEAL_SFX = "/sfx/deal.mp3";
-const RIICHI_STICK_SFX = "/sfx/riichi-stick.mp3";
+const RIICHI_SFX = "/sfx/riichi.mp3";
+const WIN_SFX = "/sfx/win.mp3";
 
 /** 打牌音: 牌を卓に置く音。 */
 export function playDiscardSound() {
@@ -74,9 +75,14 @@ export function playDealSound() {
   playVoiceClip(DEAL_SFX);
 }
 
-/** リーチ宣言時、点棒（1000点棒）を卓に置く音。 */
-export function playRiichiStickSound() {
-  playVoiceClip(RIICHI_STICK_SFX);
+/** リーチ宣言の効果音（「シャキーン」。以前は点棒を卓に置く音だった）。 */
+export function playRiichiSound() {
+  playVoiceClip(RIICHI_SFX);
+}
+
+/** ロン・ツモ（和了）の効果音（「文字表示の衝撃音」）。 */
+export function playWinSound() {
+  playVoiceClip(WIN_SFX);
 }
 
 /** 収録ボイスがあればそれを再生し、無ければfallbackTextをspeak()で読み上げる。 */

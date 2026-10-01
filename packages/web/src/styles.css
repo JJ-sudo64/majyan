@@ -1718,10 +1718,14 @@ button {
    画面全体をグレーアウトして「時が止まった」感を出す。CenterBoard.tsx/
    DiscardPile.tsxは共通のtable__frozenを、OpponentArea.tsx/Hand.tsxは
    自分自身の判定結果に応じてopponent-area--frozen/hand-area--frozenを
-   それぞれ付与する（見た目はどれも同じ）。 */
+   それぞれ付与する（見た目はどれも同じ）。下家/上家のTile3D手牌は
+   .opponent-areaの外(document.body直下の.tile3d-hand-layer)へPortalされて
+   いてopponent-area--frozenのfilterが届かないため、Portal先の要素にも
+   OpponentArea.tsxがtile3d-hand-portal-inner--frozenを付ける。 */
 .table__frozen,
 .opponent-area--frozen,
-.hand-area--frozen {
+.hand-area--frozen,
+.tile3d-hand-portal-inner--frozen {
   filter: grayscale(1) brightness(0.55);
   transition: filter 0.5s ease;
   /* filterはかかった要素のサブツリー全体（回転させた河・点数バッジ・

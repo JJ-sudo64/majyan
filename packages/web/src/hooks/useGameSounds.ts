@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { CHARACTERS, type Meld, type RoundState, type VoiceEvent } from "@majyan/core";
-import { playDealSound, playDiscardSound, playDrawSound, playRiichiStickSound, playVoiceClip, speakVoice } from "../sound.js";
+import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, speakVoice } from "../sound.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
   chi: "チー",
@@ -112,7 +112,7 @@ export function useGameSounds(round: RoundState | undefined) {
     const prev = prevRiichiFlagsRef.current;
     const declaredIndex = riichiFlags.findIndex((r, i) => r && !prev[i]);
     if (declaredIndex !== -1) {
-      playRiichiStickSound();
+      playRiichiSound();
       speakPlayerVoice(round, declaredIndex, "riichi", "リーチ");
     }
     prevRiichiFlagsRef.current = riichiFlags;
@@ -144,6 +144,7 @@ export function useGameSounds(round: RoundState | undefined) {
   useEffect(() => {
     if (phase === "round-over" && prevPhaseRef.current !== "round-over") {
       const result = round?.result;
+      if (result?.type === "tsumo" || result?.type === "ron") playWinSound();
       if (result?.type === "tsumo") speakPlayerVoice(round, result.winners[0]!, "tsumo", "ツモ");
       else if (result?.type === "ron") speakPlayerVoice(round, result.winners[0]!, "ron", "ロン");
       else if (result?.type === "exhaustive-draw") {
