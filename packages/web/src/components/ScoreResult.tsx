@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { CHARACTERS, doraIndicators, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
+import { CHARACTERS, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
+import { useOnlineStore } from "../online/onlineLink.js";
 import { playVoiceQueue } from "../sound.js";
 import { meldDisplaySlots } from "../meldDisplay.js";
 import { MatchVictoryOverlay } from "./MatchVictoryOverlay.js";
@@ -110,6 +111,8 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
   const match = useGameStore((s) => s.match);
   const online = useGameStore((s) => s.online);
   const roundEndAcknowledged = useGameStore((s) => s.roundEndAcknowledged);
+  // 段位戦が終わった時の段位の変化（サーバーから対局終了と同時に届く）。
+  const rankResult = useOnlineStore((s) => (s.ranked ? s.rankResult : null));
 
   const winnerEntries = Object.entries(outcome.winAnalyses) as [string, { analysis: import("@majyan/core").WinAnalysis; score: import("@majyan/core").ScoreResult }][];
 
@@ -137,11 +140,9 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
     return () => window.clearTimeout(timer);
   }, [outcome]);
 
-  // 対局全体の最終順位1位（同点なら若い席順）。結果モーダルを見終えた後に
-  // 別画面でドンと出す「優勝」演出用。
-  const championIndex = match?.scores
-    ? (match.scores.map((s, i) => ({ i, s })).sort((a, b) => b.s - a.s)[0]?.i as PlayerIndex | undefined)
-    : undefined;
+  // 対局全体の最終順位1位（同点なら起家に近い席、core の rankSeats 参照）。
+  // 結果モーダルを見終えた後に別画面でドンと出す「優勝」演出用。
+  const championIndex = match?.finalRanking?.[0] ?? (match ? rankSeats(match.scores, match.startingDealer)[0] : undefined);
   const championCharacter = championIndex !== undefined ? CHARACTERS[round.characterIds[championIndex]!] : undefined;
   const champion = championIndex !== undefined && championCharacter ? { player: championIndex, character: championCharacter } : undefined;
 
@@ -236,9 +237,9 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
         )}
 
         <div className="rank-cards">
-          {match?.scores
-            .map((s, i) => ({ i, s }))
-            .sort((a, b) => b.s - a.s)
+          {match &&
+            rankSeats(match.scores, match.startingDealer)
+            .map((i) => ({ i, s: match.scores[i] }))
             .map(({ i, s }, rank) => (
               <div key={i} className={`rank-card rank-card--${rank + 1}`}>
                 <img className="rank-card__avatar" src={CHARACTERS[round.characterIds[i]!]?.avatar ?? `/avatars/seat${i}.svg`} alt="" />
@@ -260,6 +261,18 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
         {match?.finished ? (
           <div>
             <h3>対局終了</h3>
+            {rankResult && (
+              <div className="score-rank-result">
+                {rankResult.place}位　{rankResult.before.label} {rankResult.before.points}pt →{" "}
+                <strong>{rankResult.after.label}</strong> {rankResult.after.points}pt（
+                <span className={rankResult.delta >= 0 ? "score-rank-result__delta--up" : "score-rank-result__delta--down"}>
+                  {rankResult.delta >= 0 ? `+${rankResult.delta}` : rankResult.delta}
+                </span>
+                ）
+                {rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && " 昇段！"}
+                {rankOrdinal(rankResult.after) < rankOrdinal(rankResult.before) && " 降段…"}
+              </div>
+            )}
             <button className="btn btn--primary" onClick={() => setShowVictory(true)}>
               結果を見る
             </button>

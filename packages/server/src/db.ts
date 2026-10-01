@@ -33,6 +33,38 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX auth_tokens_user ON auth_tokens(user_id);
   `,
+  // 2: 段位と段位戦の記録
+  `
+  CREATE TABLE user_ranks (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    tier INTEGER NOT NULL,
+    level INTEGER NOT NULL,
+    points INTEGER NOT NULL,
+    games_played INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE TABLE ranked_matches (
+    id TEXT PRIMARY KEY,
+    format TEXT NOT NULL,
+    finished_at INTEGER NOT NULL
+  );
+  CREATE TABLE ranked_results (
+    match_id TEXT NOT NULL REFERENCES ranked_matches(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    seat INTEGER NOT NULL,
+    place INTEGER NOT NULL,
+    final_score INTEGER NOT NULL,
+    delta INTEGER NOT NULL,
+    tier_before INTEGER NOT NULL,
+    level_before INTEGER NOT NULL,
+    points_before INTEGER NOT NULL,
+    tier_after INTEGER NOT NULL,
+    level_after INTEGER NOT NULL,
+    points_after INTEGER NOT NULL,
+    PRIMARY KEY (match_id, user_id)
+  );
+  CREATE INDEX ranked_results_user ON ranked_results(user_id);
+  `,
 ];
 
 export type Database = DatabaseSyncType;

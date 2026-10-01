@@ -74,7 +74,7 @@ export const DEFAULT_SESSION_TIMING: SessionTiming = {
 };
 
 export type SessionSeat =
-  | { kind: "human"; name: string; connected: boolean }
+  | { kind: "human"; name: string; connected: boolean; rankLabel: string | null }
   | { kind: "cpu"; name: string; difficulty: AiDifficulty };
 
 export interface MatchSessionOptions {
@@ -85,6 +85,8 @@ export interface MatchSessionOptions {
   rng?: () => number;
   now?: () => number;
   timing?: SessionTiming;
+  /** 対局が終わった瞬間に1回だけ呼ばれる（段位戦の結果の反映等）。 */
+  onFinished?: (match: MatchState) => void;
 }
 
 export class MatchSession {
@@ -103,6 +105,8 @@ export class MatchSession {
   private readonly roundEndAcks = new Set<PlayerIndex>();
   private lastScoreAdjustment: { delta: [number, number, number, number]; key: number } | null = null;
   private disposed = false;
+  private finishReported = false;
+  private readonly onFinished: MatchSessionOptions["onFinished"];
 
   constructor(options: MatchSessionOptions) {
     this.match = options.match;
@@ -112,6 +116,17 @@ export class MatchSession {
     this.now = options.now ?? Date.now;
     this.timing = options.timing ?? DEFAULT_SESSION_TIMING;
     this.clocks = createMatchClocks(this.timing.rules);
+    this.onFinished = options.onFinished;
+  }
+
+  private reportFinishedOnce(): void {
+    if (!this.match.finished || this.finishReported) return;
+    this.finishReported = true;
+    try {
+      this.onFinished?.(this.match);
+    } catch (err) {
+      console.error("[majyan-server] 対局終了の処理に失敗しました:", err);
+    }
   }
 
   /** 対局を始める（最初の配牌はMatchStateの作成時に済んでいる）。 */
@@ -253,6 +268,7 @@ export class MatchSession {
       this.pendingRoundEnd = true;
       this.roundEndAcks.clear();
       this.roundEndDeadline = match.finished ? null : now + this.timing.roundEndWaitMs;
+      this.reportFinishedOnce();
       this.broadcast();
       this.step();
       return;
@@ -314,6 +330,7 @@ export class MatchSession {
     this.roundEndAcks.clear();
     this.clocks = refillBanksForNewRound(this.clocks, this.timing.rules);
     if (this.match.finished) {
+      this.reportFinishedOnce();
       this.broadcast();
       return;
     }
@@ -341,7 +358,12 @@ export class MatchSession {
     // 他家の鳴き判断の時計は見せない（clockDisplayForSeat参照）。
     const clock = clockDisplayForSeat(this.clocks, now, seat);
     const seats = SEATS.map((i) => this.seats[(i + seat) % 4 as PlayerIndex]).map(
-      (s): SeatInfo => ({ name: s.name, isCpu: s.kind === "cpu", disconnected: s.kind === "human" && !s.connected }),
+      (s): SeatInfo => ({
+        name: s.name,
+        rankLabel: s.kind === "human" ? s.rankLabel : null,
+        isCpu: s.kind === "cpu",
+        disconnected: s.kind === "human" && !s.connected,
+      }),
     ) as OnlineSeatView["seats"];
     const adj = this.lastScoreAdjustment;
     return {

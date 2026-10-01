@@ -11,11 +11,13 @@ import {
   type MeResponse,
 } from "@majyan/core";
 import { normalizeDisplayName, type AccountService } from "./accounts.js";
+import type { RankService } from "./ranks.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
 
 export interface HttpApiOptions {
   accounts: AccountService;
+  ranks: RankService;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
   guestsPerHourPerIp?: number;
   /** 接続元の見分け方（リバースプロキシの後ろではX-Forwarded-Forを見る等）。 */
@@ -68,7 +70,7 @@ function bearerToken(req: IncomingMessage): string | null {
 
 /** /api 配下なら処理してtrueを返す。それ以外のパスはfalse（呼び出し側が静的ファイル等を返す）。 */
 export function createApiHandler(options: HttpApiOptions) {
-  const { accounts } = options;
+  const { accounts, ranks } = options;
   const now = options.now ?? Date.now;
   const limit = options.guestsPerHourPerIp ?? 20;
   const guestCreations = new Map<string, number[]>();
@@ -111,7 +113,7 @@ export function createApiHandler(options: HttpApiOptions) {
         }
         case "GET /me": {
           const profile = authed(req, res);
-          if (profile) sendJson(res, 200, { profile } satisfies MeResponse);
+          if (profile) sendJson(res, 200, { profile, rank: ranks.get(profile.id) } satisfies MeResponse);
           return true;
         }
         case "POST /me/name": {
@@ -120,7 +122,7 @@ export function createApiHandler(options: HttpApiOptions) {
           const body = (await readJson(req)) as { displayName?: unknown };
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
-          sendJson(res, 200, { profile: accounts.rename(profile.id, name) } satisfies MeResponse);
+          sendJson(res, 200, { profile: accounts.rename(profile.id, name), rank: ranks.get(profile.id) } satisfies MeResponse);
           return true;
         }
         default:

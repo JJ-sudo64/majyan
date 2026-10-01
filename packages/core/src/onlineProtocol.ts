@@ -12,6 +12,7 @@ import type { MatchFormat, MatchState } from "./gameState.js";
 import type { RoundScoreOutcome } from "./gameEngine.js";
 import type { SeatOptions } from "./seatView.js";
 import type { ClockDisplay } from "./turnClock.js";
+import type { RankState } from "./ranked.js";
 
 /** WebSocketの接続先パス（開発時はViteがこのパスをサーバーへ中継する）。 */
 export const ONLINE_WS_PATH = "/ws";
@@ -41,8 +42,18 @@ export interface GuestAccountResponse {
   profile: AccountProfile;
 }
 
+/** 画面に出す段位（RankStateに表示用の値を足したもの）。 */
+export interface RankView extends RankState {
+  /** 例: "上雀2"、"雀神" */
+  label: string;
+  /** 昇段に必要なポイント（雀神はnull）。 */
+  maxPoints: number | null;
+  gamesPlayed: number;
+}
+
 export interface MeResponse {
   profile: AccountProfile;
+  rank: RankView;
 }
 
 export interface ApiErrorResponse {
@@ -57,6 +68,10 @@ export type ClientMessage =
   /** 合言葉の部屋に入る。authTokenはアカウントのログイン用の鍵で、名前はアカウントの
       表示名が使われる。対局中の部屋に同じアカウントで入り直すと、その席に戻れる。 */
   | { t: "join"; room: string; authToken: string; characterId: string | null; cardId: string | null }
+  /** 段位戦の待ち行列に入る。揃ったら（または一定時間待ったら空席をCPUで埋めて）
+      matchFoundが届き、そのまま対局が始まる。 */
+  | { t: "queueRanked"; authToken: string; format: MatchFormat; characterId: string | null; cardId: string | null }
+  | { t: "cancelQueue" }
   /** 部屋のキャラクター・カードを選び直す（対局開始前のみ）。 */
   | { t: "setLoadout"; characterId: string | null; cardId: string | null }
   /** 対局開始（部屋主のみ）。空いている席はCPUが入る。 */
@@ -81,6 +96,8 @@ export interface LobbyMember {
 
 export interface SeatInfo {
   name: string;
+  /** 段位（CPUはnull）。 */
+  rankLabel: string | null;
   isCpu: boolean;
   /** 対局中に接続が切れている人間の席（その間は時間切れと同じ自動操作で進む）。 */
   disconnected: boolean;
@@ -104,7 +121,22 @@ export interface OnlineSeatView {
   lastScoreAdjustment: { delta: [number, number, number, number]; key: number } | null;
 }
 
+/** 段位戦1試合ぶんの段位の変化（結果画面用）。 */
+export interface RankResult {
+  place: 1 | 2 | 3 | 4;
+  delta: number;
+  before: RankView;
+  after: RankView;
+}
+
 export type ServerMessage =
+  /** 段位戦の待ち行列に入った。cpuFillInMs後に人が揃っていなければ空席をCPUで埋めて始まる。 */
+  | { t: "queued"; format: MatchFormat; cpuFillInMs: number }
+  | { t: "queueCancelled" }
+  /** 段位戦の卓が決まった。roomは接続が切れた時に入り直すための部屋の合言葉。 */
+  | { t: "matchFound"; room: string; format: MatchFormat }
+  /** 段位戦が終わり、段位が更新された。 */
+  | { t: "rankResult"; result: RankResult }
   | { t: "lobby"; room: string; members: LobbyMember[] }
   | { t: "state"; view: OnlineSeatView }
   /** 操作が受け付けられなかった等。fatal なら接続を閉じてタイトルへ戻す。 */

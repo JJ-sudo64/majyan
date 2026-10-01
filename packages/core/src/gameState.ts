@@ -227,7 +227,10 @@ export interface MatchState {
   scores: [number, number, number, number];
   round: RoundState;
   finished: boolean;
+  /** 対局終了時の最終順位（1位から順の座席番号、rankSeats参照）。終了するまではnull。 */
   finalRanking: PlayerIndex[] | null;
+  /** 起家（東1局の親）。同点の順位を「起家に近い順」で決めるのに使う。 */
+  startingDealer: PlayerIndex;
   /** 箱下続行ルール。falseの場合、誰かの持ち点が0点未満（箱割れ）になった時点で
       通常の局数を消化しきっていなくても即座に対局終了とする（デフォルト）。
       trueにすると箱割れを無視してそのまま最終局まで続行する。 */

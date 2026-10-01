@@ -19,11 +19,14 @@ import {
   type AccountProfile,
   type ClientMessage,
   type LobbyMember,
+  type MatchState,
   type MatchFormat,
   type PlayerIndex,
   type ServerMessage,
 } from "@majyan/core";
+import { randomBytes, randomUUID } from "node:crypto";
 import { MatchSession, type SessionSeat, type SessionTiming } from "./matchSession.js";
+import type { RankService } from "./ranks.js";
 
 export interface Client {
   readonly id: string;
@@ -45,6 +48,16 @@ interface Room {
   session: MatchSession | null;
   /** 人間が全員いなくなった部屋を片付けるタイマー。 */
   cleanupTimer: ReturnType<typeof setTimeout> | null;
+  /** 段位戦の卓ならその情報。段位戦の卓は合言葉で入れず、対局を最後まで打ち切る。 */
+  ranked: { matchId: string; format: MatchFormat } | null;
+}
+
+/** 段位戦の卓に座る1人ぶん（matchmaking.tsが渡す）。 */
+export interface RankedEntrant {
+  client: Client;
+  account: AccountProfile;
+  characterId: string | null;
+  cardId: string | null;
 }
 
 export interface RoomManagerOptions {
@@ -57,6 +70,8 @@ export interface RoomManagerOptions {
   abandonedRoomMs?: number;
   /** 同時に存在できる部屋数の上限（大量に部屋を作られてメモリを食い潰されないように）。 */
   maxRooms?: number;
+  /** 段位（席の表示と、段位戦の結果の反映に使う）。無ければ段位を扱わない。 */
+  ranks?: RankService;
 }
 
 const MAX_MEMBERS = 4;
@@ -87,6 +102,48 @@ export class RoomManager {
     return this.rooms.size;
   }
 
+  /** その接続が部屋（待合室・対局中）に入っているか。 */
+  isInRoom(client: Client): boolean {
+    return this.roomOf(client) !== undefined;
+  }
+
+  /** そのアカウントが座っている、まだ終わっていない段位戦の卓の合言葉。 */
+  runningRankedRoomOf(userId: string): string | null {
+    for (const room of this.rooms.values()) {
+      if (room.ranked && room.session && !room.session.finished && room.members.some((m) => m.userId === userId)) return room.code;
+    }
+    return null;
+  }
+
+  /**
+   * 段位戦の卓を立てて対局を始める。空いた席はCPUが入る。各人にmatchFoundを送った
+   * あと、そのまま対局の状態が届く（入り直す時はmatchFoundの合言葉でjoinする）。
+   */
+  startRankedMatch(entrants: RankedEntrant[], format: MatchFormat): string {
+    const matchId = randomUUID();
+    // 入り直す時にjoinで使う合言葉。合言葉の最大文字数(ROOM_CODE_MAX_LENGTH)に収める。
+    let code: string;
+    do code = `ranked-${randomBytes(9).toString("base64url")}`;
+    while (this.rooms.has(code));
+    const room: Room = { code, members: [], session: null, cleanupTimer: null, ranked: { matchId, format } };
+    this.rooms.set(code, room);
+    for (const e of entrants) {
+      if (this.clientRooms.has(e.client.id)) this.disconnect(e.client);
+      room.members.push({
+        userId: e.account.id,
+        name: e.account.displayName,
+        characterId: validCharacter(e.characterId),
+        cardId: validCard(e.cardId),
+        client: e.client,
+        seat: null,
+      });
+      this.clientRooms.set(e.client.id, code);
+      e.client.send({ t: "matchFound", room: code, format });
+    }
+    this.launch(room, format, false);
+    return code;
+  }
+
   handleMessage(client: Client, message: ClientMessage): void {
     switch (message.t) {
       case "join":
@@ -94,6 +151,10 @@ export class RoomManager {
         return;
       case "leave":
         this.disconnect(client);
+        return;
+      case "queueRanked":
+      case "cancelQueue":
+        // 待ち行列はmatchmaking.tsが扱う（index.tsが振り分ける）。
         return;
     }
     const room = this.roomOf(client);
@@ -142,7 +203,9 @@ export class RoomManager {
     }
     member.client = null;
     room.session.setConnected(member.seat!, false);
-    if (!room.session.hasConnectedHuman()) {
+    // 段位戦は全員抜けても片付けずに最後まで自動で打ち切る（抜ければ段位が
+    // 動かない、という抜け道を作らないため）。終わった時点で片付ける。
+    if (!room.ranked && !room.session.hasConnectedHuman()) {
       room.cleanupTimer = setTimeout(() => this.deleteRoom(room), this.options.abandonedRoomMs ?? 5 * 60_000);
     }
   }
@@ -165,7 +228,8 @@ export class RoomManager {
       client.send({ t: "error", message: "合言葉を入力してください", fatal: true });
       return;
     }
-    if (this.clientRooms.has(client.id)) this.disconnect(client);
+    // 別の部屋に入っていたら抜ける（同じ部屋へのjoinは入り直しとして下で扱う）。
+    if (this.clientRooms.has(client.id) && this.clientRooms.get(client.id) !== code) this.disconnect(client);
 
     let room = this.rooms.get(code);
     if (!room && this.rooms.size >= (this.options.maxRooms ?? 500)) {
@@ -173,7 +237,11 @@ export class RoomManager {
       return;
     }
     if (!room) {
-      room = { code, members: [], session: null, cleanupTimer: null };
+      if (code.startsWith("ranked-")) {
+        client.send({ t: "error", message: "この対局は終わっています", fatal: true });
+        return;
+      }
+      room = { code, members: [], session: null, cleanupTimer: null, ranked: null };
       this.rooms.set(code, room);
     }
 
@@ -199,6 +267,10 @@ export class RoomManager {
       room.cleanupTimer = null;
       room.session.setConnected(existing.seat, true);
       client.send({ t: "state", view: room.session.viewFor(existing.seat) });
+      return;
+    }
+    if (room.ranked) {
+      client.send({ t: "error", message: "この対局は終わっています", fatal: true });
       return;
     }
     if (room.session?.finished) {
@@ -245,7 +317,15 @@ export class RoomManager {
       return;
     }
     if (format !== "hanchan" && format !== "tonpuusen") return;
+    this.launch(room, format, continueBelowZero);
+  }
 
+  private rankLabelOf(userId: string): string | null {
+    return this.options.ranks?.get(userId).label ?? null;
+  }
+
+  /** 部屋の人を席に座らせて対局を始める（空いた席はCPU）。 */
+  private launch(room: Room, format: MatchFormat, continueBelowZero: boolean): void {
     // 席はくじ引き（集まった順に関係なくランダム）。
     const seatOrder: PlayerIndex[] = [0, 1, 2, 3];
     for (let i = seatOrder.length - 1; i > 0; i--) {
@@ -264,7 +344,7 @@ export class RoomManager {
       if (m) {
         if (m.characterId) characterIds[seat] = m.characterId;
         cardIds[seat] = m.cardId;
-        seats[seat] = { kind: "human", name: m.name, connected: !!m.client };
+        seats[seat] = { kind: "human", name: m.name, connected: !!m.client, rankLabel: this.rankLabelOf(m.userId) };
       } else {
         cardIds[seat] = randomCardId(this.rng);
         seats[seat] = { kind: "cpu", name: CPU_NAMES[cpuCount++]!, difficulty: DEFAULT_AI_DIFFICULTY };
@@ -279,8 +359,30 @@ export class RoomManager {
       now: this.options.now,
       timing: this.options.timing,
       send: (seat, view) => room.members.find((m) => m.seat === seat)?.client?.send({ t: "state", view }),
+      onFinished: room.ranked ? (finished) => this.finishRanked(room, finished) : undefined,
     });
     room.session.start();
+  }
+
+  /** 段位戦が終わった: 人間の席の段位を更新して本人に知らせ、誰もいなければ片付ける。 */
+  private finishRanked(room: Room, match: MatchState): void {
+    const ranked = room.ranked;
+    const ranks = this.options.ranks;
+    if (!ranked || !ranks || !match.finalRanking) return;
+    const results = room.members
+      .filter((m) => m.seat !== null)
+      .map((m) => ({
+        userId: m.userId,
+        seat: m.seat!,
+        place: (match.finalRanking!.indexOf(m.seat!) + 1) as 1 | 2 | 3 | 4,
+        finalScore: match.scores[m.seat!]!,
+      }));
+    const changes = ranks.recordMatch(ranked.matchId, ranked.format, results);
+    for (const m of room.members) {
+      const result = changes.get(m.userId);
+      if (result) m.client?.send({ t: "rankResult", result });
+    }
+    if (room.members.every((m) => !m.client)) setTimeout(() => this.deleteRoom(room), 0);
   }
 
   private broadcastLobby(room: Room): void {

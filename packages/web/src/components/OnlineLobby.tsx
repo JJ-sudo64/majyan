@@ -36,6 +36,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const accountStatus = useAccountStore((s) => s.status);
   const profile = useAccountStore((s) => s.profile);
   const accountError = useAccountStore((s) => s.error);
+  const rank = useAccountStore((s) => s.rank);
+  const queue = useOnlineStore((s) => s.queue);
+  const [now, setNow] = useState(() => performance.now());
   const [name, setName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [roomCode, setRoomCode] = useState(() => loadSaved(ROOM_KEY));
@@ -44,11 +47,20 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const [continueBelowZero, setContinueBelowZero] = useState(false);
 
   const inRoom = status === "lobby";
+  const queued = status === "queued";
+  const busy = inRoom || queued || status === "connecting";
   const me = members.find((m) => m.isYou);
 
   useEffect(() => {
-    if (accountStatus === "unknown") void loadAccount();
-  }, [accountStatus]);
+    // 段位戦の後に戻ってきた時などに段位を最新にするため、開くたびに読み直す。
+    void loadAccount();
+  }, []);
+
+  useEffect(() => {
+    if (!queued) return;
+    const id = window.setInterval(() => setNow(performance.now()), 500);
+    return () => window.clearInterval(id);
+  }, [queued]);
 
   function join() {
     const trimmedRoom = roomCode.trim();
@@ -88,9 +100,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       <button type="button" className="setup-back-btn" onClick={back}>
         ← 戻る
       </button>
-      <p className="setup-lead">
-        ネット対戦（友人戦）: 同じ合言葉を入れた人どうしが同じ卓に座ります。空いた席にはCPUが入ります。
-      </p>
+      <p className="setup-lead">ネット対戦: 段位戦で知らない人と打つか、合言葉で友人と同じ卓に座ります。</p>
 
       {(accountStatus === "unknown" || accountStatus === "loading") && !accountError && <p className="setup-lead">アカウントを確認しています…</p>}
       {accountStatus === "unknown" && accountError && (
@@ -133,7 +143,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {profile && !renaming && (
         <div className="online-lobby__account">
           {profile.displayName} さん
-          {!inRoom && (
+          {!busy && (
             <button
               type="button"
               className="btn online-lobby__rename"
@@ -148,8 +158,45 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
       )}
       {profile && renaming && accountError && <p className="online-lobby__error">{accountError}</p>}
+      {profile && rank && (
+        <div className="online-lobby__rank">
+          <span className="online-lobby__rank-label">{rank.label}</span>
+          <span className="online-lobby__rank-points">
+            {rank.maxPoints === null ? `${rank.points} pt` : `${rank.points} / ${rank.maxPoints} pt`}
+          </span>
+          <span className="online-lobby__rank-games">{rank.gamesPlayed}戦</span>
+        </div>
+      )}
 
-      {profile && !inRoom && (
+      {profile && !busy && (
+        <div className="online-lobby__section">
+          <div className="online-lobby__section-title">段位戦</div>
+          <div className="setup-buttons">
+            <button className="btn btn--primary btn--large" onClick={() => onlineLink.queueRanked("tonpuusen", characterId, cardId)}>
+              東風戦
+            </button>
+            <button className="btn btn--primary btn--large" onClick={() => onlineLink.queueRanked("hanchan", characterId, cardId)}>
+              半荘戦
+            </button>
+          </div>
+        </div>
+      )}
+      {queued && queue && (
+        <div className="online-lobby__section">
+          <div className="online-lobby__section-title">
+            段位戦（{queue.format === "hanchan" ? "半荘戦" : "東風戦"}）の相手を探しています… {Math.floor((now - queue.since) / 1000)}秒
+          </div>
+          <p className="setup-lead">
+            {Math.max(0, Math.ceil((queue.cpuFillInMs - (now - queue.since)) / 1000))}秒たっても4人そろわなければ、空いた席にCPUが入って始まります。
+          </p>
+          <button type="button" className="btn btn--secondary" onClick={() => onlineLink.cancelQueue()}>
+            やめる
+          </button>
+        </div>
+      )}
+
+      {profile && !busy && <div className="online-lobby__section-title">友人戦</div>}
+      {profile && !busy && (
         <div className="online-lobby__form">
           <label className="online-lobby__field">
             <span>合言葉</span>
@@ -190,7 +237,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </label>
       </div>
 
-      {profile && !inRoom && (
+      {profile && !inRoom && !queued && (
         <button
           type="button"
           className="btn btn--primary btn--large"

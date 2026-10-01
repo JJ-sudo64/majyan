@@ -8,6 +8,7 @@ import type { GuestAccountResponse, MeResponse } from "@majyan/core";
 import { AccountService, normalizeDisplayName } from "../src/accounts.js";
 import { openDatabase } from "../src/db.js";
 import { createApiHandler } from "../src/httpApi.js";
+import { RankService } from "../src/ranks.js";
 
 describe("AccountService", () => {
   it("creates a guest and finds it again by its token", () => {
@@ -62,8 +63,9 @@ describe("account HTTP API", () => {
   let base: string;
 
   beforeAll(async () => {
-    const accounts = new AccountService(openDatabase(":memory:"));
-    const handleApi = createApiHandler({ accounts, guestsPerHourPerIp: 3 });
+    const db = openDatabase(":memory:");
+    const accounts = new AccountService(db);
+    const handleApi = createApiHandler({ accounts, ranks: new RankService(db), guestsPerHourPerIp: 3 });
     server = createServer(async (req, res) => {
       if (!(await handleApi(req, res))) res.writeHead(418).end();
     });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMatch } from "../src/matchFormat.js";
+import { createMatch, rankSeats } from "../src/matchFormat.js";
 import {
   advanceToNextRound,
   applyMatchAction,
@@ -66,6 +66,10 @@ describe("matchController: full match (all CPU)", () => {
       const { match, rounds } = playMatch(start, rng);
       expect(rounds).toBeGreaterThan(0);
       expect(match.scores.reduce((a, b) => a + b, 0)).toBe(100000);
+      // 最終順位は持ち点の高い順に並んでいる。
+      const ranking = match.finalRanking!;
+      expect([...ranking].sort()).toEqual([0, 1, 2, 3]);
+      for (let i = 1; i < 4; i++) expect(match.scores[ranking[i - 1]!]).toBeGreaterThanOrEqual(match.scores[ranking[i]!]);
     }
   }, 300000);
 
@@ -78,6 +82,15 @@ describe("matchController: full match (all CPU)", () => {
       expect(match.finished).toBe(true);
     }
   }, 300000);
+});
+
+describe("rankSeats", () => {
+  it("orders by score and breaks ties by distance from the starting dealer", () => {
+    expect(rankSeats([30000, 20000, 40000, 10000], 0)).toEqual([2, 0, 1, 3]);
+    // 座席1と3が同点。起家が座席2なら、起家から見て3が先（2→3→0→1）。
+    expect(rankSeats([10000, 25000, 40000, 25000], 2)).toEqual([2, 3, 1, 0]);
+    expect(rankSeats([25000, 25000, 25000, 25000], 3)).toEqual([3, 0, 1, 2]);
+  });
 });
 
 describe("applyMatchAction", () => {

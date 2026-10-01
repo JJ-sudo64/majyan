@@ -4756,3 +4756,52 @@ button {
   font-weight: normal;
   padding: 4px 10px;
 }
+.online-lobby__rank {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #d4af37;
+}
+.online-lobby__rank-label {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ffe08a;
+}
+.online-lobby__rank-points,
+.online-lobby__rank-games {
+  font-size: 13px;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+.online-lobby__section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.online-lobby__section-title {
+  font-size: 15px;
+  font-weight: bold;
+  margin-top: 6px;
+}
+.character-panel__rank {
+  margin-left: 4px;
+  color: #ffe08a;
+}
+.score-rank-result {
+  margin: 8px auto;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #d4af37;
+  font-size: 15px;
+}
+.score-rank-result__delta--up {
+  color: #7ee08a;
+}
+.score-rank-result__delta--down {
+  color: #ff8a8a;
+}

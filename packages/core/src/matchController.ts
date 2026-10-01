@@ -23,7 +23,7 @@ import {
   RIICHI_STICK_COST,
   type RoundScoreOutcome,
 } from "./gameEngine.js";
-import { dealNewRound, hasBustedPlayer, planNextRound, settleLeftoverKyotaku } from "./matchFormat.js";
+import { dealNewRound, hasBustedPlayer, planNextRound, rankSeats, settleLeftoverKyotaku } from "./matchFormat.js";
 import { applyCardBustGuards, applyCardMatchEndBonuses, resolveKyotakuWithCard } from "./cards.js";
 import { decideTileSwaps } from "./ai/simpleAi.js";
 
@@ -104,7 +104,8 @@ export function settleRound(match: MatchState): SettledRound {
   const settledScores = finished
     ? applyCardMatchEndBonuses(guardedRound, resolveKyotakuWithCard(guardedRound, scores, plan.kyotaku, settleLeftoverKyotaku))
     : scores;
-  return { match: { ...match, round: guardedRound, scores: settledScores, finished }, outcome };
+  const finalRanking = finished ? rankSeats(settledScores, match.startingDealer) : null;
+  return { match: { ...match, round: guardedRound, scores: settledScores, finished, finalRanking }, outcome };
 }
 
 /**
@@ -145,7 +146,7 @@ export function advanceToNextRound(
       round,
       resolveKyotakuWithCard(round, match.scores, plan.kyotaku, settleLeftoverKyotaku),
     );
-    return { ...match, scores: settledScores, finished: true };
+    return { ...match, scores: settledScores, finished: true, finalRanking: rankSeats(settledScores, match.startingDealer) };
   }
   // 必殺技ゲージは半荘/東風戦を通して持ち越す（局をまたいでリセットしない）。
   const carriedGauges = round.players.map((p) => p.skillGauge) as Scores;

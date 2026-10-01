@@ -293,6 +293,7 @@ export function rotateMatchForViewer(match: MatchState, viewer: PlayerIndex): Ma
     round: rotateRoundForViewer(match.round, viewer),
     finished: match.finished,
     finalRanking: match.finalRanking && match.finalRanking.map((p) => toViewerSeat(p, viewer)),
+    startingDealer: toViewerSeat(match.startingDealer, viewer),
     continueBelowZero: match.continueBelowZero,
   };
 }

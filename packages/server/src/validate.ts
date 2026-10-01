@@ -66,6 +66,12 @@ export function parseClientMessage(raw: string): ClientMessage | null {
     case "join":
       if (!isStr(m.room) || !isStr(m.authToken) || !isNullableStr(m.characterId) || !isNullableStr(m.cardId)) return null;
       return m as ClientMessage;
+    case "queueRanked":
+      return isStr(m.authToken) && (m.format === "hanchan" || m.format === "tonpuusen") && isNullableStr(m.characterId) && isNullableStr(m.cardId)
+        ? (m as ClientMessage)
+        : null;
+    case "cancelQueue":
+      return m as ClientMessage;
     case "setLoadout":
       return isNullableStr(m.characterId) && isNullableStr(m.cardId) ? (m as ClientMessage) : null;
     case "start":

@@ -173,8 +173,19 @@ export function createMatch(
     round,
     finished: false,
     finalRanking: null,
+    startingDealer,
     continueBelowZero,
   };
+}
+
+/**
+ * 持ち点から順位を決める（1位から順の座席番号）。同点は起家に近い席を上にする
+ * （一般的な麻雀のルール。座席番号の若い順にすると、ネット対戦で見る人ごとに
+ * 座席番号を回しているため人によって順位が変わってしまう）。
+ */
+export function rankSeats(scores: readonly [number, number, number, number], startingDealer: PlayerIndex): PlayerIndex[] {
+  const fromDealer = (seat: PlayerIndex) => (seat - startingDealer + 4) % 4;
+  return ([0, 1, 2, 3] as PlayerIndex[]).sort((a, b) => scores[b] - scores[a] || fromDealer(a) - fromDealer(b));
 }
 
 /** 誰か1人でも持ち点が0点未満（箱割れ）になっているか。 */

@@ -12,6 +12,7 @@ import {
   type ApiErrorResponse,
   type GuestAccountResponse,
   type MeResponse,
+  type RankView,
 } from "@majyan/core";
 
 const TOKEN_KEY = "majyan.account.token";
@@ -27,10 +28,11 @@ type AccountStatus =
 interface AccountState {
   status: AccountStatus;
   profile: AccountProfile | null;
+  rank: RankView | null;
   error: string | null;
 }
 
-export const useAccountStore = create<AccountState>(() => ({ status: "unknown", profile: null, error: null }));
+export const useAccountStore = create<AccountState>(() => ({ status: "unknown", profile: null, rank: null, error: null }));
 
 function loadToken(): string | null {
   try {
@@ -81,10 +83,11 @@ export async function loadAccount(): Promise<void> {
     useAccountStore.setState({ status: "none", profile: null, error: null });
     return;
   }
-  useAccountStore.setState({ status: "loading", error: null });
+  // 読み込み済みのアカウントを最新にするだけ（段位の更新等）なら、画面を「確認中」に戻さない。
+  if (useAccountStore.getState().status !== "ready") useAccountStore.setState({ status: "loading", error: null });
   try {
-    const { profile } = await api<MeResponse>("/me");
-    useAccountStore.setState({ status: "ready", profile });
+    const { profile, rank } = await api<MeResponse>("/me");
+    useAccountStore.setState({ status: "ready", profile, rank });
   } catch (err) {
     if ((err as { status?: number }).status === 401) {
       // サーバー側にアカウントが無い（鍵が古い等）。作り直してもらう。
@@ -107,6 +110,8 @@ export async function createGuestAccount(displayName: string): Promise<void> {
     memoryToken = token;
     saveToken(token);
     useAccountStore.setState({ status: "ready", profile });
+    // 段位などはアカウントを作った後に読み込む。
+    void loadAccount();
   } catch (err) {
     useAccountStore.setState({ status: "none", error: (err as Error).message });
   }
@@ -114,8 +119,8 @@ export async function createGuestAccount(displayName: string): Promise<void> {
 
 export async function renameAccount(displayName: string): Promise<void> {
   try {
-    const { profile } = await api<MeResponse>("/me/name", { method: "POST", body: JSON.stringify({ displayName }) });
-    useAccountStore.setState({ profile, error: null });
+    const { profile, rank } = await api<MeResponse>("/me/name", { method: "POST", body: JSON.stringify({ displayName }) });
+    useAccountStore.setState({ profile, rank, error: null });
   } catch (err) {
     useAccountStore.setState({ error: (err as Error).message });
   }

@@ -137,6 +137,7 @@ export function CharacterPanel({
         {onlineSeat && (
           <div className="character-panel__player-name">
             {onlineSeat.name}
+            {onlineSeat.rankLabel && <span className="character-panel__rank">{onlineSeat.rankLabel}</span>}
             {onlineSeat.disconnected ? "（切断中）" : ""}
           </div>
         )}

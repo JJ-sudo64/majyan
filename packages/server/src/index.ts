@@ -12,6 +12,7 @@
  *                     未指定ならチェックしない。公開する時は自分のURLを入れる。
  *   DATABASE_PATH     アカウント等を保存するSQLiteファイル（既定 packages/server/data/majyan.db）
  *   TRUST_PROXY       "1"ならX-Forwarded-Forを接続元として信用する（リバースプロキシの後ろに置く時）
+ *   RANKED_CPU_FILL_MS 段位戦で人がそろわない時、空席をCPUで埋めるまでの待ち時間（既定20秒）
  */
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
@@ -22,6 +23,8 @@ import { RoomManager, type Client } from "./rooms.js";
 import { AccountService } from "./accounts.js";
 import { openDatabase } from "./db.js";
 import { createApiHandler } from "./httpApi.js";
+import { RankService } from "./ranks.js";
+import { DEFAULT_CPU_FILL_MS, Matchmaker } from "./matchmaking.js";
 import type { IncomingMessage } from "node:http";
 import { createStaticHandler } from "./staticFiles.js";
 import { parseClientMessage } from "./validate.js";
@@ -46,8 +49,16 @@ const clientIp = (req: IncomingMessage) =>
 
 const db = openDatabase(databasePath);
 const accounts = new AccountService(db);
-const rooms = new RoomManager({ authenticate: (token) => accounts.authenticate(token) });
-const handleApi = createApiHandler({ accounts, clientIp });
+const ranks = new RankService(db);
+const authenticate = (token: string) => accounts.authenticate(token);
+const rooms = new RoomManager({ authenticate, ranks });
+const matchmaker = new Matchmaker({
+  rooms,
+  ranks,
+  authenticate,
+  cpuFillMs: Number(process.env.RANKED_CPU_FILL_MS) || DEFAULT_CPU_FILL_MS,
+});
+const handleApi = createApiHandler({ accounts, ranks, clientIp });
 const serveStatic = createStaticHandler(staticDir);
 const httpServer = createServer(async (req, res) => {
   if (req.url === "/healthz") {
@@ -98,14 +109,18 @@ wss.on("connection", (socket: WebSocket) => {
       return;
     }
     try {
-      rooms.handleMessage(client, message);
+      if (message.t === "queueRanked" || message.t === "cancelQueue") matchmaker.handleMessage(client, message);
+      else rooms.handleMessage(client, message);
     } catch (err) {
       // 1人の変な入力でサーバー全体（他の卓）が落ちないようにする。
       console.error("[majyan-server] メッセージの処理に失敗しました:", err);
       client.send({ t: "error", message: "サーバーでエラーが起きました" });
     }
   });
-  socket.on("close", () => rooms.disconnect(client));
+  socket.on("close", () => {
+    matchmaker.remove(client);
+    rooms.disconnect(client);
+  });
   socket.on("error", () => socket.terminate());
 });
 
