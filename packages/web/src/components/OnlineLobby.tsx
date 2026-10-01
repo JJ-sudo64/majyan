@@ -32,7 +32,7 @@ function save(key: string, value: string) {
 }
 
 /**
- * ネット対戦の入口（合言葉で友人と同じ部屋に入る）と待合室。
+ * オンラインの入口（アカウント・段位戦・ガチャ・手持ち・合言葉の友人戦）と待合室。
  * 対局が始まるとサーバーから状態が届き、App.tsxが卓の画面に切り替える。
  */
 export function OnlineLobby({ onBack }: { onBack: () => void }) {
@@ -116,7 +116,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       <button type="button" className="setup-back-btn" onClick={back}>
         ← 戻る
       </button>
-      <p className="setup-lead">ネット対戦: 段位戦で知らない人と打つか、合言葉で友人と同じ卓に座ります。</p>
+      <p className="setup-lead">オンライン: 段位戦で知らない人と打つか、合言葉で友人と同じ卓に座ります。</p>
 
       {(accountStatus === "unknown" || accountStatus === "loading") && !accountError && <p className="setup-lead">アカウントを確認しています…</p>}
       {accountStatus === "unknown" && accountError && (

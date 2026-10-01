@@ -96,7 +96,7 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
       </button>
       <p className="setup-lead">CPU3人と対局します。対局形式を選んでください。</p>
       <button type="button" className="btn setup-online-btn" onClick={onOnline}>
-        ネット対戦（合言葉で友人と遊ぶ）
+        オンライン（段位戦・ガチャ・友人戦）
       </button>
 
       <div className="setup-summary-row">

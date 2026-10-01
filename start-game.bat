@@ -1,4 +1,17 @@
 @echo off
+
+rem Online play (ranked, gacha, friend rooms) needs the game server
+rem (packages/server, port 8787) in addition to the web dev server.
+rem Start it in its own window unless it is already running, so its
+rem logs stay visible and closing that window stops it.
+powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+if %errorlevel%==0 (
+  echo Game server already running.
+) else (
+  echo Starting the game server in a separate window...
+  start "majyan game server" /d "%~dp0" cmd /k "npm run dev:server"
+)
+
 cd /d "%~dp0packages\web"
 
 rem If a dev server is already listening on 5173 (e.g. previous window
