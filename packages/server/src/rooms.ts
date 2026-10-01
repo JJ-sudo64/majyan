@@ -12,8 +12,6 @@ import {
   createMatch,
   randomCardId,
   randomCharacterIds,
-  CARDS,
-  CHARACTERS,
   DEFAULT_AI_DIFFICULTY,
   ROOM_CODE_MAX_LENGTH,
   type AccountProfile,
@@ -38,8 +36,8 @@ export interface Client {
 interface Member {
   userId: string;
   name: string;
-  characterId: string | null;
-  cardId: string | null;
+  /** 対局に出す手持ちのキャラ（collection.tsのcharacter_units）。null=おまかせ。 */
+  unitId: string | null;
   client: Client | null;
   seat: PlayerIndex | null;
 }
@@ -58,8 +56,8 @@ interface Room {
 export interface RankedEntrant {
   client: Client;
   account: AccountProfile;
-  characterId: string | null;
-  cardId: string | null;
+  /** 対局に出す手持ちのキャラ（collection.tsのcharacter_units）。null=おまかせ。 */
+  unitId: string | null;
 }
 
 export interface RoomManagerOptions {
@@ -89,8 +87,7 @@ function sanitize(value: unknown, maxLength: number): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-const validCharacter = (id: unknown) => (typeof id === "string" && id in CHARACTERS ? id : null);
-const validCard = (id: unknown) => (typeof id === "string" && id in CARDS ? id : null);
+const validUnitId = (id: unknown) => (typeof id === "string" && id.length > 0 && id.length <= 64 ? id : null);
 
 export class RoomManager {
   private readonly rooms = new Map<string, Room>();
@@ -138,8 +135,7 @@ export class RoomManager {
       room.members.push({
         userId: e.account.id,
         name: e.account.displayName,
-        characterId: validCharacter(e.characterId),
-        cardId: validCard(e.cardId),
+        unitId: validUnitId(e.unitId),
         client: e.client,
         seat: null,
       });
@@ -172,8 +168,7 @@ export class RoomManager {
     switch (message.t) {
       case "setLoadout":
         if (room.session) return;
-        member.characterId = validCharacter(message.characterId);
-        member.cardId = validCard(message.cardId);
+        member.unitId = validUnitId(message.unitId);
         this.broadcastLobby(room);
         return;
       case "start":
@@ -290,8 +285,7 @@ export class RoomManager {
       // 待合室に入り直した（名前が変わっていれば反映する）。
       existing.client = client;
       existing.name = account.displayName;
-      existing.characterId = validCharacter(message.characterId);
-      existing.cardId = validCard(message.cardId);
+      existing.unitId = validUnitId(message.unitId);
       this.clientRooms.set(client.id, code);
       this.broadcastLobby(room);
       return;
@@ -307,8 +301,7 @@ export class RoomManager {
     room.members.push({
       userId: account.id,
       name: account.displayName,
-      characterId: validCharacter(message.characterId),
-      cardId: validCard(message.cardId),
+      unitId: validUnitId(message.unitId),
       client,
       seat: null,
     });
@@ -339,8 +332,6 @@ export class RoomManager {
       [seatOrder[i], seatOrder[j]] = [seatOrder[j]!, seatOrder[i]!];
     }
     const characterIds = randomCharacterIds(this.rng);
-    // 同じキャラを重ねて持っている（凸）ぶんの必殺技ゲージの上乗せ。CPUは0。
-    const gaugeRateBonus: [number, number, number, number] = [0, 0, 0, 0];
     const cardIds: [string | null, string | null, string | null, string | null] = [null, null, null, null];
     const seats: SessionSeat[] = [];
     room.members.forEach((m, i) => {
@@ -350,14 +341,12 @@ export class RoomManager {
     for (const seat of [0, 1, 2, 3] as PlayerIndex[]) {
       const m = room.members.find((x) => x.seat === seat);
       if (m) {
-        const collections = this.options.collections;
-        if (collections) {
-          characterIds[seat] = collections.resolveCharacter(m.userId, m.characterId);
-          gaugeRateBonus[seat] = collections.gaugeBonus(m.userId, characterIds[seat]);
-        } else if (m.characterId) {
-          characterIds[seat] = m.characterId;
+        // 手持ちのキャラを、付いているカードごと出す（持っていないキャラは選べない）。
+        const unit = this.options.collections?.resolveUnit(m.userId, m.unitId);
+        if (unit) {
+          characterIds[seat] = unit.characterId;
+          cardIds[seat] = unit.cardId;
         }
-        cardIds[seat] = m.cardId;
         seats[seat] = { kind: "human", name: m.name, connected: !!m.client, rankLabel: this.rankLabelOf(m.userId) };
       } else {
         cardIds[seat] = randomCardId(this.rng);
@@ -365,7 +354,7 @@ export class RoomManager {
       }
     }
 
-    const match = createMatch(format, this.rng, characterIds, continueBelowZero, cardIds, gaugeRateBonus);
+    const match = createMatch(format, this.rng, characterIds, continueBelowZero, cardIds);
     room.session = new MatchSession({
       match,
       seats: seats as [SessionSeat, SessionSeat, SessionSeat, SessionSeat],
@@ -401,13 +390,18 @@ export class RoomManager {
     if (room.members.every((m) => !m.client)) setTimeout(() => this.deleteRoom(room), 0);
   }
 
+  /** 待合室に出す、その人が選んだキャラとカード（おまかせならnull）。 */
+  private describeUnit(m: Member): { characterId: string | null; cardId: string | null } {
+    const unit = m.unitId ? this.options.collections?.units(m.userId).find((u) => u.unitId === m.unitId) : undefined;
+    return { characterId: unit?.characterId ?? null, cardId: unit?.cardId ?? null };
+  }
+
   private broadcastLobby(room: Room): void {
     for (const target of room.members) {
       if (!target.client) continue;
       const members: LobbyMember[] = room.members.map((m, i) => ({
         name: m.name,
-        characterId: m.characterId,
-        cardId: m.cardId,
+        ...this.describeUnit(m),
         isHost: i === 0,
         isYou: m === target,
       }));

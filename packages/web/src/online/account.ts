@@ -9,6 +9,8 @@ import { create } from "zustand";
 import {
   ONLINE_API_PREFIX,
   type AccountProfile,
+  type CharacterUnit,
+  type GachaItem,
   type FirstGachaState,
   type GachaRollResponse,
   type JadeBalance,
@@ -32,10 +34,10 @@ interface AccountState {
   status: AccountStatus;
   profile: AccountProfile | null;
   rank: RankView | null;
-  /** 持っているキャラのID。 */
-  characters: string[];
-  /** 持っているキャラごとの数（1なら0凸）。 */
-  characterCopies: Record<string, number>;
+  /** 手持ちのキャラ（同じキャラでも1体ずつ別。付けたカードも入る）。 */
+  units: CharacterUnit[];
+  /** まだどのキャラにも付けていないカードの枚数。 */
+  cards: Record<string, number>;
   exchangePoints: number;
   firstGacha: FirstGachaState | null;
   jade: JadeBalance | null;
@@ -48,8 +50,8 @@ export const useAccountStore = create<AccountState>(() => ({
   status: "unknown",
   profile: null,
   rank: null,
-  characters: [],
-  characterCopies: {},
+  units: [],
+  cards: {},
   exchangePoints: 0,
   firstGacha: null,
   jade: null,
@@ -63,8 +65,8 @@ function applyMe(me: MeResponse) {
     status: "ready",
     profile: me.profile,
     rank: me.rank,
-    characters: me.characters,
-    characterCopies: me.characterCopies,
+    units: me.units,
+    cards: me.cards,
     exchangePoints: me.exchangePoints,
     firstGacha: me.firstGacha,
     jade: me.jade,
@@ -193,14 +195,25 @@ export async function rollGacha(count: 1 | 10): Promise<GachaRollResponse | null
   }
 }
 
-/** 交換ポイントで★3のキャラを1人もらう（天井）。 */
-export async function exchangeCharacter(characterId: string): Promise<GachaRollResponse | null> {
+/** 交換ポイントで★3のキャラかカードを1つもらう（天井）。 */
+export async function exchangeItem(item: GachaItem): Promise<GachaRollResponse | null> {
   try {
-    const res = await api<GachaRollResponse>("/gacha/exchange", { method: "POST", body: JSON.stringify({ characterId }) });
+    const res = await api<GachaRollResponse>("/gacha/exchange", { method: "POST", body: JSON.stringify({ item }) });
     applyMe(res.me);
     return res;
   } catch (err) {
     useAccountStore.setState({ error: (err as Error).message });
     return null;
+  }
+}
+
+/** 手持ちのキャラにカードを付ける（一度付けたら外せない）。成功したらtrue。 */
+export async function equipCard(unitId: string, cardId: string): Promise<boolean> {
+  try {
+    applyMe(await api<MeResponse>("/units/equip", { method: "POST", body: JSON.stringify({ unitId, cardId }) }));
+    return true;
+  } catch (err) {
+    useAccountStore.setState({ error: (err as Error).message });
+    return false;
   }
 }

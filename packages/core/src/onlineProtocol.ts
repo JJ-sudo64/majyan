@@ -13,6 +13,7 @@ import type { RoundScoreOutcome } from "./gameEngine.js";
 import type { SeatOptions } from "./seatView.js";
 import type { ClockDisplay } from "./turnClock.js";
 import type { RankState } from "./ranked.js";
+import type { GachaItem } from "./gacha.js";
 
 /** WebSocketの接続先パス（開発時はViteがこのパスをサーバーへ中継する）。 */
 export const ONLINE_WS_PATH = "/ws";
@@ -30,7 +31,8 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/first-gacha/roll    (Bearer)     → MeResponse            最初の10連を引く（確定するまで何度でも引き直せる）
 //   POST /api/first-gacha/confirm (Bearer)     → MeResponse            今の結果で確定してキャラを受け取る
 //   POST /api/gacha/roll {count: 1|10} (Bearer) → GachaRollResponse    雀玉でガチャを引く
-//   POST /api/gacha/exchange {characterId} (Bearer) → GachaRollResponse 交換ポイントで★3を1人もらう（天井）
+//   POST /api/gacha/exchange {item} (Bearer)   → GachaRollResponse    交換ポイントで★3のキャラかカードを1つもらう（天井）
+//   POST /api/units/equip {unitId, cardId} (Bearer) → MeResponse        手持ちのキャラにカードを付ける（外せない）
 //   失敗時は 4xx と ApiErrorResponse
 // ---------------------------------------------------------------------------
 
@@ -60,7 +62,7 @@ export interface FirstGachaState {
   /** 確定して受け取り済みか（受け取った後はもう引けない）。 */
   confirmed: boolean;
   /** 今出ている（まだ確定していない）結果。まだ1回も引いていなければnull。 */
-  pending: string[] | null;
+  pending: GachaItem[] | null;
   /** 引き直した回数（表示用）。 */
   rolls: number;
 }
@@ -77,21 +79,26 @@ export interface MeResponse {
   jade: JadeBalance;
   /** このリクエストで今日のログインボーナスを受け取った場合、その雀玉の数。 */
   dailyBonus: number | null;
-  /** 持っているキャラのID。 */
-  characters: string[];
-  /** 持っているキャラごとの数（1なら0凸、gacha.tsのlimitBreakOf）。 */
-  characterCopies: Record<string, number>;
+  /** 手持ちのキャラ（同じキャラでも1体ずつ別。付けたカードもここに入る）。 */
+  units: CharacterUnit[];
+  /** まだどのキャラにも付けていないカードの枚数。 */
+  cards: Record<string, number>;
   /** 天井の交換ポイント（gacha.tsのEXCHANGE_COST）。 */
   exchangePoints: number;
   firstGacha: FirstGachaState;
 }
 
+/** 手持ちのキャラ1体。カードは一度付けたら外せない。 */
+export interface CharacterUnit {
+  unitId: string;
+  characterId: string;
+  cardId: string | null;
+}
+
 export interface GachaRollResponse {
-  results: string[];
-  /** resultsのうち、今回初めて手に入れたキャラ。 */
-  newCharacterIds: string[];
-  /** 凸の上限を超えて重なり、代わりにもらえた雀玉。 */
-  overflowJade: number;
+  results: GachaItem[];
+  /** resultsと同じ並びで、それが初めて手に入れたキャラ・カードか。 */
+  isNew: boolean[];
   me: MeResponse;
 }
 
@@ -106,13 +113,14 @@ export interface ApiErrorResponse {
 export type ClientMessage =
   /** 合言葉の部屋に入る。authTokenはアカウントのログイン用の鍵で、名前はアカウントの
       表示名が使われる。対局中の部屋に同じアカウントで入り直すと、その席に戻れる。 */
-  | { t: "join"; room: string; authToken: string; characterId: string | null; cardId: string | null }
+  | { t: "join"; room: string; authToken: string; unitId: string | null }
   /** 段位戦の待ち行列に入る。揃ったら（または一定時間待ったら空席をCPUで埋めて）
       matchFoundが届き、そのまま対局が始まる。 */
-  | { t: "queueRanked"; authToken: string; format: MatchFormat; characterId: string | null; cardId: string | null }
+  | { t: "queueRanked"; authToken: string; format: MatchFormat; unitId: string | null }
   | { t: "cancelQueue" }
-  /** 部屋のキャラクター・カードを選び直す（対局開始前のみ）。 */
-  | { t: "setLoadout"; characterId: string | null; cardId: string | null }
+  /** 対局に出すキャラ（手持ちのキャラ1体。付いているカードごと出る）を選び直す。
+      nullは「おまかせ」（手持ちからランダム）。対局開始前のみ。 */
+  | { t: "setLoadout"; unitId: string | null }
   /** 対局開始（部屋主のみ）。空いている席はCPUが入る。 */
   | { t: "start"; format: MatchFormat; continueBelowZero: boolean }
   /** 対局中の操作。playerやborrowSkillのtargetは自分=0の座席番号。 */

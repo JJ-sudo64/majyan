@@ -67,7 +67,7 @@ function player(name: string) {
 }
 
 function queue(p: ReturnType<typeof player>, format: MatchFormat = "tonpuusen") {
-  matchmaker!.handleMessage(p.client, { t: "queueRanked", authToken: p.token, format, characterId: null, cardId: null });
+  matchmaker!.handleMessage(p.client, { t: "queueRanked", authToken: p.token, format, unitId: null });
 }
 
 /** 段位を直接書き換える（マッチングの段位差を試すため）。 */
@@ -152,50 +152,36 @@ describe("Matchmaker", () => {
   it("rejects an invalid account", () => {
     setup();
     const c = new TestClient("x");
-    matchmaker!.handleMessage(c, { t: "queueRanked", authToken: "y".repeat(43), format: "hanchan", characterId: null, cardId: null });
+    matchmaker!.handleMessage(c, { t: "queueRanked", authToken: "y".repeat(43), format: "hanchan", unitId: null });
     expect(c.last("error")?.fatal).toBe(true);
     expect(matchmaker!.waitingCount).toBe(0);
   });
 });
 
-describe("character ownership", () => {
-  it("replaces a character the player does not own with one they do", () => {
+describe("units in matches", () => {
+  it("plays the chosen unit with its equipped card, and never someone else's unit", () => {
     setup();
     const ps = ["A", "B", "C", "D"].map(player);
-    collections.rollFirstGacha(ps[1]!.profile.id);
-    collections.confirmFirstGacha(ps[1]!.profile.id);
-    const bOwned = collections.owned(ps[1]!.profile.id);
-    const notOwnedByA = "zeno";
+    // Bの2体目にカードを付ける。
+    const cardId = "point-drain";
+    db.prepare("INSERT INTO user_cards (user_id, card_id, count) VALUES (?, ?, 1)").run(ps[1]!.profile.id, cardId);
+    const bUnit = collections.units(ps[1]!.profile.id)[1]!;
+    collections.equipCard(ps[1]!.profile.id, bUnit.unitId, cardId);
     for (const [i, p] of ps.entries()) {
       matchmaker!.handleMessage(p.client, {
         t: "queueRanked",
         authToken: p.token,
         format: "tonpuusen",
-        characterId: i === 1 ? bOwned.at(-1)! : notOwnedByA,
-        cardId: null,
+        // AはBのキャラを指定してみる（自分の手持ちに置き換わるはず）。
+        unitId: i === 0 || i === 1 ? bUnit.unitId : null,
       });
     }
-    const aChar = ps[0]!.client.view.match.round.characterIds[0];
-    expect(collections.owned(ps[0]!.profile.id)).toContain(aChar);
-    expect(ps[1]!.client.view.match.round.characterIds[0]).toBe(bOwned.at(-1));
-  });
-
-  it("applies the player's limit break to the match as a gauge bonus", () => {
-    setup();
-    const ps = ["A", "B", "C", "D"].map(player);
-    // Aにナギを3枚重ねる（2凸 = +10%）。
-    collections.owned(ps[0]!.profile.id); // 初期キャラの行を作っておく
-    db.prepare("UPDATE user_characters SET copies = 3 WHERE user_id = ? AND character_id = 'nagi'").run(ps[0]!.profile.id);
-    for (const [i, p] of ps.entries()) {
-      matchmaker!.handleMessage(p.client, { t: "queueRanked", authToken: p.token, format: "tonpuusen", characterId: i === 0 ? "nagi" : null, cardId: null });
-    }
-    const round = ps[0]!.client.view.match.round;
-    expect(round.characterIds[0]).toBe("nagi");
-    expect(round.gaugeRateBonus?.[0]).toBe(0.1);
-    // 他の人の画面でも、Aの席にAの上乗せが見える（座席は回して届く）。
-    const fromB = ps[1]!.client.view.match.round;
-    const aSeatFromB = ps[1]!.client.view.seats.findIndex((s) => s.name === "A");
-    expect(fromB.gaugeRateBonus?.[aSeatFromB]).toBe(0.1);
+    const bRound = ps[1]!.client.view.match.round;
+    expect(bRound.characterIds[0]).toBe(bUnit.characterId);
+    expect(bRound.cardIds[0]).toBe(cardId);
+    const aRound = ps[0]!.client.view.match.round;
+    expect(collections.units(ps[0]!.profile.id).map((u) => u.characterId)).toContain(aRound.characterIds[0]);
+    expect(aRound.cardIds[0]).toBeNull();
   });
 });
 
@@ -235,14 +221,14 @@ describe("ranked match", () => {
     rooms.disconnect(ps[0]!.client);
 
     const back = new TestClient("A-again");
-    matchmaker!.handleMessage(back, { t: "queueRanked", authToken: ps[0]!.token, format: "tonpuusen", characterId: null, cardId: null });
+    matchmaker!.handleMessage(back, { t: "queueRanked", authToken: ps[0]!.token, format: "tonpuusen", unitId: null });
     expect(back.last("matchFound")?.room).toBe(room);
-    rooms.handleMessage(back, { t: "join", room, authToken: ps[0]!.token, characterId: null, cardId: null });
+    rooms.handleMessage(back, { t: "join", room, authToken: ps[0]!.token, unitId: null });
     expect(back.view.seats[0]!.name).toBe("A");
 
     // 卓に座っていない人は、合言葉が分かっても入れない。
     const outsider = player("E");
-    rooms.handleMessage(outsider.client, { t: "join", room, authToken: outsider.token, characterId: null, cardId: null });
+    rooms.handleMessage(outsider.client, { t: "join", room, authToken: outsider.token, unitId: null });
     expect(outsider.client.last("error")?.fatal).toBe(true);
   });
 

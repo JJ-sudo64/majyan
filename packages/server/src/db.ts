@@ -16,7 +16,8 @@ import type { DatabaseSync as DatabaseSyncType } from "node:sqlite";
 // 組み込みとして認識できず読み込みに失敗するため、requireで直接読み込む。
 const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as typeof import("node:sqlite");
 
-const MIGRATIONS: string[] = [
+/** テストで「途中のバージョンのDB」を作れるようにexportしている。 */
+export const MIGRATIONS: readonly string[] = [
   // 1: アカウント（ゲスト）とログイン用の鍵
   `
   CREATE TABLE users (
@@ -124,6 +125,34 @@ const MIGRATIONS: string[] = [
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     points INTEGER NOT NULL CHECK (points >= 0)
   );
+  `,
+  // 6: キャラを1体ずつ別に持つ形へ（凸をやめる）。カードは手持ち枚数と、キャラに付けたもの。
+  //    以前の「重なった数(copies)」はその数だけ別々のキャラに展開する。
+  `
+  CREATE TABLE character_units (
+    unit_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    character_id TEXT NOT NULL,
+    card_id TEXT,
+    source TEXT NOT NULL,
+    acquired_at INTEGER NOT NULL,
+    card_equipped_at INTEGER
+  );
+  CREATE INDEX character_units_user ON character_units(user_id);
+  CREATE TABLE user_cards (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    card_id TEXT NOT NULL,
+    count INTEGER NOT NULL CHECK (count >= 0),
+    PRIMARY KEY (user_id, card_id)
+  );
+  WITH RECURSIVE expanded(user_id, character_id, source, acquired_at, n, copies) AS (
+    SELECT user_id, character_id, source, acquired_at, 1, copies FROM user_characters
+    UNION ALL
+    SELECT user_id, character_id, source, acquired_at, n + 1, copies FROM expanded WHERE n < copies
+  )
+  INSERT INTO character_units (unit_id, user_id, character_id, card_id, source, acquired_at, card_equipped_at)
+    SELECT lower(hex(randomblob(12))), user_id, character_id, NULL, source, acquired_at, NULL FROM expanded;
+  DROP TABLE user_characters;
   `,
 ];
 

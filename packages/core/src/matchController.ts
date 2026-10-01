@@ -170,7 +170,6 @@ export function advanceToNextRound(
     round.cardUsesRemaining,
     round.cardNegateArmed,
     match.format,
-    round.gaugeRateBonus,
   );
   return { ...match, round: resolveAutoTileSwaps(nextRound, autoTileSwapSeats) };
 }

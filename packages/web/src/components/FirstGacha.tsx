@@ -5,7 +5,7 @@ import { GachaCard } from "./GachaCard.js";
 
 /**
  * 最初の10連。何度でも引き直せて、「これで決定」を押すとその結果のキャラが
- * もらえる（★3が1人確定）。抽選はサーバーで行い、ここは結果を見せるだけ。
+ * もらえる（★3キャラが1人確定）。抽選はサーバーで行い、ここは結果を見せるだけ。
  * 確定するまではネット対戦の画面の代わりにこれを出す。
  */
 export function FirstGacha() {
@@ -28,13 +28,13 @@ export function FirstGacha() {
     <div className="first-gacha">
       <h2 className="first-gacha__title">はじめの{FIRST_GACHA.count}連</h2>
       <p className="setup-lead">
-        最初の仲間を選ぶガチャです。★3が1人確定。納得いくまで何度でも引き直せます。「これで決定」を押すと、出たキャラがすべて仲間になります。
+        最初の仲間を選ぶガチャです。キャラとカードが出て、★3キャラが1人確定。納得いくまで何度でも引き直せます。「これで決定」を押すと、出たものがすべて手に入ります。
       </p>
 
       {pending && (
         <div className="first-gacha__grid">
-          {pending.map((id, i) => (
-            <GachaCard key={`${firstGacha?.rolls}-${i}`} characterId={id} index={i} />
+          {pending.map((item, i) => (
+            <GachaCard key={`${firstGacha?.rolls}-${i}`} item={item} index={i} />
           ))}
         </div>
       )}

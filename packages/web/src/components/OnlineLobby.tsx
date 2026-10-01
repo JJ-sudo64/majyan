@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, limitBreakOf, rarityOf, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
 import { GachaScreen } from "./GachaScreen.js";
+import { UnitsScreen } from "./UnitsScreen.js";
 
-const CHARACTER_LIST = Object.values(CHARACTERS);
-const CARD_LIST = Object.values(CARDS);
+/** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
+function unitLabel(u: CharacterUnit): string {
+  const name = CHARACTERS[u.characterId]?.name ?? u.characterId;
+  const card = u.cardId ? CARDS[u.cardId]?.name : null;
+  return `${"★".repeat(characterRarity(u.characterId))} ${name}${card ? ` ＋ ${card}` : "（カードなし）"}`;
+}
 /** 次回の入力を省くため、合言葉を覚えておく（ブラウザごと）。 */
 const ROOM_KEY = "majyan.online.room";
 
@@ -39,8 +44,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const profile = useAccountStore((s) => s.profile);
   const accountError = useAccountStore((s) => s.error);
   const rank = useAccountStore((s) => s.rank);
-  const ownedIds = useAccountStore((s) => s.characters);
-  const copies = useAccountStore((s) => s.characterCopies);
+  const units = useAccountStore((s) => s.units);
+  const [showUnits, setShowUnits] = useState(false);
   const firstGacha = useAccountStore((s) => s.firstGacha);
   const jade = useAccountStore((s) => s.jade);
   const dailyBonusNotice = useAccountStore((s) => s.dailyBonusNotice);
@@ -54,8 +59,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [roomCode, setRoomCode] = useState(() => loadSaved(ROOM_KEY));
-  const [characterId, setCharacterId] = useState<string | null>(null);
-  const [cardId, setCardId] = useState<string | null>(null);
+  /** 対局に出す手持ちのキャラ（付いているカードごと出る）。null=おまかせ。 */
+  const [unitId, setUnitId] = useState<string | null>(null);
   const [continueBelowZero, setContinueBelowZero] = useState(false);
 
   const inRoom = status === "lobby";
@@ -78,7 +83,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     const trimmedRoom = roomCode.trim();
     if (!trimmedRoom || !profile) return;
     save(ROOM_KEY, trimmedRoom);
-    onlineLink.join({ room: trimmedRoom, characterId, cardId });
+    onlineLink.join({ room: trimmedRoom, unitId });
   }
 
   async function submitName() {
@@ -92,10 +97,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     }
   }
 
-  function changeLoadout(nextCharacterId: string | null, nextCardId: string | null) {
-    setCharacterId(nextCharacterId);
-    setCardId(nextCardId);
-    if (inRoom) onlineLink.send({ t: "setLoadout", characterId: nextCharacterId, cardId: nextCardId });
+  function changeLoadout(nextUnitId: string | null) {
+    setUnitId(nextUnitId);
+    if (inRoom) onlineLink.send({ t: "setLoadout", unitId: nextUnitId });
   }
 
   function start(format: MatchFormat) {
@@ -192,15 +196,16 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
       )}
       {showGacha && <GachaScreen onClose={() => setShowGacha(false)} />}
+      {showUnits && <UnitsScreen onClose={() => setShowUnits(false)} />}
 
       {ready && !busy && (
         <div className="online-lobby__section">
           <div className="online-lobby__section-title">段位戦</div>
           <div className="setup-buttons">
-            <button className="btn btn--primary btn--large" onClick={() => onlineLink.queueRanked("tonpuusen", characterId, cardId)}>
+            <button className="btn btn--primary btn--large" onClick={() => onlineLink.queueRanked("tonpuusen", unitId)}>
               東風戦
             </button>
-            <button className="btn btn--primary btn--large" onClick={() => onlineLink.queueRanked("hanchan", characterId, cardId)}>
+            <button className="btn btn--primary btn--large" onClick={() => onlineLink.queueRanked("hanchan", unitId)}>
               半荘戦
             </button>
           </div>
@@ -240,28 +245,21 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {ready && (
       <div className="online-lobby__form">
         <label className="online-lobby__field">
-          <span>キャラクター</span>
-          <select value={characterId ?? ""} onChange={(e) => changeLoadout(e.target.value || null, cardId)}>
-            <option value="">おまかせ</option>
-            {CHARACTER_LIST.filter((c) => ownedIds.includes(c.id)).map((c) => (
-              <option key={c.id} value={c.id}>
-                {"★".repeat(rarityOf(c.id))} {c.name}
-                {limitBreakOf(copies[c.id] ?? 1) > 0 ? `（${limitBreakOf(copies[c.id] ?? 1)}凸）` : ""}
+          <span>対局に出すキャラ（付けたカードごと出ます）</span>
+          <select value={unitId ?? ""} onChange={(e) => changeLoadout(e.target.value || null)}>
+            <option value="">おまかせ（手持ちからランダム）</option>
+            {units.map((u) => (
+              <option key={u.unitId} value={u.unitId}>
+                {unitLabel(u)}
               </option>
             ))}
           </select>
         </label>
-        <label className="online-lobby__field">
-          <span>カード</span>
-          <select value={cardId ?? ""} onChange={(e) => changeLoadout(characterId, e.target.value || null)}>
-            <option value="">なし</option>
-            {CARD_LIST.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!busy && (
+          <button type="button" className="btn online-lobby__units-btn" onClick={() => setShowUnits(true)}>
+            手持ち・カードを付ける
+          </button>
+        )}
       </div>
       )}
 

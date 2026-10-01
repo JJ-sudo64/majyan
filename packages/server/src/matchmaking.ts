@@ -8,8 +8,6 @@
  * 卓を立てるのはrooms.tsのstartRankedMatch。
  */
 import {
-  CARDS,
-  CHARACTERS,
   rankOrdinal,
   type AccountProfile,
   type ClientMessage,
@@ -34,8 +32,7 @@ interface Entry {
   account: AccountProfile;
   format: MatchFormat;
   ordinal: number;
-  characterId: string | null;
-  cardId: string | null;
+  unitId: string | null;
   queuedAt: number;
 }
 
@@ -95,8 +92,7 @@ export class Matchmaker {
       account,
       format: message.format,
       ordinal: rankOrdinal(this.options.ranks.get(account.id)),
-      characterId: typeof message.characterId === "string" && message.characterId in CHARACTERS ? message.characterId : null,
-      cardId: typeof message.cardId === "string" && message.cardId in CARDS ? message.cardId : null,
+      unitId: typeof message.unitId === "string" ? message.unitId : null,
       queuedAt: this.now(),
     });
     client.send({ t: "queued", format: message.format, cpuFillInMs: this.cpuFillMs });
@@ -140,7 +136,7 @@ export class Matchmaker {
   private launch(group: Entry[], format: MatchFormat): void {
     this.queue = this.queue.filter((e) => !group.includes(e));
     this.options.rooms.startRankedMatch(
-      group.map((e) => ({ client: e.client, account: e.account, characterId: e.characterId, cardId: e.cardId })),
+      group.map((e) => ({ client: e.client, account: e.account, unitId: e.unitId })),
       format,
     );
   }

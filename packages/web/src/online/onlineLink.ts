@@ -32,8 +32,8 @@ export type OnlineStatus =
 
 export interface JoinRequest {
   room: string;
-  characterId: string | null;
-  cardId: string | null;
+  /** 対局に出す手持ちのキャラ（付いているカードごと出る）。null=おまかせ。 */
+  unitId: string | null;
 }
 
 interface OnlineStoreState {
@@ -95,7 +95,7 @@ function handleMessage(message: ServerMessage) {
       // 卓が決まった。新しい卓ならサーバーがそのまま状態を送ってくるが、途中で
       // 抜けていた段位戦へ戻る場合は自分で卓に入る必要があるので、常にjoinを送る
       // （既に座っている卓へのjoinは何も変えない）。合言葉は入り直し用に覚えておく。
-      lastJoin = { room: message.room, characterId: lastJoin?.characterId ?? null, cardId: lastJoin?.cardId ?? null };
+      lastJoin = { room: message.room, unitId: lastJoin?.unitId ?? null };
       useOnlineStore.setState({ queue: null, ranked: true, rankResult: null, room: message.room });
       onlineLink.send({ t: "join", ...lastJoin, authToken: accountToken() ?? "" });
       return;
@@ -160,9 +160,9 @@ export const onlineLink = {
   },
 
   /** 段位戦の待ち行列に並ぶ。 */
-  queueRanked(format: MatchFormat, characterId: string | null, cardId: string | null) {
-    lastJoin = { room: "", characterId, cardId };
-    connect({ t: "queueRanked", authToken: accountToken() ?? "", format, characterId, cardId });
+  queueRanked(format: MatchFormat, unitId: string | null) {
+    lastJoin = { room: "", unitId };
+    connect({ t: "queueRanked", authToken: accountToken() ?? "", format, unitId });
   },
 
   cancelQueue() {

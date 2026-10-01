@@ -78,8 +78,6 @@ export function dealNewRound(
       持たせる（createMatch経由で渡ってくる。単体でdealNewRoundを呼ぶテスト等
       では省略時"hanchan"扱い）。 */
   format: MatchFormat = "hanchan",
-  /** 座席ごとの必殺技ゲージの溜まりやすさの上乗せ（RoundState.gaugeRateBonus）。 */
-  gaugeRateBonus: [number, number, number, number] = [0, 0, 0, 0],
 ): RoundState {
   let wall = buildWall(rng);
   const players: [PlayerRoundState, PlayerRoundState, PlayerRoundState, PlayerRoundState] = [
@@ -131,7 +129,6 @@ export function dealNewRound(
     cardScoreDoubled: [false, false, false, false],
     pendingScoreAdjustment: null,
     lastActivatedSkill: null,
-    gaugeRateBonus,
   };
 
   // ナオキの「クマクマタイム」・メビウスの「陰陽配牌」等、配牌そのものを
@@ -164,16 +161,12 @@ export function createMatch(
   /** 各座席が持つカード（cards.tsのCARDSのキー）。null=カード無し。人間(0)は
       MatchSetupでの選択、CPU(1-3)はgameStore.tsがランダム抽選する。 */
   cardIds: [string | null, string | null, string | null, string | null] = [null, null, null, null],
-  /** 座席ごとの必殺技ゲージの溜まりやすさの上乗せ（ネット対戦の凸。RoundState.gaugeRateBonus参照）。 */
-  gaugeRateBonus: [number, number, number, number] = [0, 0, 0, 0],
 ): MatchState {
   // 起家（東1局の親）は本来くじ引き等で座席に関わらず決まるもので、
   // 人間プレイヤー(座席0)に固定する理由はない。以前は常にdealerSeat=0
   // としており、プレイヤーが必ず親から対局を始めることになっていた。
   const startingDealer = Math.floor(rng() * 4) as PlayerIndex;
-  const round = dealNewRound(
-    1, 1, 0, 0, startingDealer, rng, characterIds, undefined, undefined, false, cardIds, undefined, undefined, format, gaugeRateBonus,
-  );
+  const round = dealNewRound(1, 1, 0, 0, startingDealer, rng, characterIds, undefined, undefined, false, cardIds, undefined, undefined, format);
   return {
     format,
     scores: [STARTING_SCORE, STARTING_SCORE, STARTING_SCORE, STARTING_SCORE],

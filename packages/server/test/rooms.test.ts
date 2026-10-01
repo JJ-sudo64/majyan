@@ -60,7 +60,7 @@ function tokenFor(name: string): string {
 
 /** 名前のアカウントで部屋に入る。authTokenを渡すとそのアカウントで入る。 */
 function join(rooms: RoomManager, client: TestClient, name: string, room = "abc", authToken = tokenFor(name)) {
-  rooms.handleMessage(client, { t: "join", room, authToken, characterId: null, cardId: null });
+  rooms.handleMessage(client, { t: "join", room, authToken, unitId: null });
 }
 
 /** 対局が終わるまで（または上限まで）時間を進める。 */

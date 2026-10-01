@@ -64,16 +64,16 @@ export function parseClientMessage(raw: string): ClientMessage | null {
   if (!isObj(m) || !isStr(m.t, 20)) return null;
   switch (m.t) {
     case "join":
-      if (!isStr(m.room) || !isStr(m.authToken) || !isNullableStr(m.characterId) || !isNullableStr(m.cardId)) return null;
+      if (!isStr(m.room) || !isStr(m.authToken) || !isNullableStr(m.unitId)) return null;
       return m as ClientMessage;
     case "queueRanked":
-      return isStr(m.authToken) && (m.format === "hanchan" || m.format === "tonpuusen") && isNullableStr(m.characterId) && isNullableStr(m.cardId)
+      return isStr(m.authToken) && (m.format === "hanchan" || m.format === "tonpuusen") && isNullableStr(m.unitId)
         ? (m as ClientMessage)
         : null;
     case "cancelQueue":
       return m as ClientMessage;
     case "setLoadout":
-      return isNullableStr(m.characterId) && isNullableStr(m.cardId) ? (m as ClientMessage) : null;
+      return isNullableStr(m.unitId) ? (m as ClientMessage) : null;
     case "start":
       return (m.format === "hanchan" || m.format === "tonpuusen") && typeof m.continueBelowZero === "boolean"
         ? (m as ClientMessage)

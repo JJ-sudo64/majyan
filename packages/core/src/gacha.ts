@@ -1,17 +1,29 @@
 /**
- * キャラクターのレア度とガチャ（数値・振り分けはここに集めてあるので、調整はこの
- * ファイルだけで済む）。
+ * ガチャと、キャラ・カードのレア度（数値・振り分けはここに集めてあるので、調整は
+ * このファイルだけで済む）。
  *
- * - レア度: ★1〜★3。必殺技が局の結果を大きく動かすキャラほど高い
+ * - ガチャからはキャラとカードが混ざって出る。同じキャラが出たら1体ずつ別に持つ
+ *   （凸のような「重ねて強くする」仕組みは無い）。カードは手持ちのキャラ1体に
+ *   1枚だけ付けられ、付けたら外せない。何のカードを付けたかで同じキャラにも
+ *   別々の価値が生まれる
+ * - レア度: ★1〜★3。局の結果を大きく動かすものほど高い
  * - 最初から全員が持っているキャラ（STARTER_CHARACTER_IDS）
- * - 最初の10連（FIRST_GACHA）: 何度でも引き直せて、確定するとその結果がもらえる。★3が1人確定
+ * - 最初の10連（FIRST_GACHA）: 何度でも引き直せて、確定するとその結果がもらえる。★3キャラが1人確定
+ * - 天井: 通常のガチャを引くと交換ポイントがたまり、★3のキャラかカードを1つ選んでもらえる
  *
  * 抽選そのもの（rollGacha）は乱数を引数で受け取る純粋関数で、実際に引くのは
  * サーバーだけ（画面側で引くと結果を書き換えられるため）。
  */
 import { CHARACTER_IDS } from "./characters.js";
+import { CARD_IDS } from "./cards.js";
 
 export type Rarity = 1 | 2 | 3;
+
+/** ガチャから出るもの1つ。 */
+export interface GachaItem {
+  kind: "character" | "card";
+  id: string;
+}
 
 export const CHARACTER_RARITY: Record<string, Rarity> = {
   // ★3: 和了を直接引き寄せる・相手の行動を封じる等、局の結果を大きく動かす
@@ -43,25 +55,79 @@ export const CHARACTER_RARITY: Record<string, Rarity> = {
   mebius: 1,
 };
 
-/** 新しいアカウントが最初から持っているキャラ。扱いやすく、攻め（ドラ増やし・
-    引き直し）と守り（様子見）がそろう3人。 */
+export const CARD_RARITY: Record<string, Rarity> = {
+  // ★3: 点数や局の結果を大きく動かす
+  "score-double": 3,
+  "point-drain": 3,
+  "han-up-2": 3,
+  nullify: 3,
+  "dora-guarantee": 3,
+  // ★2: 毎局効く、または狙った場面で確実に得をする
+  "meld-guarantee": 2,
+  "han-up-1": 2,
+  "future-sight": 2,
+  insight: 2,
+  "double-ura-dora": 2,
+  "houjuu-guard": 2,
+  "last-place-bonus": 2,
+  "kyotaku-collector": 2,
+  "last-stand": 2,
+  "ippatsu-extend": 2,
+  // ★1: 1回きりの保険・場面が限られる
+  "tenpai-insurance": 1,
+  "bust-guard": 1,
+  "tile-count-insight": 1,
+  "furiten-clear": 1,
+  "uncallable-yakuhai": 1,
+  "no-cost-riichi": 1,
+  "dealer-honba-boost": 1,
+};
+
+/** 新しいアカウントが最初から持っているキャラ（カードは付いていない）。扱いやすく、
+    攻め（ドラ増やし・引き直し）と守り（様子見）がそろう3人。 */
 export const STARTER_CHARACTER_IDS: readonly string[] = ["hiiragi", "nagi", "sena"];
 
-/** 1回引いた時に各レア度が出る確率（合計1）。 */
+/** 1回引いた時に各レア度が出る確率（合計1）。同じレア度の中ではキャラ・カードを区別せず均等。 */
 export const GACHA_RARITY_RATES: Record<Rarity, number> = { 3: 0.03, 2: 0.18, 1: 0.79 };
+
+export interface GachaGuarantee {
+  rarity: Rarity;
+  /** 指定するとその種類（キャラ/カード）に限る。 */
+  kind?: GachaItem["kind"];
+}
 
 export const FIRST_GACHA = {
   count: 10,
-  /** この中に最低1人入る（入らなければ最後の1枠をこのレア度で引き直す）。 */
-  guaranteedRarity: 3 as Rarity,
+  /** この中に最低1つ入る（入らなければ最後の1枠をこれで引き直す）。始めたばかりでも
+      強いキャラで遊べるよう、最初はキャラに限る。 */
+  guarantee: { rarity: 3, kind: "character" } as GachaGuarantee,
 };
 
-export function rarityOf(characterId: string): Rarity {
+export function rarityOf(item: GachaItem): Rarity {
+  return (item.kind === "character" ? CHARACTER_RARITY[item.id] : CARD_RARITY[item.id]) ?? 1;
+}
+
+export function characterRarity(characterId: string): Rarity {
   return CHARACTER_RARITY[characterId] ?? 1;
 }
 
-export function charactersOfRarity(rarity: Rarity): string[] {
-  return CHARACTER_IDS.filter((id) => rarityOf(id) === rarity);
+export function cardRarity(cardId: string): Rarity {
+  return CARD_RARITY[cardId] ?? 1;
+}
+
+/** そのレア度で出るもの（キャラ・カード）。kindで絞り込める。 */
+export function gachaPool(rarity: Rarity, kind?: GachaItem["kind"]): GachaItem[] {
+  const characters = CHARACTER_IDS.filter((id) => characterRarity(id) === rarity).map((id): GachaItem => ({ kind: "character", id }));
+  const cards = CARD_IDS.filter((id) => cardRarity(id) === rarity).map((id): GachaItem => ({ kind: "card", id }));
+  if (kind === "character") return characters;
+  if (kind === "card") return cards;
+  return [...characters, ...cards];
+}
+
+/** 1回引いた時にそのもの1つが出る確率（提供割合の表示用）。 */
+export function itemRate(item: GachaItem): number {
+  const rarity = rarityOf(item);
+  return GACHA_RARITY_RATES[rarity] / gachaPool(rarity).length;
 }
 
 function pickRarity(rng: () => number): Rarity {
@@ -71,20 +137,22 @@ function pickRarity(rng: () => number): Rarity {
   return 1;
 }
 
-function pickCharacter(rng: () => number, rarity: Rarity): string {
-  const pool = charactersOfRarity(rarity);
+function pickItem(rng: () => number, rarity: Rarity, kind?: GachaItem["kind"]): GachaItem {
+  const pool = gachaPool(rarity, kind);
   return pool[Math.floor(rng() * pool.length)]!;
 }
 
+const meets = (item: GachaItem, g: GachaGuarantee) => rarityOf(item) >= g.rarity && (!g.kind || item.kind === g.kind);
+
 /**
- * ガチャをcount回引く。guaranteedRarityを渡すと、その結果に一度もそのレア度
- * 以上が無かった場合に最後の1枠をそのレア度で引き直す（「★3が1人確定」）。
+ * ガチャをcount回引く。guaranteeを渡すと、結果にその条件を満たすものが1つも
+ * 無かった場合に、最後の1枠をその条件で引き直す（「★3キャラが1人確定」等）。
  */
-export function rollGacha(rng: () => number, count: number, guaranteedRarity?: Rarity): string[] {
-  const results: string[] = [];
-  for (let i = 0; i < count; i++) results.push(pickCharacter(rng, pickRarity(rng)));
-  if (guaranteedRarity && count > 0 && !results.some((id) => rarityOf(id) >= guaranteedRarity)) {
-    results[count - 1] = pickCharacter(rng, guaranteedRarity);
+export function rollGacha(rng: () => number, count: number, guarantee?: GachaGuarantee): GachaItem[] {
+  const results: GachaItem[] = [];
+  for (let i = 0; i < count; i++) results.push(pickItem(rng, pickRarity(rng)));
+  if (guarantee && count > 0 && !results.some((item) => meets(item, guarantee))) {
+    results[count - 1] = pickItem(rng, guarantee.rarity, guarantee.kind);
   }
   return results;
 }
@@ -96,8 +164,8 @@ export function rollGacha(rng: () => number, count: number, guaranteedRarity?: R
 /** 通常のガチャの値段（雀玉）。 */
 export const GACHA_PRICE = { single: 150, ten: 1500 } as const;
 
-/** 通常の10連は、この中に最低1人このレア度以上が入る。 */
-export const TEN_PULL_GUARANTEED_RARITY: Rarity = 2;
+/** 通常の10連は、この中に最低1つ★2以上が入る（キャラ・カードどちらでも）。 */
+export const TEN_PULL_GUARANTEE: GachaGuarantee = { rarity: 2 };
 
 /** アカウントを作った時にもらえる雀玉。 */
 export const STARTING_JADE = 1500;
@@ -122,33 +190,14 @@ export function jstDate(epochMs: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// 天井（交換ポイント）と重複（凸）
+// 天井（交換ポイント）
 // ---------------------------------------------------------------------------
 
 /** 通常のガチャ1回でたまる交換ポイント（最初の10連は対象外）。 */
 export const EXCHANGE_POINTS_PER_PULL = 1;
 
-/** この交換ポイントで★3の中から好きなキャラを1人もらえる（天井）。 */
+/** この交換ポイントで★3のキャラかカードを1つ選んでもらえる（天井）。 */
 export const EXCHANGE_COST = 200;
 
 /** 交換でもらえるレア度。 */
 export const EXCHANGE_RARITY: Rarity = 3;
-
-/** 凸（同じキャラを重ねた数）の上限。 */
-export const MAX_LIMIT_BREAK = 4;
-
-/** 1凸あたりの必殺技ゲージの溜まりやすさの上乗せ（0.05 = +5%）。 */
-export const GAUGE_BONUS_PER_LIMIT_BREAK = 0.05;
-
-/** 凸の上限を超えて重なった時に代わりにもらえる雀玉（レア度ごと）。 */
-export const OVERFLOW_JADE: Record<Rarity, number> = { 1: 15, 2: 50, 3: 150 };
-
-/** 持っている数（1なら0凸）から凸数を出す。 */
-export function limitBreakOf(copies: number): number {
-  return Math.max(0, Math.min(MAX_LIMIT_BREAK, copies - 1));
-}
-
-/** 凸数に応じた必殺技ゲージの上乗せ（RoundState.gaugeRateBonus）。 */
-export function gaugeBonusForCopies(copies: number): number {
-  return Math.round(limitBreakOf(copies) * GAUGE_BONUS_PER_LIMIT_BREAK * 1000) / 1000;
-}

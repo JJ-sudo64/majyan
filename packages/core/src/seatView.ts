@@ -279,7 +279,6 @@ export function rotateRoundForViewer(round: RoundState, viewer: PlayerIndex): Ro
     cardExtraUraDora: rotateFour(round.cardExtraUraDora, viewer),
     cardScoreDoubled: rotateFour(round.cardScoreDoubled, viewer),
     pendingScoreAdjustment: round.pendingScoreAdjustment && rotateFour(round.pendingScoreAdjustment, viewer),
-    gaugeRateBonus: round.gaugeRateBonus && rotateFour(round.gaugeRateBonus, viewer),
     lastActivatedSkill: round.lastActivatedSkill && {
       owner: toViewerSeat(round.lastActivatedSkill.owner, viewer),
       characterId: round.lastActivatedSkill.characterId,

@@ -5020,3 +5020,105 @@ button {
   font-size: 11px;
   opacity: 0.75;
 }
+.online-lobby__units-btn {
+  align-self: flex-end;
+  font-size: 13px;
+}
+.gacha-card__card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #3a2a60, #1b1430);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  font-weight: bold;
+}
+.gacha-screen__exchange-item .gacha-card__card-icon {
+  width: 44px;
+  height: 44px;
+  font-size: 11px;
+}
+
+/* 手持ち（UnitsScreen.tsx） */
+.units-screen__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+.units-screen__unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid #555;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+}
+.units-screen__unit:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.units-screen__unit img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.units-screen__unit--selected {
+  border-color: #ffd34d;
+  box-shadow: 0 0 10px rgba(255, 211, 77, 0.7);
+}
+.units-screen__stars {
+  font-size: 11px;
+  color: #ffd34d;
+}
+.units-screen__name {
+  font-size: 13px;
+  font-weight: bold;
+}
+.units-screen__card {
+  font-size: 11px;
+  color: #c9b8ff;
+  text-align: center;
+}
+.units-screen__card--none {
+  color: #999;
+}
+.units-screen__equip {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.units-screen__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.units-screen__card-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #5a4a8a;
+  background: rgba(20, 12, 40, 0.7);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.units-screen__card-choice--selected {
+  border-color: #ffd34d;
+}
+.units-screen__card-desc {
+  font-size: 11px;
+  opacity: 0.75;
+}

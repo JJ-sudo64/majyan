@@ -98,9 +98,10 @@ describe("account HTTP API", () => {
     const renamed = await post("/api/me/name", { displayName: "新しい名前" }, token);
     expect(((await renamed.json()) as MeResponse).profile.displayName).toBe("新しい名前");
 
-    // 最初の10連: 引き直せて、確定するとキャラが増え、もう引けなくなる。
+    // 最初の10連: 引き直せて、確定するとキャラ・カードが増え、もう引けなくなる。
     const fresh = (await (await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${token}` } })).json()) as MeResponse;
-    expect([...fresh.characters].sort()).toEqual(["hiiragi", "nagi", "sena"]);
+    expect(fresh.units.map((u) => u.characterId).sort()).toEqual(["hiiragi", "nagi", "sena"]);
+    expect(fresh.cards).toEqual({});
     expect(fresh.firstGacha).toEqual({ confirmed: false, pending: null, rolls: 0 });
     const roll1 = (await (await post("/api/first-gacha/roll", {}, token)).json()) as MeResponse;
     expect(roll1.firstGacha.pending).toHaveLength(10);
@@ -109,7 +110,11 @@ describe("account HTTP API", () => {
     expect(roll2.firstGacha.rolls).toBe(2);
     const confirmed = (await (await post("/api/first-gacha/confirm", {}, token)).json()) as MeResponse;
     expect(confirmed.firstGacha.confirmed).toBe(true);
-    for (const id of roll2.firstGacha.pending!) expect(confirmed.characters).toContain(id);
+    const pending = roll2.firstGacha.pending!;
+    const pulledChars = pending.filter((i) => i.kind === "character").length;
+    const pulledCards = pending.filter((i) => i.kind === "card").length;
+    expect(confirmed.units).toHaveLength(3 + pulledChars); // 同じキャラも1体ずつ別
+    expect(Object.values(confirmed.cards).reduce((a, b) => a + b, 0)).toBe(pulledCards);
     expect((await post("/api/first-gacha/roll", {}, token)).status).toBe(409);
 
     // 雀玉: 最初にもらえる分があり、ログインボーナスは1日1回。通常のガチャで減る。
@@ -120,10 +125,19 @@ describe("account HTTP API", () => {
     expect(meAgain.dailyBonus).toBeNull();
     const rolled = (await (await post("/api/gacha/roll", { count: 10 }, token)).json()) as GachaRollResponse;
     expect(rolled.results).toHaveLength(10);
-    // 凸が最大のキャラが重なると、その分は雀玉で戻ってくる。
-    expect(rolled.me.jade.free).toBe(meAgain.jade.free - 1500 + rolled.overflowJade);
-    if (rolled.me.jade.free < 1500) {
-      expect((await post("/api/gacha/roll", { count: 10 }, token)).status).toBe(409); // 雀玉が足りない
+    expect(rolled.isNew).toHaveLength(10);
+    expect(rolled.me.jade.free).toBe(meAgain.jade.free - 1500);
+    expect((await post("/api/gacha/roll", { count: 10 }, token)).status).toBe(409); // 雀玉が足りない
+
+    // カードを付ける: 付けたら外せない（2枚目は付けられない）。
+    const withCard = rolled.me;
+    const cardId = Object.keys(withCard.cards)[0];
+    if (cardId) {
+      const unit = withCard.units.find((u) => u.cardId === null)!;
+      const equipped = (await (await post("/api/units/equip", { unitId: unit.unitId, cardId }, token)).json()) as MeResponse;
+      expect(equipped.units.find((u) => u.unitId === unit.unitId)?.cardId).toBe(cardId);
+      expect(equipped.cards[cardId] ?? 0).toBe(withCard.cards[cardId]! - 1);
+      expect((await post("/api/units/equip", { unitId: unit.unitId, cardId }, token)).status).toBe(409);
     }
     expect((await post("/api/gacha/roll", { count: 5 }, token)).status).toBe(400);
   });

@@ -81,8 +81,8 @@ export function createApiHandler(options: HttpApiOptions) {
     rank: ranks.get(profile.id),
     jade: wallet.balance(profile.id),
     dailyBonus,
-    characters: collections.owned(profile.id),
-    characterCopies: collections.copies(profile.id),
+    units: collections.units(profile.id),
+    cards: collections.cards(profile.id),
     exchangePoints: collections.exchangePoints(profile.id),
     firstGacha: collections.firstGachaState(profile.id),
   });
@@ -160,16 +160,33 @@ export function createApiHandler(options: HttpApiOptions) {
         case "POST /gacha/exchange": {
           const profile = authed(req, res);
           if (!profile) return true;
-          const body = (await readJson(req)) as { characterId?: unknown };
-          if (typeof body.characterId !== "string") return fail(res, 400, "キャラを選んでください"), true;
+          const body = (await readJson(req)) as { item?: { kind?: unknown; id?: unknown } };
+          const item = body.item;
+          if (!item || (item.kind !== "character" && item.kind !== "card") || typeof item.id !== "string") {
+            return fail(res, 400, "交換するものを選んでください"), true;
+          }
           let exchanged;
           try {
-            exchanged = collections.exchange(profile.id, body.characterId, wallet);
+            exchanged = collections.exchange(profile.id, { kind: item.kind, id: item.id });
           } catch (err) {
             if (err instanceof GachaError) return fail(res, 409, err.message), true;
             throw err;
           }
           sendJson(res, 200, { ...exchanged, me: me(profile) } satisfies GachaRollResponse);
+          return true;
+        }
+        case "POST /units/equip": {
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { unitId?: unknown; cardId?: unknown };
+          if (typeof body.unitId !== "string" || typeof body.cardId !== "string") return fail(res, 400, "キャラとカードを選んでください"), true;
+          try {
+            collections.equipCard(profile.id, body.unitId, body.cardId);
+          } catch (err) {
+            if (err instanceof GachaError) return fail(res, 409, err.message), true;
+            throw err;
+          }
+          sendJson(res, 200, me(profile));
           return true;
         }
         case "POST /first-gacha/roll":
