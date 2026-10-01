@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARD_IDS, EXCHANGE_COST, gachaPool, rarityOf, STARTER_CHARACTER_IDS } from "@majyan/core";
+import { CARD_IDS, EXCHANGE_COST, gachaPool, STARTER_CHARACTER_IDS } from "@majyan/core";
 import { AccountService } from "../src/accounts.js";
 import { CollectionService, GachaError } from "../src/collection.js";
 import { openDatabase } from "../src/db.js";
@@ -94,7 +94,6 @@ describe("first 10-pull", () => {
     const second = collections.rollFirstGacha(userId);
     expect(second.rolls).toBe(2);
     expect(second.pending).toHaveLength(10);
-    expect(second.pending!.some((i) => i.kind === "character" && rarityOf(i) === 3)).toBe(true);
     // 引いただけではまだ自分のものにならない。
     expect(collections.units(userId)).toHaveLength(STARTER_CHARACTER_IDS.length);
 

@@ -8,7 +8,7 @@
  *   別々の価値が生まれる
  * - レア度: ★1〜★3。局の結果を大きく動かすものほど高い
  * - 最初から全員が持っているキャラ（STARTER_CHARACTER_IDS）
- * - 最初の10連（FIRST_GACHA）: 何度でも引き直せて、確定するとその結果がもらえる。★3キャラが1人確定
+ * - 最初の10連（FIRST_GACHA）: 何度でも引き直せて、確定するとその結果がもらえる。確定枠なしの完全ランダム
  * - 天井: 通常のガチャを引くと交換ポイントがたまり、★3のキャラかカードを1つ選んでもらえる
  *
  * 抽選そのもの（rollGacha）は乱数を引数で受け取る純粋関数で、実際に引くのは
@@ -96,11 +96,9 @@ export interface GachaGuarantee {
   kind?: GachaItem["kind"];
 }
 
-export const FIRST_GACHA = {
+export const FIRST_GACHA: { count: number; guarantee?: GachaGuarantee } = {
   count: 10,
-  /** この中に最低1つ入る（入らなければ最後の1枠をこれで引き直す）。始めたばかりでも
-      強いキャラで遊べるよう、最初はキャラに限る。 */
-  guarantee: { rarity: 3, kind: "character" } as GachaGuarantee,
+  // 確定枠は無し（完全ランダム）。何度でも引き直せるので、好きな結果が出るまで粘れる。
 };
 
 export function rarityOf(item: GachaItem): Rarity {
@@ -146,7 +144,7 @@ const meets = (item: GachaItem, g: GachaGuarantee) => rarityOf(item) >= g.rarity
 
 /**
  * ガチャをcount回引く。guaranteeを渡すと、結果にその条件を満たすものが1つも
- * 無かった場合に、最後の1枠をその条件で引き直す（「★3キャラが1人確定」等）。
+ * 無かった場合に、最後の1枠をその条件で引き直す（「10連で★2以上が1つ確定」等）。
  */
 export function rollGacha(rng: () => number, count: number, guarantee?: GachaGuarantee): GachaItem[] {
   const results: GachaItem[] = [];

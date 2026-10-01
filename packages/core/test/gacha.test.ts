@@ -54,11 +54,15 @@ describe("rollGacha", () => {
     expect(results.some((i) => i.kind === "card")).toBe(true);
   });
 
-  it("always includes a ★3 character in the first 10-pull", () => {
-    for (let seed = 1; seed <= 300; seed++) {
+  it("has no guaranteed slot in the first 10-pull (fully random)", () => {
+    expect(FIRST_GACHA.guarantee).toBeUndefined();
+    // 確定枠が無いので、★3が1つも無い結果も普通に出る。
+    let withoutStar3 = 0;
+    for (let seed = 1; seed <= 100; seed++) {
       const results = rollGacha(makeRng(seed), FIRST_GACHA.count, FIRST_GACHA.guarantee);
-      expect(results.some((i) => i.kind === "character" && rarityOf(i) === 3), `seed ${seed}`).toBe(true);
+      if (!results.some((i) => rarityOf(i) === 3)) withoutStar3++;
     }
+    expect(withoutStar3).toBeGreaterThan(0);
   });
 
   it("guarantees ★2 or better in a normal 10-pull", () => {
