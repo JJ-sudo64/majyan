@@ -24,8 +24,9 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 // ---------------------------------------------------------------------------
 
 export type ClientMessage =
-  /** 合言葉の部屋に入る。対局中の部屋に同じ名前で入り直すと、その席に復帰する。 */
-  | { t: "join"; room: string; name: string; characterId: string | null; cardId: string | null }
+  /** 合言葉の部屋に入る。対局中の部屋には、前回入った時にもらった再接続用の
+      token を付けて同じ名前で入り直すと、その席に復帰できる。 */
+  | { t: "join"; room: string; name: string; characterId: string | null; cardId: string | null; token?: string }
   /** 部屋のキャラクター・カードを選び直す（対局開始前のみ）。 */
   | { t: "setLoadout"; characterId: string | null; cardId: string | null }
   /** 対局開始（部屋主のみ）。空いている席はCPUが入る。 */
@@ -74,6 +75,10 @@ export interface OnlineSeatView {
 }
 
 export type ServerMessage =
+  /** 入室できた。tokenは対局中に接続が切れた時、同じ席へ戻るための再接続用の
+      合言葉（本人にだけ送る）。名前だけでは戻れないようにして、合言葉を知って
+      いる他人が席を乗っ取れないようにしている。 */
+  | { t: "joined"; room: string; name: string; token: string }
   | { t: "lobby"; room: string; members: LobbyMember[] }
   | { t: "state"; view: OnlineSeatView }
   /** 操作が受け付けられなかった等。fatal なら接続を閉じてタイトルへ戻す。 */

@@ -70,7 +70,8 @@ function isRevealedDoraIndicator(wall: WallState, index: number): boolean {
  *   牌種順に並べ替えて中身だけ見せる）
  * - 王牌（めくられたドラ表示牌以外。局終了時は裏ドラ確認のため表示牌の枠を全て公開）
  * - 他家だけが知っている内部状態（未来視の予知牌・テンパイ判定・盾などの権利）
- * - 鳴きの応答中、他家が既に宣言した鳴き（解決前に見えると判断が有利になる）
+ * - 鳴きの応答中、他家が既に宣言した鳴き・既に応答したかどうか（解決前に見えると
+ *   判断が有利になる）
  * 牌のIDは伏せない（buildWallがシャッフル後の並びでIDを振るため、IDから
  * 牌の種類は分からない）。山の牌だけは山読みの並べ替えで位置が漏れないよう
  * 並び順の番号に振り直す。
@@ -115,8 +116,11 @@ export function redactRoundForSeat(round: RoundState, seat: PlayerIndex): RoundS
   };
 
   const lastDrawnTile = round.lastDrawnTile && hiddenIds.has(round.lastDrawnTile.id) ? hideTile(round.lastDrawnTile) : round.lastDrawnTile;
+  // 他家の応答状況も伏せる。鳴ける選択肢の無い人は即座に見送られるため、
+  // 「誰がまだ答えていないか」が見えると、その人が鳴ける・テンパイ等とばれる。
   const pendingCallWindow = round.pendingCallWindow && {
     ...round.pendingCallWindow,
+    respondedBy: round.pendingCallWindow.respondedBy.filter((p) => p === seat),
     declaredCalls: round.pendingCallWindow.declaredCalls.filter((c) => c.player === seat),
   };
   return { ...round, players, wall, lastDrawnTile, pendingCallWindow };

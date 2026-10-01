@@ -8,21 +8,26 @@
  *   timeoutActionを代わりに適用する。接続が切れている間は待たずに同じ自動操作で進める
  * - 局の結果表示: 人間全員が「次の局へ」を押すか、ROUND_END_WAIT_MSで次局へ進む
  *
- * タイマーは常に1つだけ（timer）で、局面が進むたびに張り直す。発火時には
- * 張った時と同じ局面（decisionKey）かを確かめ、操作が先に届いて局面が
- * 進んでいたら何もしない。
+ * 鳴きの応答は、まだ答えていない全員（人間もCPUも）から同時に受け付ける。
+ * タイマーは局面が進むたびに「今張っておくべきもの」を数え直して張り直す
+ * （reconcileTimers）。局面が変わって不要になったタイマーはその時点で外れるので、
+ * 操作が先に届いていたのに古いタイマーが発火する、ということは起きない。
  */
 import {
   actionFromViewer,
   advanceToNextRound,
   applyMatchAction,
   autoActionForHuman,
-  clockDisplay,
+  clockDisplayForSeat,
+  clockForSeat,
+  computeCallOptions,
   computeSeatOptions,
   createMatchClocks,
   decideCpuCallResponse,
   decideCpuTurnAction,
+  hasAnyCallOption,
   isClientActionAllowed,
+  pendingClockDecisions,
   pendingDecision,
   redactMatchForSeat,
   refillBanksForNewRound,
@@ -90,7 +95,8 @@ export class MatchSession {
   private readonly now: () => number;
   private readonly timing: SessionTiming;
   private clocks: MatchClocks;
-  private timer: ReturnType<typeof setTimeout> | null = null;
+  /** 張っているタイマー（キーはreconcileTimers参照）。 */
+  private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingRoundEnd = false;
   private roundEndDeadline: number | null = null;
   private lastRoundOutcome: RoundScoreOutcome | null = null;
@@ -123,7 +129,7 @@ export class MatchSession {
 
   dispose(): void {
     this.disposed = true;
-    this.clearTimer();
+    this.clearTimers();
   }
 
   /** 人間の席から届いた操作（自分=0の座席番号）。受け付けなければエラーの文言を返す。 */
@@ -179,25 +185,40 @@ export class MatchSession {
     return true;
   }
 
-  private clearTimer(): void {
-    if (this.timer) clearTimeout(this.timer);
-    this.timer = null;
+  private clearTimers(): void {
+    for (const t of this.timers.values()) clearTimeout(t);
+    this.timers.clear();
   }
 
-  /** 局面がまだ同じ判断を待っていればfnを実行するタイマーを張る。 */
-  private schedule(delayMs: number, fn: () => void): void {
-    this.clearTimer();
-    const key = this.decisionKey();
-    this.timer = setTimeout(() => {
-      this.timer = null;
-      if (this.disposed || this.decisionKey() !== key) return;
-      fn();
-    }, Math.max(0, delayMs));
+  /**
+   * 張っておくべきタイマーの一覧に合わせて、タイマーを張り直す。キーが同じ
+   * タイマーは張り直さずにそのまま残す（鳴きの応答で1人が答えても、残りの人の
+   * CPU思考や制限時間のタイマーが最初からやり直しにならないように）。キーには
+   * 局面を表す値を含めてあるので、局面が進むと古いタイマーは自然に外れる。
+   */
+  private reconcileTimers(wanted: Map<string, { delayMs: number; run: () => void }>): void {
+    for (const [key, t] of this.timers) {
+      if (wanted.has(key)) continue;
+      clearTimeout(t);
+      this.timers.delete(key);
+    }
+    for (const [key, w] of wanted) {
+      if (this.timers.has(key)) continue;
+      this.timers.set(
+        key,
+        setTimeout(() => {
+          this.timers.delete(key);
+          if (!this.disposed) w.run();
+        }, Math.max(0, w.delayMs)),
+      );
+    }
   }
 
-  private decisionKey(): string {
-    const d = pendingDecision(this.match.round);
-    return `${this.clocks.current?.key ?? ""}|${d.kind}|${"seat" in d ? d.seat : ""}|${this.pendingRoundEnd}`;
+  /** 局面を表すキー（ツモ・局終了待ち等、時計の無い局面のタイマー用）。 */
+  private roundKey(): string {
+    const r = this.match.round;
+    const discards = r.players.reduce((n, p) => n + p.discards.length, 0);
+    return [r.roundWind, r.roundNumber, r.honba, discards, r.kanCount, r.phase, r.currentTurn].join(":");
   }
 
   private allHumansAcked(): boolean {
@@ -210,72 +231,73 @@ export class MatchSession {
   /** 今の局面で次に起きることを決めて、タイマーを張り直すか即座に進める。 */
   private step(): void {
     if (this.disposed) return;
-    this.clearTimer();
-    if (this.pendingRoundEnd) return;
+    const wanted = new Map<string, { delayMs: number; run: () => void }>();
+    if (this.pendingRoundEnd) {
+      // 結果表示中: 次局へ進むタイマー（advanceRoundの中でここに来ることは無い）。
+      if (!this.match.finished && this.roundEndDeadline !== null) {
+        const delayMs = this.allHumansAcked() ? this.timing.cpuThinkMs : this.roundEndDeadline - this.now();
+        wanted.set(`roundEnd:${this.roundKey()}`, { delayMs, run: () => this.advanceRound() });
+      }
+      this.reconcileTimers(wanted);
+      return;
+    }
     const now = this.now();
     this.clocks = syncDecisionClock(this.clocks, this.match.round, now, this.timing.rules);
     const round = this.match.round;
     const decision = pendingDecision(round);
 
-    switch (decision.kind) {
-      case "round-over": {
-        const { match, outcome } = settleRound(this.match);
-        this.match = match;
-        this.lastRoundOutcome = outcome;
-        this.pendingRoundEnd = true;
-        this.roundEndAcks.clear();
-        this.broadcast();
-        if (match.finished) return;
-        this.roundEndDeadline = now + this.timing.roundEndWaitMs;
-        if (this.allHumansAcked()) {
-          // 人間が全員切断している等、待つ相手がいなければ少しだけ見せて進む。
-          this.schedule(this.timing.cpuThinkMs, () => this.advanceRound());
-        } else {
-          this.schedule(this.timing.roundEndWaitMs, () => this.advanceRound());
-        }
-        return;
-      }
-      case "draw": {
-        const draw: GameAction = { type: "draw", player: decision.seat };
-        this.broadcast();
-        if (decision.timeStopBonus) this.schedule(this.timing.timeStopBonusDrawMs, () => this.apply(draw));
-        else this.apply(draw);
-        return;
-      }
-      case "turn":
-      case "call": {
-        this.broadcast();
-        const seat = decision.seat;
-        const s = this.seats[seat];
-        if (s.kind === "cpu") {
-          this.schedule(this.timing.cpuThinkMs, () => {
-            const r = this.match.round;
-            this.apply(decision.kind === "turn" ? decideCpuTurnAction(r, seat, s.difficulty) : decideCpuCallResponse(r, seat, s.difficulty));
-          });
-          return;
-        }
-        if (!s.connected) {
-          this.schedule(this.timing.disconnectedActMs, () => this.applyTimeout(seat));
-          return;
-        }
-        // 選べる余地が無い判断（リーチ後のツモ切り・鳴けない打牌の見送り）は待たずに進める。
-        const auto = autoActionForHuman(round, seat);
-        if (auto) {
-          const delay = decision.kind === "turn" ? this.timing.cpuThinkMs : 0;
-          this.schedule(delay, () => {
-            const again = autoActionForHuman(this.match.round, seat);
-            if (again) this.apply(again);
-          });
-          return;
-        }
-        const clock = this.clocks.current;
-        if (clock) this.schedule(clock.expiresAt - now, () => this.applyTimeout(seat));
-        return;
-      }
-      case "none":
-        this.broadcast();
-        return;
+    if (decision.kind === "round-over") {
+      const { match, outcome } = settleRound(this.match);
+      this.match = match;
+      this.lastRoundOutcome = outcome;
+      this.pendingRoundEnd = true;
+      this.roundEndAcks.clear();
+      this.roundEndDeadline = match.finished ? null : now + this.timing.roundEndWaitMs;
+      this.broadcast();
+      this.step();
+      return;
     }
+    if (decision.kind === "draw") {
+      const draw: GameAction = { type: "draw", player: decision.seat };
+      if (!decision.timeStopBonus) {
+        this.reconcileTimers(wanted);
+        this.apply(draw);
+        return;
+      }
+      wanted.set(`draw:${this.roundKey()}`, { delayMs: this.timing.timeStopBonusDrawMs, run: () => this.apply(draw) });
+    }
+
+    // 手番は1人、鳴きの応答はまだ答えていない全員から同時に受け付ける。
+    for (const pending of pendingClockDecisions(round)) {
+      const { seat, kind, key } = pending;
+      const s = this.seats[seat];
+      if (s.kind === "cpu") {
+        wanted.set(`cpu:${key}`, {
+          delayMs: this.timing.cpuThinkMs,
+          run: () => {
+            const r = this.match.round;
+            this.apply(kind === "turn" ? decideCpuTurnAction(r, seat, s.difficulty) : decideCpuCallResponse(r, seat, s.difficulty));
+          },
+        });
+        continue;
+      }
+      if (!s.connected) {
+        wanted.set(`away:${key}`, { delayMs: this.timing.disconnectedActMs, run: () => this.applyTimeout(seat) });
+        continue;
+      }
+      // 選べる余地が無い判断（リーチ後のツモ切り・鳴けない打牌の見送り）は待たずに進める。
+      if (kind === "turn" ? !!autoActionForHuman(round, seat) : !hasAnyCallOption(computeCallOptions(round, seat))) {
+        wanted.set(`auto:${key}`, {
+          delayMs: kind === "turn" ? this.timing.cpuThinkMs : 0,
+          run: () => this.applyTimeout(seat),
+        });
+        continue;
+      }
+      const clock = clockForSeat(this.clocks, seat);
+      if (clock) wanted.set(`timeout:${key}`, { delayMs: clock.expiresAt - now, run: () => this.applyTimeout(seat) });
+    }
+    this.reconcileTimers(wanted);
+    this.broadcast();
   }
 
   private applyTimeout(seat: PlayerIndex): void {
@@ -285,7 +307,6 @@ export class MatchSession {
 
   private advanceRound(): void {
     if (!this.pendingRoundEnd || this.match.finished) return;
-    this.clearTimer();
     this.match = advanceToNextRound(this.match, this.rng, this.cpuSeats());
     this.pendingRoundEnd = false;
     this.roundEndDeadline = null;
@@ -317,10 +338,8 @@ export class MatchSession {
   /** その席から見た画面の状態（本物の座席番号をその席=0に回してある）。 */
   viewFor(seat: PlayerIndex): OnlineSeatView {
     const now = this.now();
-    // 他家の鳴き判断の時計は見せない。鳴ける選択肢が無い人は即座に見送られるため、
-    // 「誰の鳴き判断で待っているか」が見えるとその人が鳴ける（テンパイ等）とばれる。
-    const fullClock = clockDisplay(this.clocks, now);
-    const clock = fullClock && (fullClock.kind === "turn" || fullClock.seat === seat) ? fullClock : null;
+    // 他家の鳴き判断の時計は見せない（clockDisplayForSeat参照）。
+    const clock = clockDisplayForSeat(this.clocks, now, seat);
     const seats = SEATS.map((i) => this.seats[(i + seat) % 4 as PlayerIndex]).map(
       (s): SeatInfo => ({ name: s.name, isCpu: s.kind === "cpu", disconnected: s.kind === "human" && !s.connected }),
     ) as OnlineSeatView["seats"];

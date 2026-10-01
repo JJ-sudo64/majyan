@@ -874,7 +874,15 @@ function resolveCallWindowIfComplete(round: RoundState): RoundState {
     return round;
   }
 
-  const ronCalls = window.declaredCalls.filter((c) => c.type === "ron");
+  // 複数人のロン（ダブロン等）では、供託を受け取る「1人目」(winners[0]、
+  // computeRoundScoreOutcome参照)を放銃者から見て手番の近い順（下家→対面→上家）に
+  // する。宣言の届いた順のままだと、ネット対戦で応答を同時に受け付けた時に
+  // 「先に押した人」が供託を取ってしまう（awaitingPlayersも座席番号順で、
+  // 放銃者から見た順ではない）。
+  const fromDiscarder = (p: PlayerIndex) => (p - window.discarderIndex + 4) % 4;
+  const ronCalls = window.declaredCalls
+    .filter((c) => c.type === "ron")
+    .sort((a, b) => fromDiscarder(a.player) - fromDiscarder(b.player));
   if (ronCalls.length > 0) {
     return buildWinRoundResult(round, ronCalls.map((c) => c.player) as PlayerIndex[], window.discarderIndex, window.isChankan);
   }

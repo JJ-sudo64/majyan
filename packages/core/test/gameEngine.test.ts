@@ -235,6 +235,32 @@ describe("gameEngine win detection", () => {
     expect(total).toBe(0);
   });
 
+  it("double ron gives the riichi sticks to the winner nearest the discarder, whatever the response order", () => {
+    // 座席2が4mを放銃し、座席0(放銃者の対面)と座席3(下家)が同じ形でダブロン。
+    // 下家の座席3が「1人目」で供託を受け取る。座席0が先に宣言しても変わらない。
+    for (const order of [[0, 1, 3], [3, 1, 0]] as PlayerIndex[][]) {
+      let round = makeRound({
+        players: [
+          emptyPlayer(["2m", "3m", "4p", "5p", "6p", "3s", "4s", "5s", "6s", "7s", "8s", "9p", "9p"]),
+          emptyPlayer(["6m", "6m", "6m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+          emptyPlayer(["4m", "1p", "2p", "3p", "5p", "6p", "7p", "2s", "3s", "4s", "6z", "6z", "6z"]),
+          emptyPlayer(["2m", "3m", "4p", "5p", "6p", "3s", "4s", "5s", "6s", "7s", "8s", "9p", "9p"]),
+        ],
+        currentTurn: 2,
+        kyotaku: 2,
+        wall: makeWall(["1s", "9s", "9s", "9s"]),
+      });
+      round = applyAction(round, { type: "draw", player: 2 });
+      round = applyAction(round, { type: "discard", player: 2, tileId: round.players[2].hand.concealed.find((t) => t.code === "4m")!.id, tsumogiri: false });
+      for (const p of order) round = applyAction(round, p === 1 ? { type: "skip", player: p } : { type: "ron", player: p });
+      expect(round.result?.winners).toEqual([3, 0]);
+      const outcome = computeRoundScoreOutcome(round);
+      const winBase = (p: PlayerIndex) => outcome.winAnalyses[p]!.score.payments.total;
+      expect(outcome.scoreDeltas[3]).toBe(winBase(3) + 2000);
+      expect(outcome.scoreDeltas[0]).toBe(winBase(0));
+    }
+  });
+
   it("ron win produces correct score deltas and furiten blocks self-discarded winning tile", () => {
     let round = makeRound({
       players: [

@@ -4,9 +4,11 @@
  *
  * - 同じ合言葉で入った人が同じ部屋に集まる（最大4人）。最初に入った人が部屋主
  * - 部屋主が開始すると、集まった人をランダムな席に座らせ、空いた席はCPUが入る
- * - 対局中に接続が切れた人は、同じ合言葉・同じ名前で入り直すとその席に戻れる
+ * - 対局中に接続が切れた人は、入室時に渡した再接続用のtokenを付けて同じ名前で
+ *   入り直すとその席に戻れる
  * - 人間が全員いなくなった部屋は、しばらく誰も戻らなければ片付ける
  */
+import { randomBytes } from "node:crypto";
 import {
   createMatch,
   randomCardId,
@@ -31,6 +33,8 @@ export interface Client {
 
 interface Member {
   name: string;
+  /** 再接続用の合言葉（ServerMessageのjoined参照）。 */
+  token: string;
   characterId: string | null;
   cardId: string | null;
   client: Client | null;
@@ -51,6 +55,8 @@ export interface RoomManagerOptions {
   timing?: SessionTiming;
   /** 対局中に全員の接続が切れてから部屋を片付けるまでの時間。 */
   abandonedRoomMs?: number;
+  /** 同時に存在できる部屋数の上限（大量に部屋を作られてメモリを食い潰されないように）。 */
+  maxRooms?: number;
 }
 
 const MAX_MEMBERS = 4;
@@ -158,19 +164,21 @@ export class RoomManager {
     if (this.clientRooms.has(client.id)) this.disconnect(client);
 
     let room = this.rooms.get(code);
+    if (!room && this.rooms.size >= (this.options.maxRooms ?? 500)) {
+      client.send({ t: "error", message: "サーバーが混み合っています。しばらくしてからお試しください", fatal: true });
+      return;
+    }
     if (!room) {
       room = { code, members: [], session: null, cleanupTimer: null };
       this.rooms.set(code, room);
     }
 
     if (room.session && !room.session.finished) {
-      // 対局中: 同じ名前の席に戻れる。古い接続がまだ残っている場合（別タブで
-      // 開き直した、回線が切れたのにサーバーがまだ気づいていない等）は、古い
-      // 接続を追い出して新しい接続に席を引き継ぐ。
-      // TODO(ステップ5): 名前だけで席を取り戻せるため、合言葉を知っている人なら
-      // なりすませる。再接続用のトークンに置き換える。
+      // 対局中: 同じ名前・正しいtokenなら自分の席に戻れる。古い接続がまだ残って
+      // いる場合（別タブで開き直した、回線が切れたのにサーバーがまだ気づいて
+      // いない等）は、古い接続を追い出して新しい接続に席を引き継ぐ。
       const member = room.members.find((m) => m.name === name);
-      if (!member || member.seat === null) {
+      if (!member || member.seat === null || typeof message.token !== "string" || message.token !== member.token) {
         client.send({ t: "error", message: "この部屋は対局中です（途中で抜けた人は同じ名前で入り直すと戻れます）", fatal: true });
         return;
       }
@@ -183,6 +191,7 @@ export class RoomManager {
       this.clientRooms.set(client.id, code);
       if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
       room.cleanupTimer = null;
+      client.send({ t: "joined", room: code, name, token: member.token });
       room.session.setConnected(member.seat, true);
       client.send({ t: "state", view: room.session.viewFor(member.seat) });
       return;
@@ -202,14 +211,17 @@ export class RoomManager {
       client.send({ t: "error", message: "この部屋は満員です", fatal: true });
       return;
     }
+    const token = randomBytes(18).toString("base64url");
     room.members.push({
       name,
+      token,
       characterId: validCharacter(message.characterId),
       cardId: validCard(message.cardId),
       client,
       seat: null,
     });
     this.clientRooms.set(client.id, code);
+    client.send({ t: "joined", room: code, name, token });
     this.broadcastLobby(room);
   }
 

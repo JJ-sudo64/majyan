@@ -38,8 +38,8 @@ class TestClient implements Client {
   }
 }
 
-function join(rooms: RoomManager, client: TestClient, name: string, room = "abc") {
-  rooms.handleMessage(client, { t: "join", room, name, characterId: null, cardId: null });
+function join(rooms: RoomManager, client: TestClient, name: string, room = "abc", token?: string) {
+  rooms.handleMessage(client, { t: "join", room, name, characterId: null, cardId: null, ...(token ? { token } : {}) });
 }
 
 /** 対局が終わるまで（または上限まで）時間を進める。 */
@@ -73,6 +73,9 @@ describe("lobby", () => {
       ["ともだち", false, false],
     ]);
     expect(b.last("lobby")!.members[1]!.isYou).toBe(true);
+    // 再接続用のtokenは本人にだけ、1人ずつ別のものが届く。
+    expect(a.last("joined")!.token).toMatch(/^[\w-]{20,}$/);
+    expect(a.last("joined")!.token).not.toBe(b.last("joined")!.token);
     expect(other.last("lobby")!.members).toHaveLength(1);
   });
 
@@ -189,8 +192,16 @@ describe("match over the network", () => {
     join(rooms, intruder, "C");
     expect(intruder.last("error")?.fatal).toBe(true);
 
+    // 名前が同じでも、再接続用のtokenが無い・違う人は入れない（なりすまし防止）。
+    const fake = new TestClient("fake");
+    join(rooms, fake, "B");
+    expect(fake.last("error")?.fatal).toBe(true);
+    join(rooms, fake, "B", "abc", "wrong-token");
+    expect(fake.last("state")).toBeUndefined();
+
     const b2 = new TestClient("b2");
-    join(rooms, b2, "B");
+    join(rooms, b2, "B", "abc", b.last("joined")!.token);
+    expect(b2.last("joined")?.token).toBe(b.last("joined")!.token);
     expect(b2.view.seats[0]!.name).toBe("B");
     expect(a.view.seats.map((s) => s.name)).toEqual(seatsBefore);
     expect(a.view.seats.find((s) => s.name === "B")?.disconnected).toBe(false);
@@ -240,7 +251,7 @@ describe("taking over a seat", () => {
     join(rooms, a, "A");
     rooms.handleMessage(a, { t: "start", format: "tonpuusen", continueBelowZero: false });
     const a2 = new TestClient("a2");
-    join(rooms, a2, "A");
+    join(rooms, a2, "A", "abc", a.last("joined")!.token);
     expect(a.last("error")?.fatal).toBe(true);
     expect(a2.view.seats[0]!.name).toBe("A");
     // 古い接続が後から切れても、新しい接続の席は切断扱いにならない。
@@ -249,5 +260,53 @@ describe("taking over a seat", () => {
     vi.advanceTimersByTime(20);
     expect(a2.received.length).toBeGreaterThan(before);
     expect(a2.view.seats[0]!.disconnected).toBe(false);
+  });
+});
+
+describe("call responses", () => {
+  it("asks every seat at once, so CPUs answer a discard in parallel", () => {
+    const rooms = new RoomManager({ rng: makeRng(10), timing: FAST });
+    const a = new TestClient("a");
+    join(rooms, a, "A");
+    rooms.handleMessage(a, { t: "start", format: "tonpuusen", continueBelowZero: false });
+    let resolvedInOneThink = 0;
+    for (let turns = 0; turns < 30 && !a.view.match.finished; ) {
+      vi.advanceTimersByTime(1);
+      const view = a.view;
+      if (!view.options.turn) continue;
+      turns++;
+      const tile = view.match.round.players[0]!.hand.concealed.at(-1)!;
+      rooms.handleMessage(a, { t: "action", action: { type: "discard", player: 0, tileId: tile.id, tsumogiri: false } });
+      if (a.view.match.round.phase !== "awaiting-calls") continue;
+      // CPU3人の思考時間1回ぶんで、全員の応答が揃って次へ進む（1人ずつなら3回ぶんかかる）。
+      vi.advanceTimersByTime(FAST.cpuThinkMs);
+      if (a.view.match.round.phase !== "awaiting-calls") resolvedInOneThink++;
+    }
+    expect(resolvedInOneThink).toBeGreaterThan(0);
+  });
+
+  it("lets a human answer while other seats are still thinking, with their own clock running", () => {
+    const rooms = new RoomManager({ rng: makeRng(11), timing: { ...FAST, cpuThinkMs: 5000 } });
+    const a = new TestClient("a");
+    const b = new TestClient("b");
+    join(rooms, a, "A");
+    join(rooms, b, "B");
+    rooms.handleMessage(a, { t: "start", format: "tonpuusen", continueBelowZero: false });
+    let answered = 0;
+    for (let i = 0; i < 200000 && answered === 0 && !a.view.match.finished; i++) {
+      vi.advanceTimersByTime(5);
+      for (const c of [a, b]) {
+        const v = c.view;
+        if (!v.options.call) continue;
+        expect(v.clock).toMatchObject({ seat: 0, kind: "call" });
+        const before = c.received.length;
+        rooms.handleMessage(c, { t: "action", action: { type: "skip", player: 0 } });
+        expect(c.last("error")).toBeUndefined();
+        expect(c.received.length).toBeGreaterThan(before);
+        answered++;
+        break;
+      }
+    }
+    expect(answered).toBe(1);
   });
 });

@@ -11,6 +11,8 @@
     "dev": "npm run dev -w packages/web",
     "build": "npm run build -w packages/core && npm run build -w packages/web",
     "typecheck": "npm run typecheck -w packages/core && npm run typecheck -w packages/web && npm run typecheck -w packages/server",
-    "dev:server": "npm run dev -w packages/server"
+    "dev:server": "npm run dev -w packages/server",
+    "build:web": "npm run build -w packages/web",
+    "start": "npm run build -w packages/web && npm run start -w packages/server"
   }
 }

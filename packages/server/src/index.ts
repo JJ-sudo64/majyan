@@ -2,22 +2,56 @@
  * ネット対戦サーバーの起動口。WebSocketの接続をRoomManagerへつなぐだけで、
  * 部屋・対局の中身はrooms.ts/matchSession.tsが扱う。
  *
- *   npm run dev:server   （リポジトリ直下で。ポートは環境変数PORT、既定8787）
+ *   npm run dev:server   開発用（リポジトリ直下で。画面はVite(5173)が配り、/wsを中継する）
+ *   npm start            本番用（画面をビルドして、このサーバーが画面と/wsの両方を配る）
  *
- * 開発時はVite(5173)が /ws をこのサーバーへ中継するので、画面からは同じ
- * オリジンの /ws へつなげばよい（packages/web/vite.config.ts参照）。
+ * 環境変数:
+ *   PORT              待ち受けポート（既定8787）
+ *   STATIC_DIR        配る画面のビルド結果（既定 packages/web/dist。無ければ/wsだけ）
+ *   ALLOWED_ORIGINS   WebSocketの接続を許すページのオリジン（カンマ区切り）。
+ *                     未指定ならチェックしない。公開する時は自分のURLを入れる。
  */
 import { randomUUID } from "node:crypto";
+import { createServer } from "node:http";
+import { resolve } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
-import { ONLINE_DEFAULT_PORT, ONLINE_WS_PATH, type ClientMessage, type ServerMessage } from "@majyan/core";
+import { ONLINE_DEFAULT_PORT, ONLINE_WS_PATH, type ServerMessage } from "@majyan/core";
 import { RoomManager, type Client } from "./rooms.js";
+import { createStaticHandler } from "./staticFiles.js";
+import { parseClientMessage } from "./validate.js";
 
 /** 1メッセージの上限。操作のJSONは数百バイトなので十分大きめ。 */
 const MAX_MESSAGE_BYTES = 16 * 1024;
+/** 応答の無い接続（回線が切れたのにTCPが閉じていない等）を見つける間隔。
+    見つけたら切断扱いにし、その席は自動操作に切り替わる。 */
+const HEARTBEAT_MS = 15_000;
+/** 1接続あたりのメッセージ数の上限（連打・嫌がらせ対策）。人間の操作なら
+    1秒に数回が精々なので、超えたら接続を切る。 */
+const RATE_LIMIT = { perSecond: 10, burst: 30 };
 
 const port = Number(process.env.PORT) || ONLINE_DEFAULT_PORT;
+const staticDir = process.env.STATIC_DIR ?? resolve(import.meta.dirname, "../../web/dist");
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",").map((s) => s.trim()).filter(Boolean) ?? null;
+
 const rooms = new RoomManager();
-const wss = new WebSocketServer({ port, path: ONLINE_WS_PATH, maxPayload: MAX_MESSAGE_BYTES });
+const serveStatic = createStaticHandler(staticDir);
+const httpServer = createServer((req, res) => {
+  if (req.url === "/healthz") {
+    res.writeHead(200, { "Content-Type": "text/plain" }).end("ok");
+    return;
+  }
+  if (serveStatic) serveStatic(req, res);
+  else res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("画面は開発サーバー(Vite)から開いてください");
+});
+
+const wss = new WebSocketServer({
+  server: httpServer,
+  path: ONLINE_WS_PATH,
+  maxPayload: MAX_MESSAGE_BYTES,
+  verifyClient: ({ origin }: { origin: string }) => !allowedOrigins || allowedOrigins.includes(origin),
+});
+
+const alive = new WeakMap<WebSocket, boolean>();
 
 wss.on("connection", (socket: WebSocket) => {
   const client: Client = {
@@ -26,15 +60,28 @@ wss.on("connection", (socket: WebSocket) => {
       if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
     },
   };
+  alive.set(socket, true);
+  socket.on("pong", () => alive.set(socket, true));
+
+  let tokens = RATE_LIMIT.burst;
+  let lastRefill = Date.now();
+
   socket.on("message", (data) => {
-    let message: ClientMessage;
-    try {
-      message = JSON.parse(data.toString()) as ClientMessage;
-    } catch {
+    const now = Date.now();
+    tokens = Math.min(RATE_LIMIT.burst, tokens + ((now - lastRefill) / 1000) * RATE_LIMIT.perSecond);
+    lastRefill = now;
+    if (tokens < 1) {
+      client.send({ t: "error", message: "操作が多すぎるため接続を切りました", fatal: true });
+      socket.close(1008, "rate limit");
+      return;
+    }
+    tokens -= 1;
+
+    const message = parseClientMessage(data.toString());
+    if (!message) {
       client.send({ t: "error", message: "不正なメッセージです" });
       return;
     }
-    if (!message || typeof message !== "object" || typeof message.t !== "string") return;
     try {
       rooms.handleMessage(client, message);
     } catch (err) {
@@ -44,8 +91,22 @@ wss.on("connection", (socket: WebSocket) => {
     }
   });
   socket.on("close", () => rooms.disconnect(client));
+  socket.on("error", () => socket.terminate());
 });
 
-wss.on("listening", () => {
-  console.log(`[majyan-server] ws://localhost:${port}${ONLINE_WS_PATH} で待ち受け中`);
+const heartbeat = setInterval(() => {
+  for (const socket of wss.clients) {
+    if (!alive.get(socket)) {
+      socket.terminate(); // closeイベント経由で切断扱いになる
+      continue;
+    }
+    alive.set(socket, false);
+    socket.ping();
+  }
+}, HEARTBEAT_MS);
+wss.on("close", () => clearInterval(heartbeat));
+
+httpServer.listen(port, () => {
+  console.log(`[majyan-server] http://localhost:${port} で待ち受け中（WebSocket: ${ONLINE_WS_PATH}）`);
+  console.log(serveStatic ? `[majyan-server] 画面を配信: ${staticDir}` : "[majyan-server] 画面のビルドが無いため /ws だけ提供します");
 });

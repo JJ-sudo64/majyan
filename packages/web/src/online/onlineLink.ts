@@ -45,6 +45,32 @@ export const useOnlineStore = create<OnlineStoreState>(() => ({
 let socket: WebSocket | null = null;
 let lastJoin: JoinRequest | null = null;
 
+/** 再接続用のtoken（サーバーのjoined参照）。ページを読み込み直しても同じ席へ
+    戻れるよう、部屋・名前と組でブラウザに覚えておく。 */
+const SESSION_KEY = "majyan.online.session";
+interface SavedSession {
+  room: string;
+  name: string;
+  token: string;
+}
+
+function loadSession(): SavedSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as SavedSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(session: SavedSession) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch {
+    // 保存できなくても対局はできる（ページを読み込み直すと席に戻れなくなるだけ）。
+  }
+}
+
 function wsUrl(): string {
   const scheme = location.protocol === "https:" ? "wss" : "ws";
   return `${scheme}://${location.host}${ONLINE_WS_PATH}`;
@@ -52,6 +78,9 @@ function wsUrl(): string {
 
 function handleMessage(message: ServerMessage) {
   switch (message.t) {
+    case "joined":
+      saveSession({ room: message.room, name: message.name, token: message.token });
+      return;
     case "lobby":
       // 対局中に入り直したのに待合室が返ってきた＝サーバーの再起動等で対局が
       // 消えている。新しい待合室に入ったままにせず、抜けて知らせる。
@@ -88,7 +117,9 @@ export const onlineLink = {
     const ws = new WebSocket(wsUrl());
     socket = ws;
     ws.onopen = () => {
-      const message: ClientMessage = { t: "join", ...request };
+      const saved = loadSession();
+      const token = saved && saved.room === request.room.trim() && saved.name === request.name.trim() ? saved.token : undefined;
+      const message: ClientMessage = { t: "join", ...request, ...(token ? { token } : {}) };
       ws.send(JSON.stringify(message));
     };
     ws.onmessage = (event) => {

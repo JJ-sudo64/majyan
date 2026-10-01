@@ -132,6 +132,7 @@ describe("redactRoundForSeat", () => {
         });
         if (round.pendingCallWindow) {
           expect(view.pendingCallWindow!.declaredCalls.every((c) => c.player === seat)).toBe(true);
+          expect(view.pendingCallWindow!.respondedBy.every((p) => p === seat)).toBe(true);
         }
       }
     }

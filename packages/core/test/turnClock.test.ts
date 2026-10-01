@@ -4,10 +4,11 @@ import { advanceToNextRound, applyMatchAction, pendingDecision, settleRound } fr
 import { decideCpuCallResponse, decideCpuTurnAction } from "../src/ai/cpuPlayer.js";
 import { randomCharacterIds } from "../src/characters.js";
 import {
-  clockDisplay,
+  clockDisplayForSeat,
+  clockForSeat,
   createMatchClocks,
   DEFAULT_TIME_LIMIT_RULES,
-  isClockExpired,
+  expiredSeats,
   refillBanksForNewRound,
   syncDecisionClock,
   timeoutAction,
@@ -42,7 +43,7 @@ describe("syncDecisionClock", () => {
     const match = firstTurn(1);
     const seat = match.round.currentTurn;
     let clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 1000, RULES);
-    expect(clocks.current).toMatchObject({ seat, kind: "turn", baseEndsAt: 6000, bankEndsAt: 26000, expiresAt: 27000 });
+    expect(clocks.active).toEqual([expect.objectContaining({ seat, kind: "turn", baseEndsAt: 6000, bankEndsAt: 26000, expiresAt: 27000 })]);
 
     const action = timeoutAction(match.round, seat)!;
     const next = applyMatchAction(match, action).match;
@@ -82,42 +83,83 @@ describe("syncDecisionClock", () => {
     const seat = match.round.currentTurn;
     const clocks: MatchClocks = {
       bankRemainingMs: ALL_SEATS.map((s) => (s === seat ? 1200 : 3000)) as MatchClocks["bankRemainingMs"],
-      current: null,
+      active: [],
     };
     const synced = syncDecisionClock(clocks, match.round, 100, rules);
-    expect(synced.current?.bankEndsAt).toBe(100 + 5000 + 1200);
+    expect(synced.active[0]?.bankEndsAt).toBe(100 + 5000 + 1200);
   });
 
   it("stops the clock while nobody needs to decide (draw / round over)", () => {
     const match = createMatch("hanchan", makeRng(6));
     expect(pendingDecision(match.round).kind).toBe("draw");
-    expect(syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES).current).toBeNull();
+    expect(syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES).active).toEqual([]);
   });
 });
 
-describe("isClockExpired / clockDisplay", () => {
+describe("expiredSeats / clockDisplayForSeat", () => {
   it("expires only after the bank and the network grace are used up", () => {
     const match = firstTurn(7);
     const clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
-    expect(isClockExpired(clocks, 24_999)).toBe(false);
-    expect(isClockExpired(clocks, 25_000)).toBe(false); // 表示上は0秒だが猶予中
-    expect(isClockExpired(clocks, 25_999)).toBe(false);
-    expect(isClockExpired(clocks, 26_000)).toBe(true);
-    expect(isClockExpired(createMatchClocks(RULES), 1e12)).toBe(false);
+    const seat = match.round.currentTurn;
+    expect(expiredSeats(clocks, 24_999)).toEqual([]);
+    expect(expiredSeats(clocks, 25_000)).toEqual([]); // 表示上は0秒だが猶予中
+    expect(expiredSeats(clocks, 25_999)).toEqual([]);
+    expect(expiredSeats(clocks, 26_000)).toEqual([seat]);
+    expect(expiredSeats(createMatchClocks(RULES), 1e12)).toEqual([]);
   });
 
   it("shows the per-decision time first, then the bank", () => {
     const match = firstTurn(8);
     const clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
-    expect(clockDisplay(clocks, 2000)).toMatchObject({ baseRemainingMs: 3000, bankRemainingMs: 20000 });
-    expect(clockDisplay(clocks, 9000)).toMatchObject({ baseRemainingMs: 0, bankRemainingMs: 16000 });
-    expect(clockDisplay(clocks, 30000)).toMatchObject({ baseRemainingMs: 0, bankRemainingMs: 0 });
+    const seat = match.round.currentTurn;
+    expect(clockDisplayForSeat(clocks, 2000, seat)).toMatchObject({ baseRemainingMs: 3000, bankRemainingMs: 20000 });
+    expect(clockDisplayForSeat(clocks, 9000, seat)).toMatchObject({ baseRemainingMs: 0, bankRemainingMs: 16000 });
+    expect(clockDisplayForSeat(clocks, 30000, seat)).toMatchObject({ baseRemainingMs: 0, bankRemainingMs: 0 });
+  });
+});
+
+describe("call windows", () => {
+  /** 誰かが打牌して鳴きの応答待ちになった局面。 */
+  function firstCallWindow(seed: number): MatchState {
+    let match = firstTurn(seed);
+    match = applyMatchAction(match, timeoutAction(match.round, match.round.currentTurn)!).match;
+    expect(match.round.phase).toBe("awaiting-calls");
+    return match;
+  }
+
+  it("runs a clock for every seat that has not answered yet, at the same time", () => {
+    const match = firstCallWindow(10);
+    const discarder = match.round.pendingCallWindow!.discarderIndex;
+    const clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
+    expect(clocks.active.map((c) => c.seat).sort()).toEqual(ALL_SEATS.filter((s) => s !== discarder).sort());
+    expect(clocks.active.every((c) => c.kind === "call" && c.expiresAt === 26000)).toBe(true);
+  });
+
+  it("stops only the clock of the seat that answered", () => {
+    let match = firstCallWindow(11);
+    let clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
+    const [first, ...rest] = clocks.active;
+    match = applyMatchAction(match, { type: "skip", player: first!.seat }).match;
+    clocks = syncDecisionClock(clocks, match.round, 7000, RULES);
+    expect(clocks.bankRemainingMs[first!.seat]).toBe(18000);
+    expect(clocks.active.map((c) => c.key)).toEqual(rest.map((c) => c.key));
+    // 残りの人の時計は最初の時刻のまま動き続けている（張り直されていない）。
+    expect(clocks.active.every((c) => c.startedAt === 0)).toBe(true);
+  });
+
+  it("shows a seat its own call clock but never another seat's", () => {
+    const match = firstCallWindow(12);
+    const discarder = match.round.pendingCallWindow!.discarderIndex;
+    const clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
+    const responder = clocks.active[0]!.seat;
+    expect(clockDisplayForSeat(clocks, 0, responder)).toMatchObject({ seat: responder, kind: "call" });
+    expect(clockDisplayForSeat(clocks, 0, discarder)).toBeNull();
   });
 });
 
 describe("refillBanksForNewRound", () => {
   it("refills only when the rule says so", () => {
-    const used: MatchClocks = { bankRemainingMs: [0, 5000, 20000, 1], current: null };
+    const used: MatchClocks = { bankRemainingMs: [0, 5000, 20000, 1], active: [] };
     expect(refillBanksForNewRound(used, RULES)).toBe(used);
     expect(refillBanksForNewRound(used, { ...RULES, bankRefillsEachRound: true }).bankRemainingMs).toEqual([20000, 20000, 20000, 20000]);
   });
@@ -127,7 +169,7 @@ describe("timeoutAction", () => {
   /**
    * timeoutSeatsの座席は手番を常に時間切れ扱い（timeoutAction）で進め、
    * それ以外と鳴きの応答はCPUで進める。時計も実際のサーバーと同じ要領で回し、
-   * 時間切れ扱いにする前に isClockExpired が立つことを確かめる。
+   * 時間切れ扱いにする前に expiredSeats にその座席が入ることを確かめる。
    */
   function playWithTimeouts(seed: number, timeoutSeats: PlayerIndex[], timeoutCalls: boolean) {
     const rng = makeRng(seed);
@@ -152,9 +194,10 @@ describe("timeoutAction", () => {
         case "call": {
           const timesOut = timeoutSeats.includes(decision.seat) && (decision.kind === "turn" || timeoutCalls);
           if (timesOut) {
-            expect(clocks.current?.seat).toBe(decision.seat);
-            now = clocks.current!.expiresAt;
-            expect(isClockExpired(clocks, now)).toBe(true);
+            const clock = clockForSeat(clocks, decision.seat)!;
+            expect(clock).not.toBeNull();
+            now = Math.max(now, clock.expiresAt);
+            expect(expiredSeats(clocks, now)).toContain(decision.seat);
             action = timeoutAction(match.round, decision.seat)!;
             expect(action).not.toBeNull();
             if (action.type === "skip") stats.skips++;
