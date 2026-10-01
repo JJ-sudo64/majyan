@@ -54,7 +54,11 @@ export function shuffleTiles(tiles: Tile[], rng: () => number = Math.random): Ti
 }
 
 export function buildWall(rng: () => number = Math.random): WallState {
-  const shuffled = shuffleTiles(createFullTileSet(), rng);
+  // createFullTileSetは牌の種類順にIDを振るため、そのままだとIDを見るだけで
+  // 牌の種類が分かってしまう（伏せ牌のIDだけを見せても中身が漏れる。
+  // seatView.ts参照）。シャッフル後の並び順でIDを振り直し、IDからは山の中の
+  // 位置しか分からないようにする。
+  const shuffled = shuffleTiles(createFullTileSet(), rng).map((t) => ({ ...t, id: nextId() }));
   const deadWall = shuffled.slice(0, 14);
   const liveTiles = shuffled.slice(14);
   return { liveTiles, deadWall, revealedDoraCount: 1, rinshanDrawn: 0 };

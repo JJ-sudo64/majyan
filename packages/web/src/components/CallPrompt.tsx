@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import type { RoundState, TileCode } from "@majyan/core";
-import { canDeclareRon } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useSettingsStore } from "../store/settingsStore.js";
 import { TILE_FRONT_SRC, tileImageSrc } from "../tileGlyph.js";
@@ -39,7 +38,8 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
 
   if (!show) return null;
 
-  const analysis = options!.canRon ? canDeclareRon(round, HUMAN, window!.discardTile.code, window!.discarderIndex, window!.isChankan) : null;
+  // 役の判定はストアが本物の対局状態から計算済み（seatView.tsのcomputeSeatOptions参照）。
+  const analysis = options!.ronAnalysis;
 
   return (
     <div className="call-actions">

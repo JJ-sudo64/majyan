@@ -404,6 +404,21 @@ export function OpponentArea({
   // 等はすべて自動的にこの仮の枚数に追従する（実データには一切影響
   // しない、表示専用の差し替え）。
   const isEditingHandThisSeatEarly = handEditSeat !== null && ((handEditSeat === "shimocha" && player === 1) || (handEditSeat === "kamicha" && player === 3));
+  // 公開手牌の角度・位置プレビュー中は、他家の手牌が伏せられた（Tile.hidden、
+  // 中身はストアから渡されない）ままだと全部同じダミー牌で並んでしまうため、
+  // 見た目確認用のサンプル牌柄を当てる（IDはそのままなのでツモ牌の判定等は変わらない）。
+  const PREVIEW_SAMPLE_CODES: TileCode[] = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "2z", "5z", "6z", "7z"];
+  const basePlayer = revealPreviewActive
+    ? {
+        ...round.players[player],
+        hand: {
+          ...round.players[player].hand,
+          concealed: round.players[player].hand.concealed.map((t, i) =>
+            t.hidden ? { id: t.id, code: PREVIEW_SAMPLE_CODES[i % PREVIEW_SAMPLE_CODES.length]! } : t,
+          ),
+        },
+      }
+    : round.players[player];
   const p = isEditingHandThisSeatEarly
     ? {
         ...round.players[player],

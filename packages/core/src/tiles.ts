@@ -18,6 +18,9 @@ export interface Tile {
   code: TileCode;
   /** 赤ドラ（5m/5p/5sの一部を赤牌にするルール）対象の牌かどうか */
   isRed?: boolean;
+  /** 座席ごとの見え方（seatView.ts）で中身を伏せられた牌の場合true。この時の
+      code/isRedはダミー（HIDDEN_TILE_CODE）で意味を持たない。 */
+  hidden?: true;
 }
 
 export const WINDS = [1, 2, 3, 4] as const;

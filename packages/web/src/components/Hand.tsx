@@ -4,17 +4,6 @@ import { meldDisplaySlots } from "../meldDisplay.js";
 import {
   CARDS,
   CHARACTERS,
-  canDeclareTsumo,
-  canRiichi,
-  riichiCandidateTileIds,
-  ankanOptions,
-  kakanOptions,
-  canKyushuKyuhai,
-  canUseCard,
-  canUseSkill,
-  borrowSkillBlockReason,
-  reclaimableDiscardTileIds,
-  canSwapStartingTile,
   getWaitingTiles,
   doraIndicators,
   isFuriten,
@@ -57,7 +46,7 @@ function countVisibleTiles(round: RoundState, code: TileCode): number {
 // 正確な残り枚数として表示する。
 function countInLiveWall(round: RoundState, code: TileCode): number {
   let count = 0;
-  for (const t of round.wall.liveTiles) if (t.code === code) count++;
+  for (const t of round.wall.liveTiles) if (!t.hidden && t.code === code) count++;
   return count;
 }
 
@@ -167,16 +156,21 @@ export function Hand({ round }: { round: RoundState }) {
   const [hoveredCandidateId, setHoveredCandidateId] = useState<string | null>(null);
 
   const humanCallOptions = useGameStore((s) => s.humanCallOptions);
+  // 選べる操作は、他家の手牌や山が伏せられたroundからではなく、ストアが本物の
+  // 対局状態から計算したものを使う（canUseSkill等は山や他家の状態も見るため、
+  // 伏せた状態で呼ぶと判定が狂う。seatView.tsのcomputeSeatOptions参照）。
+  const humanOptions = useGameStore((s) => s.humanOptions);
+  const turnOptions = humanOptions?.turn ?? null;
   const player = round.players[HUMAN];
-  const isMyTurn = round.currentTurn === HUMAN && round.phase === "awaiting-discard";
+  const isMyTurn = !!turnOptions;
   const isAwaitingCall = !!humanCallOptions && round.phase === "awaiting-calls";
-  const tsumoAnalysis = isMyTurn ? canDeclareTsumo(round, HUMAN) : null;
-  const riichiEligible = isMyTurn && canRiichi(round, HUMAN);
-  const riichiTileIds = riichiEligible ? new Set(riichiCandidateTileIds(round, HUMAN)) : new Set<string>();
-  const ankanChoices = isMyTurn ? ankanOptions(round, HUMAN) : [];
-  const kakanChoices = isMyTurn ? kakanOptions(round, HUMAN) : [];
-  const kyushuOk = isMyTurn && canKyushuKyuhai(round, HUMAN);
-  const skillReady = isMyTurn && canUseSkill(round, HUMAN);
+  const tsumoAnalysis = turnOptions?.tsumo ?? null;
+  const riichiEligible = !!turnOptions?.canRiichi;
+  const riichiTileIds = new Set(turnOptions?.riichiTileIds ?? []);
+  const ankanChoices = turnOptions?.ankan ?? [];
+  const kakanChoices = turnOptions?.kakan ?? [];
+  const kyushuOk = !!turnOptions?.kyushuKyuhai;
+  const skillReady = !!turnOptions?.skill;
   const character = CHARACTERS[round.characterIds[HUMAN]];
   // ライコの「一閃」等、usableDuringRiichi（一発中に自動発動する設計の技）を
   // 持つキャラでゲージが満タンの時、リーチボタン自体に技名を添えて
@@ -188,26 +182,16 @@ export function Hand({ round }: { round: RoundState }) {
   // カリンの「借り物競争」用: 自分のonActivateを持たず、代わりに同卓者3人の
   // 3人を選択肢として出す（characters.tsのkarin参照）。ゲージ満タン時は、今借りられない
   // 相手も理由付きのグレーアウトで残す（黙って消すと不具合に見えるとの指摘により）。
-  const borrowTargets =
-    isMyTurn && character?.borrowsSkill && player.skillGauge >= character.gaugeMax
-      ? ([0, 1, 2, 3] as PlayerIndex[])
-          .filter((seat) => seat !== HUMAN)
-          .map((seat) => ({ target: seat, blockReason: borrowSkillBlockReason(round, HUMAN, seat) }))
-      : [];
+  const borrowTargets = turnOptions?.borrowTargets ?? [];
   // ミオの「取り返し」用: 自分のonActivateを持たず、代わりにゲージ満タン時
   // （リーチ中は不可）に自分の河から取り返せる牌がある場合だけボタンを出す
   // （characters.tsのmio参照）。
-  const retrieveReady =
-    isMyTurn &&
-    !!character?.retrievesDiscard &&
-    !player.riichi &&
-    player.skillGauge >= character.gaugeMax &&
-    reclaimableDiscardTileIds(round, HUMAN).length > 0;
+  const retrieveReady = !!turnOptions?.retrieve;
   // 必殺技発動の演出はTable.tsxのSkillActivationOverlay（卓全体を使った
   // ド派手な演出）に一本化したため、ここでの個別表示は行わない。
 
   const heldCard = round.cardIds[HUMAN] ? CARDS[round.cardIds[HUMAN]!] : undefined;
-  const cardReady = isMyTurn && canUseCard(round, HUMAN);
+  const cardReady = !!turnOptions?.card;
 
   // 必殺技「時間停止」発動中の演出。OpponentArea.tsxと同じロジックで、
   // 発動者以外は手牌ごと丸ごとグレーアウトする。ネームプレート側の
@@ -217,7 +201,7 @@ export function Hand({ round }: { round: RoundState }) {
   const isTimeStopped = timeStopSource !== undefined;
   const frozen = isTimeStopped && timeStopSource !== HUMAN;
 
-  const swapAvailable = canSwapStartingTile(round, HUMAN);
+  const swapAvailable = !!humanOptions?.canSwapStartingTile;
   // 交換権を使い切った/局が進んだ等でswapAvailableがfalseに戻ったら、
   // モードに入ったままボタンだけ消えて操作不能に見えないよう自動で抜ける。
   useEffect(() => {
