@@ -91,6 +91,33 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX gacha_log_user ON gacha_log(user_id);
   `,
+  // 4: 雀玉（無償・有償を分けて持つ）と、その増減の記録、1日ごとの受け取り記録
+  `
+  CREATE TABLE wallets (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    free_jade INTEGER NOT NULL CHECK (free_jade >= 0),
+    paid_jade INTEGER NOT NULL CHECK (paid_jade >= 0)
+  );
+  CREATE TABLE jade_ledger (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    free_delta INTEGER NOT NULL,
+    paid_delta INTEGER NOT NULL,
+    free_after INTEGER NOT NULL,
+    paid_after INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    ref TEXT,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX jade_ledger_user ON jade_ledger(user_id);
+  CREATE TABLE daily_claims (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    date TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    PRIMARY KEY (user_id, kind, date)
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;
@@ -118,9 +145,18 @@ function migrate(db: Database): void {
   }
 }
 
-/** fnの中の書き込みをまとめて確定する（途中で例外が出たら全部取り消す）。 */
+const transactionDepth = new WeakMap<Database, number>();
+
+/**
+ * fnの中の書き込みをまとめて確定する（途中で例外が出たら全部取り消す）。
+ * transactionの中で呼ばれたtransactionは外側にまとめる（ガチャで「雀玉を減らす」と
+ * 「キャラを渡す」を1つにまとめる等、サービスをまたいで使えるように）。
+ */
 export function transaction<T>(db: Database, fn: () => T): T {
+  const depth = transactionDepth.get(db) ?? 0;
+  if (depth > 0) return fn();
   db.exec("BEGIN");
+  transactionDepth.set(db, 1);
   try {
     const result = fn();
     db.exec("COMMIT");
@@ -128,5 +164,7 @@ export function transaction<T>(db: Database, fn: () => T): T {
   } catch (err) {
     db.exec("ROLLBACK");
     throw err;
+  } finally {
+    transactionDepth.set(db, 0);
   }
 }

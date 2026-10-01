@@ -3,6 +3,7 @@ import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, rarity
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
+import { GachaScreen } from "./GachaScreen.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
 const CARD_LIST = Object.values(CARDS);
@@ -40,6 +41,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const rank = useAccountStore((s) => s.rank);
   const ownedIds = useAccountStore((s) => s.characters);
   const firstGacha = useAccountStore((s) => s.firstGacha);
+  const jade = useAccountStore((s) => s.jade);
+  const dailyBonusNotice = useAccountStore((s) => s.dailyBonusNotice);
+  const [showGacha, setShowGacha] = useState(false);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
   const needsFirstGacha = accountStatus === "ready" && firstGacha !== null && !firstGacha.confirmed;
   /** ネット対戦の操作（段位戦・友人戦）を出してよいか。 */
@@ -173,8 +177,20 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             {rank.maxPoints === null ? `${rank.points} pt` : `${rank.points} / ${rank.maxPoints} pt`}
           </span>
           <span className="online-lobby__rank-games">{rank.gamesPlayed}戦</span>
+          {jade && <span className="online-lobby__jade">雀玉 {(jade.free + jade.paid).toLocaleString()}</span>}
+          {!busy && (
+            <button type="button" className="btn online-lobby__gacha-btn" onClick={() => setShowGacha(true)}>
+              ガチャ
+            </button>
+          )}
         </div>
       )}
+      {!needsFirstGacha && dailyBonusNotice !== null && (
+        <div className="online-lobby__notice" onClick={() => useAccountStore.setState({ dailyBonusNotice: null })}>
+          ログインボーナス：雀玉 {dailyBonusNotice} を受け取りました（タップで閉じる）
+        </div>
+      )}
+      {showGacha && <GachaScreen onClose={() => setShowGacha(false)} />}
 
       {ready && !busy && (
         <div className="online-lobby__section">

@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { CHARACTERS, FIRST_GACHA, rarityOf, type Rarity } from "@majyan/core";
+import { FIRST_GACHA } from "@majyan/core";
 import { confirmFirstGacha, rollFirstGacha, useAccountStore } from "../online/account.js";
-
-const STARS: Record<Rarity, string> = { 1: "★", 2: "★★", 3: "★★★" };
+import { GachaCard } from "./GachaCard.js";
 
 /**
  * 最初の10連。何度でも引き直せて、「これで決定」を押すとその結果のキャラが
@@ -34,18 +33,9 @@ export function FirstGacha() {
 
       {pending && (
         <div className="first-gacha__grid">
-          {pending.map((id, i) => {
-            const character = CHARACTERS[id];
-            const rarity = rarityOf(id);
-            return (
-              <div key={`${firstGacha?.rolls}-${i}`} className={`gacha-card gacha-card--r${rarity}`} style={{ animationDelay: `${i * 60}ms` }}>
-                <div className="gacha-card__stars">{STARS[rarity]}</div>
-                {character && <img className="gacha-card__avatar" src={character.avatar} alt="" />}
-                <div className="gacha-card__name">{character?.name.split("・").at(-1) ?? id}</div>
-                <div className="gacha-card__skill">{character?.skill.name}</div>
-              </div>
-            );
-          })}
+          {pending.map((id, i) => (
+            <GachaCard key={`${firstGacha?.rolls}-${i}`} characterId={id} index={i} />
+          ))}
         </div>
       )}
 

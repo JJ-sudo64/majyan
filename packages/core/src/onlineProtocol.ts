@@ -29,6 +29,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/me/name {displayName} (Bearer)   → MeResponse            名前を変える
 //   POST /api/first-gacha/roll    (Bearer)     → MeResponse            最初の10連を引く（確定するまで何度でも引き直せる）
 //   POST /api/first-gacha/confirm (Bearer)     → MeResponse            今の結果で確定してキャラを受け取る
+//   POST /api/gacha/roll {count: 1|10} (Bearer) → GachaRollResponse    雀玉でガチャを引く
 //   失敗時は 4xx と ApiErrorResponse
 // ---------------------------------------------------------------------------
 
@@ -63,12 +64,28 @@ export interface FirstGachaState {
   rolls: number;
 }
 
+/** 雀玉の残高。有償（購入した分）と無償（報酬等）は法律上分けて扱う必要があるため別々に持つ。 */
+export interface JadeBalance {
+  free: number;
+  paid: number;
+}
+
 export interface MeResponse {
   profile: AccountProfile;
   rank: RankView;
+  jade: JadeBalance;
+  /** このリクエストで今日のログインボーナスを受け取った場合、その雀玉の数。 */
+  dailyBonus: number | null;
   /** 持っているキャラのID。 */
   characters: string[];
   firstGacha: FirstGachaState;
+}
+
+export interface GachaRollResponse {
+  results: string[];
+  /** resultsのうち、今回初めて手に入れたキャラ。 */
+  newCharacterIds: string[];
+  me: MeResponse;
 }
 
 export interface ApiErrorResponse {
@@ -140,6 +157,8 @@ export interface OnlineSeatView {
 export interface RankResult {
   place: 1 | 2 | 3 | 4;
   delta: number;
+  /** この試合でもらえた雀玉（1日の上限に達していると0）。 */
+  jadeReward: number;
   before: RankView;
   after: RankView;
 }

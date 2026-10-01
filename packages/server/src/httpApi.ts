@@ -7,12 +7,14 @@ import {
   ONLINE_API_PREFIX,
   type AccountProfile,
   type ApiErrorResponse,
+  type GachaRollResponse,
   type GuestAccountResponse,
   type MeResponse,
 } from "@majyan/core";
 import { normalizeDisplayName, type AccountService } from "./accounts.js";
 import type { RankService } from "./ranks.js";
 import { GachaError, type CollectionService } from "./collection.js";
+import { InsufficientJadeError, type WalletService } from "./wallet.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
 
@@ -20,6 +22,7 @@ export interface HttpApiOptions {
   accounts: AccountService;
   ranks: RankService;
   collections: CollectionService;
+  wallet: WalletService;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
   guestsPerHourPerIp?: number;
   /** 接続元の見分け方（リバースプロキシの後ろではX-Forwarded-Forを見る等）。 */
@@ -72,10 +75,12 @@ function bearerToken(req: IncomingMessage): string | null {
 
 /** /api 配下なら処理してtrueを返す。それ以外のパスはfalse（呼び出し側が静的ファイル等を返す）。 */
 export function createApiHandler(options: HttpApiOptions) {
-  const { accounts, ranks, collections } = options;
-  const me = (profile: AccountProfile): MeResponse => ({
+  const { accounts, ranks, collections, wallet } = options;
+  const me = (profile: AccountProfile, dailyBonus: number | null = null): MeResponse => ({
     profile,
     rank: ranks.get(profile.id),
+    jade: wallet.balance(profile.id),
+    dailyBonus,
     characters: collections.owned(profile.id),
     firstGacha: collections.firstGachaState(profile.id),
   });
@@ -121,7 +126,8 @@ export function createApiHandler(options: HttpApiOptions) {
         }
         case "GET /me": {
           const profile = authed(req, res);
-          if (profile) sendJson(res, 200, me(profile));
+          // 画面を開いた時に読むので、ここで今日のログインボーナスを渡す。
+          if (profile) sendJson(res, 200, me(profile, wallet.claimDailyLogin(profile.id)));
           return true;
         }
         case "POST /me/name": {
@@ -131,6 +137,22 @@ export function createApiHandler(options: HttpApiOptions) {
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
           sendJson(res, 200, me(accounts.rename(profile.id, name)));
+          return true;
+        }
+        case "POST /gacha/roll": {
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { count?: unknown };
+          if (body.count !== 1 && body.count !== 10) return fail(res, 400, "回数が正しくありません"), true;
+          if (!collections.firstGachaState(profile.id).confirmed) return fail(res, 409, "先に最初の10連を受け取ってください"), true;
+          let rolled;
+          try {
+            rolled = collections.rollGacha(profile.id, body.count, wallet);
+          } catch (err) {
+            if (err instanceof InsufficientJadeError) return fail(res, 409, err.message), true;
+            throw err;
+          }
+          sendJson(res, 200, { ...rolled, me: me(profile) } satisfies GachaRollResponse);
           return true;
         }
         case "POST /first-gacha/roll":

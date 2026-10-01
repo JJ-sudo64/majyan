@@ -271,6 +271,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                 ）
                 {rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && " 昇段！"}
                 {rankOrdinal(rankResult.after) < rankOrdinal(rankResult.before) && " 降段…"}
+                {rankResult.jadeReward > 0 && <div>報酬：雀玉 {rankResult.jadeReward}</div>}
               </div>
             )}
             <button className="btn btn--primary" onClick={() => setShowVictory(true)}>

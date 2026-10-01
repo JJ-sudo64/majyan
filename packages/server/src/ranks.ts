@@ -81,6 +81,7 @@ export class RankService {
         changes.set(r.userId, {
           place: r.place,
           delta: change.delta,
+          jadeReward: 0, // 雀玉の報酬は呼び出し側（rooms.ts）が渡して書き込む
           before: toRankView(rank, games),
           after: toRankView(after, games + 1),
         });

@@ -4,12 +4,13 @@ import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
-import type { GuestAccountResponse, MeResponse } from "@majyan/core";
+import { DAILY_LOGIN_JADE, STARTING_JADE, type GachaRollResponse, type GuestAccountResponse, type MeResponse } from "@majyan/core";
 import { AccountService, normalizeDisplayName } from "../src/accounts.js";
 import { openDatabase } from "../src/db.js";
 import { createApiHandler } from "../src/httpApi.js";
 import { RankService } from "../src/ranks.js";
 import { CollectionService } from "../src/collection.js";
+import { WalletService } from "../src/wallet.js";
 
 describe("AccountService", () => {
   it("creates a guest and finds it again by its token", () => {
@@ -66,7 +67,7 @@ describe("account HTTP API", () => {
   beforeAll(async () => {
     const db = openDatabase(":memory:");
     const accounts = new AccountService(db);
-    const handleApi = createApiHandler({ accounts, ranks: new RankService(db), collections: new CollectionService(db), guestsPerHourPerIp: 3 });
+    const handleApi = createApiHandler({ accounts, ranks: new RankService(db), collections: new CollectionService(db), wallet: new WalletService(db), guestsPerHourPerIp: 3 });
     server = createServer(async (req, res) => {
       if (!(await handleApi(req, res))) res.writeHead(418).end();
     });
@@ -90,7 +91,9 @@ describe("account HTTP API", () => {
     const { token, profile } = (await created.json()) as GuestAccountResponse;
 
     const me = await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
-    expect(((await me.json()) as MeResponse).profile).toEqual(profile);
+    const firstMe = (await me.json()) as MeResponse;
+    expect(firstMe.profile).toEqual(profile);
+    expect(firstMe.dailyBonus).toBe(DAILY_LOGIN_JADE);
 
     const renamed = await post("/api/me/name", { displayName: "新しい名前" }, token);
     expect(((await renamed.json()) as MeResponse).profile.displayName).toBe("新しい名前");
@@ -108,6 +111,18 @@ describe("account HTTP API", () => {
     expect(confirmed.firstGacha.confirmed).toBe(true);
     for (const id of roll2.firstGacha.pending!) expect(confirmed.characters).toContain(id);
     expect((await post("/api/first-gacha/roll", {}, token)).status).toBe(409);
+
+    // 雀玉: 最初にもらえる分があり、ログインボーナスは1日1回。通常のガチャで減る。
+    // （このテストの最初の /api/me で今日のログインボーナスは受け取り済み）
+    expect(fresh.jade.free).toBe(STARTING_JADE + DAILY_LOGIN_JADE);
+    expect(fresh.dailyBonus).toBeNull();
+    const meAgain = (await (await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${token}` } })).json()) as MeResponse;
+    expect(meAgain.dailyBonus).toBeNull();
+    const rolled = (await (await post("/api/gacha/roll", { count: 10 }, token)).json()) as GachaRollResponse;
+    expect(rolled.results).toHaveLength(10);
+    expect(rolled.me.jade.free).toBe(meAgain.jade.free - 1500);
+    expect((await post("/api/gacha/roll", { count: 10 }, token)).status).toBe(409); // 雀玉が足りない
+    expect((await post("/api/gacha/roll", { count: 5 }, token)).status).toBe(400);
   });
 
   it("rejects missing/unknown tokens, bad input and unknown routes", async () => {

@@ -28,6 +28,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { MatchSession, type SessionSeat, type SessionTiming } from "./matchSession.js";
 import type { RankService } from "./ranks.js";
 import type { CollectionService } from "./collection.js";
+import type { WalletService } from "./wallet.js";
 
 export interface Client {
   readonly id: string;
@@ -75,6 +76,8 @@ export interface RoomManagerOptions {
   ranks?: RankService;
   /** 所持キャラ。あれば、持っていないキャラは使えない（おまかせは持っている中から選ぶ）。 */
   collections?: CollectionService;
+  /** 雀玉（段位戦の報酬を渡す）。 */
+  wallet?: WalletService;
 }
 
 const MAX_MEMBERS = 4;
@@ -385,7 +388,9 @@ export class RoomManager {
     const changes = ranks.recordMatch(ranked.matchId, ranked.format, results);
     for (const m of room.members) {
       const result = changes.get(m.userId);
-      if (result) m.client?.send({ t: "rankResult", result });
+      if (!result) continue;
+      const jadeReward = this.options.wallet?.grantRankedReward(m.userId, ranked.format, result.place, ranked.matchId) ?? 0;
+      m.client?.send({ t: "rankResult", result: { ...result, jadeReward } });
     }
     if (room.members.every((m) => !m.client)) setTimeout(() => this.deleteRoom(room), 0);
   }

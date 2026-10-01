@@ -10,6 +10,8 @@ import {
   ONLINE_API_PREFIX,
   type AccountProfile,
   type FirstGachaState,
+  type GachaRollResponse,
+  type JadeBalance,
   type ApiErrorResponse,
   type GuestAccountResponse,
   type MeResponse,
@@ -33,6 +35,9 @@ interface AccountState {
   /** 持っているキャラのID。 */
   characters: string[];
   firstGacha: FirstGachaState | null;
+  jade: JadeBalance | null;
+  /** 直前に受け取ったログインボーナス（お知らせを出したら画面側でnullに戻す）。 */
+  dailyBonusNotice: number | null;
   error: string | null;
 }
 
@@ -42,6 +47,8 @@ export const useAccountStore = create<AccountState>(() => ({
   rank: null,
   characters: [],
   firstGacha: null,
+  jade: null,
+  dailyBonusNotice: null,
   error: null,
 }));
 
@@ -53,6 +60,8 @@ function applyMe(me: MeResponse) {
     rank: me.rank,
     characters: me.characters,
     firstGacha: me.firstGacha,
+    jade: me.jade,
+    ...(me.dailyBonus ? { dailyBonusNotice: me.dailyBonus } : {}),
     error: null,
   });
 }
@@ -162,5 +171,17 @@ export async function confirmFirstGacha(): Promise<void> {
     applyMe(await api<MeResponse>("/first-gacha/confirm", { method: "POST", body: "{}" }));
   } catch (err) {
     useAccountStore.setState({ error: (err as Error).message });
+  }
+}
+
+/** 雀玉でガチャを引く（1回または10連）。結果を返す。失敗したらnull（理由はerrorに入る）。 */
+export async function rollGacha(count: 1 | 10): Promise<GachaRollResponse | null> {
+  try {
+    const res = await api<GachaRollResponse>("/gacha/roll", { method: "POST", body: JSON.stringify({ count }) });
+    applyMe(res.me);
+    return res;
+  } catch (err) {
+    useAccountStore.setState({ error: (err as Error).message });
+    return null;
   }
 }

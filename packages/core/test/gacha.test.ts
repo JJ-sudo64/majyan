@@ -8,6 +8,9 @@ import {
   rarityOf,
   rollGacha,
   STARTER_CHARACTER_IDS,
+  TEN_PULL_GUARANTEED_RARITY,
+  jstDate,
+  rankedJadeReward,
 } from "../src/gacha.js";
 
 function makeRng(seed: number): () => number {
@@ -56,5 +59,25 @@ describe("rollGacha", () => {
     expect(counts[3] / n).toBeLessThan(0.04);
     expect(counts[2] / n).toBeGreaterThan(0.16);
     expect(counts[2] / n).toBeLessThan(0.2);
+  });
+});
+
+describe("jade helpers", () => {
+  it("doubles ranked rewards for hanchan", () => {
+    expect(rankedJadeReward("tonpuusen", 1)).toBe(50);
+    expect(rankedJadeReward("hanchan", 4)).toBe(20);
+  });
+
+  it("splits days at midnight Japan time", () => {
+    // 2026-10-01 14:59:59Z = 23:59:59 JST, 15:00:00Z = 翌日 00:00 JST
+    expect(jstDate(Date.UTC(2026, 9, 1, 14, 59, 59))).toBe("2026-10-01");
+    expect(jstDate(Date.UTC(2026, 9, 1, 15, 0, 0))).toBe("2026-10-02");
+  });
+
+  it("guarantees ★2 or better in a normal 10-pull", () => {
+    for (let seed = 1; seed <= 200; seed++) {
+      const results = rollGacha(makeRng(seed), 10, TEN_PULL_GUARANTEED_RARITY);
+      expect(results.some((id) => rarityOf(id) >= 2)).toBe(true);
+    }
   });
 });

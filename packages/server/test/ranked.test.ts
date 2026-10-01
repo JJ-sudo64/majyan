@@ -6,6 +6,7 @@ import { openDatabase, type Database } from "../src/db.js";
 import { RankService } from "../src/ranks.js";
 import { Matchmaker } from "../src/matchmaking.js";
 import { CollectionService } from "../src/collection.js";
+import { WalletService } from "../src/wallet.js";
 import type { SessionTiming } from "../src/matchSession.js";
 
 function makeRng(seed: number): () => number {
@@ -55,7 +56,7 @@ function setup(cpuFillMs = 20_000) {
   ranks = new RankService(db);
   const authenticate = (token: string) => accounts.authenticate(token);
   collections = new CollectionService(db, makeRng(9), () => Date.now());
-  rooms = new RoomManager({ authenticate, ranks, collections, rng: makeRng(5), timing: FAST });
+  rooms = new RoomManager({ authenticate, ranks, collections, wallet: new WalletService(db), rng: makeRng(5), timing: FAST });
   matchmaker = new Matchmaker({ rooms, ranks, authenticate, cpuFillMs });
   return matchmaker;
 }
@@ -196,6 +197,7 @@ describe("ranked match", () => {
       const v = p.client.view;
       // 自分(座席0)の順位が最終順位と一致し、DBの段位とも一致する。
       expect(result.place).toBe(v.match.finalRanking!.indexOf(0) + 1);
+      expect(result.jadeReward).toBe([50, 30, 20, 10][result.place - 1]);
       expect(ranks.get(p.profile.id)).toMatchObject({
         tier: result.after.tier,
         level: result.after.level,

@@ -5,11 +5,14 @@
 import {
   CHARACTER_IDS,
   FIRST_GACHA,
+  GACHA_PRICE,
   rollGacha,
+  TEN_PULL_GUARANTEED_RARITY,
   STARTER_CHARACTER_IDS,
   type FirstGachaState,
 } from "@majyan/core";
 import { transaction, type Database } from "./db.js";
+import type { WalletService } from "./wallet.js";
 
 /** 最初の10連を引き直せる間隔（連打でサーバーに負担をかけないように）。 */
 const FIRST_GACHA_ROLL_INTERVAL_MS = 300;
@@ -99,6 +102,26 @@ export class CollectionService {
         .run(userId, JSON.stringify(state.pending), now);
     });
     return this.firstGachaState(userId);
+  }
+
+  /**
+   * 雀玉を払って通常のガチャを引く（1回または10連。10連は★2以上が1人確定）。
+   * 雀玉を減らす・キャラを渡す・記録を残すを1つにまとめ、途中で失敗したら何も起きない。
+   * 雀玉が足りなければwallet.spendがInsufficientJadeErrorを投げる。
+   */
+  rollGacha(userId: string, count: 1 | 10, wallet: WalletService): { results: string[]; newCharacterIds: string[] } {
+    return transaction(this.db, () => {
+      const price = count === 10 ? GACHA_PRICE.ten : GACHA_PRICE.single;
+      wallet.spend(userId, price, `gacha-${count}`);
+      const before = new Set(this.owned(userId));
+      const results = rollGacha(this.rng, count, count === 10 ? TEN_PULL_GUARANTEED_RARITY : undefined);
+      this.grant(userId, results, "gacha");
+      this.db
+        .prepare("INSERT INTO gacha_log (user_id, kind, results_json, created_at) VALUES (?, ?, ?, ?)")
+        .run(userId, `gacha-${count}`, JSON.stringify(results), this.now());
+      const newCharacterIds = [...new Set(results.filter((id) => !before.has(id)))];
+      return { results, newCharacterIds };
+    });
   }
 
   /** キャラを渡す（持っていれば重なった数を増やす）。 */

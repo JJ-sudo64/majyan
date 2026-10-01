@@ -88,3 +88,35 @@ export function rollGacha(rng: () => number, count: number, guaranteedRarity?: R
   }
   return results;
 }
+
+// ---------------------------------------------------------------------------
+// 雀玉（ゲーム内通貨）と通常のガチャ
+// ---------------------------------------------------------------------------
+
+/** 通常のガチャの値段（雀玉）。 */
+export const GACHA_PRICE = { single: 150, ten: 1500 } as const;
+
+/** 通常の10連は、この中に最低1人このレア度以上が入る。 */
+export const TEN_PULL_GUARANTEED_RARITY: Rarity = 2;
+
+/** アカウントを作った時にもらえる雀玉。 */
+export const STARTING_JADE = 1500;
+
+/** 1日1回のログインボーナス（日付は日本時間で区切る）。 */
+export const DAILY_LOGIN_JADE = 100;
+
+/** 段位戦1試合の報酬（半荘戦はこの倍）。順位1〜4。 */
+export const RANKED_JADE_REWARD_TONPUUSEN: readonly [number, number, number, number] = [50, 30, 20, 10];
+
+/** 段位戦の報酬で1日にもらえる上限（日本時間の日付で区切る）。 */
+export const RANKED_JADE_DAILY_CAP = 600;
+
+export function rankedJadeReward(format: "hanchan" | "tonpuusen", place: 1 | 2 | 3 | 4): number {
+  const base = RANKED_JADE_REWARD_TONPUUSEN[place - 1]!;
+  return format === "hanchan" ? base * 2 : base;
+}
+
+/** 日本時間の日付（YYYY-MM-DD）。ログインボーナス等の「1日」の区切りに使う。 */
+export function jstDate(epochMs: number): string {
+  return new Date(epochMs + 9 * 60 * 60_000).toISOString().slice(0, 10);
+}
