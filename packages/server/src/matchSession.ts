@@ -23,11 +23,14 @@ import {
   computeCallOptions,
   computeSeatOptions,
   createMatchClocks,
+  cutinHoldMs,
+  dealCutinHoldMs,
   decideCpuCallResponse,
   decideCpuTurnAction,
   hasAnyCallOption,
+  holdClocks,
   isClientActionAllowed,
-  pendingClockDecisions,
+  pendingSeatDecisions,
   pendingDecision,
   redactMatchForSeat,
   refillBanksForNewRound,
@@ -97,6 +100,8 @@ export class MatchSession {
   private readonly now: () => number;
   private readonly timing: SessionTiming;
   private clocks: MatchClocks;
+  /** 画面でカットインを流している間はこの時刻まで時計を止める。 */
+  private clockHoldUntil = 0;
   /** 張っているタイマー（キーはreconcileTimers参照）。 */
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingRoundEnd = false;
@@ -131,6 +136,7 @@ export class MatchSession {
 
   /** 対局を始める（最初の配牌はMatchStateの作成時に済んでいる）。 */
   start(): void {
+    this.holdForCutin(dealCutinHoldMs(this.match.round));
     this.step();
   }
 
@@ -190,14 +196,24 @@ export class MatchSession {
     } catch {
       return false;
     }
+    const before = this.match.round;
     this.match = result.match;
     if (result.scoreAdjustment) {
       this.lastScoreAdjustment = { delta: result.scoreAdjustment, key: (this.lastScoreAdjustment?.key ?? 0) + 1 };
     }
     // 操作を受け取った時刻で時計を止める（使った持ち時間を引く）。
-    this.clocks = syncDecisionClock(this.clocks, this.match.round, this.now(), this.timing.rules);
+    this.clocks = syncDecisionClock(this.clocks, this.match.round, this.now(), this.timing.rules, this.clockHoldUntil);
+    // 必殺技・リーチのカットインが流れる間は、続けて判断する人の時計も止める。
+    this.holdForCutin(cutinHoldMs(before, this.match.round));
     this.step();
     return true;
+  }
+
+  private holdForCutin(ms: number): void {
+    if (ms <= 0) return;
+    const now = this.now();
+    this.clockHoldUntil = Math.max(this.clockHoldUntil, now + ms);
+    this.clocks = holdClocks(this.clocks, now, this.clockHoldUntil);
   }
 
   private clearTimers(): void {
@@ -257,7 +273,7 @@ export class MatchSession {
       return;
     }
     const now = this.now();
-    this.clocks = syncDecisionClock(this.clocks, this.match.round, now, this.timing.rules);
+    this.clocks = syncDecisionClock(this.clocks, this.match.round, now, this.timing.rules, this.clockHoldUntil);
     const round = this.match.round;
     const decision = pendingDecision(round);
 
@@ -284,7 +300,7 @@ export class MatchSession {
     }
 
     // 手番は1人、鳴きの応答はまだ答えていない全員から同時に受け付ける。
-    for (const pending of pendingClockDecisions(round)) {
+    for (const pending of pendingSeatDecisions(round)) {
       const { seat, kind, key } = pending;
       const s = this.seats[seat];
       if (s.kind === "cpu") {
@@ -329,6 +345,7 @@ export class MatchSession {
     this.lastRoundOutcome = null;
     this.roundEndAcks.clear();
     this.clocks = refillBanksForNewRound(this.clocks, this.timing.rules);
+    this.holdForCutin(dealCutinHoldMs(this.match.round));
     if (this.match.finished) {
       this.reportFinishedOnce();
       this.broadcast();

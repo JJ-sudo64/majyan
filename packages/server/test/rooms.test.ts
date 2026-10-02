@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_TIME_LIMIT_RULES, type ServerMessage, type OnlineSeatView } from "@majyan/core";
+import { DEFAULT_TIME_LIMIT_RULES, hasAnyCallOption, type ServerMessage, type OnlineSeatView } from "@majyan/core";
 import { RoomManager, type Client, type RoomManagerOptions } from "../src/rooms.js";
 import { AccountService } from "../src/accounts.js";
 import { openDatabase } from "../src/db.js";
@@ -337,7 +337,11 @@ describe("call responses", () => {
       vi.advanceTimersByTime(5);
       for (const c of [a, b]) {
         const v = c.view;
-        if (!v.options.call) continue;
+        // 鳴けない打牌では時計を出さず、サーバーが待たずに見送らせる。
+        if (!v.options.call || !hasAnyCallOption(v.options.call)) {
+          if (v.match.round.phase === "awaiting-calls") expect(v.clock?.kind === "call" && v.clock.seat === 0).toBe(false);
+          continue;
+        }
         expect(v.clock).toMatchObject({ seat: 0, kind: "call" });
         const before = c.received.length;
         rooms.handleMessage(c, { t: "action", action: { type: "skip", player: 0 } });

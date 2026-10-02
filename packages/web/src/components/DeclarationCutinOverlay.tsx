@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { CHARACTERS, type DeclarationArt, type RoundState } from "@majyan/core";
+import { CHARACTERS, CUTIN_DISPLAY_MS, type DeclarationArt, type RoundState } from "@majyan/core";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 
 export type Declaration = "riichi" | "tsumo" | "ron";
 
 /** リーチは対局が止まらないので短め、ツモ・ロンは点数画面の前にじっくり見せる。 */
-const DISPLAY_MS: Record<Declaration, number> = { riichi: 1600, tsumo: 2200, ron: 2200 };
+// リーチの長さはネット対戦でサーバーが制限時間を止める長さと揃える（turnClock.tsのcutinHoldMs）。
+const DISPLAY_MS: Record<Declaration, number> = { riichi: CUTIN_DISPLAY_MS.riichi, tsumo: 2200, ron: 2200 };
 
 const WORDS: Record<Declaration, string> = { riichi: "リーチ", tsumo: "ツモ", ron: "ロン" };
 

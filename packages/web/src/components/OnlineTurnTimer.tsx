@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { useGameStore } from "../store/gameStore.js";
+import { playCountdownBeep } from "../sound.js";
+
+/** 自分の持ち時間がこの秒数以下になったら、1秒ごとに音で知らせる。 */
+const BEEP_FROM_SECONDS = 5;
 
 /** OpponentArea.tsx等と同じ呼び方（自分から見た座席番号）。 */
 const SEAT_LABELS = ["あなた", "下家", "対面", "上家"];
@@ -9,6 +13,8 @@ const SEAT_LABELS = ["あなた", "下家", "対面", "上家"];
  * からの経過時間ぶん手元で減らして見せる（端末の時計はサーバーとずれて
  * いることがあるため、時刻ではなく残りの長さで受け取っている）。
  * 毎回もらえる時間 ＋ 持ち時間 の形で出す。
+ * CPUの手番は一瞬で終わり、自分の時計と見間違えやすいので出さない。
+ * 自分の時間が残りわずか（時間切れまでBEEP_FROM_SECONDS秒以下）になると、1秒ごとに音を鳴らす。
  */
 export function OnlineTurnTimer() {
   const clock = useGameStore((s) => s.clock);
@@ -21,11 +27,20 @@ export function OnlineTurnTimer() {
     return () => window.clearInterval(id);
   }, [clock]);
 
-  if (!clock) return null;
-  const elapsed = Math.max(0, now - clock.receivedAt);
-  const base = Math.max(0, clock.baseRemainingMs - elapsed);
-  const bank = Math.max(0, clock.bankRemainingMs - Math.max(0, elapsed - clock.baseRemainingMs));
-  const mine = clock.seat === 0;
+  // カットイン中（holdRemainingMs）は時計が止まっているので、その分は経過に数えない。
+  const elapsed = clock ? Math.max(0, now - clock.receivedAt - clock.holdRemainingMs) : 0;
+  const base = clock ? Math.max(0, clock.baseRemainingMs - elapsed) : 0;
+  const bank = clock ? Math.max(0, clock.bankRemainingMs - Math.max(0, elapsed - clock.baseRemainingMs)) : 0;
+  const mine = clock?.seat === 0;
+  /** 時間切れまでの残り秒数（自分の時計の時だけ。それ以外はnull）。 */
+  const secondsLeft = clock && mine ? Math.ceil((base + bank) / 1000) : null;
+
+  useEffect(() => {
+    if (secondsLeft === null || secondsLeft < 1 || secondsLeft > BEEP_FROM_SECONDS) return;
+    playCountdownBeep(secondsLeft === 1);
+  }, [secondsLeft]);
+
+  if (!clock || seats?.[clock.seat]?.isCpu) return null;
   const who = mine ? "あなた" : (seats?.[clock.seat]?.name ?? SEAT_LABELS[clock.seat]);
   const urgent = base === 0 && bank < 5000;
 

@@ -13,10 +13,14 @@
  * 返ってきた各時計の expiresAt にタイマーを仕掛け直す。タイマーが発火したら
  * expiredSeats で本当に時間切れかを確かめてから timeoutAction を適用する
  * （発火までの間に本人の操作が届いて局面が進んでいることがあるため）。
+ *
+ * 必殺技・リーチのカットインを画面で見せている間は時計を止める（holdClocks /
+ * cutinHoldMs）。止めている間に始まった判断は、カットインが終わってから数え始める。
  */
 import type { GameAction, PlayerIndex } from "./actions.js";
 import type { RoundState } from "./gameState.js";
-import { canRespondToCall, pendingDecision } from "./matchController.js";
+import { CHARACTERS } from "./characters.js";
+import { canRespondToCall, computeCallOptions, hasAnyCallOption, pendingDecision } from "./matchController.js";
 
 type Four<T> = [T, T, T, T];
 
@@ -35,7 +39,7 @@ export interface TimeLimitRules {
 export const DEFAULT_TIME_LIMIT_RULES: TimeLimitRules = {
   perDecisionMs: 5_000,
   bankMs: 20_000,
-  bankRefillsEachRound: false,
+  bankRefillsEachRound: true,
   networkGraceMs: 1_000,
 };
 
@@ -47,6 +51,9 @@ export interface DecisionClock {
   seat: PlayerIndex;
   kind: "turn" | "call";
   startedAt: number;
+  /** 時計が（また）進み始める時刻。カットイン中に始まった判断・カットインで止めた
+      判断では、カットインが終わる時刻になる。それまでは残り時間が減らない。 */
+  runsFrom: number;
   /** 毎回もらえる時間を使い切る時刻。ここから先は持ち時間が減っていく。 */
   baseEndsAt: number;
   /** 持ち時間も使い切る時刻（表示上の0秒）。 */
@@ -73,13 +80,13 @@ export interface PendingClockDecision {
 }
 
 /**
- * 局面が待っている判断（＝時計を動かすべき座席）の一覧。ツモ・局終了・応答の
- * 解決待ち等、誰の判断も要らない局面では空。
+ * 局面が待っている判断（手番の1人、または鳴きの応答をまだ返していない全員）。
+ * ツモ・局終了・応答の解決待ち等、誰の判断も要らない局面では空。
  * キーに局・打牌数・副露数・カン数を含めるのは、同じ座席の同じ種類の判断が
  * 続いた時（時間停止のボーナス手番、暗槓後の嶺上ツモ後の打牌等）にも別の判断
  * として時計を回し直すため。
  */
-export function pendingClockDecisions(round: RoundState): PendingClockDecision[] {
+export function pendingSeatDecisions(round: RoundState): PendingClockDecision[] {
   const discards = round.players.reduce((n, p) => n + p.discards.length, 0);
   const melds = round.players.reduce((n, p) => n + p.hand.melds.length, 0);
   const key = (kind: string, seat: PlayerIndex) =>
@@ -94,6 +101,15 @@ export function pendingClockDecisions(round: RoundState): PendingClockDecision[]
   return [];
 }
 
+/**
+ * 時計を動かす判断。pendingSeatDecisionsのうち、鳴きの応答は鳴ける選択肢がある
+ * 座席だけ（選択肢の無い座席はサーバーが待たずに見送らせるので、時計を回すと
+ * 「自分の鳴き判断」が一瞬だけ画面に出てしまう）。
+ */
+export function pendingClockDecisions(round: RoundState): PendingClockDecision[] {
+  return pendingSeatDecisions(round).filter((p) => p.kind === "turn" || hasAnyCallOption(computeCallOptions(round, p.seat)));
+}
+
 /** 終わった判断で持ち時間を何ミリ秒使ったか（毎回もらえる時間の内なら0）。 */
 function bankUsed(clock: DecisionClock, now: number): number {
   return Math.max(0, Math.min(now, clock.bankEndsAt) - clock.baseEndsAt);
@@ -105,6 +121,7 @@ function bankUsed(clock: DecisionClock, now: number): number {
  * - 待っている判断が今の時計と同じなら、その時計はそのまま動かし続ける
  * - 終わった判断の時計は止めて、使った持ち時間を引く
  * - 新しく待つ判断の時計を始める
+ * holdUntilを渡すと、新しく始める時計はその時刻から数え始める（カットイン中）。
  * 何も変わらなければ同じオブジェクトを返す。
  */
 export function syncDecisionClock(
@@ -112,6 +129,7 @@ export function syncDecisionClock(
   round: RoundState,
   now: number,
   rules: TimeLimitRules = DEFAULT_TIME_LIMIT_RULES,
+  holdUntil = now,
 ): MatchClocks {
   const pending = pendingClockDecisions(round);
   const pendingKeys = new Set(pending.map((p) => p.key));
@@ -124,12 +142,66 @@ export function syncDecisionClock(
   for (const c of finished) bankRemainingMs[c.seat] = Math.max(0, bankRemainingMs[c.seat] - bankUsed(c, now));
 
   const active = clocks.active.filter((c) => pendingKeys.has(c.key));
+  const runsFrom = Math.max(now, holdUntil);
   for (const p of started) {
-    const baseEndsAt = now + rules.perDecisionMs;
+    const baseEndsAt = runsFrom + rules.perDecisionMs;
     const bankEndsAt = baseEndsAt + bankRemainingMs[p.seat];
-    active.push({ ...p, startedAt: now, baseEndsAt, bankEndsAt, expiresAt: bankEndsAt + rules.networkGraceMs });
+    active.push({ ...p, startedAt: now, runsFrom, baseEndsAt, bankEndsAt, expiresAt: bankEndsAt + rules.networkGraceMs });
   }
   return { bankRemainingMs, active };
+}
+
+/**
+ * いま動いている時計をuntilまで止める（カットインを見せている間）。止めた分だけ
+ * 各時刻を後ろへずらすので、止める前の残り時間はそのまま残る。
+ */
+export function holdClocks(clocks: MatchClocks, now: number, until: number): MatchClocks {
+  let changed = false;
+  const active = clocks.active.map((c) => {
+    const from = Math.max(now, c.runsFrom);
+    if (until <= from) return c;
+    changed = true;
+    const shift = until - from;
+    return { ...c, runsFrom: until, baseEndsAt: c.baseEndsAt + shift, bankEndsAt: c.bankEndsAt + shift, expiresAt: c.expiresAt + shift };
+  });
+  return changed ? { ...clocks, active } : clocks;
+}
+
+/** 画面のカットインの長さ（web側の演出もこの値を使う）。 */
+export const CUTIN_DISPLAY_MS = {
+  /** 必殺技の発動（SkillActivationOverlay）。 */
+  skill: 1700,
+  /** リーチの宣言（DeclarationCutinOverlay。リーチの1枚絵があるキャラだけ）。 */
+  riichi: 1600,
+} as const;
+
+/**
+ * 操作の前後の局面から、画面でカットインが流れる長さを求める（流れなければ0）。
+ * 画面側の検知と同じ条件: 必殺技ゲージが満タン(>0)から0になった＝発動、
+ * リーチしていなかった座席がリーチした＝リーチ宣言（1枚絵があるキャラだけ）。
+ */
+export function cutinHoldMs(before: RoundState, after: RoundState): number {
+  let ms = 0;
+  for (let i = 0; i < after.players.length; i++) {
+    const was = before.players[i];
+    const now = after.players[i];
+    if (!was || !now) continue;
+    if (was.skillGauge > 0 && now.skillGauge === 0) ms = Math.max(ms, CUTIN_DISPLAY_MS.skill);
+    if (!was.riichi && now.riichi && CHARACTERS[after.characterIds[i]!]?.declarationArt?.riichi) {
+      ms = Math.max(ms, CUTIN_DISPLAY_MS.riichi);
+    }
+  }
+  return ms;
+}
+
+/**
+ * 新しい局を配った直後に流れるカットインの長さ（流れなければ0）。和了で連荘した親の
+ * キャラが配牌時のパッシブ（onDealHand）を持つ時だけ、画面が必殺技のカットインを出す。
+ */
+export function dealCutinHoldMs(round: RoundState): number {
+  if (!round.dealerRenchanByWin) return 0;
+  const dealer = CHARACTERS[round.characterIds[round.dealerSeat]!];
+  return dealer && typeof dealer.skill.hooks.onDealHand === "function" ? CUTIN_DISPLAY_MS.skill : 0;
 }
 
 /** 新しい局の開始時に呼ぶ。bankRefillsEachRoundなら全員の持ち時間を満タンに戻す。 */
@@ -155,14 +227,18 @@ export interface ClockDisplay {
   baseRemainingMs: number;
   /** 持ち時間の残り（毎回もらえる時間を使い切るまでは減らない）。 */
   bankRemainingMs: number;
+  /** カットイン中で時計が止まっている残りの長さ。この間は残り時間を減らさずに見せる。 */
+  holdRemainingMs: number;
 }
 
 function toDisplay(c: DecisionClock, now: number): ClockDisplay {
+  const t = Math.max(now, c.runsFrom);
   return {
     seat: c.seat,
     kind: c.kind,
-    baseRemainingMs: Math.max(0, c.baseEndsAt - now),
-    bankRemainingMs: Math.max(0, c.bankEndsAt - Math.max(now, c.baseEndsAt)),
+    baseRemainingMs: Math.max(0, c.baseEndsAt - t),
+    bankRemainingMs: Math.max(0, c.bankEndsAt - Math.max(t, c.baseEndsAt)),
+    holdRemainingMs: Math.max(0, c.runsFrom - now),
   };
 }
 

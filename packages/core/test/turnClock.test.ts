@@ -1,12 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { createMatch } from "../src/matchFormat.js";
-import { advanceToNextRound, applyMatchAction, pendingDecision, settleRound } from "../src/matchController.js";
+import {
+  advanceToNextRound,
+  applyMatchAction,
+  computeCallOptions,
+  hasAnyCallOption,
+  pendingDecision,
+  settleRound,
+} from "../src/matchController.js";
 import { decideCpuCallResponse, decideCpuTurnAction } from "../src/ai/cpuPlayer.js";
 import { randomCharacterIds } from "../src/characters.js";
 import {
   clockDisplayForSeat,
   clockForSeat,
   createMatchClocks,
+  cutinHoldMs,
+  holdClocks,
   DEFAULT_TIME_LIMIT_RULES,
   expiredSeats,
   refillBanksForNewRound,
@@ -119,24 +128,48 @@ describe("expiredSeats / clockDisplayForSeat", () => {
 });
 
 describe("call windows", () => {
-  /** 誰かが打牌して鳴きの応答待ちになった局面。 */
-  function firstCallWindow(seed: number): MatchState {
-    let match = firstTurn(seed);
-    match = applyMatchAction(match, timeoutAction(match.round, match.round.currentTurn)!).match;
-    expect(match.round.phase).toBe("awaiting-calls");
-    return match;
+  const seatsWithOptions = (match: MatchState) =>
+    match.round.pendingCallWindow!.awaitingPlayers.filter((seat) => hasAnyCallOption(computeCallOptions(match.round, seat)));
+
+  /** CPU同士で打ち進め、鳴ける座席がminSeats人以上いる鳴きの応答待ちになった局面。 */
+  function callWindowWith(minSeats: number): MatchState {
+    for (let seed = 1; seed < 200; seed++) {
+      const rng = makeRng(seed);
+      let match = createMatch("tonpuusen", rng, randomCharacterIds(rng));
+      while (!match.finished && pendingDecision(match.round).kind !== "round-over") {
+        const decision = pendingDecision(match.round);
+        if (match.round.phase === "awaiting-calls" && seatsWithOptions(match).length >= minSeats) return match;
+        const action: GameAction =
+          decision.kind === "draw"
+            ? { type: "draw", player: decision.seat }
+            : decision.kind === "turn"
+              ? decideCpuTurnAction(match.round, decision.seat)
+              : { type: "skip", player: (decision as { seat: PlayerIndex }).seat };
+        match = applyMatchAction(match, action).match;
+      }
+    }
+    throw new Error(`鳴ける座席が${minSeats}人以上の局面が見つかりません`);
   }
 
-  it("runs a clock for every seat that has not answered yet, at the same time", () => {
-    const match = firstCallWindow(10);
-    const discarder = match.round.pendingCallWindow!.discarderIndex;
+  it("runs a clock, at the same time, for every seat that can call and has not answered yet", () => {
+    const match = callWindowWith(1);
     const clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
-    expect(clocks.active.map((c) => c.seat).sort()).toEqual(ALL_SEATS.filter((s) => s !== discarder).sort());
+    expect(clocks.active.map((c) => c.seat).sort()).toEqual(seatsWithOptions(match).sort());
     expect(clocks.active.every((c) => c.kind === "call" && c.expiresAt === 26000)).toBe(true);
   });
 
+  it("runs no clock for seats that cannot call (they are skipped without waiting)", () => {
+    const match = callWindowWith(1);
+    const clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
+    const cannot = match.round.pendingCallWindow!.awaitingPlayers.filter((s) => !seatsWithOptions(match).includes(s));
+    for (const seat of cannot) {
+      expect(clockForSeat(clocks, seat)).toBeNull();
+      expect(clockDisplayForSeat(clocks, 0, seat)).toBeNull();
+    }
+  });
+
   it("stops only the clock of the seat that answered", () => {
-    let match = firstCallWindow(11);
+    let match = callWindowWith(2);
     let clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
     const [first, ...rest] = clocks.active;
     match = applyMatchAction(match, { type: "skip", player: first!.seat }).match;
@@ -148,7 +181,7 @@ describe("call windows", () => {
   });
 
   it("shows a seat its own call clock but never another seat's", () => {
-    const match = firstCallWindow(12);
+    const match = callWindowWith(1);
     const discarder = match.round.pendingCallWindow!.discarderIndex;
     const clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
     const responder = clocks.active[0]!.seat;
@@ -157,8 +190,40 @@ describe("call windows", () => {
   });
 });
 
+describe("holding clocks during cut-ins", () => {
+  it("starts new clocks only after the hold, and shows them frozen until then", () => {
+    const match = firstTurn(3);
+    const seat = match.round.currentTurn;
+    const clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 1000, RULES, 2700);
+    expect(clockForSeat(clocks, seat)).toMatchObject({ runsFrom: 2700, baseEndsAt: 7700, bankEndsAt: 27700, expiresAt: 28700 });
+    expect(clockDisplayForSeat(clocks, 1000, seat)).toMatchObject({ baseRemainingMs: 5000, bankRemainingMs: 20000, holdRemainingMs: 1700 });
+    expect(clockDisplayForSeat(clocks, 3700, seat)).toMatchObject({ baseRemainingMs: 4000, holdRemainingMs: 0 });
+  });
+
+  it("pauses a running clock without losing its remaining time", () => {
+    const match = firstTurn(4);
+    const seat = match.round.currentTurn;
+    let clocks = syncDecisionClock(createMatchClocks(RULES), match.round, 0, RULES);
+    clocks = holdClocks(clocks, 3000, 4700); // 3秒使ったところで1.7秒止める
+    expect(clockDisplayForSeat(clocks, 4000, seat)).toMatchObject({ baseRemainingMs: 2000, holdRemainingMs: 700 });
+    expect(clockForSeat(clocks, seat)).toMatchObject({ baseEndsAt: 6700, expiresAt: 27700 });
+    // 止めている最中にもう一度止めても、止める時間は重ならない。
+    expect(clockForSeat(holdClocks(clocks, 4000, 4700), seat)).toEqual(clockForSeat(clocks, seat));
+  });
+
+  it("holds for a skill cut-in when a gauge is spent, and not for ordinary actions", () => {
+    const match = firstTurn(5);
+    const before = match.round;
+    const spent = { ...before, players: before.players.map((p, i) => (i === 2 ? { ...p, skillGauge: 0 } : p)) as typeof before.players };
+    const full = { ...before, players: before.players.map((p, i) => (i === 2 ? { ...p, skillGauge: 3 } : p)) as typeof before.players };
+    expect(cutinHoldMs(full, spent)).toBe(1700);
+    expect(cutinHoldMs(before, before)).toBe(0);
+  });
+});
+
 describe("refillBanksForNewRound", () => {
-  it("refills only when the rule says so", () => {
+  it("refills every round by default, and only when the rule says so", () => {
+    expect(DEFAULT_TIME_LIMIT_RULES.bankRefillsEachRound).toBe(true);
     const used: MatchClocks = { bankRemainingMs: [0, 5000, 20000, 1], active: [] };
     expect(refillBanksForNewRound(used, RULES)).toBe(used);
     expect(refillBanksForNewRound(used, { ...RULES, bankRefillsEachRound: true }).bankRemainingMs).toEqual([20000, 20000, 20000, 20000]);
@@ -171,21 +236,21 @@ describe("timeoutAction", () => {
    * それ以外と鳴きの応答はCPUで進める。時計も実際のサーバーと同じ要領で回し、
    * 時間切れ扱いにする前に expiredSeats にその座席が入ることを確かめる。
    */
-  function playWithTimeouts(seed: number, timeoutSeats: PlayerIndex[], timeoutCalls: boolean) {
+  function playWithTimeouts(seed: number, timeoutSeats: PlayerIndex[], timeoutCalls: boolean, rules = DEFAULT_TIME_LIMIT_RULES) {
     const rng = makeRng(seed);
     let match = createMatch("tonpuusen", rng, randomCharacterIds(rng));
-    let clocks = createMatchClocks(DEFAULT_TIME_LIMIT_RULES);
+    let clocks = createMatchClocks(rules);
     let now = 0;
     const stats = { tsumogiri: 0, nonTsumogiri: 0, skips: 0 };
     for (let steps = 0; !match.finished; steps++) {
       if (steps > 200000) throw new Error("対局が終わりません");
-      clocks = syncDecisionClock(clocks, match.round, now, DEFAULT_TIME_LIMIT_RULES);
+      clocks = syncDecisionClock(clocks, match.round, now, rules);
       const decision = pendingDecision(match.round);
       let action: GameAction;
       switch (decision.kind) {
         case "round-over":
           match = advanceToNextRound(settleRound(match).match, rng, ALL_SEATS);
-          clocks = refillBanksForNewRound(clocks, DEFAULT_TIME_LIMIT_RULES);
+          clocks = refillBanksForNewRound(clocks, rules);
           continue;
         case "draw":
           action = { type: "draw", player: decision.seat };
@@ -193,7 +258,10 @@ describe("timeoutAction", () => {
         case "turn":
         case "call": {
           const timesOut = timeoutSeats.includes(decision.seat) && (decision.kind === "turn" || timeoutCalls);
-          if (timesOut) {
+          if (decision.kind === "call" && !hasAnyCallOption(computeCallOptions(match.round, decision.seat))) {
+            // 鳴けない座席は時計を回さず、サーバーと同じく待たずに見送る。
+            action = { type: "skip", player: decision.seat };
+          } else if (timesOut) {
             const clock = clockForSeat(clocks, decision.seat)!;
             expect(clock).not.toBeNull();
             now = Math.max(now, clock.expiresAt);
@@ -222,7 +290,8 @@ describe("timeoutAction", () => {
   }
 
   it("lets a match finish when every seat always times out", () => {
-    const { match, clocks, stats } = playWithTimeouts(11, ALL_SEATS, true);
+    // 持ち時間を局ごとに戻さないルールで、対局を通して使い切ることも確かめる。
+    const { match, clocks, stats } = playWithTimeouts(11, ALL_SEATS, true, { ...DEFAULT_TIME_LIMIT_RULES, bankRefillsEachRound: false });
     expect(match.finished).toBe(true);
     expect(stats.tsumogiri).toBeGreaterThan(0);
     expect(stats.skips).toBeGreaterThan(0);

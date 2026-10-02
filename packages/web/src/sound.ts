@@ -111,3 +111,30 @@ export function playVoiceQueue(urls: string[]) {
     if (rest.length > 0) playVoiceQueue(rest);
   });
 }
+
+let beepContext: AudioContext | null = null;
+
+/**
+ * 制限時間の残り数秒を知らせる短い電子音（音源ファイルを使わずWeb Audioで鳴らす）。
+ * lastなら最後の1秒用に高く長めの音にする。SE音量に従う。
+ */
+export function playCountdownBeep(last = false) {
+  if (typeof window === "undefined" || !window.AudioContext) return;
+  const volume = getSeVolume();
+  if (volume <= 0) return;
+  beepContext ??= new AudioContext();
+  const ctx = beepContext;
+  if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+  const start = ctx.currentTime;
+  const length = last ? 0.35 : 0.12;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = last ? 1320 : 880;
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.35 * volume, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + length + 0.02);
+}

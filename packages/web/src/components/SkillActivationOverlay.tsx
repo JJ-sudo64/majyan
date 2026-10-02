@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { CHARACTERS, type Character, type RoundState } from "@majyan/core";
+import { CHARACTERS, CUTIN_DISPLAY_MS, type Character, type RoundState } from "@majyan/core";
 
-const DISPLAY_MS = 1700;
+/** ネット対戦ではこの間サーバーが制限時間を止める（turnClock.tsのcutinHoldMs）。 */
+const DISPLAY_MS = CUTIN_DISPLAY_MS.skill;
 
 interface ActiveAnnounce {
   characterId: string;
