@@ -5,6 +5,7 @@ import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from 
 import { FirstGacha } from "./FirstGacha.js";
 import { GachaScreen } from "./GachaScreen.js";
 import { UnitsScreen } from "./UnitsScreen.js";
+import { TransferScreen } from "./TransferScreen.js";
 
 /** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
 function unitLabel(u: CharacterUnit): string {
@@ -50,6 +51,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const jade = useAccountStore((s) => s.jade);
   const dailyBonusNotice = useAccountStore((s) => s.dailyBonusNotice);
   const [showGacha, setShowGacha] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
   const needsFirstGacha = accountStatus === "ready" && firstGacha !== null && !firstGacha.confirmed;
   /** ネット対戦の操作（段位戦・友人戦）を出してよいか。 */
@@ -152,7 +154,14 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
       )}
       {accountStatus === "none" && (
-        <p className="setup-lead">アカウントはこのブラウザに保存されます（ブラウザのデータを消すと戻れなくなります）。</p>
+        <>
+          <p className="setup-lead">
+            アカウントはこのブラウザに保存されます。ブラウザのデータを消しても戻れるように、はじめた後で「引き継ぎ」からパスワードを決めておくのがおすすめです。
+          </p>
+          <button type="button" className="btn btn--secondary" onClick={() => setShowTransfer(true)}>
+            引き継ぎコードで戻る
+          </button>
+        </>
       )}
       {accountStatus === "none" && accountError && <p className="online-lobby__error">{accountError}</p>}
 
@@ -169,6 +178,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               }}
             >
               名前を変える
+            </button>
+          )}
+          {!busy && (
+            <button type="button" className="btn online-lobby__rename" onClick={() => setShowTransfer(true)}>
+              引き継ぎ
             </button>
           )}
         </div>
@@ -197,6 +211,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       )}
       {showGacha && <GachaScreen onClose={() => setShowGacha(false)} />}
       {showUnits && <UnitsScreen onClose={() => setShowUnits(false)} />}
+      {showTransfer && <TransferScreen onClose={() => setShowTransfer(false)} />}
 
       {ready && !busy && (
         <div className="online-lobby__section">

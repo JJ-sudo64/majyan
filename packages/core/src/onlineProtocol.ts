@@ -28,6 +28,9 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/guest  {displayName}            → GuestAccountResponse  ゲストアカウントを作る
 //   GET  /api/me     (Authorization: Bearer)   → MeResponse
 //   POST /api/me/name {displayName} (Bearer)   → MeResponse            名前を変える
+//   GET  /api/me/transfer         (Bearer)     → TransferCodeResponse  引き継ぎコード（未設定ならnull）
+//   POST /api/me/transfer {password} (Bearer)  → TransferCodeResponse  引き継ぎのパスワードを決める（変える）
+//   POST /api/transfer {code, password}        → GuestAccountResponse  引き継ぎコードで別の端末から入る
 //   POST /api/first-gacha/roll    (Bearer)     → MeResponse            最初の10連を引く（確定するまで何度でも引き直せる）
 //   POST /api/first-gacha/confirm (Bearer)     → MeResponse            今の結果で確定してキャラを受け取る
 //   POST /api/gacha/roll {count: 1|10} (Bearer) → GachaRollResponse    雀玉でガチャを引く
@@ -46,6 +49,27 @@ export interface GuestAccountResponse {
   /** ログイン用の鍵。この時しか受け取れないので、画面側はブラウザに保存しておく。 */
   token: string;
   profile: AccountProfile;
+}
+
+/** 引き継ぎコードの桁数と使う文字（見間違えやすい0/O・1/I/Lは使わない）。 */
+export const TRANSFER_CODE_LENGTH = 12;
+export const TRANSFER_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+export const TRANSFER_PASSWORD_MIN_LENGTH = 8;
+export const TRANSFER_PASSWORD_MAX_LENGTH = 64;
+
+/** 入力された引き継ぎコードを保存されている形に揃える（小文字・ハイフン・空白を許す）。 */
+export function normalizeTransferCode(input: string): string {
+  return input.toUpperCase().replace(/[^0-9A-Z]/g, "");
+}
+
+/** 引き継ぎコードを読みやすく4文字ずつに区切る（例: ABCD-EFGH-JKMN）。 */
+export function formatTransferCode(code: string): string {
+  return code.match(/.{1,4}/g)?.join("-") ?? code;
+}
+
+export interface TransferCodeResponse {
+  /** まだパスワードを決めていなければnull。 */
+  code: string | null;
 }
 
 /** 画面に出す段位（RankStateに表示用の値を足したもの）。 */

@@ -154,6 +154,16 @@ export const MIGRATIONS: readonly string[] = [
     SELECT lower(hex(randomblob(12))), user_id, character_id, NULL, source, acquired_at, NULL FROM expanded;
   DROP TABLE user_characters;
   `,
+  // 7: 引き継ぎコードとパスワード（別の端末から同じアカウントに戻るため）
+  `
+  CREATE TABLE transfer_credentials (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    code TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

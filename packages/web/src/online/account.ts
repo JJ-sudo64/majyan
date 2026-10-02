@@ -1,9 +1,9 @@
 /**
- * ネット対戦用のアカウント（今はゲストアカウントだけ）。
+ * ネット対戦用のアカウント（ゲストアカウント＋引き継ぎコード）。
  *
  * サーバーから受け取ったログイン用の鍵をこのブラウザに保存しておき、次回からは
- * それで本人確認する。鍵が消える（ブラウザのデータを消した等）とアカウントに
- * 戻れなくなるため、いずれ引き継ぎコードやGoogle等でのログインを足す。
+ * それで本人確認する。鍵が消える（ブラウザのデータを消した等）と、引き継ぎの
+ * パスワードを決めていない限りアカウントに戻れない。
  */
 import { create } from "zustand";
 import {
@@ -18,6 +18,7 @@ import {
   type GuestAccountResponse,
   type MeResponse,
   type RankView,
+  type TransferCodeResponse,
 } from "@majyan/core";
 
 const TOKEN_KEY = "majyan.account.token";
@@ -216,4 +217,31 @@ export async function equipCard(unitId: string, cardId: string): Promise<boolean
     useAccountStore.setState({ error: (err as Error).message });
     return false;
   }
+}
+
+/** 引き継ぎコード（パスワードをまだ決めていなければnull）。読めなければ例外。 */
+export async function fetchTransferCode(): Promise<string | null> {
+  return (await api<TransferCodeResponse>("/me/transfer")).code;
+}
+
+/** 引き継ぎのパスワードを決めて（変えて）、引き継ぎコードを返す。失敗したら例外（理由はmessage）。 */
+export async function setTransferPassword(password: string): Promise<string> {
+  const { code } = await api<TransferCodeResponse>("/me/transfer", { method: "POST", body: JSON.stringify({ password }) });
+  if (!code) throw new Error("引き継ぎコードを作れませんでした");
+  return code;
+}
+
+/**
+ * 引き継ぎコードとパスワードでアカウントに入る。このブラウザに今のアカウントが
+ * あれば、それとは入れ替わる（今のアカウントの鍵は消える）。失敗したら例外。
+ */
+export async function loginWithTransfer(code: string, password: string): Promise<void> {
+  const { token, profile } = await api<GuestAccountResponse>("/transfer", {
+    method: "POST",
+    body: JSON.stringify({ code, password }),
+  });
+  memoryToken = token;
+  saveToken(token);
+  useAccountStore.setState({ status: "ready", profile, error: null });
+  await loadAccount();
 }

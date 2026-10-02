@@ -10,8 +10,9 @@ import {
   type GachaRollResponse,
   type GuestAccountResponse,
   type MeResponse,
+  type TransferCodeResponse,
 } from "@majyan/core";
-import { normalizeDisplayName, type AccountService } from "./accounts.js";
+import { normalizeDisplayName, transferPasswordProblem, type AccountService } from "./accounts.js";
 import type { RankService } from "./ranks.js";
 import { GachaError, type CollectionService } from "./collection.js";
 import { InsufficientJadeError, type WalletService } from "./wallet.js";
@@ -25,6 +26,8 @@ export interface HttpApiOptions {
   wallet: WalletService;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
   guestsPerHourPerIp?: number;
+  /** 引き継ぎコードでの入室に失敗できる回数（同じ接続元から、1時間あたり）。パスワードの総当たり対策。 */
+  transferFailuresPerHourPerIp?: number;
   /** 接続元の見分け方（リバースプロキシの後ろではX-Forwarded-Forを見る等）。 */
   clientIp?: (req: IncomingMessage) => string;
   now?: () => number;
@@ -90,17 +93,22 @@ export function createApiHandler(options: HttpApiOptions) {
   const limit = options.guestsPerHourPerIp ?? 20;
   const guestCreations = new Map<string, number[]>();
 
-  function allowGuestCreation(ip: string): boolean {
+  const transferFailureLimit = options.transferFailuresPerHourPerIp ?? 10;
+  const transferFailures = new Map<string, number[]>();
+
+  /** 直近1時間のうちに記録した回数がlimit未満か。recordならこの回も数える。 */
+  function underHourlyLimit(log: Map<string, number[]>, ip: string, max: number, record: boolean): boolean {
     const t = now();
-    const recent = (guestCreations.get(ip) ?? []).filter((x) => t - x < 60 * 60_000);
-    if (recent.length >= limit) {
-      guestCreations.set(ip, recent);
-      return false;
-    }
-    recent.push(t);
-    guestCreations.set(ip, recent);
-    return true;
+    const recent = (log.get(ip) ?? []).filter((x) => t - x < 60 * 60_000);
+    const allowed = recent.length < max;
+    if (allowed && record) recent.push(t);
+    if (recent.length) log.set(ip, recent);
+    else log.delete(ip);
+    return allowed;
   }
+
+  const allowGuestCreation = (ip: string) => underHourlyLimit(guestCreations, ip, limit, true);
+  const clientIp = (req: IncomingMessage) => (options.clientIp ? options.clientIp(req) : (req.socket.remoteAddress ?? "unknown"));
 
   function authed(req: IncomingMessage, res: ServerResponse): AccountProfile | null {
     const profile = accounts.authenticate(bearerToken(req));
@@ -118,8 +126,7 @@ export function createApiHandler(options: HttpApiOptions) {
           const body = (await readJson(req)) as { displayName?: unknown };
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
-          const ip = options.clientIp ? options.clientIp(req) : (req.socket.remoteAddress ?? "unknown");
-          if (!allowGuestCreation(ip)) {
+          if (!allowGuestCreation(clientIp(req))) {
             return fail(res, 429, "アカウントの作成が多すぎます。しばらくしてからお試しください"), true;
           }
           const { profile, token } = accounts.createGuest(name);
@@ -139,6 +146,35 @@ export function createApiHandler(options: HttpApiOptions) {
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
           sendJson(res, 200, me(accounts.rename(profile.id, name)));
+          return true;
+        }
+        case "GET /me/transfer": {
+          const profile = authed(req, res);
+          if (profile) sendJson(res, 200, { code: accounts.transferCode(profile.id) } satisfies TransferCodeResponse);
+          return true;
+        }
+        case "POST /me/transfer": {
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { password?: unknown };
+          const problem = transferPasswordProblem(body.password);
+          if (problem) return fail(res, 400, problem), true;
+          const code = accounts.setTransferPassword(profile.id, body.password as string);
+          sendJson(res, 200, { code } satisfies TransferCodeResponse);
+          return true;
+        }
+        case "POST /transfer": {
+          const ip = clientIp(req);
+          if (!underHourlyLimit(transferFailures, ip, transferFailureLimit, false)) {
+            return fail(res, 429, "引き継ぎの失敗が多すぎます。1時間ほどしてからお試しください"), true;
+          }
+          const body = (await readJson(req)) as { code?: unknown; password?: unknown };
+          const login = accounts.loginWithTransfer(body.code, body.password);
+          if (!login) {
+            underHourlyLimit(transferFailures, ip, transferFailureLimit, true);
+            return fail(res, 401, "引き継ぎコードかパスワードが違います"), true;
+          }
+          sendJson(res, 200, login satisfies GuestAccountResponse);
           return true;
         }
         case "POST /gacha/roll": {

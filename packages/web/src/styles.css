@@ -5122,3 +5122,45 @@ button {
   font-size: 11px;
   opacity: 0.75;
 }
+
+/* 引き継ぎ（TransferScreen） */
+.transfer-screen {
+  width: min(560px, calc(100vw - 32px));
+  align-items: stretch;
+}
+.transfer-screen__section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+.transfer-screen__section + .transfer-screen__section {
+  border-top: 1px solid rgba(212, 175, 55, 0.4);
+}
+.transfer-screen__code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid #d4af37;
+}
+.transfer-screen__code span {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.transfer-screen__code strong {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  user-select: all;
+}
+.transfer-screen__note {
+  margin: 0;
+  font-size: 13px;
+  color: #ffd27a;
+  text-align: center;
+}

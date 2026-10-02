@@ -4,7 +4,15 @@ import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
-import { DAILY_LOGIN_JADE, STARTING_JADE, type GachaRollResponse, type GuestAccountResponse, type MeResponse } from "@majyan/core";
+import {
+  DAILY_LOGIN_JADE,
+  STARTING_JADE,
+  formatTransferCode,
+  type GachaRollResponse,
+  type GuestAccountResponse,
+  type MeResponse,
+  type TransferCodeResponse,
+} from "@majyan/core";
 import { AccountService, normalizeDisplayName } from "../src/accounts.js";
 import { openDatabase } from "../src/db.js";
 import { createApiHandler } from "../src/httpApi.js";
@@ -56,6 +64,89 @@ describe("AccountService", () => {
       db2.close();
     } finally {
       rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("transfer code", () => {
+  it("lets another device sign in with the code and password, keeping the old device signed in", () => {
+    const db = openDatabase(":memory:");
+    const accounts = new AccountService(db);
+    const { profile, token } = accounts.createGuest("A");
+    expect(accounts.transferCode(profile.id)).toBeNull();
+    expect(accounts.loginWithTransfer("ABCDABCDABCD", "password1")).toBeNull();
+
+    const code = accounts.setTransferPassword(profile.id, "password1");
+    expect(code).toMatch(/^[A-HJKMNP-Z2-9]{12}$/);
+    expect(accounts.transferCode(profile.id)).toBe(code);
+    // パスワードは生のままDBに残さない。
+    expect(JSON.stringify(db.prepare("SELECT * FROM transfer_credentials").all())).not.toContain("password1");
+
+    expect(accounts.loginWithTransfer(code, "password2")).toBeNull();
+    expect(accounts.loginWithTransfer("ZZZZZZZZZZZZ", "password1")).toBeNull();
+    // 小文字・ハイフン区切りで入力しても通る。
+    const login = accounts.loginWithTransfer(formatTransferCode(code).toLowerCase(), "password1")!;
+    expect(login.profile).toEqual(profile);
+    expect(login.token).not.toBe(token);
+    expect(accounts.authenticate(login.token)).toEqual(profile);
+    expect(accounts.authenticate(token)).toEqual(profile);
+  });
+
+  it("keeps the same code when the password changes, and rejects short passwords", () => {
+    const accounts = new AccountService(openDatabase(":memory:"));
+    const { profile } = accounts.createGuest("A");
+    const code = accounts.setTransferPassword(profile.id, "password1");
+    expect(accounts.setTransferPassword(profile.id, "another-pass")).toBe(code);
+    expect(accounts.loginWithTransfer(code, "password1")).toBeNull();
+    expect(accounts.loginWithTransfer(code, "another-pass")?.profile.id).toBe(profile.id);
+    expect(() => accounts.setTransferPassword(profile.id, "short")).toThrow();
+    expect(accounts.setTransferPassword(accounts.createGuest("B").profile.id, "password1")).not.toBe(code);
+  });
+
+  it("serves the transfer API and stops guessing after repeated failures", async () => {
+    const db = openDatabase(":memory:");
+    const accounts = new AccountService(db);
+    const handleApi = createApiHandler({
+      accounts,
+      ranks: new RankService(db),
+      collections: new CollectionService(db),
+      wallet: new WalletService(db),
+      transferFailuresPerHourPerIp: 3,
+    });
+    const server = createServer(async (req, res) => {
+      if (!(await handleApi(req, res))) res.writeHead(418).end();
+    });
+    await new Promise<void>((r) => server.listen(0, r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const post = (path: string, body: unknown, token?: string) =>
+      fetch(`${base}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify(body),
+      });
+    try {
+      const { profile, token } = accounts.createGuest("A");
+      const before = (await (await fetch(`${base}/api/me/transfer`, { headers: { Authorization: `Bearer ${token}` } })).json()) as TransferCodeResponse;
+      expect(before.code).toBeNull();
+      expect((await post("/api/me/transfer", { password: "short" }, token)).status).toBe(400);
+      expect((await post("/api/me/transfer", { password: "password1" })).status).toBe(401);
+      const { code } = (await (await post("/api/me/transfer", { password: "password1" }, token)).json()) as TransferCodeResponse;
+      expect(code).toBe(accounts.transferCode(profile.id));
+
+      const ok = await post("/api/transfer", { code, password: "password1" });
+      expect(ok.status).toBe(200);
+      const login = (await ok.json()) as GuestAccountResponse;
+      expect(login.profile.id).toBe(profile.id);
+      const me = (await (await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${login.token}` } })).json()) as MeResponse;
+      expect(me.profile.id).toBe(profile.id);
+
+      // 失敗が上限に達すると、正しいパスワードでもしばらく受け付けない。
+      const statuses: number[] = [];
+      for (let i = 0; i < 3; i++) statuses.push((await post("/api/transfer", { code, password: `wrong-${i}-pass` })).status);
+      expect(statuses).toEqual([401, 401, 401]);
+      expect((await post("/api/transfer", { code, password: "password1" })).status).toBe(429);
+    } finally {
+      await new Promise<void>((r) => server.close(() => r()));
     }
   });
 });
