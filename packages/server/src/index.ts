@@ -13,6 +13,9 @@
  *   DATABASE_PATH     アカウント等を保存するSQLiteファイル（既定 packages/server/data/majyan.db）
  *   TRUST_PROXY       "1"ならX-Forwarded-Forを接続元として信用する（リバースプロキシの後ろに置く時）
  *   RANKED_CPU_FILL_MS 段位戦で人がそろわない時、空席をCPUで埋めるまでの待ち時間（既定20秒）
+ *
+ * 引数 --dev-tools（npm run dev:server が付ける）: 開発用の操作（最初の10連のやり直し等）を
+ * 受け付け、アカウント作成の回数制限をゆるめる。npm start（本番）では付けない。
  */
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
@@ -62,7 +65,18 @@ const matchmaker = new Matchmaker({
   authenticate,
   cpuFillMs: Number(process.env.RANKED_CPU_FILL_MS) || DEFAULT_CPU_FILL_MS,
 });
-const handleApi = createApiHandler({ accounts, ranks, collections, wallet, clientIp });
+const devTools = process.argv.includes("--dev-tools");
+if (devTools) console.log("[majyan-server] 開発用の操作を有効にしています（--dev-tools）");
+const handleApi = createApiHandler({
+  accounts,
+  ranks,
+  collections,
+  wallet,
+  clientIp,
+  devTools,
+  // 開発中は「新しいアカウントで始める」で何度も作り直すため、制限をゆるめる。
+  ...(devTools ? { guestsPerHourPerIp: 1000 } : {}),
+});
 const serveStatic = createStaticHandler(staticDir);
 const httpServer = createServer(async (req, res) => {
   if (req.url === "/healthz") {

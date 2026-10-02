@@ -164,6 +164,20 @@ export class CollectionService {
     };
   }
 
+  /**
+   * 開発用: 手持ち（キャラ・カード）・最初の10連・交換ポイントを、アカウントを
+   * 作った直後の状態に戻す。最初の10連を何度も試すためのもの。雀玉・段位はそのまま。
+   */
+  resetForTesting(userId: string): void {
+    transaction(this.db, () => {
+      for (const table of ["character_units", "user_cards", "first_gacha", "gacha_points"]) {
+        this.db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(userId);
+      }
+      this.ensureStarters(userId);
+    });
+    this.lastRollAt.delete(userId);
+  }
+
   /** 最初の10連を引く（引き直し）。確定済みならGachaError。 */
   rollFirstGacha(userId: string): FirstGachaState {
     const now = this.now();

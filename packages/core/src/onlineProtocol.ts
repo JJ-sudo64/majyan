@@ -36,6 +36,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/gacha/roll {count: 1|10} (Bearer) → GachaRollResponse    雀玉でガチャを引く
 //   POST /api/gacha/exchange {item} (Bearer)   → GachaRollResponse    交換ポイントで★3のキャラかカードを1つもらう（天井）
 //   POST /api/units/equip {unitId, cardId} (Bearer) → MeResponse        手持ちのキャラにカードを付ける（外せない）
+//   POST /api/dev/reset-collection (Bearer)    → MeResponse            開発用: 手持ちと最初の10連を作った直後に戻す（--dev-tools時のみ）
 //   失敗時は 4xx と ApiErrorResponse
 // ---------------------------------------------------------------------------
 

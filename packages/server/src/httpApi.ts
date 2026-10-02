@@ -28,6 +28,8 @@ export interface HttpApiOptions {
   guestsPerHourPerIp?: number;
   /** 引き継ぎコードでの入室に失敗できる回数（同じ接続元から、1時間あたり）。パスワードの総当たり対策。 */
   transferFailuresPerHourPerIp?: number;
+  /** 開発用の操作（/api/dev/...）を受け付けるか。本番では必ずfalse。 */
+  devTools?: boolean;
   /** 接続元の見分け方（リバースプロキシの後ろではX-Forwarded-Forを見る等）。 */
   clientIp?: (req: IncomingMessage) => string;
   now?: () => number;
@@ -222,6 +224,14 @@ export function createApiHandler(options: HttpApiOptions) {
             if (err instanceof GachaError) return fail(res, 409, err.message), true;
             throw err;
           }
+          sendJson(res, 200, me(profile));
+          return true;
+        }
+        case "POST /dev/reset-collection": {
+          if (!options.devTools) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (!profile) return true;
+          collections.resetForTesting(profile.id);
           sendJson(res, 200, me(profile));
           return true;
         }

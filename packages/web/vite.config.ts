@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { tuningFilePlugin } from "./tuningFilePlugin";
 
+const serverPort = process.env.MAJYAN_SERVER_PORT || "8787";
+
 export default defineConfig({
   plugins: [react(), tuningFilePlugin()],
   server: {
@@ -17,9 +19,10 @@ export default defineConfig({
     watch: { ignored: ["**/tuning/**"] },
     // ネット対戦サーバー(packages/server、npm run dev:server)への中継（対局=/ws、アカウント=/api）。
     // 画面は同じオリジンの /ws につなぐだけでよく、本番でも同じ形にできる。
+    // 中継先のポートは環境変数 MAJYAN_SERVER_PORT で変えられる（検証用に別のサーバーを立てる時など）。
     proxy: {
-      "/ws": { target: "ws://localhost:8787", ws: true },
-      "/api": { target: "http://localhost:8787" },
+      "/ws": { target: `ws://localhost:${serverPort}`, ws: true },
+      "/api": { target: `http://localhost:${serverPort}` },
     },
   },
 });

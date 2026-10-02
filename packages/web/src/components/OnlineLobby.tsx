@@ -6,6 +6,7 @@ import { FirstGacha } from "./FirstGacha.js";
 import { GachaScreen } from "./GachaScreen.js";
 import { UnitsScreen } from "./UnitsScreen.js";
 import { TransferScreen } from "./TransferScreen.js";
+import { DevAccountTools } from "./DevAccountTools.js";
 
 /** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
 function unitLabel(u: CharacterUnit): string {
@@ -96,6 +97,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       setRenaming(false);
     } else {
       await createGuestAccount(trimmed);
+      // 作った後は欄を空にしておく（開発用の「新しいアカウントで始める」で戻った時に前の名前が残らないように）。
+      if (useAccountStore.getState().status !== "none") setName("");
     }
   }
 
@@ -289,6 +292,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </button>
       )}
       {error && <p className="online-lobby__error">{error}</p>}
+      {import.meta.env.DEV && profile && !busy && !renaming && <DevAccountTools />}
 
       {inRoom && (
         <>

@@ -245,3 +245,39 @@ export async function loginWithTransfer(code: string, password: string): Promise
   useAccountStore.setState({ status: "ready", profile, error: null });
   await loadAccount();
 }
+
+/**
+ * 開発用: このブラウザからアカウントを外して、名前入力（新しいアカウント作り）からやり直す。
+ * サーバー側のアカウントは残るので、引き継ぎのパスワードを決めてあれば戻れる。
+ */
+export function forgetAccountForTesting(): void {
+  memoryToken = null;
+  saveToken(null);
+  useAccountStore.setState({
+    status: "none",
+    profile: null,
+    rank: null,
+    units: [],
+    cards: {},
+    exchangePoints: 0,
+    firstGacha: null,
+    jade: null,
+    dailyBonusNotice: null,
+    error: null,
+  });
+}
+
+/**
+ * 開発用: 手持ちと最初の10連を、アカウントを作った直後の状態に戻す（サーバーが --dev-tools の時だけ）。
+ * 失敗したら例外（理由はmessage）。
+ */
+export async function resetCollectionForTesting(): Promise<void> {
+  try {
+    applyMe(await api<MeResponse>("/dev/reset-collection", { method: "POST", body: "{}" }));
+  } catch (err) {
+    if ((err as { status?: number }).status === 404) {
+      throw new Error("ゲームサーバーが開発用の設定で起動していません（start-game.bat か npm run dev:server で起動し直してください）");
+    }
+    throw err;
+  }
+}

@@ -5164,3 +5164,24 @@ button {
   color: #ffd27a;
   text-align: center;
 }
+
+/* 開発用のアカウント操作（DevAccountTools） */
+.dev-account-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 6px 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.dev-account-tools__label {
+  opacity: 0.7;
+}
+.dev-account-tools__warn {
+  color: #ffd27a;
+  max-width: 420px;
+}

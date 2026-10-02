@@ -250,3 +250,46 @@ describe("account HTTP API", () => {
     expect(statuses).toEqual([200, 200, 429, 429]);
   });
 });
+
+describe("dev tools API", () => {
+  async function withServer(devTools: boolean, fn: (base: string, accounts: AccountService, collections: CollectionService) => Promise<void>) {
+    const db = openDatabase(":memory:");
+    const accounts = new AccountService(db);
+    const collections = new CollectionService(db);
+    const handleApi = createApiHandler({ accounts, ranks: new RankService(db), collections, wallet: new WalletService(db), devTools });
+    const server = createServer(async (req, res) => {
+      if (!(await handleApi(req, res))) res.writeHead(418).end();
+    });
+    await new Promise<void>((r) => server.listen(0, r));
+    try {
+      await fn(`http://127.0.0.1:${(server.address() as AddressInfo).port}`, accounts, collections);
+    } finally {
+      await new Promise<void>((r) => server.close(() => r()));
+    }
+  }
+  const reset = (base: string, token: string) =>
+    fetch(`${base}/api/dev/reset-collection`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: "{}" });
+
+  it("puts the collection and first 10-pull back to a new account's state", async () => {
+    await withServer(true, async (base, accounts, collections) => {
+      const { profile, token } = accounts.createGuest("A");
+      collections.rollFirstGacha(profile.id);
+      collections.confirmFirstGacha(profile.id);
+      expect(collections.units(profile.id).length).toBeGreaterThan(3);
+      const res = await reset(base, token);
+      expect(res.status).toBe(200);
+      const me = (await res.json()) as MeResponse;
+      expect(me.firstGacha).toEqual({ confirmed: false, pending: null, rolls: 0 });
+      expect(me.units.map((u) => u.characterId).sort()).toEqual(["hiiragi", "nagi", "sena"]);
+      expect(me.cards).toEqual({});
+      expect(me.exchangePoints).toBe(0);
+      expect(collections.rollFirstGacha(profile.id).pending).toHaveLength(10);
+    });
+  });
+
+  it("does not exist unless dev tools are turned on", async () => {
+    await withServer(false, async (base, accounts) => {
+      expect((await reset(base, accounts.createGuest("A").token)).status).toBe(404);
+    });
+  });
+});
