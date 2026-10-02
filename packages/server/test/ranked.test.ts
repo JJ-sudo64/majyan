@@ -162,6 +162,14 @@ describe("units in matches", () => {
   it("plays the chosen unit with its equipped card, and never someone else's unit", () => {
     setup();
     const ps = ["A", "B", "C", "D"].map(player);
+    // 最初から持っているキャラは無いので、2体ずつ持たせておく。
+    for (const p of ps) {
+      for (const characterId of ["zeno", "masato"]) {
+        db.prepare(
+          "INSERT INTO character_units (unit_id, user_id, character_id, card_id, source, acquired_at) VALUES (lower(hex(randomblob(12))), ?, ?, NULL, 'test', 0)",
+        ).run(p.profile.id, characterId);
+      }
+    }
     // Bの2体目にカードを付ける。
     const cardId = "point-drain";
     db.prepare("INSERT INTO user_cards (user_id, card_id, count) VALUES (?, ?, 1)").run(ps[1]!.profile.id, cardId);

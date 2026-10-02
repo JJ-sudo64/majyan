@@ -11,8 +11,8 @@ import {
   jstDate,
   rankedJadeReward,
   rarityOf,
+  rollFirstGacha,
   rollGacha,
-  STARTER_CHARACTER_IDS,
   TEN_PULL_GUARANTEE,
   type GachaItem,
 } from "../src/gacha.js";
@@ -35,8 +35,9 @@ describe("rarity", () => {
     }
   });
 
-  it("uses existing characters as starters", () => {
-    for (const id of STARTER_CHARACTER_IDS) expect(CHARACTER_IDS).toContain(id);
+  it("fixes an existing character into the first 10-pull", () => {
+    expect(FIRST_GACHA.fixed.kind).toBe("character");
+    expect(CHARACTER_IDS).toContain(FIRST_GACHA.fixed.id);
   });
 
   it("has rates that add up to 1, per rarity and per item", () => {
@@ -54,15 +55,20 @@ describe("rollGacha", () => {
     expect(results.some((i) => i.kind === "card")).toBe(true);
   });
 
-  it("has no guaranteed slot in the first 10-pull (fully random)", () => {
-    expect(FIRST_GACHA.guarantee).toBeUndefined();
-    // 確定枠が無いので、★3が1つも無い結果も普通に出る。
+  it("always includes Masato in the first 10-pull, the other 9 slots fully random", () => {
     let withoutStar3 = 0;
+    const positions = new Set<number>();
     for (let seed = 1; seed <= 100; seed++) {
-      const results = rollGacha(makeRng(seed), FIRST_GACHA.count, FIRST_GACHA.guarantee);
+      const results = rollFirstGacha(makeRng(seed));
+      expect(results).toHaveLength(FIRST_GACHA.count);
+      const at = results.findIndex((i) => i.kind === "character" && i.id === FIRST_GACHA.fixed.id);
+      expect(at).toBeGreaterThanOrEqual(0);
+      positions.add(at);
+      // 残りの9枠には確定枠が無いので、★3が1つも無い結果も普通に出る。
       if (!results.some((i) => rarityOf(i) === 3)) withoutStar3++;
     }
     expect(withoutStar3).toBeGreaterThan(0);
+    expect(positions.size).toBeGreaterThan(1); // いつも同じ場所に出るわけではない
   });
 
   it("guarantees ★2 or better in a normal 10-pull", () => {

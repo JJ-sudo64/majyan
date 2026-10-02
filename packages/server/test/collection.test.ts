@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARD_IDS, EXCHANGE_COST, gachaPool, STARTER_CHARACTER_IDS } from "@majyan/core";
+import { CARD_IDS, CHARACTER_IDS, EXCHANGE_COST, FIRST_GACHA, gachaPool } from "@majyan/core";
 import { AccountService } from "../src/accounts.js";
 import { CollectionService, GachaError } from "../src/collection.js";
 import { openDatabase } from "../src/db.js";
@@ -20,16 +20,23 @@ function setup() {
       .run(profile.id, cardId, count);
   const setPoints = (points: number) =>
     db.prepare("INSERT INTO gacha_points (user_id, points) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET points = excluded.points").run(profile.id, points);
-  return { db, collections, wallet, userId: profile.id, giveCard, setPoints };
+  /** テスト用にキャラを直接持たせる（カードなし）。 */
+  const giveUnits = (characterIds: readonly string[], userId = profile.id) => {
+    for (const id of characterIds) {
+      db.prepare(
+        "INSERT INTO character_units (unit_id, user_id, character_id, card_id, source, acquired_at) VALUES (lower(hex(randomblob(12))), ?, ?, NULL, 'test', ?)",
+      ).run(userId, id, now());
+    }
+  };
+  return { db, collections, wallet, userId: profile.id, giveCard, giveUnits, setPoints };
 }
 
+const SOME_CHARACTERS = CHARACTER_IDS.slice(0, 3);
+
 describe("units and cards", () => {
-  it("gives the starter characters (without cards) to every account, once", () => {
+  it("gives a new account no characters or cards until the first 10-pull", () => {
     const { collections, userId } = setup();
-    const units = collections.units(userId);
-    expect(units.map((u) => u.characterId).sort()).toEqual([...STARTER_CHARACTER_IDS].sort());
-    expect(units.every((u) => u.cardId === null)).toBe(true);
-    expect(collections.units(userId)).toEqual(units);
+    expect(collections.units(userId)).toEqual([]);
     expect(collections.cards(userId)).toEqual({});
   });
 
@@ -45,7 +52,8 @@ describe("units and cards", () => {
   });
 
   it("equips a card permanently, using one from the inventory", () => {
-    const { collections, userId, giveCard } = setup();
+    const { collections, userId, giveCard, giveUnits } = setup();
+    giveUnits(SOME_CHARACTERS);
     const cardId = CARD_IDS[0]!;
     giveCard(cardId, 2);
     const [first, second] = collections.units(userId);
@@ -62,8 +70,9 @@ describe("units and cards", () => {
   });
 
   it("does not let a player equip someone else's unit", () => {
-    const { db, collections, userId, giveCard } = setup();
+    const { db, collections, userId, giveCard, giveUnits } = setup();
     const other = new AccountService(db).createGuest("B").profile.id;
+    giveUnits(SOME_CHARACTERS, other);
     const theirUnit = collections.units(other)[0]!;
     giveCard(CARD_IDS[0]!);
     expect(() => collections.equipCard(userId, theirUnit.unitId, CARD_IDS[0]!)).toThrow(GachaError);
@@ -71,7 +80,8 @@ describe("units and cards", () => {
   });
 
   it("puts the chosen unit (with its card) into a match, or a random own unit", () => {
-    const { collections, userId, giveCard } = setup();
+    const { collections, userId, giveCard, giveUnits } = setup();
+    giveUnits(SOME_CHARACTERS);
     const cardId = CARD_IDS[3]!;
     giveCard(cardId);
     const unit = collections.units(userId)[1]!;
@@ -79,8 +89,13 @@ describe("units and cards", () => {
     expect(collections.resolveUnit(userId, unit.unitId)).toEqual({ characterId: unit.characterId, cardId });
     for (let i = 0; i < 20; i++) {
       const picked = collections.resolveUnit(userId, "not-my-unit");
-      expect(STARTER_CHARACTER_IDS).toContain(picked.characterId);
+      expect(SOME_CHARACTERS).toContain(picked.characterId);
     }
+  });
+
+  it("falls back to the first 10-pull's fixed character when the player has none", () => {
+    const { collections, userId } = setup();
+    expect(collections.resolveUnit(userId, null)).toEqual({ characterId: FIRST_GACHA.fixed.id, cardId: null });
   });
 });
 
@@ -95,12 +110,13 @@ describe("first 10-pull", () => {
     expect(second.rolls).toBe(2);
     expect(second.pending).toHaveLength(10);
     // 引いただけではまだ自分のものにならない。
-    expect(collections.units(userId)).toHaveLength(STARTER_CHARACTER_IDS.length);
+    expect(collections.units(userId)).toHaveLength(0);
 
     collections.confirmFirstGacha(userId);
     const chars = second.pending!.filter((i) => i.kind === "character");
     const cards = second.pending!.filter((i) => i.kind === "card");
-    expect(collections.units(userId)).toHaveLength(STARTER_CHARACTER_IDS.length + chars.length);
+    expect(collections.units(userId)).toHaveLength(chars.length);
+    expect(collections.units(userId).some((u) => u.characterId === FIRST_GACHA.fixed.id)).toBe(true);
     expect(Object.values(collections.cards(userId)).reduce((a, b) => a + b, 0)).toBe(cards.length);
     expect(() => collections.rollFirstGacha(userId)).toThrow(GachaError);
     expect(() => collections.confirmFirstGacha(userId)).toThrow(GachaError);

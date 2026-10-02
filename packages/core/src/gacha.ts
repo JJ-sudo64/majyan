@@ -7,8 +7,8 @@
  *   1枚だけ付けられ、付けたら外せない。何のカードを付けたかで同じキャラにも
  *   別々の価値が生まれる
  * - レア度: ★1〜★3。局の結果を大きく動かすものほど高い
- * - 最初から全員が持っているキャラ（STARTER_CHARACTER_IDS）
- * - 最初の10連（FIRST_GACHA）: 何度でも引き直せて、確定するとその結果がもらえる。確定枠なしの完全ランダム
+ * - 最初から持っているキャラは無い。最初の10連（FIRST_GACHA）: 何度でも引き直せて、確定するとその
+ *   結果がもらえる。マサト（FIRST_GACHA.fixed）が必ず1枠入り、残りの9枠は確定枠なしの完全ランダム
  * - 天井: 通常のガチャを引くと交換ポイントがたまり、★3のキャラかカードを1つ選んでもらえる
  *
  * 抽選そのもの（rollGacha）は乱数を引数で受け取る純粋関数で、実際に引くのは
@@ -30,21 +30,22 @@ export const CHARACTER_RARITY: Record<string, Rarity> = {
   zeno: 3,
   raiko: 3,
   koki: 3,
-  nyanjiro: 3,
-  toki: 3,
-  saki: 3,
-  kagami: 3,
+  kagerou: 3,
+  kaede: 3,
   // ★2: 強いが条件付き、または情報・守りで有利になる
-  kaede: 2,
   ren: 2,
   karin: 2,
   takaharu: 2,
-  kagerou: 2,
   mirai: 2,
   runa: 2,
   jin: 2,
   mio: 2,
   naoki: 2,
+  saki: 2,
+  nyanjiro: 2,
+  kagami: 2,
+  toki: 2,
+  mebius: 2,
   // ★1: 効果が控えめ・運次第・見た目だけ等
   hiiragi: 1,
   nagi: 1,
@@ -52,7 +53,6 @@ export const CHARACTER_RARITY: Record<string, Rarity> = {
   subaru: 1,
   masato: 1,
   tomohiro: 1,
-  mebius: 1,
 };
 
 export const CARD_RARITY: Record<string, Rarity> = {
@@ -83,10 +83,6 @@ export const CARD_RARITY: Record<string, Rarity> = {
   "dealer-honba-boost": 1,
 };
 
-/** 新しいアカウントが最初から持っているキャラ（カードは付いていない）。扱いやすく、
-    攻め（ドラ増やし・引き直し）と守り（様子見）がそろう3人。 */
-export const STARTER_CHARACTER_IDS: readonly string[] = ["hiiragi", "nagi", "sena"];
-
 /** 1回引いた時に各レア度が出る確率（合計1）。同じレア度の中ではキャラ・カードを区別せず均等。 */
 export const GACHA_RARITY_RATES: Record<Rarity, number> = { 3: 0.03, 2: 0.18, 1: 0.79 };
 
@@ -96,9 +92,12 @@ export interface GachaGuarantee {
   kind?: GachaItem["kind"];
 }
 
-export const FIRST_GACHA: { count: number; guarantee?: GachaGuarantee } = {
+export const FIRST_GACHA: { count: number; fixed: GachaItem } = {
   count: 10,
-  // 確定枠は無し（完全ランダム）。何度でも引き直せるので、好きな結果が出るまで粘れる。
+  // 最初から持っているキャラは無いので、対局に出せるキャラが必ず1人はいるように、
+  // マサトを必ず1枠入れる。残りは確定枠なしの完全ランダム（何度でも引き直せるので、
+  // 好きな結果が出るまで粘れる）。
+  fixed: { kind: "character", id: "masato" },
 };
 
 export function rarityOf(item: GachaItem): Rarity {
@@ -152,6 +151,13 @@ export function rollGacha(rng: () => number, count: number, guarantee?: GachaGua
   if (guarantee && count > 0 && !results.some((item) => meets(item, guarantee))) {
     results[count - 1] = pickItem(rng, guarantee.rarity, guarantee.kind);
   }
+  return results;
+}
+
+/** 最初の10連を引く。FIRST_GACHA.fixedが必ず1つ入り（場所はランダム）、残りは完全ランダム。 */
+export function rollFirstGacha(rng: () => number): GachaItem[] {
+  const results = rollGacha(rng, FIRST_GACHA.count - 1);
+  results.splice(Math.floor(rng() * FIRST_GACHA.count), 0, { ...FIRST_GACHA.fixed });
   return results;
 }
 

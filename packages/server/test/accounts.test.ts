@@ -191,7 +191,7 @@ describe("account HTTP API", () => {
 
     // 最初の10連: 引き直せて、確定するとキャラ・カードが増え、もう引けなくなる。
     const fresh = (await (await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${token}` } })).json()) as MeResponse;
-    expect(fresh.units.map((u) => u.characterId).sort()).toEqual(["hiiragi", "nagi", "sena"]);
+    expect(fresh.units).toEqual([]);
     expect(fresh.cards).toEqual({});
     expect(fresh.firstGacha).toEqual({ confirmed: false, pending: null, rolls: 0 });
     const roll1 = (await (await post("/api/first-gacha/roll", {}, token)).json()) as MeResponse;
@@ -204,7 +204,7 @@ describe("account HTTP API", () => {
     const pending = roll2.firstGacha.pending!;
     const pulledChars = pending.filter((i) => i.kind === "character").length;
     const pulledCards = pending.filter((i) => i.kind === "card").length;
-    expect(confirmed.units).toHaveLength(3 + pulledChars); // 同じキャラも1体ずつ別
+    expect(confirmed.units).toHaveLength(pulledChars); // 同じキャラも1体ずつ別
     expect(Object.values(confirmed.cards).reduce((a, b) => a + b, 0)).toBe(pulledCards);
     expect((await post("/api/first-gacha/roll", {}, token)).status).toBe(409);
 
@@ -275,12 +275,12 @@ describe("dev tools API", () => {
       const { profile, token } = accounts.createGuest("A");
       collections.rollFirstGacha(profile.id);
       collections.confirmFirstGacha(profile.id);
-      expect(collections.units(profile.id).length).toBeGreaterThan(3);
+      expect(collections.units(profile.id).length).toBeGreaterThan(0);
       const res = await reset(base, token);
       expect(res.status).toBe(200);
       const me = (await res.json()) as MeResponse;
       expect(me.firstGacha).toEqual({ confirmed: false, pending: null, rolls: 0 });
-      expect(me.units.map((u) => u.characterId).sort()).toEqual(["hiiragi", "nagi", "sena"]);
+      expect(me.units).toEqual([]);
       expect(me.cards).toEqual({});
       expect(me.exchangePoints).toBe(0);
       expect(collections.rollFirstGacha(profile.id).pending).toHaveLength(10);

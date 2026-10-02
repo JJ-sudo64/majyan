@@ -17,7 +17,7 @@ import {
   GACHA_PRICE,
   rarityOf,
   rollGacha,
-  STARTER_CHARACTER_IDS,
+  rollFirstGacha,
   TEN_PULL_GUARANTEE,
   type CharacterUnit,
   type FirstGachaState,
@@ -68,15 +68,6 @@ export class CollectionService {
     private readonly wallet?: WalletService,
   ) {}
 
-  /** 初期キャラを持たせる（まだ渡していなければ）。 */
-  private ensureStarters(userId: string): void {
-    const has = this.db.prepare("SELECT 1 FROM character_units WHERE user_id = ? AND source = 'starter' LIMIT 1").get(userId);
-    if (has) return;
-    transaction(this.db, () => {
-      for (const id of STARTER_CHARACTER_IDS) this.addUnit(userId, id, "starter");
-    });
-  }
-
   private addUnit(userId: string, characterId: string, source: string): string {
     const unitId = randomBytes(12).toString("hex");
     this.db
@@ -87,7 +78,6 @@ export class CollectionService {
 
   /** 手持ちのキャラ（手に入れた順。ゲームから外れたキャラは除く）。 */
   units(userId: string): CharacterUnit[] {
-    this.ensureStarters(userId);
     const rows = this.db
       .prepare("SELECT unit_id, character_id, card_id FROM character_units WHERE user_id = ? ORDER BY acquired_at, rowid")
       .all(userId) as unknown as UnitRow[];
@@ -144,7 +134,9 @@ export class CollectionService {
    */
   resolveUnit(userId: string, unitId: string | null): { characterId: string; cardId: string | null } {
     const units = this.units(userId);
-    const chosen = (unitId && units.find((u) => u.unitId === unitId)) || units[Math.floor(this.rng() * units.length)]!;
+    const chosen = (unitId && units.find((u) => u.unitId === unitId)) || units[Math.floor(this.rng() * units.length)];
+    // 最初の10連を受け取る前で手持ちが無い時（画面では対局に出られないが、念のため）は、10連で必ずもらえるキャラで出る。
+    if (!chosen) return { characterId: FIRST_GACHA.fixed.id, cardId: null };
     return { characterId: chosen.characterId, cardId: chosen.cardId };
   }
 
@@ -173,7 +165,6 @@ export class CollectionService {
       for (const table of ["character_units", "user_cards", "first_gacha", "gacha_points"]) {
         this.db.prepare(`DELETE FROM ${table} WHERE user_id = ?`).run(userId);
       }
-      this.ensureStarters(userId);
     });
     this.lastRollAt.delete(userId);
   }
@@ -186,7 +177,7 @@ export class CollectionService {
     const state = this.firstGachaState(userId);
     if (state.confirmed) throw new GachaError("最初の10連はもう受け取っています");
     this.lastRollAt.set(userId, now);
-    const results = rollGacha(this.rng, FIRST_GACHA.count, FIRST_GACHA.guarantee);
+    const results = rollFirstGacha(this.rng);
     this.db
       .prepare(
         `INSERT INTO first_gacha (user_id, pending_json, rolls, confirmed_at) VALUES (?, ?, 1, NULL)
@@ -264,7 +255,6 @@ export class CollectionService {
 
   /** キャラ（1体ずつ別）・カード（手持ちの枚数）を渡す。それぞれ初めて手に入れたものかを返す。 */
   private grant(userId: string, items: GachaItem[], source: string): boolean[] {
-    this.ensureStarters(userId);
     const isNew: boolean[] = [];
     for (const item of items) {
       isNew.push(!this.everOwned(userId, item));

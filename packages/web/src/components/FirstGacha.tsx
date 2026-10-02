@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { FIRST_GACHA } from "@majyan/core";
+import { CHARACTERS, FIRST_GACHA } from "@majyan/core";
 import { confirmFirstGacha, rollFirstGacha, useAccountStore } from "../online/account.js";
 import { GachaCard } from "./GachaCard.js";
 
 /**
  * 最初の10連。何度でも引き直せて、「これで決定」を押すとその結果のキャラが
- * もらえる（確定枠なしの完全ランダム）。抽選はサーバーで行い、ここは結果を見せるだけ。
+ * もらえる（マサトが必ず1枠入り、残りは完全ランダム）。抽選はサーバーで行い、ここは結果を見せるだけ。
  * 確定するまではネット対戦の画面の代わりにこれを出す。
  */
 export function FirstGacha() {
@@ -28,7 +28,7 @@ export function FirstGacha() {
     <div className="first-gacha">
       <h2 className="first-gacha__title">はじめの{FIRST_GACHA.count}連</h2>
       <p className="setup-lead">
-        最初の仲間を選ぶガチャです。キャラとカードが出ます。納得いくまで何度でも引き直せます。「これで決定」を押すと、出たものがすべて手に入ります。
+        最初の仲間を選ぶガチャです。キャラとカードが出ます。{CHARACTERS[FIRST_GACHA.fixed.id]?.name ?? ""}は必ず1枠入ります。納得いくまで何度でも引き直せます。「これで決定」を押すと、出たものがすべて手に入ります。
       </p>
 
       {pending && (
