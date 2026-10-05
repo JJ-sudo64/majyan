@@ -95,6 +95,9 @@ export function redactRoundForSeat(round: RoundState, seat: PlayerIndex): RoundS
       guaranteedUraDora: false,
       guaranteedUsefulDraw: false,
       bettaoriShield: false,
+      // 見逃しフリテンは、その人がその牌で待っていた（テンパイしている）ことを表すので伏せる。
+      missedRonFuriten: false,
+      riichiFuriten: false,
     };
   }) as RoundState["players"];
 

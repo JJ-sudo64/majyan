@@ -117,21 +117,26 @@ interface Candidate {
   winningBlockIndex: number; // sets配列中、和了牌が含まれるインデックス。雀頭の場合は-1
 }
 
-function findWinningBlockIndex(sets: ResolvedSet[], winTile: TileCode): number {
-  // 同じ牌の面子が複数あり得るため、雀頭でなければ最初に一致したブロックとする
-  for (let i = 0; i < sets.length; i++) {
+/**
+ * 和了牌が完成させたと読める面子の候補（sets中のインデックス。雀頭なら-1）。
+ * 鳴いた面子（先頭のmeldCount個）は和了牌で完成したものではないので含めない
+ * （以前は最初に一致した面子を1つだけ選んでおり、チーした面子を選んでしまうと
+ * ロンで完成した刻子が暗刻と数えられ、三暗刻が誤って付いていた）。
+ * 読み方が複数あれば全部を候補にして、点数の高い読みを採用する。
+ */
+function winningBlockIndices(sets: ResolvedSet[], meldCount: number, pair: TileCode | null, winTile: TileCode): number[] {
+  const indices: number[] = [];
+  for (let i = meldCount; i < sets.length; i++) {
     const s = sets[i]!;
     if (s.kind === "sequence") {
       const n = numberOf(s.tile);
-      const suit = suitOf(s.tile);
-      const winN = numberOf(winTile);
-      const winSuit = suitOf(winTile);
-      if (suit === winSuit && winN >= n && winN <= n + 2) return i;
-    } else {
-      if (s.tile === winTile) return i;
+      if (suitOf(s.tile) === suitOf(winTile) && numberOf(winTile) >= n && numberOf(winTile) <= n + 2) indices.push(i);
+    } else if (s.tile === winTile) {
+      indices.push(i);
     }
   }
-  return -1;
+  if (pair === winTile || indices.length === 0) indices.push(-1);
+  return indices;
 }
 
 function countDora(allCodes: TileCode[], indicators: TileCode[]): number {
@@ -475,12 +480,9 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
   const decompositions = decomposeStandardHand(concealedCodes, setsNeeded);
   for (const d of decompositions) {
     const sets = [...meldSets, ...d.sets.map(groupToResolvedSet)];
-    candidates.push({
-      sets,
-      pair: d.pair,
-      isChiitoitsu: false,
-      winningBlockIndex: findWinningBlockIndex(sets, context.winTile),
-    });
+    for (const winningBlockIndex of winningBlockIndices(sets, meldSets.length, d.pair, context.winTile)) {
+      candidates.push({ sets, pair: d.pair, isChiitoitsu: false, winningBlockIndex });
+    }
   }
 
   if (hand.melds.length === 0) {

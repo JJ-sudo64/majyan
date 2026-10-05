@@ -161,9 +161,34 @@ function disarmNegate(round: RoundState, seat: PlayerIndex): RoundState {
 
 export { getWaitingTiles };
 
+/** まだ自分の1巡目か（1枚も捨てておらず、手番を終えたこともなく、誰も鳴き・リーチをしていない）。
+    天和/地和・ダブルリーチ・九種九牌の条件。 */
+function isFirstGoAround(round: RoundState, player: PlayerIndex): boolean {
+  const p = round.players[player];
+  return p.discards.length === 0 && !p.firstGoAroundPassed && !round.anyCallOrRiichiMade;
+}
+
+/**
+ * 当たり牌が出たのに和了しなかった人をフリテンにする（応答の機会が終わり、ロンで
+ * 局が終わらなかった時に呼ぶ）。役が無い・盾で防がれた等でロンできなかった場合も、
+ * 実際の麻雀と同じく見逃し扱いになる。リーチ中ならその局の終わりまで続く。
+ */
+function markPassedWinningTile(round: RoundState, window: PendingCallWindow): RoundState {
+  let players = round.players;
+  for (const seat of window.awaitingPlayers) {
+    const p = players[seat];
+    if (calcShanten(p.hand) !== 0) continue;
+    const withTile: Hand = { concealed: [...p.hand.concealed, { id: "__passed__", code: window.discardTile.code }], melds: p.hand.melds };
+    if (calcShanten(withTile) !== -1) continue;
+    players = updatePlayer(players, seat, (pl) => ({ ...pl, missedRonFuriten: true, riichiFuriten: pl.riichiFuriten || pl.riichi }));
+  }
+  return players === round.players ? round : { ...round, players };
+}
+
 export function isFuriten(player: PlayerRoundState): boolean {
   const waits = getWaitingTiles(player.hand);
   if (waits.length === 0) return false;
+  if (player.missedRonFuriten || player.riichiFuriten) return true;
   const discardedCodes = new Set(player.discards.map((d) => d.tile.code));
   return waits.some((w) => discardedCodes.has(w));
 }
@@ -190,7 +215,7 @@ function buildWinContext(
     houtei: !isTsumo && !chankan && liveTilesRemaining(round.wall) === 0,
     rinshan: isTsumo && round.isRinshanTurn,
     chankan,
-    firstTurnWin: isTsumo && p.discards.length === 0 && !round.anyCallOrRiichiMade,
+    firstTurnWin: isTsumo && isFirstGoAround(round, player),
     doraIndicators: doraIndicators(round.wall),
     // カード「裏ドラ倍加」使用済みの立直和了には、通常公開ぶんに加えてもう1枚
     // 裏ドラ表示牌を追加する（王牌に対応する枠が無ければextraUraDoraIndicatorが
@@ -376,9 +401,8 @@ export function riichiCandidateTileIds(round: RoundState, player: PlayerIndex): 
 
 export function canKyushuKyuhai(round: RoundState, player: PlayerIndex): boolean {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
-  if (round.anyCallOrRiichiMade) return false;
+  if (!isFirstGoAround(round, player)) return false;
   const p = round.players[player];
-  if (p.discards.length !== 0) return false;
   const kinds = new Set(
     p.hand.concealed.map((t) => t.code).filter((c) => c.endsWith("z") || c.startsWith("1") || c.startsWith("9")),
   );
@@ -389,6 +413,26 @@ function meldTileCounts(hand: Hand, code: TileCode): number {
   return hand.concealed.filter((t) => t.code === code).length;
 }
 
+/**
+ * リーチ後の暗槓は、今ツモった牌で槓する場合（送り槓は不可）で、槓した後も待ちが
+ * リーチ時と同じ時だけ許す。待ちが変わる暗槓を許すと、リーチ時には待っていなかった
+ * 牌で和了できてしまう。
+ */
+function riichiAnkanKeepsWaits(round: RoundState, player: PlayerIndex, code: TileCode): boolean {
+  const p = round.players[player];
+  const drawn = round.lastDrawnTile;
+  if (!drawn || drawn.code !== code || !p.hand.concealed.some((t) => t.id === drawn.id)) return false;
+  const beforeHand = removeTileFromHand(p.hand, drawn.id).hand;
+  const kanTiles = p.hand.concealed.filter((t) => t.code === code);
+  const afterHand: Hand = {
+    concealed: p.hand.concealed.filter((t) => t.code !== code),
+    melds: [...p.hand.melds, { type: "ankan", tiles: kanTiles }],
+  };
+  const before = getWaitingTiles(beforeHand).sort().join(",");
+  const after = getWaitingTiles(afterHand).sort().join(",");
+  return before !== "" && before === after;
+}
+
 export function ankanOptions(round: RoundState, player: PlayerIndex): TileCode[] {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return [];
   const p = round.players[player];
@@ -397,17 +441,7 @@ export function ankanOptions(round: RoundState, player: PlayerIndex): TileCode[]
   const options: TileCode[] = [];
   for (const [code, count] of counts) {
     if (count === 4) {
-      if (p.riichi) {
-        // リーチ後は待ちが変わらない暗槓のみ許可（簡易チェック: その牌を抜いても同じ待ちになるか）
-        const { hand: without } = (() => {
-          const idx = p.hand.concealed.findIndex((t) => t.code === code);
-          return removeTileFromHand(p.hand, p.hand.concealed[idx]!.id);
-        })();
-        const before = getWaitingTiles(p.hand).sort().join(",");
-        const afterProbe: Hand = { concealed: without.concealed, melds: without.melds };
-        const after = getWaitingTiles(afterProbe).sort().join(",");
-        if (before !== after) continue;
-      }
+      if (p.riichi && !riichiAnkanKeepsWaits(round, player, code)) continue;
       options.push(code);
     }
   }
@@ -507,6 +541,8 @@ function applyDrawAction(round: RoundState, player: PlayerIndex): RoundState {
   const players = updatePlayer(preDrawRound.players, player, (p) => ({
     ...p,
     hand: addTileToHand(p.hand, tile),
+    // 同巡内フリテンは自分のツモで解ける（リーチ後の見逃しは解けない）。
+    missedRonFuriten: false,
     // ミライの「未来視」も、予知した本人が次に自分でツモした瞬間＝1巡した
     // 瞬間に古い予知として消える（下のhandsRevealedToと同じ「1巡で切れる」設計）。
     revealedFutureDraws: [],
@@ -606,7 +642,7 @@ function applyRiichiAction(round: RoundState, action: RiichiAction): RoundState 
   const { tile, hand } = removeTileFromHand(p.hand, action.tileId);
   if (calcShanten(hand) !== 0) throw new Error("riichi: その牌を切るとテンパイが崩れます");
 
-  const isFirstDiscardOfHand = p.discards.length === 0 && !round.anyCallOrRiichiMade;
+  const isFirstDiscardOfHand = isFirstGoAround(round, action.player);
   const isTsumogiri = action.tileId === round.lastDrawnTile?.id;
   let players = updatePlayer(round.players, action.player, (pl) => ({
     ...pl,
@@ -693,6 +729,9 @@ function applyAnkanAction(round: RoundState, action: AnkanAction): RoundState {
   const p = round.players[action.player];
   const matching = p.hand.concealed.filter((t) => t.code === action.tileCode);
   if (matching.length !== 4) throw new Error("ankan: 対象の牌が4枚揃っていません");
+  if (p.riichi && !riichiAnkanKeepsWaits(round, action.player, action.tileCode)) {
+    throw new Error("ankan: リーチ後は待ちが変わる暗槓・ツモ牌以外での暗槓はできません");
+  }
 
   let hand = p.hand;
   for (const t of matching) hand = removeTileFromHand(hand, t.id).hand;
@@ -930,6 +969,8 @@ function resolveCallWindowIfComplete(round: RoundState): RoundState {
   // 確定した。タカハルの盾は「このタイミングで初めて」消費する。
   round = consumeBettaoriShieldIfItJustSaved(round, window.discarderIndex, window.discardTile.code, window.isChankan);
   round = consumeCardGuardIfItJustSaved(round, window.discarderIndex, window.discardTile.code, window.isChankan);
+  // 見逃しフリテンの印は盾の判定（ロンできた人がいたか）の後で付ける。
+  round = markPassedWinningTile(round, window);
 
   if (window.isChankan) {
     return finalizeKakanAfterChankanWindow(round, window.discarderIndex);
@@ -974,7 +1015,8 @@ function executeMeldCall(round: RoundState, window: PendingCallWindow, call: Dec
   }
   hand = { ...hand, melds: [...hand.melds, meld] };
 
-  let players = updatePlayer(round.players, caller, (pl) => ({ ...pl, hand }));
+  // 鳴いて手番が回ってきたら同巡内フリテンは解ける。
+  let players = updatePlayer(round.players, caller, (pl) => ({ ...pl, hand, missedRonFuriten: false }));
   players = updatePlayer(players, window.discarderIndex, (pl) => ({
     ...pl,
     discards: pl.discards.map((d) => (d.tile.id === discardTile.id ? { ...d, calledAway: true } : d)),
@@ -1094,6 +1136,21 @@ function applyTsumoAction(round: RoundState, player: PlayerIndex): RoundState {
   };
 }
 
+/**
+ * 自分の手番中に使った必殺技の結果を、和了の判定に合わせて整える（useSkill/borrowSkill共通。
+ * カガミの「写し身」もuseSkill経由）。
+ * - ツモ牌を山の別の牌に引き直した（ナギ・カエデ・ライコ等）なら、もう嶺上牌ではない
+ * - 打牌せずに手番を渡した（セナの「様子見」）なら、河が空でももう1巡目ではない
+ */
+function settleOwnTurnSkill(before: RoundState, after: RoundState, player: PlayerIndex): RoundState {
+  let result = after;
+  if (result.isRinshanTurn && result.lastDrawnTile?.id !== before.lastDrawnTile?.id) result = { ...result, isRinshanTurn: false };
+  if (result.currentTurn !== player && result.players[player].discards.length === before.players[player].discards.length) {
+    result = { ...result, players: updatePlayer(result.players, player, (pl) => ({ ...pl, firstGoAroundPassed: true })) };
+  }
+  return result;
+}
+
 function applyUseSkillAction(round: RoundState, player: PlayerIndex): RoundState {
   if (!canUseSkill(round, player)) throw new Error("useSkill: 現在必殺技を発動できません");
   const character = CHARACTERS[round.characterIds[player]]!;
@@ -1116,7 +1173,7 @@ function applyUseSkillAction(round: RoundState, player: PlayerIndex): RoundState
     activated.lastActivatedSkill !== round.lastActivatedSkill
       ? activated.lastActivatedSkill
       : { owner: player, characterId: character.id };
-  return { ...activated, players, lastActivatedSkill };
+  return settleOwnTurnSkill(round, { ...activated, players, lastActivatedSkill }, player);
 }
 
 /** カリンの「借り物」。borrowSkillアクションの実処理。targetのonActivateを、
@@ -1141,7 +1198,7 @@ function applyBorrowSkillAction(round: RoundState, player: PlayerIndex, target: 
     activated.lastActivatedSkill !== round.lastActivatedSkill
       ? activated.lastActivatedSkill
       : { owner: player, characterId: targetCharacter.id };
-  return { ...activated, players, lastActivatedSkill };
+  return settleOwnTurnSkill(round, { ...activated, players, lastActivatedSkill }, player);
 }
 
 /** ミオの「取り返し」。retrieveDiscardアクションの実処理。過去の打牌のやり直し:
@@ -1170,13 +1227,15 @@ function applyRetrieveDiscardAction(round: RoundState, player: PlayerIndex, recl
   // UIのツモ牌表示（右端に離して置く）が消えるため、取り返した牌を代わりに
   // ツモ牌の位置として扱う。
   const lastDrawnTile = round.lastDrawnTile?.id === replacementTileId ? reclaimed : round.lastDrawnTile;
+  // 河から戻した牌は嶺上牌ではない。
+  const isRinshanTurn = round.isRinshanTurn && lastDrawnTile === round.lastDrawnTile;
 
   // 「取り返し」自身がlastActivatedSkillに記録される必要がある（カガミの
   // canCopyLastSkillが「直近に発動した技」として正しく認識できるように）。
   // ただしミオのskill.hooksにはonActivateが無いため、カガミ側は
   // copiedHooks?.onActivateが無いと判定して結局コピー不可になる
   // （カリンのborrowsSkill同様、この技自体はカガミの写し身の対象外）。
-  return { ...round, players, lastDrawnTile, lastActivatedSkill: { owner: player, characterId: character.id } };
+  return { ...round, players, lastDrawnTile, isRinshanTurn, lastActivatedSkill: { owner: player, characterId: character.id } };
 }
 
 function applyUseCardAction(round: RoundState, player: PlayerIndex): RoundState {
@@ -1217,7 +1276,9 @@ function applySwapTilesAction(round: RoundState, action: SwapTilesAction): Round
   }
 
   const players = updatePlayer(round.players, action.player, (pl) => ({ ...pl, hand, tileSwapsRemaining: 0 }));
-  return { ...round, players, wall };
+  // ツモ牌を山へ戻した場合は、手に無い牌をツモ牌として残さない（ツモ和了の和了牌にならないように）。
+  const lastDrawnTile = round.lastDrawnTile && action.tileIds.includes(round.lastDrawnTile.id) ? null : round.lastDrawnTile;
+  return { ...round, players, wall, lastDrawnTile };
 }
 
 export function applyAction(round: RoundState, action: GameAction): RoundState {

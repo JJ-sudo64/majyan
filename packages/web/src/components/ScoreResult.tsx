@@ -25,7 +25,9 @@ function winningHandTiles(round: RoundState, player: PlayerIndex): { closedTiles
     return { closedTiles, winTile, melds: hand.melds };
   }
   if (result?.type === "ron") {
-    return { closedTiles: hand.concealed, winTile: round.lastDiscard?.tile ?? null, melds: hand.melds };
+    // 当たり牌は応答の機会の牌（槍槓なら加槓した牌。直前の捨て牌とは別の牌になる）。
+    const winTile = round.pendingCallWindow?.discardTile ?? round.lastDiscard?.tile ?? null;
+    return { closedTiles: hand.concealed, winTile, melds: hand.melds };
   }
   return { closedTiles: hand.concealed, winTile: null, melds: hand.melds };
 }

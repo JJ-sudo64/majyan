@@ -86,6 +86,14 @@ export interface PlayerRoundState {
       自身に戻る（＝2巡連続で行動できる）。0になった時点で通常通り次家へ
       手番が進む（gameEngine.tsのresolveDiscardTurnTransition参照）。 */
   timeStopTurnsRemaining: number;
+  /** 同巡内フリテン: 当たり牌が出たのに和了しなかった（見逃した）。次に自分がツモるか
+      鳴くまでロンできない（gameEngine.tsのmarkPassedWinningTile参照）。 */
+  missedRonFuriten?: boolean;
+  /** リーチ後に当たり牌を見逃した。その局の終わりまでロンできない。 */
+  riichiFuriten?: boolean;
+  /** 1枚も捨てないまま手番を終えたことがある（セナの「様子見」等）。河が空でも
+      もう1巡目ではないので、天和/地和・ダブルリーチ・九種九牌の対象外にする。 */
+  firstGoAroundPassed?: boolean;
 }
 
 export type TurnPhase =
