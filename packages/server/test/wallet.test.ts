@@ -66,6 +66,14 @@ describe("WalletService", () => {
     clock.t += 24 * 60 * 60_000;
     expect(wallet.grantRankedReward(userId, "tonpuusen", 2, "next-day")).toBe(30);
   });
+
+  it("grants the reward for the same match only once", () => {
+    const { wallet, userId } = setup();
+    const first = wallet.grantRankedReward(userId, "tonpuusen", 1, "same-match");
+    expect(first).toBeGreaterThan(0);
+    // 再起動で対局を戻し、終了の処理がもう一度走っても二重には渡さない。
+    expect(wallet.grantRankedReward(userId, "tonpuusen", 1, "same-match")).toBe(0);
+  });
 });
 
 describe("paid gacha", () => {

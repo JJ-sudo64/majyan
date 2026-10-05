@@ -9,6 +9,7 @@ import { useGameStore } from "../store/gameStore.js";
 export function OnlineConnectionOverlay() {
   const status = useOnlineStore((s) => s.status);
   const error = useOnlineStore((s) => s.error);
+  const autoRejoining = useOnlineStore((s) => s.autoRejoining);
   const backToTitle = useGameStore((s) => s.backToTitle);
   if (status === "playing") return null;
 
@@ -22,6 +23,7 @@ export function OnlineConnectionOverlay() {
             <>
               <p>サーバーとの接続が切れました。</p>
               <p>切れている間も対局は進みます（自分の手番は自動でツモ切りになります）。入り直すと同じ席に戻れます。</p>
+              {autoRejoining && <p>自動で入り直そうとしています…</p>}
               {error && <p className="online-lobby__error">{error}</p>}
               <div className="setup-buttons">
                 <button className="btn btn--primary" onClick={() => onlineLink.rejoin()}>

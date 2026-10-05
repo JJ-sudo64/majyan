@@ -164,6 +164,14 @@ export const MIGRATIONS: readonly string[] = [
     updated_at INTEGER NOT NULL
   );
   `,
+  // 8: 進行中の対局（サーバーを再起動しても続きから打てるように、局面が進むたびに上書きする）
+  `
+  CREATE TABLE online_matches (
+    room_code TEXT PRIMARY KEY,
+    snapshot_json TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

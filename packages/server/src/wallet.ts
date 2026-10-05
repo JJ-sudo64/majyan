@@ -102,6 +102,12 @@ export class WalletService {
   grantRankedReward(userId: string, format: MatchFormat, place: 1 | 2 | 3 | 4, matchId: string): number {
     const date = jstDate(this.now());
     return transaction(this.db, () => {
+      // 同じ対局の報酬は1回だけ（再起動で対局を戻した時、終わる直前の局面から
+      // やり直して終了の処理がもう一度走ることがあるため）。
+      const granted = this.db
+        .prepare("SELECT 1 FROM jade_ledger WHERE user_id = ? AND reason = 'ranked-reward' AND ref = ?")
+        .get(userId, matchId);
+      if (granted) return 0;
       const row = this.db
         .prepare("SELECT amount FROM daily_claims WHERE user_id = ? AND kind = 'ranked' AND date = ?")
         .get(userId, date) as { amount: number } | undefined;

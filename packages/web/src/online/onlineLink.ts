@@ -48,6 +48,8 @@ interface OnlineStoreState {
   ranked: boolean;
   /** 直前の段位戦で段位がどう変わったか（結果画面用）。 */
   rankResult: RankResult | null;
+  /** 対局中に切れて、自動で入り直そうとしている（次の試みを待っている間も含む）。 */
+  autoRejoining: boolean;
 }
 
 export const useOnlineStore = create<OnlineStoreState>(() => ({
@@ -58,11 +60,52 @@ export const useOnlineStore = create<OnlineStoreState>(() => ({
   queue: null,
   ranked: false,
   rankResult: null,
+  autoRejoining: false,
 }));
 
 let socket: WebSocket | null = null;
 /** 対局中に切れた時に入り直す先（友人戦の合言葉、または段位戦の卓の合言葉）。 */
 let lastJoin: JoinRequest | null = null;
+
+/**
+ * 対局中に接続が切れたら、この間隔で自動的に入り直しを試みる（合計約1分。サーバーの
+ * 再起動中も、サーバーは対局を保存しておいて再開後しばらく戻りを待つため）。
+ * 使い切ったら「入り直す」ボタンで手動で試してもらう。
+ */
+const AUTO_REJOIN_DELAYS_MS = [500, 1000, 2000, 3000, 5000, 5000, 10_000, 10_000, 15_000, 15_000];
+let autoRejoinAttempt = 0;
+let autoRejoinTimer: ReturnType<typeof setTimeout> | null = null;
+/** 今の接続が、対局へ入り直すためのものか（つながらなかった時に次を試すため）。 */
+let rejoinConnection = false;
+
+function stopAutoRejoin() {
+  if (autoRejoinTimer) clearTimeout(autoRejoinTimer);
+  autoRejoinTimer = null;
+  autoRejoinAttempt = 0;
+  useOnlineStore.setState({ autoRejoining: false });
+}
+
+function scheduleAutoRejoin() {
+  if (autoRejoinTimer) clearTimeout(autoRejoinTimer);
+  autoRejoinTimer = null;
+  const delay = AUTO_REJOIN_DELAYS_MS[autoRejoinAttempt];
+  if (delay === undefined || !lastJoin?.room) {
+    useOnlineStore.setState({ autoRejoining: false });
+    return;
+  }
+  autoRejoinAttempt++;
+  useOnlineStore.setState({ autoRejoining: true });
+  autoRejoinTimer = setTimeout(() => {
+    autoRejoinTimer = null;
+    if (useOnlineStore.getState().status === "disconnected") rejoinNow();
+  }, delay);
+}
+
+function rejoinNow() {
+  if (!lastJoin?.room) return;
+  connect({ t: "join", ...lastJoin, authToken: accountToken() ?? "" });
+  rejoinConnection = true;
+}
 
 function wsUrl(): string {
   const scheme = location.protocol === "https:" ? "wss" : "ws";
@@ -104,6 +147,8 @@ function handleMessage(message: ServerMessage) {
       void loadAccount();
       return;
     case "state":
+      if (rejoinConnection || autoRejoinAttempt > 0) stopAutoRejoin();
+      rejoinConnection = false;
       useOnlineStore.setState({ status: "playing", error: null });
       useGameStore.getState().applyOnlineView(message.view);
       return;
@@ -122,7 +167,8 @@ function handleMessage(message: ServerMessage) {
 
 /** 新しく接続し、つながったらfirstを送る。 */
 function connect(first: ClientMessage) {
-  onlineLink.close();
+  closeSocket();
+  rejoinConnection = false;
   useOnlineStore.setState({ status: "connecting", error: null, members: [], room: null });
   const ws = new WebSocket(wsUrl());
   socket = ws;
@@ -139,8 +185,14 @@ function connect(first: ClientMessage) {
     if (socket !== ws) return;
     socket = null;
     const { status } = useOnlineStore.getState();
-    if (status === "playing") useOnlineStore.setState({ status: "disconnected" });
-    else if (status !== "idle") {
+    if (status === "playing") {
+      useOnlineStore.setState({ status: "disconnected" });
+      scheduleAutoRejoin();
+    } else if (status === "connecting" && rejoinConnection) {
+      // 入り直そうとしたがつながらなかった（サーバーの再起動中等）。少し待って次を試す。
+      useOnlineStore.setState({ status: "disconnected", error: "サーバーにつながりませんでした" });
+      scheduleAutoRejoin();
+    } else if (status !== "idle") {
       useOnlineStore.setState({
         status: "idle",
         queue: null,
@@ -153,6 +205,7 @@ function connect(first: ClientMessage) {
 export const onlineLink = {
   /** サーバーにつないで合言葉の部屋（友人戦）に入る。 */
   join(request: JoinRequest) {
+    stopAutoRejoin();
     lastJoin = request;
     useOnlineStore.setState({ ranked: false, rankResult: null });
     // 名前はアカウントの表示名が使われ、対局中に入り直すと同じアカウントの席に戻れる。
@@ -161,6 +214,7 @@ export const onlineLink = {
 
   /** 段位戦の待ち行列に並ぶ。 */
   queueRanked(format: MatchFormat, unitId: string | null) {
+    stopAutoRejoin();
     lastJoin = { room: "", unitId };
     connect({ t: "queueRanked", authToken: accountToken() ?? "", format, unitId });
   },
@@ -171,7 +225,7 @@ export const onlineLink = {
 
   /** 対局中に切れた接続を、同じ合言葉・同じアカウントで入り直して席に戻す。 */
   rejoin() {
-    if (lastJoin?.room) connect({ t: "join", ...lastJoin, authToken: accountToken() ?? "" });
+    rejoinNow();
   },
 
   send(message: ClientMessage) {
@@ -180,12 +234,18 @@ export const onlineLink = {
 
   /** 部屋・待ち行列を抜けて接続を閉じる（タイトルへ戻る時）。 */
   close() {
-    const ws = socket;
-    socket = null;
-    if (ws) {
-      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "leave" } satisfies ClientMessage));
-      ws.close();
-    }
+    stopAutoRejoin();
+    rejoinConnection = false;
+    closeSocket();
     useOnlineStore.setState({ status: "idle", room: null, members: [], queue: null });
   },
 };
+
+function closeSocket() {
+  const ws = socket;
+  socket = null;
+  if (ws) {
+    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "leave" } satisfies ClientMessage));
+    ws.close();
+  }
+}

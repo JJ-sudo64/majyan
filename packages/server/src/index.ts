@@ -29,6 +29,7 @@ import { createApiHandler } from "./httpApi.js";
 import { RankService } from "./ranks.js";
 import { CollectionService } from "./collection.js";
 import { WalletService } from "./wallet.js";
+import { MatchStore } from "./matchStore.js";
 import { DEFAULT_CPU_FILL_MS, Matchmaker } from "./matchmaking.js";
 import type { IncomingMessage } from "node:http";
 import { createStaticHandler } from "./staticFiles.js";
@@ -58,7 +59,9 @@ const ranks = new RankService(db);
 const wallet = new WalletService(db);
 const collections = new CollectionService(db, Math.random, Date.now, wallet);
 const authenticate = (token: string) => accounts.authenticate(token);
-const rooms = new RoomManager({ authenticate, ranks, collections, wallet });
+// 対局中の卓はDBへ保存しておき、再起動したら続きから再開する（入り直せば同じ席に戻れる）。
+const rooms = new RoomManager({ authenticate, ranks, collections, wallet, store: new MatchStore(db) });
+const restoredMatches = rooms.restoreSavedMatches();
 const matchmaker = new Matchmaker({
   rooms,
   ranks,
@@ -158,4 +161,5 @@ httpServer.listen(port, () => {
   console.log(`[majyan-server] http://localhost:${port} で待ち受け中（WebSocket: ${ONLINE_WS_PATH}）`);
   console.log(serveStatic ? `[majyan-server] 画面を配信: ${staticDir}` : "[majyan-server] 画面のビルドが無いため /api と /ws だけ提供します");
   console.log(`[majyan-server] データベース: ${databasePath}`);
+  if (restoredMatches > 0) console.log(`[majyan-server] 保存されていた対局を${restoredMatches}卓再開しました`);
 });

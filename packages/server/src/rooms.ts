@@ -7,6 +7,8 @@
  * - 入るにはアカウント（accounts.ts）のログイン用の鍵が要る。名前はアカウントの表示名
  * - 対局中に接続が切れた人は、同じアカウントで入り直すとその席に戻れる
  * - 人間が全員いなくなった部屋は、しばらく誰も戻らなければ片付ける
+ * - 対局中の部屋はstore（matchStore.ts）へ局面ごとに保存し、サーバーを再起動したら
+ *   restoreSavedMatchesで作り直す。入り直す手順は切断からの復帰と同じ（同じ合言葉でjoin）
  */
 import {
   createMatch,
@@ -23,7 +25,8 @@ import {
   type ServerMessage,
 } from "@majyan/core";
 import { randomBytes, randomUUID } from "node:crypto";
-import { MatchSession, type SessionSeat, type SessionTiming } from "./matchSession.js";
+import { MatchSession, type MatchSessionOptions, type SessionSeat, type SessionSnapshot, type SessionTiming } from "./matchSession.js";
+import type { MatchStore } from "./matchStore.js";
 import type { RankService } from "./ranks.js";
 import type { CollectionService } from "./collection.js";
 import type { WalletService } from "./wallet.js";
@@ -76,7 +79,22 @@ export interface RoomManagerOptions {
   collections?: CollectionService;
   /** 雀玉（段位戦の報酬を渡す）。 */
   wallet?: WalletService;
+  /** 対局中の部屋の保存先。無ければ保存しない（再起動で対局が消える）。 */
+  store?: MatchStore;
+  /** 再起動して対局を戻した直後、人間が入り直してくるのを待つ時間（その間は自動操作しない）。 */
+  restoreGraceMs?: number;
 }
+
+/** 保存する部屋の中身。形を変えて古い保存が読めなくなる時はversionを上げる（古いものは捨てる）。 */
+interface RoomSnapshot {
+  version: number;
+  code: string;
+  ranked: Room["ranked"];
+  members: { userId: string; name: string; unitId: string | null; seat: PlayerIndex | null }[];
+  session: SessionSnapshot;
+}
+const ROOM_SNAPSHOT_VERSION = 1;
+const DEFAULT_RESTORE_GRACE_MS = 60_000;
 
 const MAX_MEMBERS = 4;
 const CPU_NAMES = ["CPU-A", "CPU-B", "CPU-C"];
@@ -99,6 +117,42 @@ export class RoomManager {
   constructor(options: RoomManagerOptions) {
     this.options = options;
     this.rng = options.rng ?? Math.random;
+  }
+
+  /**
+   * 起動時に1回呼ぶ: 保存されていた対局の部屋を作り直して続きを始める。戻した数を返す。
+   * 人間は全員切断中から始まり、同じ合言葉でjoinすれば元の席に戻れる。
+   */
+  restoreSavedMatches(): number {
+    const store = this.options.store;
+    if (!store) return 0;
+    let restored = 0;
+    for (const { roomCode, snapshot } of store.loadAll()) {
+      const snap = snapshot as RoomSnapshot;
+      if (snap?.version !== ROOM_SNAPSHOT_VERSION || snap.code !== roomCode || this.rooms.has(roomCode)) {
+        store.delete(roomCode);
+        continue;
+      }
+      const room: Room = {
+        code: roomCode,
+        members: snap.members.map((m) => ({ ...m, client: null })),
+        session: null,
+        cleanupTimer: null,
+        ranked: snap.ranked,
+      };
+      try {
+        this.rooms.set(roomCode, room);
+        room.session = MatchSession.restore(snap.session, this.sessionOptions(room));
+        room.session.resume(this.options.restoreGraceMs ?? DEFAULT_RESTORE_GRACE_MS);
+        // 友人戦は誰も戻らなければ片付ける（段位戦は最後まで打ち切る。disconnect参照）。
+        if (!room.ranked) this.scheduleAbandonedCleanup(room);
+        restored++;
+      } catch (err) {
+        console.error(`[majyan-server] 保存された対局を再開できなかったため消します: ${roomCode}`, err);
+        this.deleteRoom(room);
+      }
+    }
+    return restored;
   }
 
   get roomCount(): number {
@@ -206,12 +260,45 @@ export class RoomManager {
     room.session.setConnected(member.seat!, false);
     // 段位戦は全員抜けても片付けずに最後まで自動で打ち切る（抜ければ段位が
     // 動かない、という抜け道を作らないため）。終わった時点で片付ける。
-    if (!room.ranked && !room.session.hasConnectedHuman()) {
-      room.cleanupTimer = setTimeout(() => this.deleteRoom(room), this.options.abandonedRoomMs ?? 5 * 60_000);
-    }
+    if (!room.ranked && !room.session.hasConnectedHuman()) this.scheduleAbandonedCleanup(room);
   }
 
   // -------------------------------------------------------------------------
+
+  private scheduleAbandonedCleanup(room: Room): void {
+    if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
+    room.cleanupTimer = setTimeout(() => this.deleteRoom(room), this.options.abandonedRoomMs ?? 5 * 60_000);
+  }
+
+  /** 対局（MatchSession）に渡す、部屋とのつなぎ（送信・終了時の処理・保存）。 */
+  private sessionOptions(room: Room): Omit<MatchSessionOptions, "match" | "seats"> {
+    return {
+      rng: this.rng,
+      now: this.options.now,
+      timing: this.options.timing,
+      send: (seat, view) => room.members.find((m) => m.seat === seat)?.client?.send({ t: "state", view }),
+      onFinished: room.ranked ? (finished) => this.finishRanked(room, finished) : undefined,
+      onChange: () => this.persist(room),
+    };
+  }
+
+  /** 対局中の部屋を保存する（終わった対局は消す）。 */
+  private persist(room: Room): void {
+    const store = this.options.store;
+    if (!store || !room.session || this.rooms.get(room.code) !== room) return;
+    if (room.session.finished) {
+      store.delete(room.code);
+      return;
+    }
+    const snapshot: RoomSnapshot = {
+      version: ROOM_SNAPSHOT_VERSION,
+      code: room.code,
+      ranked: room.ranked,
+      members: room.members.map((m) => ({ userId: m.userId, name: m.name, unitId: m.unitId, seat: m.seat })),
+      session: room.session.snapshot(),
+    };
+    store.save(room.code, snapshot);
+  }
 
   private roomOf(client: Client): Room | undefined {
     const code = this.clientRooms.get(client.id);
@@ -356,13 +443,9 @@ export class RoomManager {
 
     const match = createMatch(format, this.rng, characterIds, continueBelowZero, cardIds);
     room.session = new MatchSession({
+      ...this.sessionOptions(room),
       match,
       seats: seats as [SessionSeat, SessionSeat, SessionSeat, SessionSeat],
-      rng: this.rng,
-      now: this.options.now,
-      timing: this.options.timing,
-      send: (seat, view) => room.members.find((m) => m.seat === seat)?.client?.send({ t: "state", view }),
-      onFinished: room.ranked ? (finished) => this.finishRanked(room, finished) : undefined,
     });
     room.session.start();
   }
@@ -413,6 +496,9 @@ export class RoomManager {
     if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
     room.session?.dispose();
     for (const m of room.members) if (m.client) this.clientRooms.delete(m.client.id);
-    if (this.rooms.get(room.code) === room) this.rooms.delete(room.code);
+    if (this.rooms.get(room.code) === room) {
+      this.rooms.delete(room.code);
+      this.options.store?.delete(room.code);
+    }
   }
 }

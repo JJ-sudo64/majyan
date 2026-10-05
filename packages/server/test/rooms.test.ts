@@ -4,6 +4,7 @@ import { RoomManager, type Client, type RoomManagerOptions } from "../src/rooms.
 import { AccountService } from "../src/accounts.js";
 import { openDatabase } from "../src/db.js";
 import type { SessionTiming } from "../src/matchSession.js";
+import { MatchStore } from "../src/matchStore.js";
 
 function makeRng(seed: number): () => number {
   let state = seed >>> 0;
@@ -352,5 +353,87 @@ describe("call responses", () => {
       }
     }
     expect(answered).toBe(1);
+  });
+});
+
+describe("restarting the server", () => {
+  /** 保存先を共有する部屋の管理を作る（再起動の前後で同じ保存先を使う）。 */
+  function makeStoredRooms(store: MatchStore, seed: number, restoreGraceMs = 1000) {
+    return makeRooms({ rng: makeRng(seed), timing: FAST, store, restoreGraceMs });
+  }
+
+  /** プロセスが落ちたのと同じ: 動いていたタイマーを全部止める（保存先だけが残る）。 */
+  function crash() {
+    vi.clearAllTimers();
+  }
+
+  it("brings a running match back, and players return to their seats by joining again", () => {
+    const store = new MatchStore(openDatabase(":memory:"));
+    const rooms = makeStoredRooms(store, 11);
+    const a = new TestClient("a");
+    const b = new TestClient("b");
+    join(rooms, a, "A");
+    join(rooms, b, "B");
+    rooms.handleMessage(a, { t: "start", format: "tonpuusen", continueBelowZero: false });
+    vi.advanceTimersByTime(3000);
+    const before = a.view.match;
+    expect(before.finished).toBe(false);
+    expect(store.loadAll()).toHaveLength(1);
+
+    crash();
+    const restarted = makeStoredRooms(store, 12);
+    expect(restarted.restoreSavedMatches()).toBe(1);
+    // 猶予の間は、入り直していない人の席を自動で進めない。
+    vi.advanceTimersByTime(500);
+
+    const a2 = new TestClient("a2");
+    join(restarted, a2, "A");
+    const after = a2.view.match;
+    expect(a2.view.seats.map((s) => s.name)).toEqual(a.view.seats.map((s) => s.name));
+    expect(after.scores).toEqual(before.scores);
+    expect([after.round.roundWind, after.round.roundNumber, after.round.honba]).toEqual([
+      before.round.roundWind,
+      before.round.roundNumber,
+      before.round.honba,
+    ]);
+    expect(after.round.players[0]!.discards.length).toBe(before.round.players[0]!.discards.length);
+    const idsAfter = after.round.players[0]!.hand.concealed.map((t) => t.id);
+    for (const t of before.round.players[0]!.hand.concealed) expect(idsAfter).toContain(t.id);
+    expect(a2.view.seats.find((s) => s.name === "B")?.disconnected).toBe(true);
+
+    // Bが戻らなくても、猶予が過ぎれば自動で進んで最後まで終わり、保存も消える。
+    runUntilFinished(a2);
+    expect(a2.view.match.finished).toBe(true);
+    expect(store.loadAll()).toHaveLength(0);
+  });
+
+  it("does not bring back finished matches or saves from an older format", () => {
+    const store = new MatchStore(openDatabase(":memory:"));
+    const rooms = makeStoredRooms(store, 13);
+    const a = new TestClient("a");
+    join(rooms, a, "A");
+    rooms.handleMessage(a, { t: "start", format: "tonpuusen", continueBelowZero: false });
+    runUntilFinished(a);
+    expect(store.loadAll()).toHaveLength(0);
+
+    store.save("old", { version: 0, code: "old" });
+    crash();
+    expect(makeStoredRooms(store, 14).restoreSavedMatches()).toBe(0);
+    expect(store.loadAll()).toHaveLength(0);
+  });
+
+  it("forgets a friend room nobody came back to", () => {
+    const store = new MatchStore(openDatabase(":memory:"));
+    const rooms = makeStoredRooms(store, 15);
+    const a = new TestClient("a");
+    join(rooms, a, "A");
+    rooms.handleMessage(a, { t: "start", format: "hanchan", continueBelowZero: false });
+    vi.advanceTimersByTime(1000);
+    crash();
+    const restarted = makeRooms({ rng: makeRng(16), timing: FAST, store, restoreGraceMs: 1000, abandonedRoomMs: 5000 });
+    expect(restarted.restoreSavedMatches()).toBe(1);
+    vi.advanceTimersByTime(6000);
+    expect(restarted.roomCount).toBe(0);
+    expect(store.loadAll()).toHaveLength(0);
   });
 });

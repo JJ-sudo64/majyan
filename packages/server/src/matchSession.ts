@@ -12,6 +12,11 @@
  * タイマーは局面が進むたびに「今張っておくべきもの」を数え直して張り直す
  * （reconcileTimers）。局面が変わって不要になったタイマーはその時点で外れるので、
  * 操作が先に届いていたのに古いタイマーが発火する、ということは起きない。
+ *
+ * サーバーを再起動しても対局を続けられるよう、局面が進むたびにonChangeで知らせ、
+ * 呼んだ側（rooms.ts）がsnapshot()をDBへ保存する。再起動後はMatchSession.restoreで
+ * 作り直してresumeで再開する。再開直後は人間が全員切断中の扱いになるが、
+ * 入り直してくるのを猶予の間だけ待つ（すぐ自動操作で進めてしまわないように）。
  */
 import {
   actionFromViewer,
@@ -90,6 +95,22 @@ export interface MatchSessionOptions {
   timing?: SessionTiming;
   /** 対局が終わった瞬間に1回だけ呼ばれる（段位戦の結果の反映等）。 */
   onFinished?: (match: MatchState) => void;
+  /** 局面が変わるたびに呼ばれる（snapshot()を保存するため）。 */
+  onChange?: () => void;
+}
+
+/** 再起動をまたいで対局を続けるために保存する中身（JSONにできる値だけ）。 */
+export interface SessionSnapshot {
+  match: MatchState;
+  seats: [SessionSeat, SessionSeat, SessionSeat, SessionSeat];
+  /** 座席ごとの残り持ち時間。動いていた時計は再開時に新しく始め直す。 */
+  bankRemainingMs: [number, number, number, number];
+  pendingRoundEnd: boolean;
+  roundEndRemainingMs: number | null;
+  lastRoundOutcome: RoundScoreOutcome | null;
+  roundEndAcks: PlayerIndex[];
+  lastScoreAdjustment: { delta: [number, number, number, number]; key: number } | null;
+  finishReported: boolean;
 }
 
 export class MatchSession {
@@ -112,6 +133,9 @@ export class MatchSession {
   private disposed = false;
   private finishReported = false;
   private readonly onFinished: MatchSessionOptions["onFinished"];
+  private readonly onChange: MatchSessionOptions["onChange"];
+  /** 再開直後、切断中の人間が入り直してくるのを待つ期限（この時刻までは自動操作しない）。 */
+  private awayGraceUntil = 0;
 
   constructor(options: MatchSessionOptions) {
     this.match = options.match;
@@ -122,6 +146,43 @@ export class MatchSession {
     this.timing = options.timing ?? DEFAULT_SESSION_TIMING;
     this.clocks = createMatchClocks(this.timing.rules);
     this.onFinished = options.onFinished;
+    this.onChange = options.onChange;
+  }
+
+  /** 保存しておいた対局から作り直す（続きはresumeで始める）。人間の席は全員切断中にする。 */
+  static restore(snapshot: SessionSnapshot, options: Omit<MatchSessionOptions, "match" | "seats">): MatchSession {
+    const seats = snapshot.seats.map((s) => (s.kind === "human" ? { ...s, connected: false } : { ...s }));
+    const session = new MatchSession({ ...options, match: snapshot.match, seats: seats as MatchSessionOptions["seats"] });
+    session.clocks = { bankRemainingMs: [...snapshot.bankRemainingMs], active: [] };
+    session.pendingRoundEnd = snapshot.pendingRoundEnd;
+    session.roundEndDeadline = snapshot.roundEndRemainingMs === null ? null : session.now() + snapshot.roundEndRemainingMs;
+    session.lastRoundOutcome = snapshot.lastRoundOutcome;
+    for (const seat of snapshot.roundEndAcks) session.roundEndAcks.add(seat);
+    session.lastScoreAdjustment = snapshot.lastScoreAdjustment;
+    session.finishReported = snapshot.finishReported;
+    return session;
+  }
+
+  /** restoreで作り直した対局を再開する。graceMsの間は切断中の人間の席を自動操作しない。 */
+  resume(graceMs: number): void {
+    const now = this.now();
+    this.awayGraceUntil = now + graceMs;
+    if (this.roundEndDeadline !== null) this.roundEndDeadline = Math.max(this.roundEndDeadline, this.awayGraceUntil);
+    this.step();
+  }
+
+  snapshot(): SessionSnapshot {
+    return {
+      match: this.match,
+      seats: this.seats,
+      bankRemainingMs: this.clocks.bankRemainingMs,
+      pendingRoundEnd: this.pendingRoundEnd,
+      roundEndRemainingMs: this.roundEndDeadline === null ? null : Math.max(0, this.roundEndDeadline - this.now()),
+      lastRoundOutcome: this.lastRoundOutcome,
+      roundEndAcks: [...this.roundEndAcks],
+      lastScoreAdjustment: this.lastScoreAdjustment,
+      finishReported: this.finishReported,
+    };
   }
 
   private reportFinishedOnce(): void {
@@ -174,6 +235,11 @@ export class MatchSession {
     const s = this.seats[seat];
     if (s.kind !== "human" || s.connected === connected) return;
     this.seats[seat] = { ...s, connected };
+    // 再開直後の猶予中に戻ってきた人の時計は、戻った時から数え直す（再開した
+    // 時点から動いていた時計のままだと、戻るまでの時間で持ち時間が減ってしまう）。
+    if (connected && this.now() < this.awayGraceUntil) {
+      this.clocks = { ...this.clocks, active: this.clocks.active.filter((c) => c.seat !== seat) };
+    }
     if (this.pendingRoundEnd) {
       if (!connected && this.allHumansAcked()) this.advanceRound();
       else this.broadcast();
@@ -252,10 +318,16 @@ export class MatchSession {
     return [r.roundWind, r.roundNumber, r.honba, discards, r.kanCount, r.phase, r.currentTurn].join(":");
   }
 
+  /** 切断中で、もう戻りを待たない人間の席（再開直後の猶予中は待つ）。 */
+  private isAway(seat: PlayerIndex): boolean {
+    const s = this.seats[seat];
+    return s.kind === "human" && !s.connected && this.now() >= this.awayGraceUntil;
+  }
+
   private allHumansAcked(): boolean {
     return SEATS.every((seat) => {
       const s = this.seats[seat];
-      return s.kind !== "human" || !s.connected || this.roundEndAcks.has(seat);
+      return s.kind !== "human" || this.isAway(seat) || (s.connected && this.roundEndAcks.has(seat));
     });
   }
 
@@ -314,7 +386,8 @@ export class MatchSession {
         continue;
       }
       if (!s.connected) {
-        wanted.set(`away:${key}`, { delayMs: this.timing.disconnectedActMs, run: () => this.applyTimeout(seat) });
+        const delayMs = Math.max(this.timing.disconnectedActMs, this.awayGraceUntil - now);
+        wanted.set(`away:${key}`, { delayMs, run: () => this.applyTimeout(seat) });
         continue;
       }
       // 選べる余地が無い判断（リーチ後のツモ切り・鳴けない打牌の見送り）は待たずに進める。
@@ -356,16 +429,19 @@ export class MatchSession {
 
   /** 配牌入れ替え権を自動で消化させる席（CPUと、切断中の人間）。 */
   private cpuSeats(): PlayerIndex[] {
-    return SEATS.filter((seat) => {
-      const s = this.seats[seat];
-      return s.kind === "cpu" || !s.connected;
-    });
+    return SEATS.filter((seat) => this.seats[seat].kind === "cpu" || this.isAway(seat));
   }
 
   private broadcast(): void {
     for (const seat of SEATS) {
       const s = this.seats[seat];
       if (s.kind === "human" && s.connected) this.sendView(seat, this.viewFor(seat));
+    }
+    try {
+      this.onChange?.();
+    } catch (err) {
+      // 保存に失敗しても対局そのものは続ける（再起動すると直前の保存からになるだけ）。
+      console.error("[majyan-server] 対局の保存に失敗しました:", err);
     }
   }
 
