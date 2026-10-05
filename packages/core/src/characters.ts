@@ -505,6 +505,8 @@ export const CHARACTERS: Record<string, Character> = {
     // 備えてそのまま対応させてあるが、現状は発火しない。
     yakuVoiceClips: {
       "立直": "/voices/kaede/riichi.wav",
+      // 門前清自摸和も立直と同じく、専用の録音が無いので宣言の「ツモ」の声を使う。
+      "門前清自摸和": "/voices/kaede/tsumo.wav",
       "ダブル立直": "/voices/kaede/yaku/ダブルリーチ.wav",
       "一発": "/voices/kaede/yaku/一発.wav",
       "平和": "/voices/kaede/yaku/ピンフ.wav",
@@ -539,6 +541,7 @@ export const CHARACTERS: Record<string, Character> = {
       "国士無双": "/voices/kaede/yaku/国士無双.wav",
       "国士無双十三面": "/voices/kaede/yaku/国士無双.wav",
       "九蓮宝燈": "/voices/kaede/yaku/九蓮宝燈.wav",
+      "純正九蓮宝燈": "/voices/kaede/yaku/九蓮宝燈.wav",
       "天和": "/voices/kaede/yaku/天和.wav",
       "地和": "/voices/kaede/yaku/地和.wav",
       "満貫": "/voices/kaede/yaku/満貫.wav",
