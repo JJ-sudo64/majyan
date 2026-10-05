@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { CHARACTERS, type Meld, type RoundState, type VoiceEvent } from "@majyan/core";
 import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, speakVoice } from "../sound.js";
+import { winDeclarationSchedule } from "../components/DeclarationCutinOverlay.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
   chi: "チー",
@@ -141,13 +142,20 @@ export function useGameSounds(round: RoundState | undefined) {
 
   const phase = round?.phase;
   const prevPhaseRef = useRef(phase);
+  const winVoiceTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => winVoiceTimersRef.current.forEach(clearTimeout), []);
   useEffect(() => {
     if (phase === "round-over" && prevPhaseRef.current !== "round-over") {
       const result = round?.result;
       if (result?.type === "tsumo" || result?.type === "ron") playWinSound();
-      if (result?.type === "tsumo") speakPlayerVoice(round, result.winners[0]!, "tsumo", "ツモ");
-      else if (result?.type === "ron") speakPlayerVoice(round, result.winners[0]!, "ron", "ロン");
-      else if (result?.type === "exhaustive-draw") {
+      if (result?.type === "tsumo" || result?.type === "ron") {
+        // ダブロン・トリロンでは和了者全員の掛け声を、カットインの切り替わりに合わせて順に鳴らす。
+        for (const step of winDeclarationSchedule(round!)) {
+          const speak = () => speakPlayerVoice(round, step.seat, step.kind, step.kind === "tsumo" ? "ツモ" : "ロン");
+          if (step.startMs === 0) speak();
+          else winVoiceTimersRef.current.push(setTimeout(speak, step.startMs));
+        }
+      } else if (result?.type === "exhaustive-draw") {
         const isTenpai = (result.tenpaiPlayers ?? []).includes(0);
         speakPlayerVoice(round, 0, isTenpai ? "tenpai" : "noten", isTenpai ? "テンパイ" : "ノーテン");
       }

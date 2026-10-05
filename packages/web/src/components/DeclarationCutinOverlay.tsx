@@ -40,6 +40,36 @@ export function characterCutin(characterId: string, kind: Declaration): Omit<Act
   return { kind, src: art.src, addWord: art.addWord ?? false, crop: art.crop, keepEdge: art.keepEdge, accent: character.declarationAccent ?? DEFAULT_ACCENT };
 }
 
+/** ダブロン・トリロンで、1枚絵の無いキャラの番に置く間（カットインは出さず掛け声だけ鳴らす）。 */
+const WIN_SLOT_WITHOUT_ART_MS = 900;
+
+export interface WinDeclarationStep {
+  seat: number;
+  kind: "tsumo" | "ron";
+  /** 和了が決まってから、この人のカットイン・掛け声を始めるまでの時間。 */
+  startMs: number;
+  cutin: Omit<ActiveCutin, "key"> | null;
+}
+
+/**
+ * 和了の宣言を出す順番と時刻。ダブロン・トリロンでは和了者全員を、精算と同じ
+ * 放銃者に近い順（result.winnersの順）に1人ずつ出す。カットインの表示
+ * （DeclarationCutinOverlay）と掛け声（useGameSounds）の両方がこれに合わせる。
+ */
+export function winDeclarationSchedule(round: RoundState): WinDeclarationStep[] {
+  const result = round.phase === "round-over" ? round.result : null;
+  if (!result || (result.type !== "tsumo" && result.type !== "ron")) return [];
+  const kind = result.type;
+  const steps: WinDeclarationStep[] = [];
+  let t = 0;
+  for (const seat of result.winners) {
+    const cutin = cutinFor(round, seat, kind);
+    steps.push({ seat, kind, startMs: t, cutin });
+    t += cutin ? DISPLAY_MS[kind] : WIN_SLOT_WITHOUT_ART_MS;
+  }
+  return steps;
+}
+
 /**
  * リーチ・ツモ・ロンを宣言した瞬間に、そのキャラの1枚絵(Character.declarationArt)
  * を画面いっぱいに出す演出。自分・CPUのどの座席でも、この1箇所で検知する
@@ -50,6 +80,8 @@ export function characterCutin(characterId: string, kind: Declaration): Omit<Act
 export function DeclarationCutinOverlay({ round }: { round: RoundState }) {
   const keyRef = useRef(0);
   const [active, setActive] = useState<ActiveCutin | null>(null);
+  /** 和了のカットインを順に流している間（点数画面を待たせる）。 */
+  const [winSequencePlaying, setWinSequencePlaying] = useState(false);
   const setWinCutinPlaying = useDeclarationCutinStore((s) => s.setWinCutinPlaying);
 
   // リーチ: riichiフラグがfalse→trueになった座席を検知する。新しい局の配牌で
@@ -70,36 +102,48 @@ export function DeclarationCutinOverlay({ round }: { round: RoundState }) {
     }
   }, [riichiSignature]);
 
-  // ツモ・ロン: 局が和了で終わった瞬間を検知する。ダブロン等で和了者が複数なら、
-  // 1枚絵を持つ最初の和了者を出す。点数画面より先に出すため、描画前
+  // ツモ・ロン: 局が和了で終わった瞬間を検知する。ダブロン・トリロンでは和了者全員の
+  // カットインを順に流す（winDeclarationSchedule）。点数画面より先に出すため、描画前
   // (useLayoutEffect)に検知する。
   const result = round.phase === "round-over" ? round.result : null;
   const winKey = result && (result.type === "tsumo" || result.type === "ron") ? `${round.roundWind}-${round.roundNumber}-${round.honba}-${result.type}-${result.winners.join(",")}` : null;
   const prevWinKeyRef = useRef(winKey);
+  const winTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useLayoutEffect(() => {
     const prev = prevWinKeyRef.current;
     prevWinKeyRef.current = winKey;
-    if (!winKey || winKey === prev || !result) return;
-    const kind = result.type as "tsumo" | "ron";
-    for (const seat of result.winners) {
-      const cutin = cutinFor(round, seat, kind);
-      if (!cutin) continue;
+    if (!winKey || winKey === prev) return;
+    const steps = winDeclarationSchedule(round);
+    const withArt = steps.filter((s) => s.cutin);
+    if (withArt.length === 0) return;
+    for (const t of winTimersRef.current) clearTimeout(t);
+    const show = (cutin: Omit<ActiveCutin, "key">) => {
       keyRef.current += 1;
       setActive({ ...cutin, key: keyRef.current });
-      return;
-    }
+    };
+    const last = withArt[withArt.length - 1]!;
+    const endMs = last.startMs + DISPLAY_MS[last.kind];
+    setWinSequencePlaying(true);
+    winTimersRef.current = [
+      ...withArt.map((s) => (s.startMs === 0 ? (show(s.cutin!), null) : setTimeout(() => show(s.cutin!), s.startMs))),
+      setTimeout(() => {
+        setActive(null);
+        setWinSequencePlaying(false);
+      }, endMs),
+    ].filter((t): t is ReturnType<typeof setTimeout> => t !== null);
   }, [winKey]);
+  useEffect(() => () => winTimersRef.current.forEach(clearTimeout), []);
 
+  // リーチのカットインは表示時間が過ぎたら消す（和了のカットインは上の予定で消す）。
   useEffect(() => {
-    if (!active) return undefined;
+    if (!active || active.kind !== "riichi") return undefined;
     const timer = setTimeout(() => setActive(null), DISPLAY_MS[active.kind]);
     return () => clearTimeout(timer);
   }, [active]);
 
-  // 点数画面を待たせるフラグは、表示中のカットインから直接決める（別々に
-  // 立て下ろしすると、途中で別のカットインに切り替わった時に立ちっぱなしに
-  // なり得るため）。描画前に反映し、点数画面が一瞬でも先に見えないようにする。
-  const winCutinPlaying = active !== null && active.kind !== "riichi";
+  // 点数画面を待たせるフラグは、和了のカットインを流している間（ダブロンで次の人へ
+  // 切り替わる間も含む）立てておく。描画前に反映し、点数画面が一瞬でも先に見えないようにする。
+  const winCutinPlaying = winSequencePlaying;
   useLayoutEffect(() => {
     setWinCutinPlaying(winCutinPlaying);
   }, [winCutinPlaying, setWinCutinPlaying]);
