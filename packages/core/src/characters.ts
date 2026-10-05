@@ -29,9 +29,9 @@ function nextSeat(player: PlayerIndex): PlayerIndex {
 }
 
 /** ナギ/ライコのように「今の自摸牌をすり替える」タイプの必殺技が発動可能かどうか。
-    チー/ポン/大明槓で手番だけ回ってきた直後はphaseが"awaiting-discard"でも
-    round.lastDrawnTileが（鳴く前の別プレイヤーの）自摸のまま更新されておらず、
-    本人の手牌には存在しない。これに気づかずonActivateがremoveTileFromHandを
+    チー/ポンで手番だけ回ってきた直後はphaseが"awaiting-discard"でも本人の
+    自摸牌は無い（lastDrawnTileはnull。以前は鳴く前の別プレイヤーの自摸のまま
+    残っていた）。これに気づかずonActivateがremoveTileFromHandを
     呼ぶと例外が飛び、CPUの自動発動ループ（gameStore.tsのtick）がtry/catch無しで
     それを踏むと対局が無言のまま進行しなくなる（フリーズしたように見える）。 */
 function hasOwnPendingDraw(round: RoundState, owner: number): boolean {

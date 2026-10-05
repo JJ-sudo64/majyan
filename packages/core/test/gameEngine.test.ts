@@ -3,7 +3,7 @@ import type { TileCode } from "../src/tiles.js";
 import type { Hand } from "../src/hand.js";
 import type { PlayerRoundState, RoundState } from "../src/gameState.js";
 import type { PlayerIndex } from "../src/actions.js";
-import { applyAction, computeRoundScoreOutcome, canDeclareRon } from "../src/gameEngine.js";
+import { applyAction, computeRoundScoreOutcome, canDeclareRon, canDeclareTsumo } from "../src/gameEngine.js";
 import type { WallState } from "../src/wall.js";
 
 let idc = 0;
@@ -311,5 +311,65 @@ describe("gameEngine win detection", () => {
     expect(outcome.scoreDeltas[0]).toBe(3000);
     expect(outcome.scoreDeltas[1]).toBe(-1000);
     expect(outcome.scoreDeltas.reduce((a, b) => a + b, 0)).toBe(0);
+  });
+});
+
+describe("wins and calls must be real", () => {
+  /**
+   * 親が白をツモって手に残し、中を切る。下家は中/西のシャンポン待ちだが西を自分で
+   * 切っていてフリテンのため、中ではロンできない。
+   */
+  function chunDiscardedToFuritenShanpon(): RoundState {
+    const furitenPlayer = emptyPlayer(["7z", "7z", "3z", "3z", "4p", "5p", "6p", "7s", "8s", "9s", "2m", "3m", "4m"]);
+    furitenPlayer.discards = [{ tile: tile("3z"), calledAway: false, isRiichiDeclaration: false, isTsumogiri: false }];
+    let round = makeRound({
+      wall: makeWall(["5z", "9m", "9m", "9m"]),
+      players: [
+        emptyPlayer(["7z", "1m", "1m", "4p", "5p", "6p", "7s", "8s", "9s", "1p", "1p", "1p", "2z"]),
+        furitenPlayer,
+        emptyPlayer(["6m", "6m", "6m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "8p", "8p"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "2p", "2p"]),
+      ],
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    const chun = round.players[0].hand.concealed.find((t) => t.code === "7z")!;
+    return applyAction(round, { type: "discard", player: 0, tileId: chun.id, tsumogiri: false });
+  }
+
+  it("cannot tsumo right after a pon with the tile someone else drew", () => {
+    let round = chunDiscardedToFuritenShanpon();
+    const ids = round.players[1].hand.concealed.filter((t) => t.code === "7z").map((t) => t.id);
+    round = applyAction(round, { type: "pon", player: 1, usedHandTileIds: [ids[0]!, ids[1]!] });
+    for (const p of [2, 3] as PlayerIndex[]) round = applyAction(round, { type: "skip", player: p });
+    expect(round.phase).toBe("awaiting-discard");
+    expect(round.currentTurn).toBe(1);
+    // ポンで手は形の上では完成しているが、ツモっていないので和了ではない
+    // （以前は親がツモった白を和了牌にしてツモ和了できてしまっていた）。
+    expect(round.lastDrawnTile).toBeNull();
+    expect(canDeclareTsumo(round, 1)).toBeNull();
+    expect(() => applyAction(round, { type: "tsumo", player: 1 })).toThrow();
+  });
+
+  it("refuses a ron that is not a winning hand (or is furiten)", () => {
+    const round = chunDiscardedToFuritenShanpon();
+    expect(() => applyAction(round, { type: "ron", player: 1 })).toThrow();
+    expect(() => applyAction(round, { type: "ron", player: 2 })).toThrow();
+  });
+
+  it("refuses pon/chi with tiles that do not go with the discard", () => {
+    const round = chunDiscardedToFuritenShanpon();
+    const hand1 = round.players[1].hand.concealed;
+    const notChun = hand1.filter((t) => t.code !== "7z").map((t) => t.id);
+    expect(() => applyAction(round, { type: "pon", player: 1, usedHandTileIds: [notChun[0]!, notChun[1]!] })).toThrow();
+    const chun = hand1.find((t) => t.code === "7z")!.id;
+    expect(() => applyAction(round, { type: "pon", player: 1, usedHandTileIds: [chun, chun] })).toThrow();
+    const hand2 = round.players[2].hand.concealed;
+    const sixes = hand2.filter((t) => t.code === "6m").map((t) => t.id);
+    expect(() => applyAction(round, { type: "pon", player: 2, usedHandTileIds: [sixes[0]!, sixes[1]!] })).toThrow();
+    // 字牌はチーできない。
+    const m = hand1.filter((t) => t.code === "2m" || t.code === "3m").map((t) => t.id);
+    expect(() =>
+      applyAction(round, { type: "chi", player: 1, tileCodes: ["2m", "3m", "7z"] as never, usedHandTileIds: [m[0]!, m[1]!] }),
+    ).toThrow();
   });
 });

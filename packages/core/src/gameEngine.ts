@@ -210,8 +210,12 @@ function buildWinContext(
 export function canDeclareTsumo(round: RoundState, player: PlayerIndex): WinAnalysis | null {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return null;
   const p = round.players[player];
-  if (!round.lastDrawnTile) return null;
-  const ctx = buildWinContext(round, player, round.lastDrawnTile.code, true);
+  // 和了牌は本人が今ツモって手に持っている牌に限る。以前はチー/ポン直後に
+  // lastDrawnTileが鳴く前の別プレイヤーのツモ牌のまま残っており、鳴いて手が
+  // 完成した瞬間に「他人のツモ牌（手牌に無い牌）でツモ和了」できてしまっていた。
+  const drawn = round.lastDrawnTile;
+  if (!drawn || !p.hand.concealed.some((t) => t.id === drawn.id)) return null;
+  const ctx = buildWinContext(round, player, drawn.code, true);
   return analyzeWin(p.hand, ctx);
 }
 
@@ -810,6 +814,12 @@ function applyMinkanAction(round: RoundState, action: MinkanAction): RoundState 
   return applyCallDeclaration(round, action.player, { type: "minkan", player: action.player, usedHandTileIds: action.usedHandTileIds });
 }
 function applyRonDeclaration(round: RoundState, player: PlayerIndex): RoundState {
+  // 和了形でない・フリテン等でロンできない宣言は受け付けない（ネット対戦では
+  // クライアントから任意の宣言が届きうるため、画面の選択肢とは別にここでも確かめる）。
+  const window = round.pendingCallWindow;
+  if (window && !canDeclareRon(round, player, window.discardTile.code, window.discarderIndex, window.isChankan)) {
+    throw new Error("ron: 和了条件を満たしていません");
+  }
   // カード「フリテン解除」: 本来ならフリテンでロンできないはずの宣言（＝canDeclareRon
   // 側のフリテン迂回チェックで許された宣言）を、実際に成立させる瞬間だけ消費する
   // （自力でフリテンでない普通のロンでは消費しない）。
@@ -840,6 +850,7 @@ function applyCallDeclaration(round: RoundState, player: PlayerIndex, call: Decl
   if (call.type !== "ron" && round.players[player].riichi) {
     throw new Error("call: リーチ後はチー/ポン/カンを宣言できません");
   }
+  if (call.type !== "ron") assertValidMeldCall(round, window, player, call);
 
   // カード「鳴かれず」: 実際にブロックした瞬間だけ消費し、この応答自体は
   // （宣言は受け付けつつ効果を発生させない、ではなく）スキップと同じ扱いにする。
@@ -856,6 +867,33 @@ function applyCallDeclaration(round: RoundState, player: PlayerIndex, call: Decl
     declaredCalls: [...window.declaredCalls, call],
   };
   return resolveCallWindowIfComplete({ ...round, pendingCallWindow: nextWindow });
+}
+
+/**
+ * チー/ポン/明槓に使う手牌が、捨て牌と組になる正しい牌かを確かめる（条件は
+ * matchController.tsのcomputeCallOptionsと同じ）。ネット対戦ではクライアントから
+ * 任意の牌IDが届きうるため、エンジン側でも弾く。
+ */
+function assertValidMeldCall(round: RoundState, window: PendingCallWindow, player: PlayerIndex, call: Exclude<DeclaredCallAction, { type: "ron" }>): void {
+  if (window.isChankan) throw new Error("call: 槍槓の機会にはロンしか宣言できません");
+  const concealed = round.players[player].hand.concealed;
+  const ids = call.usedHandTileIds;
+  const tiles = ids.map((id) => concealed.find((t) => t.id === id));
+  const needed = call.type === "minkan" ? 3 : 2;
+  if (ids.length !== needed || new Set(ids).size !== needed || tiles.some((t) => !t)) {
+    throw new Error("call: 使う手牌が正しくありません");
+  }
+  const discardCode = window.discardTile.code;
+  const codes = tiles.map((t) => t!.code);
+  if (call.type === "pon" || call.type === "minkan") {
+    if (codes.some((c) => c !== discardCode)) throw new Error("call: 捨て牌と同じ牌でないとポン/カンできません");
+    return;
+  }
+  if (nextSeat(window.discarderIndex) !== player) throw new Error("call: チーできるのは捨てた人の下家だけです");
+  const suit = discardCode[1];
+  if (suit === "z" || codes.some((c) => c[1] !== suit)) throw new Error("call: 順子にならない牌ではチーできません");
+  const nums = [Number(discardCode[0]), ...codes.map((c) => Number(c[0]))].sort((a, b) => a - b);
+  if (nums[1] !== nums[0]! + 1 || nums[2] !== nums[1]! + 1) throw new Error("call: 順子にならない牌ではチーできません");
 }
 
 function applySkipAction(round: RoundState, player: PlayerIndex): RoundState {
@@ -973,6 +1011,8 @@ function executeMeldCall(round: RoundState, window: PendingCallWindow, call: Dec
     ...round,
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
+    // チー/ポンでは自分はツモっていない（鳴く前の別プレイヤーのツモ牌を残さない）。
+    lastDrawnTile: null,
     currentTurn: caller,
     phase: "awaiting-discard",
     pendingCallWindow: null,

@@ -343,10 +343,9 @@ export function Hand({ round }: { round: RoundState }) {
 
   // coreHandが実際に「13枚相当」になっているかどうか。ツモ直後はdrawnTileId
   // の除外で正しく13枚相当まで戻るが、チー/ポンで4つ目の面子を完成させた
-  // 直後（まだ何を切るか決めていない状態）はround.lastDrawnTileが更新されず
-  // 古いツモ牌のidを指したまま（gameEngine.tsのexecuteMeldCall参照。カンは
-  // 嶺上ツモでlastDrawnTileが更新されるため対象外）になるため、restTilesの
-  // 除外が空振りしてconcealedが1枚多い「14枚相当」のまま残ってしまう。
+  // 直後（まだ何を切るか決めていない状態）はツモ牌が無い（round.lastDrawnTileは
+  // null。gameEngine.tsのexecuteMeldCall参照。カンは嶺上ツモが入るため対象外）
+  // ため、restTilesから何も除かれずconcealedが1枚多い「14枚相当」のまま残る。
   // この14枚相当のhandをgetWaitingTilesにそのまま渡すと、超過した1枚を
   // 「シャンテン計算上ただ捨てられるだけの余り牌」として自由に無視できて
   // しまい、ほぼ全ての候補牌が和了牌として誤検出される（フリテンも連動して
