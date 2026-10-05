@@ -99,6 +99,11 @@ function resolveYakuVoiceClip(character: Character, y: YakuResult, round: RoundS
   return character.yakuVoiceClips?.[y.name];
 }
 
+/** 役満でない13翻以上は「数え役満」と表示する（ボイスのキーは「役満」のまま）。 */
+function limitLabel(han: number, limitName: string): string {
+  return limitName === "役満" && han >= 13 ? "数え役満" : limitName;
+}
+
 function resultTitle(round: RoundState): string {
   const r = round.result!;
   if (r.type === "tsumo") return `${PLAYER_NAMES[r.winners[0]!]} のツモ和了`;
@@ -132,7 +137,10 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
         if (clip) queue.push(clip);
       }
       if (score.limitName) {
-        const clip = character.yakuVoiceClips?.[score.limitName];
+        // ダブル役満等は専用のボイスが無ければ「役満」で読み上げる。
+        const clip =
+          character.yakuVoiceClips?.[score.limitName] ??
+          (score.limitName.endsWith("役満") ? character.yakuVoiceClips?.["役満"] : undefined);
         if (clip) queue.push(clip);
       }
     }
@@ -191,13 +199,14 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               <ul className="yaku-list">
                 {analysis.yaku.map((y, i) => (
                   <li key={i}>
-                    {y.name} {y.han > 0 ? `${y.han}翻` : ""}
+                    {y.name} {analysis.isYakuman ? (y.han >= 26 ? "ダブル役満" : "役満") : y.han > 0 ? `${y.han}翻` : ""}
                   </li>
                 ))}
               </ul>
               <div className="win-detail__score">
-                {analysis.isYakuman ? "役満" : `${analysis.han}翻${analysis.fu}符`} {score.payments.total}点
-                {score.limitName ? `（${score.limitName}）` : ""}
+                {analysis.isYakuman
+                  ? `${score.limitName ?? "役満"} ${score.payments.total}点`
+                  : `${analysis.han}翻${analysis.fu}符 ${score.payments.total}点${score.limitName ? `（${limitLabel(analysis.han, score.limitName)}）` : ""}`}
               </div>
             </div>
           );

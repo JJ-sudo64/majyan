@@ -286,6 +286,9 @@ export function rotateRoundForViewer(round: RoundState, viewer: PlayerIndex): Ro
       owner: toViewerSeat(round.lastActivatedSkill.owner, viewer),
       characterId: round.lastActivatedSkill.characterId,
     },
+    ...(round.reclaimedDrawnTileId !== undefined ? { reclaimedDrawnTileId: round.reclaimedDrawnTileId } : {}),
+    ...(round.pendingRiichiStick !== undefined ? { pendingRiichiStick: rotateNullableSeat(round.pendingRiichiStick, viewer) } : {}),
+    ...(round.points ? { points: rotateFour(round.points, viewer) } : {}),
   };
 }
 

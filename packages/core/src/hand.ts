@@ -87,3 +87,16 @@ export function getWaitingTiles(hand: Hand): TileCode[] {
   }
   return waits;
 }
+
+/**
+ * ルール上のテンパイか（流局時のテンパイ判定・リーチの条件）。形の上でテンパイでも、
+ * 待ちが「自分で4枚とも使っている牌」だけ（5枚目は存在しないので絶対に和了れない）
+ * なら天鳳・雀魂と同じくテンパイとは認めない。
+ */
+export function isTenpaiByRule(hand: Hand): boolean {
+  if (calcShanten(hand) !== 0) return false;
+  const counts = tileCodeCounts([...hand.concealed, ...hand.melds.flatMap((m) => m.tiles)].map((t) => t.code));
+  // 4枚持っている牌が無ければ、待ちはすべて山・他家に残っている。
+  if (![...counts.values()].some((n) => n >= 4)) return true;
+  return getWaitingTiles(hand).some((code) => (counts.get(code) ?? 0) < 4);
+}

@@ -12,6 +12,7 @@ import {
   createEmptyHand,
   getWaitingTiles,
   isConcealedHand,
+  isTenpaiByRule,
   removeTileFromHand,
   tileCodeCounts,
   type Hand,
@@ -211,7 +212,8 @@ function buildWinContext(
     doubleRiichi: p.doubleRiichi,
     ippatsu: p.ippatsuActive,
     openRiichi: p.openRiichi,
-    haitei: isTsumo && liveTilesRemaining(round.wall) === 0,
+    // 嶺上牌でのツモは山の最後の牌ではないので、山が尽きていても海底摸月にはしない。
+    haitei: isTsumo && !round.isRinshanTurn && liveTilesRemaining(round.wall) === 0,
     houtei: !isTsumo && !chankan && liveTilesRemaining(round.wall) === 0,
     rinshan: isTsumo && round.isRinshanTurn,
     chankan,
@@ -281,7 +283,9 @@ export function canRiichi(round: RoundState, player: PlayerIndex): boolean {
   // いずれか1枚を切ればテンパイになる（=リーチ可能な形をしている）ことを確認する。
   // これが無いと、テンパイしていない手でもリーチボタンが常に表示されてしまう。
   if (riichiCandidateTileIds(round, player).length === 0) return false;
-  // 25000点持ちルールに限らずシンプルに1000点以上を要求
+  // リーチ棒(1000点)を払えない持ち点ではリーチできない（カード「ノーコストリーチ」で払わない時は可）。
+  const freeRiichi = round.cardIds[player] === "no-cost-riichi" && round.cardUsesRemaining[player] > 0;
+  if (!freeRiichi && round.points && round.points[player] < RIICHI_STICK_COST) return false;
   return true;
 }
 
@@ -396,7 +400,7 @@ export function riichiCandidateTileIds(round: RoundState, player: PlayerIndex): 
   const ids: string[] = [];
   for (const t of p.hand.concealed) {
     const { hand: rest } = removeTileFromHand(p.hand, t.id);
-    if (calcShanten(rest) === 0) ids.push(t.id);
+    if (isTenpaiByRule(rest)) ids.push(t.id);
   }
   return ids;
 }
@@ -504,7 +508,7 @@ function buildExhaustiveDrawResult(round: RoundState): RoundState {
   const tenpaiPlayers: PlayerIndex[] = [];
   const cardUsesRemaining = [...round.cardUsesRemaining] as RoundState["cardUsesRemaining"];
   for (const idx of [0, 1, 2, 3] as PlayerIndex[]) {
-    if (calcShanten(round.players[idx].hand) === 0) {
+    if (isTenpaiByRule(round.players[idx].hand)) {
       tenpaiPlayers.push(idx);
       continue;
     }
@@ -642,7 +646,7 @@ function applyRiichiAction(round: RoundState, action: RiichiAction): RoundState 
   if (!canRiichi(round, action.player)) throw new Error("riichi: リーチできない状況です");
   const p = round.players[action.player];
   const { tile, hand } = removeTileFromHand(p.hand, action.tileId);
-  if (calcShanten(hand) !== 0) throw new Error("riichi: その牌を切るとテンパイが崩れます");
+  if (!isTenpaiByRule(hand)) throw new Error("riichi: その牌を切るとテンパイが崩れます");
 
   const isFirstDiscardOfHand = isFirstGoAround(round, action.player);
   const isTsumogiri = action.tileId === round.lastDrawnTile?.id;
@@ -701,10 +705,13 @@ function applyRiichiAction(round: RoundState, action: RiichiAction): RoundState 
   // 供託(kyotaku)を積まずに済む。積まない＝gameStore.ts側の1000点減点も
   // 起きない（riichiPlayerを渡さない）ため、点数の帳尻は崩れない。
   const freeRiichi = round.cardIds[action.player] === "no-cost-riichi" && round.cardUsesRemaining[action.player] > 0;
+  const transitioned = resolveDiscardTurnTransition(afterDiscardRound, action.player, tile);
   const resultRound = {
-    ...resolveDiscardTurnTransition(afterDiscardRound, action.player, tile),
+    ...transitioned,
     anyCallOrRiichiMade: true,
     kyotaku: freeRiichi ? round.kyotaku : round.kyotaku + 1,
+    // 宣言牌への応答が終わるまではリーチ未成立（宣言牌でロンされたらリーチ棒を返す）。
+    pendingRiichiStick: !freeRiichi && transitioned.phase === "awaiting-calls" ? action.player : null,
   };
   if (!freeRiichi) return resultRound;
   const cardUsesRemaining = [...resultRound.cardUsesRemaining] as RoundState["cardUsesRemaining"];
@@ -973,6 +980,8 @@ function resolveCallWindowIfComplete(round: RoundState): RoundState {
   round = consumeCardGuardIfItJustSaved(round, window.discarderIndex, window.discardTile.code, window.isChankan);
   // 見逃しフリテンの印は盾の判定（ロンできた人がいたか）の後で付ける。
   round = markPassedWinningTile(round, window);
+  // ロンされずに応答が終わったので、宣言牌のリーチはここで成立する。
+  if (round.pendingRiichiStick != null) round = { ...round, pendingRiichiStick: null };
 
   if (window.isChankan) {
     return finalizeKakanAfterChankanWindow(round, window.discarderIndex);
@@ -1374,6 +1383,11 @@ export function computeRoundScoreOutcome(round: RoundState): RoundScoreOutcome {
     }
   } else if (result.type === "ron") {
     const discarder = result.loser!;
+    // リーチ宣言牌でのロン: リーチは不成立なので、積んだリーチ棒は宣言者に戻し、
+    // 和了者には渡さない（宣言時に持ち点から1000点引いてあるので、ここで戻す）。
+    const voidRiichi = round.pendingRiichiStick === discarder;
+    const kyotakuForWinner = voidRiichi ? round.kyotaku - 1 : round.kyotaku;
+    if (voidRiichi) deltas[discarder] += RIICHI_STICK_COST;
     for (const winner of result.winners) {
       const winTile = round.pendingCallWindow?.discardTile.code ?? round.lastDiscard!.tile.code;
       const isChankan = round.pendingCallWindow?.isChankan ?? false;
@@ -1389,7 +1403,7 @@ export function computeRoundScoreOutcome(round: RoundState): RoundScoreOutcome {
       deltas[winner] += payments.total;
       deltas[discarder] -= payments.fromDiscarder!;
     }
-    deltas[result.winners[0]!] += round.kyotaku * 1000;
+    deltas[result.winners[0]!] += kyotakuForWinner * 1000;
   } else if (result.type === "exhaustive-draw") {
     const tenpai = result.tenpaiPlayers ?? [];
     const noten = ([0, 1, 2, 3] as PlayerIndex[]).filter((p) => !tenpai.includes(p));

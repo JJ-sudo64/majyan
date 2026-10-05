@@ -148,6 +148,13 @@ export interface RoundState {
   /** ミオの「取り返し」でツモ牌を河へ置き、代わりに河から戻した牌（ツモ牌の位置に表示する）。
       lastDrawnTileがこの牌の間はツモ和了できない（河から拾った牌での和了になるため）。 */
   reclaimedDrawnTileId?: string | null;
+  /** リーチ宣言牌への応答待ちの間、まだ成立していないリーチの宣言者（供託を積んだ人）。
+      宣言牌でロンされたらリーチは不成立で、積んだリーチ棒は宣言者に戻す
+      （computeRoundScoreOutcome参照）。応答がロン無しで終われば成立してnullに戻る。 */
+  pendingRiichiStick?: PlayerIndex | null;
+  /** 各座席の今の持ち点（MatchState.scoresの写し。matchController.tsが局の開始時と
+      操作のたびに入れる）。リーチは1000点未満ではできないため、その判定に使う。 */
+  points?: [number, number, number, number];
   isRinshanTurn: boolean;
   pendingCallWindow: PendingCallWindow | null;
   kanCount: number;

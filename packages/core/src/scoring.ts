@@ -22,6 +22,8 @@ function ceil100(n: number): number {
 
 const LIMIT_NAMES = ["", "", "", "", "", "満貫", "跳満", "跳満", "倍満", "倍満", "倍満", "三倍満", "三倍満"];
 
+const YAKUMAN_MULTIPLE_NAMES: Record<number, string> = { 1: "役満", 2: "ダブル役満", 3: "トリプル役満" };
+
 export function calcBasePoints(han: number, fu: number): { base: number; limitName?: string } {
   if (han >= 13) return { base: 8000, limitName: "役満" };
   if (han >= 11) return { base: 6000, limitName: "三倍満" };
@@ -38,7 +40,7 @@ export function scoreWin(analysis: WinAnalysis, isDealer: boolean, isTsumo: bool
   let limitName: string | undefined;
   if (analysis.isYakuman) {
     base = 8000 * analysis.yakumanMultiplier;
-    limitName = analysis.yakumanMultiplier >= 2 ? "double 役満" : "役満";
+    limitName = YAKUMAN_MULTIPLE_NAMES[analysis.yakumanMultiplier] ?? `${analysis.yakumanMultiplier}倍役満`;
   } else {
     const r = calcBasePoints(analysis.han, analysis.fu);
     base = r.base;

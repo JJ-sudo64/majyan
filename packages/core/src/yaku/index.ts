@@ -9,8 +9,9 @@ import {
   type Wind,
 } from "../tiles.js";
 import { decomposeStandardHand, countsFromCodes, type SetGroup } from "../decompose.js";
-import { allHandTileCodes, allHandTiles, type Hand, type Meld } from "../hand.js";
+import { allHandTileCodes, type Hand, type Meld } from "../hand.js";
 import { nextTileForDora } from "../tiles.js";
+import { calcBasePoints } from "../scoring.js";
 
 export interface WinContext {
   isTsumo: boolean;
@@ -150,8 +151,18 @@ function countDora(allCodes: TileCode[], indicators: TileCode[]): number {
 }
 
 /** 赤ドラ（5m/5p/5sの赤牌）の枚数。表ドラ・裏ドラとは独立に常に加算される。 */
+/**
+ * 手牌と副露の実際の牌すべて（カンは4枚とも）。和了形の判定はカンを3枚に数える
+ * （allHandTiles）が、ドラ・赤ドラはカンの4枚目も数える必要がある（以前は3枚に
+ * 切り詰めた後で数えていたため、ドラの牌でのカンが3枚分にしかならず、4枚目に
+ * 並んだ赤5も数えられていなかった）。
+ */
+function physicalTiles(hand: Hand) {
+  return [...hand.concealed, ...hand.melds.flatMap((m) => m.tiles)];
+}
+
 function countAkaDora(hand: Hand): number {
-  return allHandTiles(hand).filter((t) => t.isRed).length;
+  return physicalTiles(hand).filter((t) => t.isRed).length;
 }
 
 function evaluateYakuman(
@@ -213,7 +224,7 @@ function evaluateYakuman(
   return results;
 }
 
-function evaluateKokushi(hand: Hand, context: WinContext): WinAnalysis | null {
+function evaluateKokushi(hand: Hand, context: WinContext): YakuResult | null {
   if (hand.melds.length !== 0) return null;
   const codes = allHandTileCodes(hand);
   if (codes.length !== 14) return null;
@@ -234,13 +245,7 @@ function evaluateKokushi(hand: Hand, context: WinContext): WinAnalysis | null {
   const preWinKinds = new Set(preWinCodes).size;
   const isThirteenWait = preWinKinds === 13;
 
-  return {
-    yaku: [{ name: isThirteenWait ? "国士無双十三面" : "国士無双", han: isThirteenWait ? 26 : 13 }],
-    han: isThirteenWait ? 26 : 13,
-    fu: 0,
-    isYakuman: true,
-    yakumanMultiplier: isThirteenWait ? 2 : 1,
-  };
+  return { name: isThirteenWait ? "国士無双十三面" : "国士無双", han: isThirteenWait ? 26 : 13 };
 }
 
 /** 九蓮宝燈: 面前・清一色で「1112345678999」の形に、同じ色のどれか1枚が
@@ -325,7 +330,8 @@ function evaluateRegularYaku(
     const seqTiles = sets.filter((s) => s.kind === "sequence").map((s) => s.tile);
     const dupCount: Map<TileCode, number> = new Map();
     for (const t of seqTiles) dupCount.set(t, (dupCount.get(t) ?? 0) + 1);
-    const pairsOfDup = [...dupCount.values()].filter((c) => c >= 2).length;
+    // 同じ順子が4つ（例: 123m×4）も2組の一盃口として二盃口になる。
+    const pairsOfDup = [...dupCount.values()].reduce((n, c) => n + Math.floor(c / 2), 0);
     if (pairsOfDup >= 2) results.push({ name: "二盃口", han: 3 });
     else if (pairsOfDup === 1) results.push({ name: "一盃口", han: 1 });
   }
@@ -436,6 +442,7 @@ function evaluateChiitoitsuYaku(pairs: TileCode[], context: WinContext, allCodes
   if (context.isTsumo) results.push({ name: "門前清自摸和", han: 1 });
   if (context.haitei && context.isTsumo) results.push({ name: "海底摸月", han: 1 });
   if (context.houtei && !context.isTsumo) results.push({ name: "河底撈魚", han: 1 });
+  if (context.chankan) results.push({ name: "槍槓", han: 1 });
 
   results.push({ name: "七対子", han: 2 });
 
@@ -457,18 +464,13 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
   const allCodes = allHandTileCodes(hand);
   if (allCodes.length !== 14) return null;
 
-  const kokushi = evaluateKokushi(hand, context);
-  if (kokushi) return kokushi;
+  const physicalCodes = physicalTiles(hand).map((t) => t.code);
 
-  const chuuren = evaluateChuurenpoutou(hand, context, allCodes);
-  if (chuuren) {
-    return {
-      yaku: [chuuren],
-      han: chuuren.han,
-      fu: 0,
-      isYakuman: true,
-      yakumanMultiplier: chuuren.han >= 26 ? 2 : 1,
-    };
+  // 国士無双・九蓮宝燈は他の形として読まずに決まるが、天和/地和とは複合する。
+  const special = evaluateKokushi(hand, context) ?? evaluateChuurenpoutou(hand, context, allCodes);
+  if (special) {
+    const yaku = context.firstTurnWin ? [special, { name: context.isDealer ? "天和" : "地和", han: 13 }] : [special];
+    return yakumanAnalysis(yaku);
   }
 
   const isOpen = hand.melds.some((m) => m.type !== "ankan");
@@ -510,15 +512,7 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
     }
 
     if (yakuman.length > 0) {
-      const totalHan = yakuman.reduce((a, y) => a + y.han, 0);
-      const multiplier = yakuman.reduce((a, y) => a + (y.han >= 26 ? 2 : 1), 0);
-      const analysis: WinAnalysis = {
-        yaku: yakuman,
-        han: totalHan,
-        fu: 0,
-        isYakuman: true,
-        yakumanMultiplier: multiplier,
-      };
+      const analysis = yakumanAnalysis(yakuman);
       if (!best || !best.isYakuman || analysis.yakumanMultiplier > best.yakumanMultiplier) best = analysis;
       continue;
     }
@@ -527,8 +521,8 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
 
     if (cand.isChiitoitsu) {
       const yakuList = evaluateChiitoitsuYaku(pairsForChiitoi, context, allCodes);
-      const dora = countDora(allCodes, context.doraIndicators);
-      const uraDora = context.riichi || context.doubleRiichi ? countDora(allCodes, context.uraDoraIndicators) : 0;
+      const dora = countDora(physicalCodes, context.doraIndicators);
+      const uraDora = context.riichi || context.doubleRiichi ? countDora(physicalCodes, context.uraDoraIndicators) : 0;
       const akaDora = countAkaDora(hand);
       if (dora > 0) yakuList.push({ name: "ドラ", han: dora });
       if (uraDora > 0) yakuList.push({ name: "裏ドラ", han: uraDora });
@@ -548,8 +542,8 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
     const hasRealYaku = yakuList.length > 0;
     if (!hasRealYaku) continue;
 
-    const dora = countDora(allCodes, context.doraIndicators);
-    const uraDora = context.riichi || context.doubleRiichi ? countDora(allCodes, context.uraDoraIndicators) : 0;
+    const dora = countDora(physicalCodes, context.doraIndicators);
+    const uraDora = context.riichi || context.doubleRiichi ? countDora(physicalCodes, context.uraDoraIndicators) : 0;
     const akaDora = countAkaDora(hand);
     const fullYakuList = [...yakuList];
     if (dora > 0) fullYakuList.push({ name: "ドラ", han: dora });
@@ -566,6 +560,17 @@ export function analyzeWin(hand: Hand, context: WinContext): WinAnalysis | null 
   return best;
 }
 
+/** 役満の役の一覧から結果を作る（26翻の役はダブル役満として2倍に数える）。 */
+function yakumanAnalysis(yaku: YakuResult[]): WinAnalysis {
+  return {
+    yaku,
+    han: yaku.reduce((a, y) => a + y.han, 0),
+    fu: 0,
+    isYakuman: true,
+    yakumanMultiplier: yaku.reduce((a, y) => a + (y.han >= 26 ? 2 : 1), 0),
+  };
+}
+
 function require_code(index: number): TileCode {
   const all = [
     "1m","2m","3m","4m","5m","6m","7m","8m","9m",
@@ -576,9 +581,14 @@ function require_code(index: number): TileCode {
   return all[index]!;
 }
 
+/** 同じ手の別の読み方のうち、点数の高い方を選ぶ。翻数だけで比べると、例えば
+    3翻70符（満貫）より4翻30符（7700）を選んでしまうので、基本点で比べる。 */
 function betterThan(a: WinAnalysis, b: WinAnalysis): boolean {
   if (a.isYakuman !== b.isYakuman) return a.isYakuman;
   if (a.isYakuman) return a.yakumanMultiplier > b.yakumanMultiplier;
+  const pa = calcBasePoints(a.han, a.fu).base;
+  const pb = calcBasePoints(b.han, b.fu).base;
+  if (pa !== pb) return pa > pb;
   if (a.han !== b.han) return a.han > b.han;
   return a.fu > b.fu;
 }

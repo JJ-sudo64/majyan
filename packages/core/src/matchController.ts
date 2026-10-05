@@ -64,7 +64,8 @@ export function applyMatchAction(match: MatchState, action: GameAction): MatchAc
     scores = scores.map((s, i) => s + scoreAdjustment[i]!) as Scores;
     nextRound = { ...nextRound, pendingScoreAdjustment: null };
   }
-  return { match: { ...match, round: nextRound, scores }, scoreAdjustment };
+  // リーチの可否（1000点未満は不可）を局の中で判定できるよう、今の持ち点を写しておく。
+  return { match: { ...match, round: { ...nextRound, points: scores }, scores }, scoreAdjustment };
 }
 
 // ---------------------------------------------------------------------------
@@ -171,7 +172,7 @@ export function advanceToNextRound(
     round.cardNegateArmed,
     match.format,
   );
-  return { ...match, round: resolveAutoTileSwaps(nextRound, autoTileSwapSeats) };
+  return { ...match, round: resolveAutoTileSwaps({ ...nextRound, points: match.scores }, autoTileSwapSeats) };
 }
 
 // ---------------------------------------------------------------------------

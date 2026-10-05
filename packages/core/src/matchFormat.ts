@@ -166,10 +166,14 @@ export function createMatch(
   // 人間プレイヤー(座席0)に固定する理由はない。以前は常にdealerSeat=0
   // としており、プレイヤーが必ず親から対局を始めることになっていた。
   const startingDealer = Math.floor(rng() * 4) as PlayerIndex;
-  const round = dealNewRound(1, 1, 0, 0, startingDealer, rng, characterIds, undefined, undefined, false, cardIds, undefined, undefined, format);
+  const scores: [number, number, number, number] = [STARTING_SCORE, STARTING_SCORE, STARTING_SCORE, STARTING_SCORE];
+  const round = {
+    ...dealNewRound(1, 1, 0, 0, startingDealer, rng, characterIds, undefined, undefined, false, cardIds, undefined, undefined, format),
+    points: scores,
+  };
   return {
     format,
-    scores: [STARTING_SCORE, STARTING_SCORE, STARTING_SCORE, STARTING_SCORE],
+    scores,
     round,
     finished: false,
     finalRanking: null,
@@ -235,7 +239,9 @@ export function planNextRound(
 ): NextRoundPlan {
   const currentIndex = globalRoundIndex(current.roundWind, current.roundNumber);
   const nextIndex = dealerContinues ? currentIndex : currentIndex + 1;
-  const nextHonba = dealerContinues ? current.honba + 1 : 0;
+  // 本場は親の連荘に加えて、流局なら親が流れても積む（天鳳・雀魂と同じ）。
+  const isDraw = current.result?.type === "exhaustive-draw" || current.result?.type === "abortive-draw";
+  const nextHonba = dealerContinues || isDraw ? current.honba + 1 : 0;
   const nextKyotaku = keepKyotaku ? current.kyotaku : 0;
 
   const matchOver = !dealerContinues && currentIndex >= maxGlobalRoundIndex(format);
