@@ -145,6 +145,9 @@ export interface RoundState {
   phase: TurnPhase;
   lastDiscard: { player: PlayerIndex; tile: Tile } | null;
   lastDrawnTile: Tile | null;
+  /** ミオの「取り返し」でツモ牌を河へ置き、代わりに河から戻した牌（ツモ牌の位置に表示する）。
+      lastDrawnTileがこの牌の間はツモ和了できない（河から拾った牌での和了になるため）。 */
+  reclaimedDrawnTileId?: string | null;
   isRinshanTurn: boolean;
   pendingCallWindow: PendingCallWindow | null;
   kanCount: number;

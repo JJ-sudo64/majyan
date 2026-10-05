@@ -234,6 +234,26 @@ describe("skills that replace the drawn tile", () => {
   });
 });
 
+describe("ミオの「取り返し」", () => {
+  it("cannot tsumo with a tile taken back from the river in place of the drawn tile", () => {
+    // 9p単騎待ち。河の9pを取り返してツモ牌(2z)を河へ置くと形の上では完成するが、和了ではない。
+    const mio = player(["1m", "1m", "1m", "2s", "3s", "4s", "4p", "5p", "6p", "7s", "8s", "9s", "9p"], { skillGauge: 100 });
+    const river = tile("9p");
+    mio.discards = [{ tile: river, calledAway: false, isRiichiDeclaration: false, isTsumogiri: false }];
+    let round = makeRound({
+      characterIds: ["mio", "", "", ""],
+      wall: wall(["2z", "9s", "9s", "9s", "9s", "9s", "9p"]),
+      players: [mio, player(FILLER), player(FILLER), player(FILLER)],
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    const drawn = round.lastDrawnTile!;
+    round = applyAction(round, { type: "retrieveDiscard", player: 0, reclaimTileId: river.id, replacementTileId: drawn.id });
+    expect(round.lastDrawnTile?.id).toBe(river.id);
+    expect(canDeclareTsumo(round, 0)).toBeNull();
+    expect(() => applyAction(round, { type: "tsumo", player: 0 })).toThrow();
+  });
+});
+
 describe("which block the winning tile completed", () => {
   const base: WinContext = {
     isTsumo: false,

@@ -240,6 +240,8 @@ export function canDeclareTsumo(round: RoundState, player: PlayerIndex): WinAnal
   // 完成した瞬間に「他人のツモ牌（手牌に無い牌）でツモ和了」できてしまっていた。
   const drawn = round.lastDrawnTile;
   if (!drawn || !p.hand.concealed.some((t) => t.id === drawn.id)) return null;
+  // 「取り返し」で河から戻した牌はツモってきた牌ではないので、それでツモ和了はできない。
+  if (drawn.id === round.reclaimedDrawnTileId) return null;
   const ctx = buildWinContext(round, player, drawn.code, true);
   return analyzeWin(p.hand, ctx);
 }
@@ -1235,7 +1237,8 @@ function applyRetrieveDiscardAction(round: RoundState, player: PlayerIndex, recl
   // ただしミオのskill.hooksにはonActivateが無いため、カガミ側は
   // copiedHooks?.onActivateが無いと判定して結局コピー不可になる
   // （カリンのborrowsSkill同様、この技自体はカガミの写し身の対象外）。
-  return { ...round, players, lastDrawnTile, isRinshanTurn, lastActivatedSkill: { owner: player, characterId: character.id } };
+  const reclaimedDrawnTileId = lastDrawnTile === reclaimed ? reclaimed.id : round.reclaimedDrawnTileId;
+  return { ...round, players, lastDrawnTile, isRinshanTurn, reclaimedDrawnTileId, lastActivatedSkill: { owner: player, characterId: character.id } };
 }
 
 function applyUseCardAction(round: RoundState, player: PlayerIndex): RoundState {
