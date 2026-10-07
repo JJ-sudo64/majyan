@@ -173,6 +173,24 @@ export class RoomManager {
   }
 
   /**
+   * フレンドの一覧に出す、その人の今の様子。友人戦の待合室にいて（接続中・満員でない）なら
+   * その合言葉（フレンドが同じ部屋に入れるように）、対局中なら"playing"、どちらでもなければnull。
+   */
+  presenceOf(userId: string): { room: string } | "playing" | null {
+    let playing = false;
+    for (const room of this.rooms.values()) {
+      const member = room.members.find((m) => m.userId === userId);
+      if (!member) continue;
+      if (room.session && !room.session.finished) {
+        if (member.client) playing = true;
+      } else if (!room.session && !room.ranked && member.client && room.members.length < MAX_MEMBERS) {
+        return { room: room.code };
+      }
+    }
+    return playing ? "playing" : null;
+  }
+
+  /**
    * 段位戦の卓を立てて対局を始める。空いた席はCPUが入る。各人にmatchFoundを送った
    * あと、そのまま対局の状態が届く（入り直す時はmatchFoundの合言葉でjoinする）。
    */

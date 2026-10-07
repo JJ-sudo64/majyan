@@ -224,6 +224,24 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE users ADD COLUMN deleted_at INTEGER;
   `,
+  // 12: フレンド（コードは初めて使う時に作る。フレンドは両方向に1行ずつ持つ）
+  `
+  ALTER TABLE users ADD COLUMN friend_code TEXT;
+  CREATE UNIQUE INDEX users_friend_code ON users(friend_code);
+  CREATE TABLE friend_requests (
+    from_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    to_user TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (from_user, to_user)
+  );
+  CREATE INDEX friend_requests_to ON friend_requests(to_user);
+  CREATE TABLE friends (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    friend_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, friend_id)
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

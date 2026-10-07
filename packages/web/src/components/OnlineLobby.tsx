@@ -9,6 +9,7 @@ import { TransferScreen } from "./TransferScreen.js";
 import { HistoryScreen } from "./HistoryScreen.js";
 import { InboxScreen, type InboxTab } from "./InboxScreen.js";
 import { MissionsScreen } from "./MissionsScreen.js";
+import { FriendsScreen } from "./FriendsScreen.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 
 /** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
@@ -61,6 +62,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const unclaimedGifts = useAccountStore((s) => s.unclaimedGifts);
   const claimableMissions = useAccountStore((s) => s.claimableMissions);
   const [showMissions, setShowMissions] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
+  const incomingFriendRequests = useAccountStore((s) => s.incomingFriendRequests);
   const hasUnreadNews = useAccountStore((s) => s.latestAnnouncementId !== null && s.latestAnnouncementId > s.seenAnnouncementId);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
   const needsFirstGacha = accountStatus === "ready" && firstGacha !== null && !firstGacha.confirmed;
@@ -197,6 +200,12 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               引き継ぎ・退会
             </button>
           )}
+          {!busy && !needsFirstGacha && (
+            <button type="button" className="btn online-lobby__rename online-lobby__gacha-btn" onClick={() => setShowFriends(true)}>
+              フレンド
+              {incomingFriendRequests > 0 && <span className="online-lobby__badge">{incomingFriendRequests}</span>}
+            </button>
+          )}
         </div>
       )}
       {profile && renaming && accountError && <p className="online-lobby__error">{accountError}</p>}
@@ -250,6 +259,17 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showHistory && <HistoryScreen onClose={() => setShowHistory(false)} />}
       {inboxTab && <InboxScreen initialTab={inboxTab} onClose={() => setInboxTab(null)} />}
       {showMissions && <MissionsScreen onClose={() => setShowMissions(false)} />}
+      {showFriends && (
+        <FriendsScreen
+          onClose={() => setShowFriends(false)}
+          onJoinRoom={(code) => {
+            setShowFriends(false);
+            setRoomCode(code);
+            save(ROOM_KEY, code);
+            onlineLink.join({ room: code, unitId });
+          }}
+        />
+      )}
 
       {ready && !busy && (
         <div className="online-lobby__section">

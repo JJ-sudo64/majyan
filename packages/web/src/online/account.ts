@@ -14,6 +14,7 @@ import {
   type FirstGachaState,
   type GachaRollResponse,
   type GiftClaimResponse,
+  type FriendsResponse,
   type MissionClaimResponse,
   type MissionsResponse,
   type InboxResponse,
@@ -80,6 +81,8 @@ interface AccountState {
   seenAnnouncementId: number;
   /** 達成して報酬を受け取っていないミッションの数。 */
   claimableMissions: number;
+  /** 自分あてのフレンド申請の数。 */
+  incomingFriendRequests: number;
   error: string | null;
 }
 
@@ -97,6 +100,7 @@ export const useAccountStore = create<AccountState>(() => ({
   latestAnnouncementId: null,
   seenAnnouncementId: loadSeenAnnouncementId(),
   claimableMissions: 0,
+  incomingFriendRequests: 0,
   error: null,
 }));
 
@@ -114,6 +118,7 @@ function applyMe(me: MeResponse) {
     unclaimedGifts: me.unclaimedGifts,
     latestAnnouncementId: me.latestAnnouncementId,
     claimableMissions: me.claimableMissions,
+    incomingFriendRequests: me.incomingFriendRequests,
     ...(me.dailyBonus ? { dailyBonusNotice: me.dailyBonus } : {}),
     error: null,
   });
@@ -280,6 +285,24 @@ export async function fetchRecords(): Promise<RecordsResponse> {
   return api<RecordsResponse>("/me/records");
 }
 
+/** フレンド・申請の一覧。 */
+export async function fetchFriends(): Promise<FriendsResponse> {
+  const res = await api<FriendsResponse>("/friends");
+  useAccountStore.setState({ incomingFriendRequests: res.incoming.length });
+  return res;
+}
+
+/** フレンドの操作（申請・承認/お断り・やめる/取り下げ）。最新の一覧を返す。失敗したら例外。 */
+export async function friendAction(
+  action: "request" | "respond" | "remove",
+  code: string,
+  accept?: boolean,
+): Promise<FriendsResponse> {
+  const res = await api<FriendsResponse>(`/friends/${action}`, { method: "POST", body: JSON.stringify({ code, accept }) });
+  useAccountStore.setState({ incomingFriendRequests: res.incoming.length });
+  return res;
+}
+
 /** 今日のデイリーミッション。 */
 export async function fetchMissions(): Promise<MissionsResponse> {
   return api<MissionsResponse>("/missions");
@@ -362,6 +385,7 @@ function clearLocalAccount(): void {
     unclaimedGifts: 0,
     latestAnnouncementId: null,
     claimableMissions: 0,
+    incomingFriendRequests: 0,
     error: null,
   });
 }

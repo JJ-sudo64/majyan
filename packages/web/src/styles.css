@@ -5531,3 +5531,33 @@ button {
   white-space: nowrap;
   opacity: 0.8;
 }
+
+/* フレンド（FriendsScreen） */
+.friends-screen__mine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid #d4af37;
+}
+.friends-screen__mine span {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.friends-screen__mine strong {
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  color: #ffe08a;
+  font-variant-numeric: tabular-nums;
+}
+.friends-screen__waiting {
+  border: 1px solid #52b788;
+  background: rgba(30, 90, 60, 0.35);
+}
+.friends-screen__remove {
+  padding: 4px 10px;
+}

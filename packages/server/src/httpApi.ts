@@ -10,6 +10,7 @@ import {
   type ApiErrorResponse,
   type GachaRollResponse,
   type GiftClaimResponse,
+  type FriendsResponse,
   type MissionClaimResponse,
   type MissionsResponse,
   type InboxResponse,
@@ -26,6 +27,7 @@ import { GachaError, type CollectionService } from "./collection.js";
 import { InsufficientJadeError, type WalletService } from "./wallet.js";
 import { GiftError, type InboxService } from "./inbox.js";
 import { MissionError, type MissionService } from "./missions.js";
+import { FriendError, type FriendService } from "./friends.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
 
@@ -38,6 +40,8 @@ export interface HttpApiOptions {
   inbox?: InboxService;
   /** デイリーミッション。無ければその機能のAPIは404。 */
   missions?: MissionService;
+  /** フレンド。無ければその機能のAPIは404。 */
+  friends?: FriendService;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
   guestsPerHourPerIp?: number;
   /** 引き継ぎコードでの入室に失敗できる回数（同じ接続元から、1時間あたり）。パスワードの総当たり対策。 */
@@ -94,7 +98,7 @@ function bearerToken(req: IncomingMessage): string | null {
 
 /** /api 配下なら処理してtrueを返す。それ以外のパスはfalse（呼び出し側が静的ファイル等を返す）。 */
 export function createApiHandler(options: HttpApiOptions) {
-  const { accounts, ranks, collections, wallet, inbox, missions } = options;
+  const { accounts, ranks, collections, wallet, inbox, missions, friends } = options;
   const me = (profile: AccountProfile, dailyBonus: number | null = null): MeResponse => ({
     profile,
     rank: ranks.get(profile.id),
@@ -107,6 +111,7 @@ export function createApiHandler(options: HttpApiOptions) {
     unclaimedGifts: inbox?.unclaimedCount(profile.id) ?? 0,
     latestAnnouncementId: inbox?.latestAnnouncementId() ?? null,
     claimableMissions: missions?.claimableCount(profile.id) ?? 0,
+    incomingFriendRequests: friends?.incomingCount(profile.id) ?? 0,
   });
   const now = options.now ?? Date.now;
   const limit = options.guestsPerHourPerIp ?? 20;
@@ -177,6 +182,27 @@ export function createApiHandler(options: HttpApiOptions) {
           if (profile) {
             sendJson(res, 200, { jade: wallet.history(profile.id), gacha: collections.gachaHistory(profile.id) } satisfies RecordsResponse);
           }
+          return true;
+        }
+        case "GET /friends":
+        case "POST /friends/request":
+        case "POST /friends/respond":
+        case "POST /friends/remove": {
+          if (!friends) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (!profile) return true;
+          if (req.method === "POST") {
+            const body = (await readJson(req)) as { code?: unknown; accept?: unknown };
+            try {
+              if (route.endsWith("request")) friends.request(profile.id, body.code);
+              else if (route.endsWith("respond")) friends.respond(profile.id, body.code, body.accept === true);
+              else friends.remove(profile.id, body.code);
+            } catch (err) {
+              if (err instanceof FriendError) return fail(res, 409, err.message), true;
+              throw err;
+            }
+          }
+          sendJson(res, 200, friends.list(profile.id) satisfies FriendsResponse);
           return true;
         }
         case "GET /missions": {

@@ -191,6 +191,8 @@ export class AccountService {
       this.db.prepare("DELETE FROM auth_tokens WHERE user_id = ?").run(userId);
       this.db.prepare("DELETE FROM transfer_credentials WHERE user_id = ?").run(userId);
       this.db.prepare("UPDATE ranked_match_seats SET name = ? WHERE user_id = ?").run(DELETED_USER_NAME, userId);
+      this.db.prepare("DELETE FROM friends WHERE user_id = ? OR friend_id = ?").run(userId, userId);
+      this.db.prepare("DELETE FROM friend_requests WHERE from_user = ? OR to_user = ?").run(userId, userId);
     });
   }
 }

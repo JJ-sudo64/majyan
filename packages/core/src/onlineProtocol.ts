@@ -44,6 +44,10 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   GET  /api/missions            (Bearer)     → MissionsResponse      今日のデイリーミッション
 //   POST /api/missions/claim {missionId?} (Bearer) → MissionClaimResponse 達成したミッションの報酬を受け取る（無指定なら全部）
 //   POST /api/me/delete {confirm} (Bearer)     → {}                    退会（confirmはACCOUNT_DELETE_CONFIRM）
+//   GET  /api/friends             (Bearer)     → FriendsResponse       フレンド・申請の一覧と自分のフレンドコード
+//   POST /api/friends/request {code} (Bearer)  → FriendsResponse       フレンド申請（相手からも申請が来ていればその場で成立）
+//   POST /api/friends/respond {code, accept} (Bearer) → FriendsResponse 届いた申請を承認・お断り
+//   POST /api/friends/remove {code} (Bearer)   → FriendsResponse       フレンドをやめる／出した申請を取り下げる
 //   POST /api/gifts/claim {giftId?} (Bearer)   → GiftClaimResponse     プレゼントを受け取る（giftId無しなら全部）
 //   POST /api/dev/reset-collection (Bearer)    → MeResponse            開発用: 手持ちと最初の10連を作った直後に戻す（--dev-tools時のみ）
 //   失敗時は 4xx と ApiErrorResponse
@@ -126,6 +130,8 @@ export interface MeResponse {
   latestAnnouncementId: number | null;
   /** 達成して報酬を受け取っていないミッションの数（ミッションボタンの印）。 */
   claimableMissions: number;
+  /** 自分あてのフレンド申請の数（フレンドボタンの印）。 */
+  incomingFriendRequests: number;
 }
 
 /** 手持ちのキャラ1体。カードは一度付けたら外せない。 */
@@ -292,6 +298,46 @@ export interface MissionClaimResponse {
   jade: number;
   missions: MissionView[];
   me: MeResponse;
+}
+
+/** フレンドの上限（自分のフレンドの数）。 */
+export const MAX_FRIENDS = 100;
+/** まだ承認されていない、自分から出した申請の上限。 */
+export const MAX_PENDING_FRIEND_REQUESTS = 20;
+
+/** "1234567890" → "12345-67890"（読み上げやすいように）。 */
+export function formatFriendCode(code: string): string {
+  return code.length === 10 ? `${code.slice(0, 5)}-${code.slice(5)}` : code;
+}
+
+/** 入力されたフレンドコードから数字だけを取り出す。 */
+export function normalizeFriendCode(input: string): string {
+  return input.replace(/[^0-9０-９]/g, "").replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
+}
+
+export interface FriendView {
+  code: string;
+  displayName: string;
+  rankLabel: string;
+  lastLoginAt: number;
+  /** 友人戦の待合室にいれば合言葉（入ればいっしょに打てる）、対局中なら"playing"、どちらでもなければnull。 */
+  presence: { room: string } | "playing" | null;
+}
+
+export interface FriendRequestView {
+  code: string;
+  displayName: string;
+  rankLabel: string;
+  createdAt: number;
+}
+
+export interface FriendsResponse {
+  myCode: string;
+  friends: FriendView[];
+  /** 自分あての申請（新しい順）。 */
+  incoming: FriendRequestView[];
+  /** 自分が出した申請（新しい順）。 */
+  outgoing: FriendRequestView[];
 }
 
 export interface ApiErrorResponse {
