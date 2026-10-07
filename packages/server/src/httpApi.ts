@@ -10,6 +10,7 @@ import {
   type GachaRollResponse,
   type GuestAccountResponse,
   type MeResponse,
+  type RankedHistoryResponse,
   type TransferCodeResponse,
 } from "@majyan/core";
 import { normalizeDisplayName, transferPasswordProblem, type AccountService } from "./accounts.js";
@@ -148,6 +149,11 @@ export function createApiHandler(options: HttpApiOptions) {
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
           sendJson(res, 200, me(accounts.rename(profile.id, name)));
+          return true;
+        }
+        case "GET /me/history": {
+          const profile = authed(req, res);
+          if (profile) sendJson(res, 200, ranks.history(profile.id) satisfies RankedHistoryResponse);
           return true;
         }
         case "GET /me/transfer": {

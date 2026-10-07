@@ -463,7 +463,17 @@ export class RoomManager {
         place: (match.finalRanking!.indexOf(m.seat!) + 1) as 1 | 2 | 3 | 4,
         finalScore: match.scores[m.seat!]!,
       }));
-    const changes = ranks.recordMatch(ranked.matchId, ranked.format, results);
+    const round = match.round;
+    const seats = ([0, 1, 2, 3] as PlayerIndex[]).map((seat) => ({
+      seat,
+      userId: room.members.find((m) => m.seat === seat)?.userId ?? null,
+      name: room.session?.seatName(seat) ?? "",
+      characterId: round.characterIds[seat],
+      cardId: round.cardIds[seat],
+      place: (match.finalRanking!.indexOf(seat) + 1) as 1 | 2 | 3 | 4,
+      finalScore: match.scores[seat],
+    }));
+    const changes = ranks.recordMatch(ranked.matchId, ranked.format, results, seats);
     for (const m of room.members) {
       const result = changes.get(m.userId);
       if (!result) continue;

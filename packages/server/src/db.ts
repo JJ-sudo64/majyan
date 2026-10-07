@@ -172,6 +172,21 @@ export const MIGRATIONS: readonly string[] = [
     updated_at INTEGER NOT NULL
   );
   `,
+  // 9: 段位戦の卓の4席（CPUも含む。戦績で「誰と・どのキャラで打ったか」を見せるため）
+  `
+  CREATE TABLE ranked_match_seats (
+    match_id TEXT NOT NULL REFERENCES ranked_matches(id) ON DELETE CASCADE,
+    seat INTEGER NOT NULL,
+    -- CPUの席はNULL
+    user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    character_id TEXT NOT NULL,
+    card_id TEXT,
+    place INTEGER NOT NULL,
+    final_score INTEGER NOT NULL,
+    PRIMARY KEY (match_id, seat)
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

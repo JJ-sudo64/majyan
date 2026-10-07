@@ -18,6 +18,7 @@ import {
   type GuestAccountResponse,
   type MeResponse,
   type RankView,
+  type RankedHistoryResponse,
   type TransferCodeResponse,
 } from "@majyan/core";
 
@@ -220,6 +221,11 @@ export async function equipCard(unitId: string, cardId: string): Promise<boolean
 }
 
 /** 引き継ぎコード（パスワードをまだ決めていなければnull）。読めなければ例外。 */
+/** 段位戦の戦績。 */
+export async function fetchRankedHistory(): Promise<RankedHistoryResponse> {
+  return api<RankedHistoryResponse>("/me/history");
+}
+
 export async function fetchTransferCode(): Promise<string | null> {
   return (await api<TransferCodeResponse>("/me/transfer")).code;
 }

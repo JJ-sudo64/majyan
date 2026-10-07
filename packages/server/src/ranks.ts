@@ -5,9 +5,13 @@ import {
   INITIAL_RANK,
   isValidRank,
   rankAfterMatch,
+  rankLabel,
   toRankView,
   type MatchFormat,
   type PlayerIndex,
+  type RankedHistoryEntry,
+  type RankedHistoryResponse,
+  type RankedPlaceStats,
   type RankResult,
   type RankState,
   type RankView,
@@ -27,6 +31,23 @@ export interface RankedPlayerResult {
   place: 1 | 2 | 3 | 4;
   finalScore: number;
 }
+
+/** 段位戦の卓の1席（CPUも含めて4席とも渡す）。戦績の画面に出す。 */
+export interface RankedSeatRecord {
+  seat: PlayerIndex;
+  /** CPUはnull。 */
+  userId: string | null;
+  name: string;
+  characterId: string;
+  cardId: string | null;
+  place: 1 | 2 | 3 | 4;
+  finalScore: number;
+}
+
+/** 戦績で返す最近の対局の数。 */
+export const RANKED_HISTORY_LIMIT = 20;
+
+const emptyStats = (): RankedPlaceStats => ({ games: 0, places: [0, 0, 0, 0] });
 
 export class RankService {
   constructor(
@@ -53,13 +74,26 @@ export class RankService {
    * 段位戦1試合の結果を反映する（人間の席だけ渡す）。同じmatchIdを2回渡しても
    * 2回目は何もしない（二重に段位が動かないように）。
    */
-  recordMatch(matchId: string, format: MatchFormat, results: RankedPlayerResult[]): Map<string, RankResult> {
+  recordMatch(
+    matchId: string,
+    format: MatchFormat,
+    results: RankedPlayerResult[],
+    seats: RankedSeatRecord[] = [],
+  ): Map<string, RankResult> {
     const changes = new Map<string, RankResult>();
     transaction(this.db, () => {
       const exists = this.db.prepare("SELECT 1 FROM ranked_matches WHERE id = ?").get(matchId);
       if (exists) return;
       const now = this.now();
       this.db.prepare("INSERT INTO ranked_matches (id, format, finished_at) VALUES (?, ?, ?)").run(matchId, format, now);
+      for (const seat of seats) {
+        this.db
+          .prepare(
+            `INSERT INTO ranked_match_seats (match_id, seat, user_id, name, character_id, card_id, place, final_score)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(matchId, seat.seat, seat.userId, seat.name, seat.characterId, seat.cardId, seat.place, seat.finalScore);
+      }
       for (const r of results) {
         const { rank, games } = this.row(r.userId);
         const change = rankAfterMatch(rank, format, r.place, r.finalScore);
@@ -88,5 +122,77 @@ export class RankService {
       }
     });
     return changes;
+  }
+
+  /** 段位戦の戦績（通算・形式ごとの順位の回数と、最近の対局）。 */
+  history(userId: string, limit = RANKED_HISTORY_LIMIT): RankedHistoryResponse {
+    const total = emptyStats();
+    const byFormat: Record<MatchFormat, RankedPlaceStats> = { tonpuusen: emptyStats(), hanchan: emptyStats() };
+    const counts = this.db
+      .prepare(
+        `SELECT m.format AS format, r.place AS place, COUNT(*) AS n FROM ranked_results r
+         JOIN ranked_matches m ON m.id = r.match_id WHERE r.user_id = ? GROUP BY m.format, r.place`,
+      )
+      .all(userId) as { format: MatchFormat; place: number; n: number }[];
+    for (const c of counts) {
+      for (const stats of [total, byFormat[c.format]]) {
+        if (!stats || c.place < 1 || c.place > 4) continue;
+        stats.games += c.n;
+        stats.places[c.place - 1]! += c.n;
+      }
+    }
+
+    const rows = this.db
+      .prepare(
+        `SELECT r.match_id, m.format, m.finished_at, r.place, r.final_score, r.delta, r.tier_after, r.level_after, r.points_after
+         FROM ranked_results r JOIN ranked_matches m ON m.id = r.match_id
+         WHERE r.user_id = ? ORDER BY m.finished_at DESC, m.rowid DESC LIMIT ?`,
+      )
+      .all(userId, limit) as {
+      match_id: string;
+      format: MatchFormat;
+      finished_at: number;
+      place: 1 | 2 | 3 | 4;
+      final_score: number;
+      delta: number;
+      tier_after: number;
+      level_after: number;
+      points_after: number;
+    }[];
+    const seatQuery = this.db.prepare(
+      `SELECT user_id, name, character_id, card_id, place, final_score FROM ranked_match_seats
+       WHERE match_id = ? ORDER BY place, seat`,
+    );
+    const recent: RankedHistoryEntry[] = rows.map((row) => {
+      const after = { tier: row.tier_after, level: row.level_after, points: row.points_after };
+      const seats = seatQuery.all(row.match_id) as {
+        user_id: string | null;
+        name: string;
+        character_id: string;
+        card_id: string | null;
+        place: 1 | 2 | 3 | 4;
+        final_score: number;
+      }[];
+      return {
+        matchId: row.match_id,
+        format: row.format,
+        finishedAt: row.finished_at,
+        place: row.place,
+        finalScore: row.final_score,
+        delta: row.delta,
+        // 段位の表を後から調整して範囲外になった記録は、ラベルだけ出せないので空にする。
+        rankAfter: isValidRank(after) ? rankLabel(after) : "",
+        seats: seats.map((s) => ({
+          name: s.name,
+          isYou: s.user_id === userId,
+          isCpu: s.user_id === null,
+          characterId: s.character_id,
+          cardId: s.card_id,
+          place: s.place,
+          finalScore: s.final_score,
+        })),
+      };
+    });
+    return { total, byFormat, recent };
   }
 }

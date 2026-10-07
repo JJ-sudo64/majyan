@@ -253,6 +253,11 @@ export class MatchSession {
     return this.seats.some((s) => s.kind === "human" && s.connected);
   }
 
+  /** 各席に表示している名前（CPUは「CPU …」の名前）。戦績の記録に使う。 */
+  seatName(seat: PlayerIndex): string {
+    return this.seats[seat].name;
+  }
+
   // -------------------------------------------------------------------------
 
   private apply(action: GameAction): boolean {

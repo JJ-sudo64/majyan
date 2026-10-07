@@ -5185,3 +5185,127 @@ button {
   color: #ffd27a;
   max-width: 420px;
 }
+
+/* 戦績（HistoryScreen） */
+.history-screen {
+  width: min(720px, calc(100vw - 32px));
+  align-items: stretch;
+}
+.history-screen__stats {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.history-screen__stats th,
+.history-screen__stats td {
+  padding: 4px 6px;
+  text-align: center;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+.history-screen__stats thead th {
+  font-size: 11px;
+  font-weight: normal;
+  opacity: 0.75;
+}
+.history-screen__stats tbody th {
+  color: #ffe08a;
+  text-align: left;
+}
+.history-screen__places {
+  opacity: 0.8;
+}
+.history-screen__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.history-screen__match {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 4px solid #888;
+}
+.history-screen__match--place1 {
+  border-left-color: #ffd34d;
+}
+.history-screen__match--place2 {
+  border-left-color: #b8f0ff;
+}
+.history-screen__match--place3 {
+  border-left-color: #c58b52;
+}
+.history-screen__match-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 14px;
+}
+.history-screen__place {
+  font-size: 18px;
+  font-weight: bold;
+}
+.history-screen__score {
+  font-variant-numeric: tabular-nums;
+}
+.history-screen__delta--up {
+  color: #7ee2a8;
+}
+.history-screen__delta--down {
+  color: #ff8a8a;
+}
+.history-screen__rank {
+  color: #ffe08a;
+}
+.history-screen__date {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.7;
+}
+.history-screen__seats {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 16px;
+  font-size: 12px;
+}
+.history-screen__seats li {
+  display: flex;
+  gap: 6px;
+  opacity: 0.8;
+  min-width: 0;
+}
+.history-screen__seats li.history-screen__seat--you {
+  opacity: 1;
+  color: #ffe08a;
+}
+.history-screen__seat-place {
+  width: 1em;
+  font-weight: bold;
+}
+.history-screen__seat-name,
+.history-screen__seat-character {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-screen__seat-character {
+  flex: 1;
+  text-align: left;
+  opacity: 0.85;
+}
+@media (max-width: 560px) {
+  .history-screen__seats {
+    grid-template-columns: 1fr;
+  }
+  .history-screen__stats thead th:last-child,
+  .history-screen__stats td:last-child {
+    display: none;
+  }
+}

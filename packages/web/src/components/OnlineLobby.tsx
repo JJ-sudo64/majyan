@@ -6,6 +6,7 @@ import { FirstGacha } from "./FirstGacha.js";
 import { GachaScreen } from "./GachaScreen.js";
 import { UnitsScreen } from "./UnitsScreen.js";
 import { TransferScreen } from "./TransferScreen.js";
+import { HistoryScreen } from "./HistoryScreen.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 
 /** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
@@ -53,6 +54,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const dailyBonusNotice = useAccountStore((s) => s.dailyBonusNotice);
   const [showGacha, setShowGacha] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
   const needsFirstGacha = accountStatus === "ready" && firstGacha !== null && !firstGacha.confirmed;
   /** ネット対戦の操作（段位戦・友人戦）を出してよいか。 */
@@ -205,6 +207,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               ガチャ
             </button>
           )}
+          {!busy && (
+            <button type="button" className="btn online-lobby__gacha-btn" onClick={() => setShowHistory(true)}>
+              戦績
+            </button>
+          )}
         </div>
       )}
       {!needsFirstGacha && dailyBonusNotice !== null && (
@@ -215,6 +222,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showGacha && <GachaScreen onClose={() => setShowGacha(false)} />}
       {showUnits && <UnitsScreen onClose={() => setShowUnits(false)} />}
       {showTransfer && <TransferScreen onClose={() => setShowTransfer(false)} />}
+      {showHistory && <HistoryScreen onClose={() => setShowHistory(false)} />}
 
       {ready && !busy && (
         <div className="online-lobby__section">

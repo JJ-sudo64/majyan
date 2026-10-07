@@ -36,6 +36,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/gacha/roll {count: 1|10} (Bearer) → GachaRollResponse    雀玉でガチャを引く
 //   POST /api/gacha/exchange {item} (Bearer)   → GachaRollResponse    交換ポイントで★3のキャラかカードを1つもらう（天井）
 //   POST /api/units/equip {unitId, cardId} (Bearer) → MeResponse        手持ちのキャラにカードを付ける（外せない）
+//   GET  /api/me/history          (Bearer)     → RankedHistoryResponse 段位戦の戦績（通算の順位と最近の対局）
 //   POST /api/dev/reset-collection (Bearer)    → MeResponse            開発用: 手持ちと最初の10連を作った直後に戻す（--dev-tools時のみ）
 //   失敗時は 4xx と ApiErrorResponse
 // ---------------------------------------------------------------------------
@@ -125,6 +126,45 @@ export interface GachaRollResponse {
   /** resultsと同じ並びで、それが初めて手に入れたキャラ・カードか。 */
   isNew: boolean[];
   me: MeResponse;
+}
+
+/** 段位戦の順位の数え上げ。places[0]が1位の回数。 */
+export interface RankedPlaceStats {
+  games: number;
+  places: [number, number, number, number];
+}
+
+/** 段位戦1試合の、ある席の人（CPUを含む）。 */
+export interface RankedHistorySeat {
+  name: string;
+  isYou: boolean;
+  isCpu: boolean;
+  characterId: string;
+  cardId: string | null;
+  place: 1 | 2 | 3 | 4;
+  finalScore: number;
+}
+
+export interface RankedHistoryEntry {
+  matchId: string;
+  format: MatchFormat;
+  /** 終わった時刻（ミリ秒）。 */
+  finishedAt: number;
+  place: 1 | 2 | 3 | 4;
+  finalScore: number;
+  /** 段位ポイントの増減。 */
+  delta: number;
+  /** その対局の後の段位（例: "上雀2"）。 */
+  rankAfter: string;
+  /** 卓の4人を順位順に。席の記録を始める前の対局は空。 */
+  seats: RankedHistorySeat[];
+}
+
+export interface RankedHistoryResponse {
+  total: RankedPlaceStats;
+  byFormat: Record<MatchFormat, RankedPlaceStats>;
+  /** 新しい順。 */
+  recent: RankedHistoryEntry[];
 }
 
 export interface ApiErrorResponse {

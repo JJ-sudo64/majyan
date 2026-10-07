@@ -101,6 +101,29 @@ describe("RankService", () => {
     expect(again.size).toBe(0);
     expect(ranks.get(a.profile.id)).toMatchObject({ label: "下雀2", gamesPlayed: 1 });
   });
+
+  it("returns place counts and the latest matches first, also for matches recorded before seats were kept", () => {
+    setup();
+    const a = player("A");
+    const id = a.profile.id;
+    vi.setSystemTime(1_000);
+    ranks.recordMatch("old", "hanchan", [{ userId: id, seat: 0, place: 4, finalScore: -2000 }]);
+    vi.setSystemTime(2_000);
+    ranks.recordMatch("new", "tonpuusen", [{ userId: id, seat: 2, place: 1, finalScore: 41000 }], [
+      { seat: 0, userId: null, name: "CPU 1", characterId: "zeno", cardId: null, place: 2, finalScore: 30000 },
+      { seat: 2, userId: id, name: "A", characterId: "masato", cardId: "point-drain", place: 1, finalScore: 41000 },
+    ]);
+    const h = ranks.history(id);
+    expect(h.total).toEqual({ games: 2, places: [1, 0, 0, 1] });
+    expect(h.byFormat.hanchan).toEqual({ games: 1, places: [0, 0, 0, 1] });
+    expect(h.recent.map((e) => e.matchId)).toEqual(["new", "old"]);
+    expect(h.recent[0]!.seats.map((s) => [s.name, s.isYou, s.isCpu])).toEqual([
+      ["A", true, false],
+      ["CPU 1", false, true],
+    ]);
+    expect(h.recent[1]!.seats).toEqual([]);
+    expect(ranks.history(player("B").profile.id).recent).toEqual([]);
+  });
 });
 
 describe("Matchmaker", () => {
@@ -219,6 +242,20 @@ describe("ranked match", () => {
     }
     const rows = db.prepare("SELECT COUNT(*) AS n FROM ranked_results").get() as { n: number };
     expect(rows.n).toBe(2);
+
+    // 戦績には卓の4人（CPUも）が順位順に、本人の名前・キャラ付きで残る。
+    const history = ranks.history(a.profile.id);
+    const result = a.client.last("rankResult")!.result;
+    expect(history.total.games).toBe(1);
+    expect(history.byFormat.tonpuusen.places[result.place - 1]).toBe(1);
+    expect(history.byFormat.hanchan.games).toBe(0);
+    const entry = history.recent[0]!;
+    expect(entry).toMatchObject({ format: "tonpuusen", place: result.place, delta: result.delta, rankAfter: result.after.label });
+    expect(entry.seats.map((s) => s.place)).toEqual([1, 2, 3, 4]);
+    expect(entry.seats.filter((s) => s.isCpu)).toHaveLength(2);
+    const you = entry.seats.find((s) => s.isYou)!;
+    expect(you).toMatchObject({ name: "A", place: result.place, characterId: a.client.view.match.round.characterIds[0] });
+    expect(entry.seats.find((s) => s.name === "B")?.isYou).toBe(false);
   });
 
   it("lets a player who dropped out return to the running match instead of queueing again", () => {
