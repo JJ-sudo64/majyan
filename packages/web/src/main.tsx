@@ -7,7 +7,12 @@ import "./styles.css";
 // （?quote-gallery）は確認用のページなので、ゲーム本体（App・ストア・調整値の
 // 読み込み）は動かさない。
 const params = new URLSearchParams(window.location.search);
-if (params.has("quote-gallery")) {
+if (params.has("admin")) {
+  // 運営用の管理画面（AdminPage.tsx）。ゲーム本体は読み込まない。
+  import("./components/AdminPage.js").then(({ AdminPage }) => {
+    ReactDOM.createRoot(document.getElementById("root")!).render(<AdminPage />);
+  });
+} else if (params.has("quote-gallery")) {
   import("./components/QuoteGallery.js").then(({ QuoteGallery }) => {
     ReactDOM.createRoot(document.getElementById("root")!).render(<QuoteGallery />);
   });

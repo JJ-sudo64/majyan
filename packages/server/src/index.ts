@@ -16,6 +16,8 @@
  *   BACKUP_DIR        DBの定期バックアップの置き場所（既定 DBと同じ場所の backups/）
  *   BACKUP_INTERVAL_HOURS バックアップの間隔（既定6時間。0なら取らない）
  *   BACKUP_KEEP       残すバックアップの数（既定28＝6時間おきで1週間分）
+ *   ADMIN_TOKEN       管理画面（/?admin）と運営用API（/api/admin）の合言葉。未設定なら管理画面は使えない。
+ *                     推測されない長い文字列にする（例: node -e "console.log(crypto.randomBytes(24).toString('base64url'))"）
  *
  * 引数 --dev-tools（npm run dev:server が付ける）: 開発用の操作（最初の10連のやり直し等）を
  * 受け付け、アカウント作成の回数制限をゆるめる。npm start（本番）では付けない。
@@ -111,6 +113,14 @@ const handleApi = createApiHandler({
   missions,
   friends,
   replays,
+  admin: {
+    db,
+    inbox,
+    ranks,
+    wallet,
+    token: process.env.ADMIN_TOKEN || undefined,
+    liveStats: () => rooms.liveStats(),
+  },
   clientIp,
   devTools,
   // 開発中は「新しいアカウントで始める」で何度も作り直すため、制限をゆるめる。

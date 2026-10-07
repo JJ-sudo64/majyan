@@ -360,6 +360,60 @@ export interface ReplayResponse {
   rounds: ReplayRound[];
 }
 
+// ---------------------------------------------------------------------------
+// 運営用（/api/admin/...。ヘッダー X-Admin-Token にサーバーの ADMIN_TOKEN を入れる）
+//   GET  /api/admin/stats                       → AdminStats
+//   GET  /api/admin/news                        → AdminAnnouncement[]
+//   POST /api/admin/news {title, body, endsAt?} → AdminAnnouncement[]
+//   POST /api/admin/news/end {id}               → AdminAnnouncement[]
+//   GET  /api/admin/gifts                       → AdminGift[]
+//   POST /api/admin/gifts {title, message?, jade?, items?, to?, includeNewAccounts?, days?} → AdminGift[]
+//   POST /api/admin/gifts/cancel {id}           → AdminGift[]
+//   GET  /api/admin/users?q=名前かID             → AdminUser[]
+// ---------------------------------------------------------------------------
+
+export const ADMIN_TOKEN_HEADER = "x-admin-token";
+
+export interface AdminStats {
+  users: number;
+  /** 今日（日本時間）作られたアカウント。 */
+  newUsersToday: number;
+  /** 今日ログインした人。 */
+  activeToday: number;
+  /** 直近7日にログインした人。 */
+  activeWeek: number;
+  rankedMatchesToday: number;
+  gachaRollsToday: number;
+  /** 今日配った無償の雀玉（ログボ・報酬・プレゼント等）と、使われた雀玉。 */
+  jadeGrantedToday: number;
+  jadeSpentToday: number;
+  /** 今つながっている卓・対局中の卓。 */
+  liveRooms: number;
+  liveMatches: number;
+}
+
+export interface AdminAnnouncement extends Announcement {
+  endsAt: number | null;
+}
+
+export interface AdminGift extends Gift {
+  targetUserId: string | null;
+  includeNewAccounts: boolean;
+  cancelled: boolean;
+  claimedCount: number;
+}
+
+export interface AdminUser {
+  id: string;
+  displayName: string;
+  createdAt: number;
+  lastLoginAt: number;
+  deleted: boolean;
+  rankLabel: string;
+  gamesPlayed: number;
+  jade: JadeBalance;
+}
+
 export interface ApiErrorResponse {
   error: string;
 }

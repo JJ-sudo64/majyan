@@ -179,6 +179,13 @@ export class RoomManager {
     return this.roomOf(client) !== undefined;
   }
 
+  /** 管理画面用: 今ある部屋の数と、対局中の卓の数。 */
+  liveStats(): { liveRooms: number; liveMatches: number } {
+    let liveMatches = 0;
+    for (const room of this.rooms.values()) if (room.session && !room.session.finished) liveMatches++;
+    return { liveRooms: this.rooms.size, liveMatches };
+  }
+
   /** そのアカウントが座っている、まだ終わっていない段位戦の卓の合言葉。 */
   runningRankedRoomOf(userId: string): string | null {
     for (const room of this.rooms.values()) {

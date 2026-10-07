@@ -5617,3 +5617,148 @@ button {
   top: 12px;
   bottom: auto;
 }
+
+/* 運営用の管理画面（AdminPage, /?admin）。ゲームの見た目とは切り離した、読みやすさ優先の画面。 */
+.admin-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 16px clamp(16px, 4vw, 40px) 48px;
+  background: #f6f4ef;
+  color: #222;
+  font-size: 14px;
+  overflow-y: auto;
+  height: 100vh;
+}
+.admin-page h1 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+.admin-page h2 {
+  font-size: 16px;
+  margin: 20px 0 8px;
+}
+.admin-page button {
+  padding: 6px 12px;
+  border: 1px solid #8a6d1f;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  cursor: pointer;
+  font: inherit;
+}
+.admin-page button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.admin-page input,
+.admin-page textarea {
+  padding: 6px 8px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  font: inherit;
+  background: #fff;
+  color: #222;
+}
+.admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.admin-row input {
+  flex: 1;
+  min-width: 200px;
+}
+.admin-header {
+  justify-content: space-between;
+}
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0 12px;
+  border-bottom: 2px solid #d4af37;
+}
+.admin-tabs button {
+  border-radius: 6px 6px 0 0;
+  border-bottom: none;
+}
+.admin-tabs button.is-active {
+  background: #d4af37;
+  font-weight: bold;
+}
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 640px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+}
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.admin-form .admin-inline,
+.admin-checks label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.admin-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 4px 12px;
+  padding: 8px 0;
+}
+.admin-confirm {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fff5d6;
+  border: 1px solid #d4af37;
+}
+.admin-confirm button {
+  margin-right: 8px;
+}
+.admin-table {
+  border-collapse: collapse;
+  width: 100%;
+  background: #fff;
+}
+.admin-table th,
+.admin-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e5e5;
+  text-align: left;
+  vertical-align: top;
+}
+.admin-table th {
+  white-space: nowrap;
+  font-weight: normal;
+  color: #555;
+}
+.admin-pre {
+  white-space: pre-wrap;
+  color: #555;
+}
+.admin-mono {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+}
+.admin-deleted {
+  color: #999;
+  text-decoration: line-through;
+}
+.admin-error {
+  color: #b42318;
+}
+.admin-notice {
+  color: #1e6b3c;
+}
+.admin-note {
+  color: #666;
+  font-size: 12px;
+}

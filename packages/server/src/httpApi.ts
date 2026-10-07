@@ -29,6 +29,7 @@ import { GiftError, type InboxService } from "./inbox.js";
 import { MissionError, type MissionService } from "./missions.js";
 import { FriendError, type FriendService } from "./friends.js";
 import type { ReplayStore } from "./replays.js";
+import { createAdminHandler, type AdminApiOptions } from "./adminApi.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
 
@@ -45,6 +46,8 @@ export interface HttpApiOptions {
   friends?: FriendService;
   /** 段位戦の牌譜。無ければその機能のAPIは404。 */
   replays?: ReplayStore;
+  /** 運営用API（/api/admin/...）。tokenが空なら無効。 */
+  admin?: Omit<AdminApiOptions, "readJson" | "sendJson" | "clientIp">;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
   guestsPerHourPerIp?: number;
   /** 引き継ぎコードでの入室に失敗できる回数（同じ接続元から、1時間あたり）。パスワードの総当たり対策。 */
@@ -143,11 +146,18 @@ export function createApiHandler(options: HttpApiOptions) {
     return profile;
   }
 
+  const handleAdmin = options.admin ? createAdminHandler({ ...options.admin, readJson, sendJson, clientIp }) : null;
+
   return async (req: IncomingMessage, res: ServerResponse): Promise<boolean> => {
     const path = new URL(req.url ?? "/", "http://localhost").pathname;
     if (path !== ONLINE_API_PREFIX && !path.startsWith(`${ONLINE_API_PREFIX}/`)) return false;
     const route = `${req.method} ${path.slice(ONLINE_API_PREFIX.length)}`;
     try {
+      const sub = path.slice(ONLINE_API_PREFIX.length);
+      if (sub === "/admin" || sub.startsWith("/admin/")) {
+        if (!handleAdmin) return fail(res, 404, "見つかりません"), true;
+        return await handleAdmin(req, res, sub.slice("/admin".length));
+      }
       if (req.method === "GET" && route.startsWith("GET /replays/")) {
         const matchId = decodeURIComponent(route.slice("GET /replays/".length));
         const profile = authed(req, res);

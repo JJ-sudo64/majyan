@@ -5,7 +5,7 @@
  * 全員宛てのプレゼントは既定で「送った時点で既にあったアカウント」だけが受け取れる
  * （お詫びの雀玉を、アカウントを作り直して何度も受け取れないように）。
  */
-import { CARDS, CHARACTERS, type Announcement, type GachaItem, type Gift } from "@majyan/core";
+import { CARDS, CHARACTERS, type AdminAnnouncement, type AdminGift, type Announcement, type GachaItem, type Gift } from "@majyan/core";
 import { transaction, type Database } from "./db.js";
 import type { CollectionService } from "./collection.js";
 import type { WalletService } from "./wallet.js";
@@ -61,16 +61,8 @@ interface GiftRow {
 }
 
 /** 運営の一覧用（受け取った人数つき）。 */
-export interface GiftSummary extends Gift {
-  targetUserId: string | null;
-  includeNewAccounts: boolean;
-  cancelled: boolean;
-  claimedCount: number;
-}
-
-export interface AnnouncementSummary extends Announcement {
-  endsAt: number | null;
-}
+export type GiftSummary = AdminGift;
+export type AnnouncementSummary = AdminAnnouncement;
 
 const toAnnouncement = (r: AnnouncementRow): Announcement => ({ id: r.id, title: r.title, body: r.body, publishedAt: r.published_at });
 
