@@ -39,3 +39,10 @@ if (params.has("quote-gallery")) {
       );
     });
 }
+
+// ホーム画面に追加して遊べるように（PWA）。開発中(Vite)はキャッシュが邪魔になるので本番ビルドだけ。
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((err) => console.warn("[majyan] サービスワーカーを登録できませんでした:", err));
+  });
+}

@@ -1,0 +1,16 @@
+{
+  "name": "雀神 - 対戦型麻雀",
+  "short_name": "雀神",
+  "description": "キャラクターの必殺技とカードで戦う対戦型麻雀。",
+  "lang": "ja",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#120c08",
+  "theme_color": "#120c08",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
