@@ -76,7 +76,7 @@ function isRevealedDoraIndicator(wall: WallState, index: number): boolean {
  * 牌の種類は分からない）。山の牌だけは山読みの並べ替えで位置が漏れないよう
  * 並び順の番号に振り直す。
  */
-export function redactRoundForSeat(round: RoundState, seat: PlayerIndex): RoundState {
+export function redactRoundForSeat(round: RoundState, seat: PlayerIndex | null): RoundState {
   const roundOver = round.phase === "round-over";
   const shownAtEnd = new Set<PlayerIndex>(
     roundOver && round.result ? [...round.result.winners, ...(round.result.tenpaiPlayers ?? [])] : [],
@@ -84,7 +84,8 @@ export function redactRoundForSeat(round: RoundState, seat: PlayerIndex): RoundS
   const hiddenIds = new Set<string>();
   const players = round.players.map((p, i): PlayerRoundState => {
     if (i === seat) return p;
-    const handVisible = round.handsRevealedTo === seat || p.openRiichi || shownAtEnd.has(i as PlayerIndex);
+    // seatがnull（観戦者）の時、誰にも公開されていない(null)と一致させないよう、席がある時だけ比べる。
+    const handVisible = (seat !== null && round.handsRevealedTo === seat) || p.openRiichi || shownAtEnd.has(i as PlayerIndex);
     if (!handVisible) for (const t of p.hand.concealed) hiddenIds.add(t.id);
     return {
       ...p,
@@ -102,7 +103,7 @@ export function redactRoundForSeat(round: RoundState, seat: PlayerIndex): RoundS
   }) as RoundState["players"];
 
   const liveTiles =
-    round.wallReadRevealedTo === seat
+    seat !== null && round.wallReadRevealedTo === seat
       ? [...round.wall.liveTiles]
           .sort((a, b) => compareTileCode(a.code, b.code))
           .map((t, i): Tile => ({ id: `live-${i}`, code: t.code, ...(t.isRed ? { isRed: true } : {}) }))
@@ -129,8 +130,13 @@ export function redactRoundForSeat(round: RoundState, seat: PlayerIndex): RoundS
   return { ...round, players, wall, lastDrawnTile, pendingCallWindow };
 }
 
-export function redactMatchForSeat(match: MatchState, seat: PlayerIndex): MatchState {
+export function redactMatchForSeat(match: MatchState, seat: PlayerIndex | null): MatchState {
   return { ...match, round: redactRoundForSeat(match.round, seat) };
+}
+
+/** 観戦者に見せる版。どの席の手の内も見せない（誰にでも見えている情報だけ）。 */
+export function redactMatchForSpectator(match: MatchState): MatchState {
+  return redactMatchForSeat(match, null);
 }
 
 // ---------------------------------------------------------------------------

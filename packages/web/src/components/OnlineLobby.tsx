@@ -268,6 +268,10 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             save(ROOM_KEY, code);
             onlineLink.join({ room: code, unitId });
           }}
+          onSpectate={(friendCode) => {
+            setShowFriends(false);
+            onlineLink.spectate(friendCode);
+          }}
         />
       )}
 

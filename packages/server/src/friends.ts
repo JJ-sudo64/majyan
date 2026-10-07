@@ -122,6 +122,16 @@ export class FriendService {
     });
   }
 
+  /** フレンドコードの人が自分のフレンドなら、そのアカウントID（観戦の可否に使う）。 */
+  friendIdByCode(userId: string, code: unknown): string | null {
+    try {
+      const other = this.findByCode(code);
+      return this.areFriends(userId, other.id) ? other.id : null;
+    } catch {
+      return null;
+    }
+  }
+
   incomingCount(userId: string): number {
     return (this.db.prepare("SELECT COUNT(*) AS n FROM friend_requests WHERE to_user = ?").get(userId) as { n: number }).n;
   }

@@ -77,9 +77,19 @@ const missions = new MissionService(db, wallet);
 const authenticate = (token: string) => accounts.authenticate(token);
 // 対局中の卓はDBへ保存しておき、再起動したら続きから再開する（入り直せば同じ席に戻れる）。
 const replays = new ReplayStore(db);
-const rooms = new RoomManager({ authenticate, ranks, collections, wallet, store: new MatchStore(db), replays });
+// フレンド（観戦の可否）はroomsの「今どこにいるか」を使い、roomsは観戦の可否にフレンドを使うので、後から結ぶ。
+let friends: FriendService | undefined;
+const rooms = new RoomManager({
+  authenticate,
+  ranks,
+  collections,
+  wallet,
+  store: new MatchStore(db),
+  replays,
+  resolveSpectateTarget: (viewerId, code) => friends?.friendIdByCode(viewerId, code) ?? null,
+});
 const restoredMatches = rooms.restoreSavedMatches();
-const friends = new FriendService(db, { ranks, presenceOf: (userId) => rooms.presenceOf(userId) });
+friends = new FriendService(db, { ranks, presenceOf: (userId) => rooms.presenceOf(userId) });
 const matchmaker = new Matchmaker({
   rooms,
   ranks,

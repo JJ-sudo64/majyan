@@ -10,13 +10,18 @@ function setup() {
   const db = openDatabase(":memory:");
   const accounts = new AccountService(db);
   const ranks = new RankService(db);
-  const rooms = new RoomManager({ authenticate: (t) => accounts.authenticate(t), ranks });
-  const friends = new FriendService(db, { ranks, presenceOf: (id) => rooms.presenceOf(id) });
+  let friends: FriendService | undefined;
+  const rooms = new RoomManager({
+    authenticate: (t) => accounts.authenticate(t),
+    ranks,
+    resolveSpectateTarget: (viewer, code) => friends!.friendIdByCode(viewer, code),
+  });
+  friends = new FriendService(db, { ranks, presenceOf: (id) => rooms.presenceOf(id) });
   const person = (name: string) => {
     const { profile, token } = accounts.createGuest(name);
-    return { id: profile.id, token, code: friends.codeOf(profile.id) };
+    return { id: profile.id, token, code: friends!.codeOf(profile.id) };
   };
-  return { db, accounts, rooms, friends, person };
+  return { db, accounts, rooms, friends: friends!, person };
 }
 
 describe("friends", () => {
@@ -92,6 +97,53 @@ describe("friends", () => {
     expect(friends.list(a.id).friends[0]!.presence).toEqual({ room: "あいことば" });
     rooms.disconnect(client);
     expect(friends.list(a.id).friends[0]!.presence).toBeNull();
+  });
+
+  it("lets only friends spectate a running match, with every hand hidden", () => {
+    const { friends, rooms, person } = setup();
+    const a = person("A");
+    const b = person("B");
+    const stranger = person("知らない人");
+    friends.request(a.id, b.code);
+    friends.respond(b.id, a.code, true);
+
+    const bClient = { id: "b", received: [] as ServerMessage[], send(m: ServerMessage) { this.received.push(m); } };
+    rooms.handleMessage(bClient, { t: "join", room: "卓", authToken: b.token, unitId: null });
+    rooms.handleMessage(bClient, { t: "start", format: "tonpuusen", continueBelowZero: false });
+    expect(friends.list(a.id).friends[0]!.presence).toBe("playing");
+
+    const watch = (p: { token: string }, code: string) => {
+      const c = { id: `w-${Math.random()}`, received: [] as ServerMessage[], send(m: ServerMessage) { this.received.push(m); } };
+      rooms.handleMessage(c, { t: "spectate", authToken: p.token, friendCode: code });
+      return c;
+    };
+    const denied = watch(stranger, b.code);
+    expect(denied.received[0]).toMatchObject({ t: "error", fatal: true });
+
+    const aWatch = watch(a, b.code);
+    const first = aWatch.received[0];
+    expect(first?.t).toBe("state");
+    if (first?.t !== "state") return;
+    expect(first.view.spectating).toBe(true);
+    expect(first.view.seats[0]!.name).toBe("B"); // Bの席の後ろから見る
+    // Bの手牌も含めて、誰の手の内も見えない。
+    for (const p of first.view.match.round.players) expect(p.hand.concealed.every((t) => t.hidden)).toBe(true);
+    expect(first.view.match.round.wall.liveTiles.every((t) => t.hidden)).toBe(true);
+    expect(first.view.options).toEqual({ turn: null, call: null, canSwapStartingTile: false });
+    // 観戦者からの操作は受け付けない。
+    rooms.handleMessage(aWatch, { t: "action", action: { type: "skip", player: 0 } });
+    expect(aWatch.received.at(-1)).toMatchObject({ t: "error" });
+
+    rooms.disconnect(aWatch);
+    rooms.disconnect(bClient);
+
+    // Bが抜けた卓（自動で続いている）と、今打っている卓があれば、今打っている方を見せる。
+    const bAgain = { id: "b2", received: [] as ServerMessage[], send(m: ServerMessage) { this.received.push(m); } };
+    rooms.handleMessage(bAgain, { t: "join", room: "新しい卓", authToken: b.token, unitId: null });
+    rooms.handleMessage(bAgain, { t: "start", format: "tonpuusen", continueBelowZero: false });
+    const again = watch(a, b.code).received[0];
+    expect(again?.t === "state" && again.view.seats[0]!.disconnected).toBe(false);
+    rooms.disconnect(bAgain);
   });
 
   it("normalizes typed codes", () => {

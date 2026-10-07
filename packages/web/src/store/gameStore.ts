@@ -177,6 +177,8 @@ interface GameStoreState {
       サーバーから届いた画面の状態（applyOnlineView）を持つだけになる
       （fullMatchは常にnull、操作はonlineLink経由でサーバーへ送る）。 */
   online: boolean;
+  /** フレンドの対局を観戦中か（onlineもtrue。操作はできない）。 */
+  spectating: boolean;
   /** ネット対戦の各席の名前・CPUか・切断中か（自分=0の座席番号）。ローカル対戦ではnull。 */
   onlineSeats: SeatInfo[] | null;
   /** 制限時間の表示（ネット対戦のみ）。receivedAtはperformance.now()基準の受信時刻で、
@@ -387,6 +389,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   history: [],
   cpuDifficulty: DEFAULT_CPU_DIFFICULTY,
   online: false,
+  spectating: false,
   onlineSeats: null,
   clock: null,
   roundEndAcknowledged: false,
@@ -443,6 +446,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const humanOptions = shareUnchanged(state.online ? state.humanOptions : null, view.options);
     set({
       online: true,
+      spectating: !!view.spectating,
       fullMatch: null,
       match,
       humanOptions,
@@ -569,6 +573,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({
       replay: null,
       online: false,
+      spectating: false,
       onlineSeats: null,
       clock: null,
       roundEndAcknowledged: false,

@@ -21,7 +21,15 @@ function presenceLabel(f: FriendView, now: number): string {
  * フレンド。自分のフレンドコードを相手に伝えて申請してもらい、承認すると成立する。
  * フレンドが友人戦の待合室にいれば「参加する」でその部屋に入れる。
  */
-export function FriendsScreen({ onClose, onJoinRoom }: { onClose: () => void; onJoinRoom: (room: string) => void }) {
+export function FriendsScreen({
+  onClose,
+  onJoinRoom,
+  onSpectate,
+}: {
+  onClose: () => void;
+  onJoinRoom: (room: string) => void;
+  onSpectate: (friendCode: string) => void;
+}) {
   const [data, setData] = useState<FriendsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -163,6 +171,11 @@ export function FriendsScreen({ onClose, onJoinRoom }: { onClose: () => void; on
                       参加する
                     </button>
                   )}
+                  {f.presence === "playing" && (
+                    <button type="button" className="btn" onClick={() => onSpectate(f.code)}>
+                      観戦する
+                    </button>
+                  )}
                   {confirmRemove === f.code ? (
                     <>
                       <button type="button" className="btn transfer-screen__delete" disabled={busy} onClick={() => void act(() => friendAction("remove", f.code))}>
@@ -199,7 +212,7 @@ export function FriendsScreen({ onClose, onJoinRoom }: { onClose: () => void; on
                 </ul>
               </>
             )}
-            <p className="gacha-screen__rate-note">フレンドが友人戦の部屋で待っている時は「参加する」で同じ部屋に入れます。</p>
+            <p className="gacha-screen__rate-note">フレンドが友人戦の部屋で待っている時は「参加する」で同じ部屋に入れます。対局中なら「観戦する」で見られます（手牌は見えません）。</p>
           </>
         )}
       </div>

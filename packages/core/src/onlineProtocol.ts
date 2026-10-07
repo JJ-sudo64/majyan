@@ -385,6 +385,8 @@ export type ClientMessage =
   | { t: "action"; action: GameAction }
   /** 局の結果を見終わった（全員が押すか時間切れで次局へ進む）。 */
   | { t: "nextRound" }
+  /** フレンドの対局を観戦する（フレンドコードで指定。誰の手の内も見えない）。 */
+  | { t: "spectate"; authToken: string; friendCode: string }
   | { t: "leave" };
 
 // ---------------------------------------------------------------------------
@@ -424,6 +426,8 @@ export interface OnlineSeatView {
   roundEndRemainingMs: number | null;
   /** カード「点棒吸収」等の即時の点数増減。keyが変わった時だけ演出する。 */
   lastScoreAdjustment: { delta: [number, number, number, number]; key: number } | null;
+  /** 観戦中の画面か（自分の席は無く、操作はできない）。 */
+  spectating?: boolean;
 }
 
 /** 段位戦1試合ぶんの段位の変化（結果画面用）。 */

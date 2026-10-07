@@ -185,6 +185,12 @@ function connect(first: ClientMessage) {
     if (socket !== ws) return;
     socket = null;
     const { status } = useOnlineStore.getState();
+    // 観戦は入り直す席が無いので、切れたら観戦を終えて元の画面に戻る。
+    if (useGameStore.getState().spectating) {
+      useOnlineStore.setState({ status: "idle", error: "観戦の接続が切れました" });
+      useGameStore.getState().backToTitle();
+      return;
+    }
     if (status === "playing") {
       useOnlineStore.setState({ status: "disconnected" });
       scheduleAutoRejoin();
@@ -210,6 +216,14 @@ export const onlineLink = {
     useOnlineStore.setState({ ranked: false, rankResult: null });
     // 名前はアカウントの表示名が使われ、対局中に入り直すと同じアカウントの席に戻れる。
     connect({ t: "join", ...request, authToken: accountToken() ?? "" });
+  },
+
+  /** フレンドの対局を観戦する（フレンドコードで指定）。 */
+  spectate(friendCode: string) {
+    stopAutoRejoin();
+    lastJoin = null;
+    useOnlineStore.setState({ ranked: false, rankResult: null });
+    connect({ t: "spectate", authToken: accountToken() ?? "", friendCode });
   },
 
   /** 段位戦の待ち行列に並ぶ。 */

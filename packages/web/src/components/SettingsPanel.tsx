@@ -18,7 +18,7 @@ export function SettingsPanel() {
   const autoTsumogiri = useSettingsStore((s) => s.autoTsumogiri);
   const setAutoTsumogiri = useSettingsStore((s) => s.setAutoTsumogiri);
   const autoWin = useSettingsStore((s) => s.autoWin);
-  const replaying = useGameStore((s) => s.replay !== null);
+  const replaying = useGameStore((s) => s.replay !== null || s.spectating);
   const setAutoWin = useSettingsStore((s) => s.setAutoWin);
   const tile3dEnabled = useSettingsStore((s) => s.tile3dEnabled);
   const setTile3dEnabled = useSettingsStore((s) => s.setTile3dEnabled);

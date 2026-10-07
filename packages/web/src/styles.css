@@ -5611,3 +5611,9 @@ button {
 .replay-controls__viewer select {
   max-width: 9em;
 }
+
+/* 観戦中の帯（SpectatorBanner）。位置は牌譜の操作バーと同じで上に出す。 */
+.spectator-banner {
+  top: 12px;
+  bottom: auto;
+}

@@ -38,6 +38,7 @@ import {
   pendingSeatDecisions,
   pendingDecision,
   redactMatchForSeat,
+  redactMatchForSpectator,
   refillBanksForNewRound,
   rotateMatchForViewer,
   rotateOutcomeForViewer,
@@ -98,6 +99,8 @@ export interface MatchSessionOptions {
   onFinished?: (match: MatchState) => void;
   /** 局面が変わるたびに呼ばれる（snapshot()を保存するため）。 */
   onChange?: () => void;
+  /** 画面の状態を送り直すたびに呼ばれる（観戦者にも送るため）。 */
+  onBroadcast?: () => void;
   /** 1局が終わるたびに、その局の牌譜（局の始まりの状態と操作の並び）を渡す。無ければ記録しない。 */
   onRoundRecorded?: (roundIndex: number, round: ReplayRound) => void;
 }
@@ -142,6 +145,7 @@ export class MatchSession {
   /** 再開直後、切断中の人間が入り直してくるのを待つ期限（この時刻までは自動操作しない）。 */
   private awayGraceUntil = 0;
   private readonly onRoundRecorded: MatchSessionOptions["onRoundRecorded"];
+  private readonly onBroadcast: MatchSessionOptions["onBroadcast"];
   /** 記録中の局の牌譜（onRoundRecordedが無ければnull）。 */
   private replay: { roundIndex: number; round: ReplayRound } | null;
 
@@ -156,6 +160,7 @@ export class MatchSession {
     this.onFinished = options.onFinished;
     this.onChange = options.onChange;
     this.onRoundRecorded = options.onRoundRecorded;
+    this.onBroadcast = options.onBroadcast;
     this.replay = this.onRoundRecorded ? { roundIndex: 0, round: { start: this.match, actions: [] } } : null;
   }
 
@@ -468,11 +473,32 @@ export class MatchSession {
       if (s.kind === "human" && s.connected) this.sendView(seat, this.viewFor(seat));
     }
     try {
+      this.onBroadcast?.();
+    } catch (err) {
+      console.error("[majyan-server] 観戦者への送信に失敗しました:", err);
+    }
+    try {
       this.onChange?.();
     } catch (err) {
       // 保存に失敗しても対局そのものは続ける（再起動すると直前の保存からになるだけ）。
       console.error("[majyan-server] 対局の保存に失敗しました:", err);
     }
+  }
+
+  /**
+   * 観戦者の画面（seatの席の後ろから見る形に回す）。誰の手の内も伏せ、操作の選択肢と時計は出さない。
+   */
+  spectatorView(seat: PlayerIndex): OnlineSeatView {
+    const view = this.viewFor(seat);
+    return {
+      ...view,
+      match: rotateMatchForViewer(redactMatchForSpectator(this.match), seat),
+      options: { turn: null, call: null, canSwapStartingTile: false },
+      clock: null,
+      // 「次の局へ」は押せない（観戦者が押しても進まない）。
+      roundEndAcknowledged: true,
+      spectating: true,
+    };
   }
 
   /** その席から見た画面の状態（本物の座席番号をその席=0に回してある）。 */

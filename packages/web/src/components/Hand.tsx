@@ -351,7 +351,9 @@ export function Hand({ round }: { round: RoundState }) {
   // しまい、ほぼ全ての候補牌が和了牌として誤検出される（フリテンも連動して
   // 誤表示される）不具合になっていた。この状態では（ホバー中のプレビューを
   // 除き）待ち表示自体を出さないことで回避する。
-  const isResolvedCoreHand = restTiles.length === 13 - player.hand.melds.length * 3;
+  // 観戦中は自分の席の手牌も伏せてある（Tile.hidden）ので、待ちは計算しない。
+  const handHidden = player.hand.concealed.some((t) => t.hidden);
+  const isResolvedCoreHand = !handHidden && restTiles.length === 13 - player.hand.melds.length * 3;
 
   // 自分の手番中（リーチを選んでいるかどうかに関わらず）、切る牌の候補に
   // カーソルを合わせている間は「その牌を切ったら何待ちになるか」に表示を
@@ -448,6 +450,7 @@ export function Hand({ round }: { round: RoundState }) {
               <TileView
                 key={t.id}
                 code={t.code}
+                faceDown={t.hidden}
                 onClick={isMyTurn || swapMode ? () => handleTileClick(t.id) : undefined}
                 selected={(riichiMode && riichiTileIds.has(t.id)) || (swapMode && swapSelection.includes(t.id))}
                 dimmed={riichiMode && !riichiTileIds.has(t.id)}
@@ -474,6 +477,7 @@ export function Hand({ round }: { round: RoundState }) {
                 <TileView
                   key={drawnTile.id}
                   code={drawnTile.code}
+                  faceDown={drawnTile.hidden}
                   onClick={() => handleTileClick(drawnTile.id)}
                   selected={(riichiMode && riichiTileIds.has(drawnTile.id)) || (swapMode && swapSelection.includes(drawnTile.id))}
                   dimmed={riichiMode && !riichiTileIds.has(drawnTile.id)}

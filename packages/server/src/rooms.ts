@@ -54,7 +54,12 @@ interface Room {
   cleanupTimer: ReturnType<typeof setTimeout> | null;
   /** 段位戦の卓ならその情報。段位戦の卓は合言葉で入れず、対局を最後まで打ち切る。 */
   ranked: { matchId: string; format: MatchFormat } | null;
+  /** 観戦している人（seatはその人が見に来たフレンドの席。その後ろから見る）。保存はしない。 */
+  spectators: { client: Client; seat: PlayerIndex }[];
 }
+
+/** 1つの卓を同時に観戦できる人数。 */
+const MAX_SPECTATORS = 8;
 
 /** 段位戦の卓に座る1人ぶん（matchmaking.tsが渡す）。 */
 export interface RankedEntrant {
@@ -84,6 +89,8 @@ export interface RoomManagerOptions {
   store?: MatchStore;
   /** 段位戦の牌譜の保存先。無ければ牌譜を取らない。 */
   replays?: ReplayStore;
+  /** 観戦してよい相手か（フレンドか）を確かめ、その人のアカウントIDを返す。無ければ観戦できない。 */
+  resolveSpectateTarget?: (viewerUserId: string, friendCode: string) => string | null;
   /** 再起動して対局を戻した直後、人間が入り直してくるのを待つ時間（その間は自動操作しない）。 */
   restoreGraceMs?: number;
 }
@@ -114,6 +121,8 @@ export class RoomManager {
   private readonly rooms = new Map<string, Room>();
   /** 接続ID → 入っている部屋の合言葉。 */
   private readonly clientRooms = new Map<string, string>();
+  /** 観戦中の接続ID → 観戦している部屋の合言葉。 */
+  private readonly spectatorRooms = new Map<string, string>();
   private readonly rng: () => number;
   private readonly options: RoomManagerOptions;
 
@@ -142,6 +151,7 @@ export class RoomManager {
         session: null,
         cleanupTimer: null,
         ranked: snap.ranked,
+        spectators: [],
       };
       try {
         this.rooms.set(roomCode, room);
@@ -203,7 +213,7 @@ export class RoomManager {
     let code: string;
     do code = `ranked-${randomBytes(9).toString("base64url")}`;
     while (this.rooms.has(code));
-    const room: Room = { code, members: [], session: null, cleanupTimer: null, ranked: { matchId, format } };
+    const room: Room = { code, members: [], session: null, cleanupTimer: null, ranked: { matchId, format }, spectators: [] };
     this.rooms.set(code, room);
     for (const e of entrants) {
       if (this.clientRooms.has(e.client.id)) this.disconnect(e.client);
@@ -228,6 +238,9 @@ export class RoomManager {
         return;
       case "leave":
         this.disconnect(client);
+        return;
+      case "spectate":
+        this.spectate(client, message);
         return;
       case "queueRanked":
       case "cancelQueue":
@@ -261,8 +274,56 @@ export class RoomManager {
     }
   }
 
+  /** フレンドの対局を観戦する。誰の手の内も見えない画面を、そのフレンドの席の後ろから見せる。 */
+  private spectate(client: Client, message: Extract<ClientMessage, { t: "spectate" }>): void {
+    const account = this.options.authenticate(message.authToken);
+    if (!account) {
+      client.send({ t: "error", message: "ログインし直してください（アカウントが確認できませんでした）", fatal: true });
+      return;
+    }
+    const targetId = this.options.resolveSpectateTarget?.(account.id, message.friendCode) ?? null;
+    if (!targetId) {
+      client.send({ t: "error", message: "観戦できるのはフレンドの対局だけです", fatal: true });
+      return;
+    }
+    if (this.roomOf(client) || this.spectatorRooms.has(client.id)) this.disconnect(client);
+    // 抜けたまま自動で続いている卓に座っていることもあるので、今つながっている卓を優先する。
+    const candidates = [...this.rooms.values()]
+      .map((room) => ({ room, target: room.members.find((m) => m.userId === targetId && m.seat !== null) }))
+      .filter((c) => c.target && c.room.session && !c.room.session.finished)
+      .sort((a, b) => Number(!!b.target!.client) - Number(!!a.target!.client));
+    for (const { room, target } of candidates) {
+      if (!target || !room.session) continue;
+      if (room.members.some((m) => m.userId === account.id)) {
+        client.send({ t: "error", message: "自分が座っている卓は観戦できません", fatal: true });
+        return;
+      }
+      if (room.spectators.length >= MAX_SPECTATORS) {
+        client.send({ t: "error", message: "この卓は観戦する人がいっぱいです", fatal: true });
+        return;
+      }
+      room.spectators.push({ client, seat: target.seat! });
+      this.spectatorRooms.set(client.id, room.code);
+      client.send({ t: "state", view: room.session.spectatorView(target.seat!) });
+      return;
+    }
+    client.send({ t: "error", message: "そのフレンドは今対局していません", fatal: true });
+  }
+
+  private sendToSpectators(room: Room): void {
+    if (!room.session) return;
+    for (const sp of room.spectators) sp.client.send({ t: "state", view: room.session.spectatorView(sp.seat) });
+  }
+
   /** 接続が切れた（またはタイトルへ戻った）。 */
   disconnect(client: Client): void {
+    const watching = this.spectatorRooms.get(client.id);
+    if (watching !== undefined) {
+      this.spectatorRooms.delete(client.id);
+      const r = this.rooms.get(watching);
+      if (r) r.spectators = r.spectators.filter((sp) => sp.client.id !== client.id);
+      return;
+    }
     const room = this.roomOf(client);
     this.clientRooms.delete(client.id);
     if (!room) return;
@@ -300,6 +361,7 @@ export class RoomManager {
       send: (seat, view) => room.members.find((m) => m.seat === seat)?.client?.send({ t: "state", view }),
       onFinished: room.ranked ? (finished) => this.finishRanked(room, finished) : undefined,
       onChange: () => this.persist(room),
+      onBroadcast: () => this.sendToSpectators(room),
       onRoundRecorded:
         room.ranked && this.options.replays
           ? (roundIndex, round) => this.options.replays!.saveRound(room.ranked!.matchId, roundIndex, round)
@@ -354,7 +416,7 @@ export class RoomManager {
         client.send({ t: "error", message: "この対局は終わっています", fatal: true });
         return;
       }
-      room = { code, members: [], session: null, cleanupTimer: null, ranked: null };
+      room = { code, members: [], session: null, cleanupTimer: null, ranked: null, spectators: [] };
       this.rooms.set(code, room);
     }
 
@@ -531,6 +593,8 @@ export class RoomManager {
     if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
     room.session?.dispose();
     for (const m of room.members) if (m.client) this.clientRooms.delete(m.client.id);
+    for (const sp of room.spectators) this.spectatorRooms.delete(sp.client.id);
+    room.spectators = [];
     if (this.rooms.get(room.code) === room) {
       this.rooms.delete(room.code);
       this.options.store?.delete(room.code);
