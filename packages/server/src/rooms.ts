@@ -89,6 +89,8 @@ export interface RoomManagerOptions {
   store?: MatchStore;
   /** 段位戦の牌譜の保存先。無ければ牌譜を取らない。 */
   replays?: ReplayStore;
+  /** CPUの思考を別スレッドで行う関数（cpuPool.ts）。無ければその場で考える。 */
+  decideCpu?: MatchSessionOptions["decideCpu"];
   /** 観戦してよい相手か（フレンドか）を確かめ、その人のアカウントIDを返す。無ければ観戦できない。 */
   resolveSpectateTarget?: (viewerUserId: string, friendCode: string) => string | null;
   /** 再起動して対局を戻した直後、人間が入り直してくるのを待つ時間（その間は自動操作しない）。 */
@@ -362,6 +364,7 @@ export class RoomManager {
       onFinished: room.ranked ? (finished) => this.finishRanked(room, finished) : undefined,
       onChange: () => this.persist(room),
       onBroadcast: () => this.sendToSpectators(room),
+      decideCpu: this.options.decideCpu,
       onRoundRecorded:
         room.ranked && this.options.replays
           ? (roundIndex, round) => this.options.replays!.saveRound(room.ranked!.matchId, roundIndex, round)

@@ -36,6 +36,7 @@ import { InboxService } from "./inbox.js";
 import { MissionService } from "./missions.js";
 import { FriendService } from "./friends.js";
 import { ReplayStore } from "./replays.js";
+import { CpuPool } from "./cpuPool.js";
 import { scheduleBackups } from "./backup.js";
 import { MatchStore } from "./matchStore.js";
 import { DEFAULT_CPU_FILL_MS, Matchmaker } from "./matchmaking.js";
@@ -79,7 +80,10 @@ const authenticate = (token: string) => accounts.authenticate(token);
 const replays = new ReplayStore(db);
 // フレンド（観戦の可否）はroomsの「今どこにいるか」を使い、roomsは観戦の可否にフレンドを使うので、後から結ぶ。
 let friends: FriendService | undefined;
+// CPUの思考は別スレッドで（重い局面で全部の卓が止まらないように）。
+const cpuPool = new CpuPool();
 const rooms = new RoomManager({
+  decideCpu: (kind, round, seat, difficulty) => cpuPool.decide(kind, round, seat, difficulty),
   authenticate,
   ranks,
   collections,
@@ -204,6 +208,7 @@ function shutdown(signal: string) {
   shuttingDown = true;
   console.log(`[majyan-server] ${signal} を受けたので止めます`);
   stopBackups();
+  void cpuPool.close();
   matchmaker.dispose();
   for (const socket of wss.clients) socket.terminate();
   wss.close();

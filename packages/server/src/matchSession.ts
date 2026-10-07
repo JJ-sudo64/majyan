@@ -55,6 +55,7 @@ import {
   type MatchState,
   type OnlineSeatView,
   type PlayerIndex,
+  type RoundState,
   type RoundScoreOutcome,
   type SeatInfo,
   type TimeLimitRules,
@@ -99,6 +100,8 @@ export interface MatchSessionOptions {
   onFinished?: (match: MatchState) => void;
   /** 局面が変わるたびに呼ばれる（snapshot()を保存するため）。 */
   onChange?: () => void;
+  /** CPUの思考を別スレッドで行う関数（cpuPool.ts）。無ければその場で考える（テスト等）。 */
+  decideCpu?: (kind: "turn" | "call", round: RoundState, seat: PlayerIndex, difficulty: AiDifficulty) => Promise<GameAction>;
   /** 画面の状態を送り直すたびに呼ばれる（観戦者にも送るため）。 */
   onBroadcast?: () => void;
   /** 1局が終わるたびに、その局の牌譜（局の始まりの状態と操作の並び）を渡す。無ければ記録しない。 */
@@ -146,6 +149,9 @@ export class MatchSession {
   private awayGraceUntil = 0;
   private readonly onRoundRecorded: MatchSessionOptions["onRoundRecorded"];
   private readonly onBroadcast: MatchSessionOptions["onBroadcast"];
+  private readonly decideCpu: MatchSessionOptions["decideCpu"];
+  /** 別スレッドで思考中のCPUの判断（キーはstepのcpu:…）。返事を待つ間に同じ判断を二重に頼まないため。 */
+  private readonly cpuInFlight = new Set<string>();
   /** 記録中の局の牌譜（onRoundRecordedが無ければnull）。 */
   private replay: { roundIndex: number; round: ReplayRound } | null;
 
@@ -161,6 +167,7 @@ export class MatchSession {
     this.onChange = options.onChange;
     this.onRoundRecorded = options.onRoundRecorded;
     this.onBroadcast = options.onBroadcast;
+    this.decideCpu = options.decideCpu;
     this.replay = this.onRoundRecorded ? { roundIndex: 0, round: { start: this.match, actions: [] } } : null;
   }
 
@@ -407,11 +414,28 @@ export class MatchSession {
       const { seat, kind, key } = pending;
       const s = this.seats[seat];
       if (s.kind === "cpu") {
-        wanted.set(`cpu:${key}`, {
+        const timerKey = `cpu:${key}`;
+        if (this.cpuInFlight.has(timerKey)) continue;
+        wanted.set(timerKey, {
           delayMs: this.timing.cpuThinkMs,
           run: () => {
             const r = this.match.round;
-            this.apply(kind === "turn" ? decideCpuTurnAction(r, seat, s.difficulty) : decideCpuCallResponse(r, seat, s.difficulty));
+            if (!this.decideCpu) {
+              this.apply(kind === "turn" ? decideCpuTurnAction(r, seat, s.difficulty) : decideCpuCallResponse(r, seat, s.difficulty));
+              return;
+            }
+            this.cpuInFlight.add(timerKey);
+            void this.decideCpu(kind, r, seat, s.difficulty).then((action) => {
+              this.cpuInFlight.delete(timerKey);
+              if (this.disposed) return;
+              // 考えている間に他の人が鳴きの応答をしても、この席の判断（同じキー）がまだ
+              // 求められていればそのまま使える（自分の選択肢は他人の応答では変わらない）。
+              // 局面が先へ進んでいた・使えなかった時は、今の局面で考え直す。
+              const stillPending =
+                !this.pendingRoundEnd && pendingSeatDecisions(this.match.round).some((p) => p.seat === seat && p.key === key);
+              if (stillPending && this.apply(action)) return;
+              this.step();
+            });
           },
         });
         continue;
