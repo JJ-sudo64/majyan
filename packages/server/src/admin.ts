@@ -17,14 +17,16 @@
  *
  *   user find <名前かIDの先頭8文字以上>               アカウントを探す（IDは画面の「引き継ぎ」に出ている）
  *   catalog                                           キャラ・カードのID一覧
+ *   backup                                            今すぐDBのバックアップを取る（置き場所はサーバーと同じ BACKUP_DIR）
  */
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { CARDS, CHARACTERS, characterRarity, type GachaItem } from "@majyan/core";
 import { openDatabase, type Database } from "./db.js";
 import { CollectionService } from "./collection.js";
 import { WalletService } from "./wallet.js";
 import { GiftError, InboxService } from "./inbox.js";
+import { backupNow } from "./backup.js";
 
 /** プレゼントの受け取り期限の既定（日）。 */
 const DEFAULT_GIFT_DAYS = 30;
@@ -62,7 +64,7 @@ function positiveInt(value: string | undefined, label: string): number | undefin
 }
 
 /** コマンドを1つ実行して、表示する行を返す（テストから呼べるように出力はしない）。 */
-export function runAdmin(db: Database, argv: string[], now: () => number = Date.now): string[] {
+export function runAdmin(db: Database, argv: string[], now: () => number = Date.now, backupDir?: string): string[] {
   const wallet = new WalletService(db, now);
   const inbox = new InboxService(db, new CollectionService(db, Math.random, now, wallet), wallet, now);
   const [group, command, ...rest] = argv;
@@ -167,8 +169,12 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       for (const [id, c] of Object.entries(CARDS)) out.push(`  ${id}  ${c.name}`);
       return out;
     }
+    case "backup": {
+      if (!backupDir) throw new UsageError("バックアップの置き場所が決まっていません");
+      return [`バックアップを作りました: ${backupNow(db, { dir: backupDir, keep: Number(process.env.BACKUP_KEEP) || 28, now })}`];
+    }
     default:
-      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / user find / catalog（詳しくは src/admin.ts の先頭）");
+      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / user find / catalog / backup（詳しくは src/admin.ts の先頭）");
   }
 }
 
@@ -178,9 +184,11 @@ function itemName(item: GachaItem): string {
 
 // `npm run admin` で直接実行された時だけ動かす（テストから読み込んだ時は動かさない）。
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
-  const db = openDatabase(process.env.DATABASE_PATH ?? resolve(import.meta.dirname, "../data/majyan.db"));
+  const databasePath = process.env.DATABASE_PATH ?? resolve(import.meta.dirname, "../data/majyan.db");
+  const db = openDatabase(databasePath);
   try {
-    for (const line of runAdmin(db, process.argv.slice(2))) console.log(line);
+    const backupDir = process.env.BACKUP_DIR ?? resolve(dirname(databasePath), "backups");
+    for (const line of runAdmin(db, process.argv.slice(2), Date.now, backupDir)) console.log(line);
   } catch (err) {
     if (err instanceof UsageError || err instanceof GiftError || (err as { code?: string }).code?.startsWith("ERR_PARSE_ARGS")) {
       console.error(`エラー: ${(err as Error).message}`);

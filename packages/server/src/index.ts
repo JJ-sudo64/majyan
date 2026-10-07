@@ -13,13 +13,16 @@
  *   DATABASE_PATH     アカウント等を保存するSQLiteファイル（既定 packages/server/data/majyan.db）
  *   TRUST_PROXY       "1"ならX-Forwarded-Forを接続元として信用する（リバースプロキシの後ろに置く時）
  *   RANKED_CPU_FILL_MS 段位戦で人がそろわない時、空席をCPUで埋めるまでの待ち時間（既定20秒）
+ *   BACKUP_DIR        DBの定期バックアップの置き場所（既定 DBと同じ場所の backups/）
+ *   BACKUP_INTERVAL_HOURS バックアップの間隔（既定6時間。0なら取らない）
+ *   BACKUP_KEEP       残すバックアップの数（既定28＝6時間おきで1週間分）
  *
  * 引数 --dev-tools（npm run dev:server が付ける）: 開発用の操作（最初の10連のやり直し等）を
  * 受け付け、アカウント作成の回数制限をゆるめる。npm start（本番）では付けない。
  */
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import { ONLINE_DEFAULT_PORT, ONLINE_WS_PATH, type ServerMessage } from "@majyan/core";
 import { RoomManager, type Client } from "./rooms.js";
@@ -30,6 +33,7 @@ import { RankService } from "./ranks.js";
 import { CollectionService } from "./collection.js";
 import { WalletService } from "./wallet.js";
 import { InboxService } from "./inbox.js";
+import { scheduleBackups } from "./backup.js";
 import { MatchStore } from "./matchStore.js";
 import { DEFAULT_CPU_FILL_MS, Matchmaker } from "./matchmaking.js";
 import type { IncomingMessage } from "node:http";
@@ -55,6 +59,12 @@ const clientIp = (req: IncomingMessage) =>
   (trustProxy ? String(req.headers["x-forwarded-for"] ?? "").split(",")[0]?.trim() : "") || req.socket.remoteAddress || "unknown";
 
 const db = openDatabase(databasePath);
+const backupHours = process.env.BACKUP_INTERVAL_HOURS === undefined ? 6 : Number(process.env.BACKUP_INTERVAL_HOURS);
+const backupDir = process.env.BACKUP_DIR ?? resolve(dirname(databasePath), "backups");
+const stopBackups =
+  backupHours > 0
+    ? scheduleBackups(db, { dir: backupDir, keep: Number(process.env.BACKUP_KEEP) || 28, intervalMs: backupHours * 60 * 60_000 })
+    : () => {};
 const accounts = new AccountService(db);
 const ranks = new RankService(db);
 const wallet = new WalletService(db);
@@ -166,3 +176,25 @@ httpServer.listen(port, () => {
   console.log(`[majyan-server] データベース: ${databasePath}`);
   if (restoredMatches > 0) console.log(`[majyan-server] 保存されていた対局を${restoredMatches}卓再開しました`);
 });
+
+// 止める時（Ctrl+C・コンテナの停止）は受け付けをやめてからDBを閉じる。対局は局面が進むたびに
+// 保存済みなので、次に起動すれば続きから再開できる。
+let shuttingDown = false;
+function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[majyan-server] ${signal} を受けたので止めます`);
+  stopBackups();
+  matchmaker.dispose();
+  for (const socket of wss.clients) socket.terminate();
+  wss.close();
+  httpServer.close();
+  try {
+    db.close();
+  } catch (err) {
+    console.error("[majyan-server] DBを閉じられませんでした:", err);
+  }
+  process.exit(0);
+}
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

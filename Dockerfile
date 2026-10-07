@@ -15,5 +15,8 @@ COPY packages ./packages
 RUN npm run build -w packages/web
 
 ENV NODE_ENV=production PORT=8787
+# アカウント・雀玉などのDBと、その定期バックアップ（backups/）。コンテナを作り直しても消えないよう
+# ボリュームに置く（docker run -v majyan-data:/app/packages/server/data ...）。
+VOLUME /app/packages/server/data
 EXPOSE 8787
 CMD ["npm", "run", "start", "-w", "packages/server"]
