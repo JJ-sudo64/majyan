@@ -29,6 +29,7 @@ import { createApiHandler } from "./httpApi.js";
 import { RankService } from "./ranks.js";
 import { CollectionService } from "./collection.js";
 import { WalletService } from "./wallet.js";
+import { InboxService } from "./inbox.js";
 import { MatchStore } from "./matchStore.js";
 import { DEFAULT_CPU_FILL_MS, Matchmaker } from "./matchmaking.js";
 import type { IncomingMessage } from "node:http";
@@ -58,6 +59,7 @@ const accounts = new AccountService(db);
 const ranks = new RankService(db);
 const wallet = new WalletService(db);
 const collections = new CollectionService(db, Math.random, Date.now, wallet);
+const inbox = new InboxService(db, collections, wallet);
 const authenticate = (token: string) => accounts.authenticate(token);
 // 対局中の卓はDBへ保存しておき、再起動したら続きから再開する（入り直せば同じ席に戻れる）。
 const rooms = new RoomManager({ authenticate, ranks, collections, wallet, store: new MatchStore(db) });
@@ -75,6 +77,7 @@ const handleApi = createApiHandler({
   ranks,
   collections,
   wallet,
+  inbox,
   clientIp,
   devTools,
   // 開発中は「新しいアカウントで始める」で何度も作り直すため、制限をゆるめる。

@@ -129,6 +129,12 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
           </section>
         )}
 
+        {profile && (
+          <p className="transfer-screen__note">
+            アカウントID（お問い合わせの時にお伝えください）: <strong>{profile.id.slice(0, 8)}</strong>
+          </p>
+        )}
+
         <section className="transfer-screen__section">
           <div className="online-lobby__section-title">引き継ぎコードで入る</div>
           <p className="setup-lead">別の端末で発行した引き継ぎコードとパスワードを入れると、このブラウザでそのアカウントを使えます（元の端末でもそのまま遊べます）。</p>

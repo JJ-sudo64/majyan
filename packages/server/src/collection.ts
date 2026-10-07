@@ -253,6 +253,13 @@ export class CollectionService {
     });
   }
 
+  /** ガチャ以外（プレゼント等）でキャラ・カードを渡す。sourceは入手経路の記録。 */
+  grantItems(userId: string, items: GachaItem[], source: string): void {
+    transaction(this.db, () => {
+      this.grant(userId, items, source);
+    });
+  }
+
   /** キャラ（1体ずつ別）・カード（手持ちの枚数）を渡す。それぞれ初めて手に入れたものかを返す。 */
   private grant(userId: string, items: GachaItem[], source: string): boolean[] {
     const isNew: boolean[] = [];

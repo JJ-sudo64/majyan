@@ -187,6 +187,39 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (match_id, seat)
   );
   `,
+  // 10: 運営からのお知らせと、プレゼントボックス（補填・配布）
+  `
+  CREATE TABLE announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    published_at INTEGER NOT NULL,
+    -- 出すのをやめた時刻（NULLなら出し続ける）
+    ends_at INTEGER,
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE gifts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    jade INTEGER NOT NULL,
+    -- GachaItem[]
+    items_json TEXT NOT NULL,
+    -- 特定の1人宛て。NULLなら全員宛て
+    target_user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+    -- 全員宛ての時、この時刻までに作られたアカウントだけが受け取れる（NULLなら後から作った人も）
+    eligible_created_before INTEGER,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER,
+    cancelled_at INTEGER
+  );
+  CREATE TABLE gift_claims (
+    gift_id INTEGER NOT NULL REFERENCES gifts(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    claimed_at INTEGER NOT NULL,
+    PRIMARY KEY (gift_id, user_id)
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

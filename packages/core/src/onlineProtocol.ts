@@ -37,6 +37,8 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/gacha/exchange {item} (Bearer)   → GachaRollResponse    交換ポイントで★3のキャラかカードを1つもらう（天井）
 //   POST /api/units/equip {unitId, cardId} (Bearer) → MeResponse        手持ちのキャラにカードを付ける（外せない）
 //   GET  /api/me/history          (Bearer)     → RankedHistoryResponse 段位戦の戦績（通算の順位と最近の対局）
+//   GET  /api/inbox               (Bearer)     → InboxResponse         お知らせと、受け取れるプレゼント
+//   POST /api/gifts/claim {giftId?} (Bearer)   → GiftClaimResponse     プレゼントを受け取る（giftId無しなら全部）
 //   POST /api/dev/reset-collection (Bearer)    → MeResponse            開発用: 手持ちと最初の10連を作った直後に戻す（--dev-tools時のみ）
 //   失敗時は 4xx と ApiErrorResponse
 // ---------------------------------------------------------------------------
@@ -112,6 +114,10 @@ export interface MeResponse {
   /** 天井の交換ポイント（gacha.tsのEXCHANGE_COST）。 */
   exchangePoints: number;
   firstGacha: FirstGachaState;
+  /** 受け取っていないプレゼントの数（プレゼントボタンの印）。 */
+  unclaimedGifts: number;
+  /** 今出ているお知らせのうち一番新しいもののID（未読の印。無ければnull）。 */
+  latestAnnouncementId: number | null;
 }
 
 /** 手持ちのキャラ1体。カードは一度付けたら外せない。 */
@@ -165,6 +171,42 @@ export interface RankedHistoryResponse {
   byFormat: Record<MatchFormat, RankedPlaceStats>;
   /** 新しい順。 */
   recent: RankedHistoryEntry[];
+}
+
+/** 運営からのお知らせ。 */
+export interface Announcement {
+  id: number;
+  title: string;
+  body: string;
+  /** 出した時刻（ミリ秒）。 */
+  publishedAt: number;
+}
+
+/** プレゼントボックスの1件。 */
+export interface Gift {
+  id: number;
+  title: string;
+  message: string;
+  /** 無償の雀玉。 */
+  jade: number;
+  items: GachaItem[];
+  createdAt: number;
+  /** 受け取り期限（ミリ秒）。無期限ならnull。 */
+  expiresAt: number | null;
+}
+
+export interface InboxResponse {
+  /** 新しい順。 */
+  announcements: Announcement[];
+  /** 受け取っていないもの。期限の近い順。 */
+  gifts: Gift[];
+}
+
+export interface GiftClaimResponse {
+  /** 今回受け取った分の合計。 */
+  jade: number;
+  items: GachaItem[];
+  me: MeResponse;
 }
 
 export interface ApiErrorResponse {

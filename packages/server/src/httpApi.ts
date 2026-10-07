@@ -8,6 +8,8 @@ import {
   type AccountProfile,
   type ApiErrorResponse,
   type GachaRollResponse,
+  type GiftClaimResponse,
+  type InboxResponse,
   type GuestAccountResponse,
   type MeResponse,
   type RankedHistoryResponse,
@@ -17,6 +19,7 @@ import { normalizeDisplayName, transferPasswordProblem, type AccountService } fr
 import type { RankService } from "./ranks.js";
 import { GachaError, type CollectionService } from "./collection.js";
 import { InsufficientJadeError, type WalletService } from "./wallet.js";
+import { GiftError, type InboxService } from "./inbox.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
 
@@ -25,6 +28,8 @@ export interface HttpApiOptions {
   ranks: RankService;
   collections: CollectionService;
   wallet: WalletService;
+  /** お知らせ・プレゼントボックス。無ければその機能のAPIは404。 */
+  inbox?: InboxService;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
   guestsPerHourPerIp?: number;
   /** 引き継ぎコードでの入室に失敗できる回数（同じ接続元から、1時間あたり）。パスワードの総当たり対策。 */
@@ -81,7 +86,7 @@ function bearerToken(req: IncomingMessage): string | null {
 
 /** /api 配下なら処理してtrueを返す。それ以外のパスはfalse（呼び出し側が静的ファイル等を返す）。 */
 export function createApiHandler(options: HttpApiOptions) {
-  const { accounts, ranks, collections, wallet } = options;
+  const { accounts, ranks, collections, wallet, inbox } = options;
   const me = (profile: AccountProfile, dailyBonus: number | null = null): MeResponse => ({
     profile,
     rank: ranks.get(profile.id),
@@ -91,6 +96,8 @@ export function createApiHandler(options: HttpApiOptions) {
     cards: collections.cards(profile.id),
     exchangePoints: collections.exchangePoints(profile.id),
     firstGacha: collections.firstGachaState(profile.id),
+    unclaimedGifts: inbox?.unclaimedCount(profile.id) ?? 0,
+    latestAnnouncementId: inbox?.latestAnnouncementId() ?? null,
   });
   const now = options.now ?? Date.now;
   const limit = options.guestsPerHourPerIp ?? 20;
@@ -154,6 +161,31 @@ export function createApiHandler(options: HttpApiOptions) {
         case "GET /me/history": {
           const profile = authed(req, res);
           if (profile) sendJson(res, 200, ranks.history(profile.id) satisfies RankedHistoryResponse);
+          return true;
+        }
+        case "GET /inbox": {
+          if (!inbox) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (profile) {
+            sendJson(res, 200, { announcements: inbox.announcements(), gifts: inbox.claimable(profile.id) } satisfies InboxResponse);
+          }
+          return true;
+        }
+        case "POST /gifts/claim": {
+          if (!inbox) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { giftId?: unknown };
+          const giftId = body.giftId ?? null;
+          if (giftId !== null && !Number.isSafeInteger(giftId)) return fail(res, 400, "プレゼントが正しくありません"), true;
+          let claimed;
+          try {
+            claimed = inbox.claim(profile.id, giftId as number | null);
+          } catch (err) {
+            if (err instanceof GiftError) return fail(res, 409, err.message), true;
+            throw err;
+          }
+          sendJson(res, 200, { ...claimed, me: me(profile) } satisfies GiftClaimResponse);
           return true;
         }
         case "GET /me/transfer": {

@@ -13,6 +13,8 @@ import {
   type GachaItem,
   type FirstGachaState,
   type GachaRollResponse,
+  type GiftClaimResponse,
+  type InboxResponse,
   type JadeBalance,
   type ApiErrorResponse,
   type GuestAccountResponse,
@@ -23,6 +25,27 @@ import {
 } from "@majyan/core";
 
 const TOKEN_KEY = "majyan.account.token";
+/** 最後に読んだお知らせのID（未読の印を消すため。ブラウザごとでよい）。 */
+const SEEN_NEWS_KEY = "majyan.news.seen";
+
+function loadSeenAnnouncementId(): number {
+  try {
+    return Number(localStorage.getItem(SEEN_NEWS_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** お知らせを開いたら、今出ている分を読んだことにする。 */
+export function markAnnouncementsSeen(latestId: number | null) {
+  if (latestId === null || latestId <= useAccountStore.getState().seenAnnouncementId) return;
+  useAccountStore.setState({ seenAnnouncementId: latestId });
+  try {
+    localStorage.setItem(SEEN_NEWS_KEY, String(latestId));
+  } catch {
+    // 保存できなくても、このページを開いている間は既読になる。
+  }
+}
 
 type AccountStatus =
   /** まだ保存済みの鍵を確かめていない */
@@ -45,6 +68,12 @@ interface AccountState {
   jade: JadeBalance | null;
   /** 直前に受け取ったログインボーナス（お知らせを出したら画面側でnullに戻す）。 */
   dailyBonusNotice: number | null;
+  /** 受け取っていないプレゼントの数。 */
+  unclaimedGifts: number;
+  /** 今出ているお知らせの一番新しいID（未読の印に使う）。 */
+  latestAnnouncementId: number | null;
+  /** このブラウザで最後に読んだお知らせのID。 */
+  seenAnnouncementId: number;
   error: string | null;
 }
 
@@ -58,6 +87,9 @@ export const useAccountStore = create<AccountState>(() => ({
   firstGacha: null,
   jade: null,
   dailyBonusNotice: null,
+  unclaimedGifts: 0,
+  latestAnnouncementId: null,
+  seenAnnouncementId: loadSeenAnnouncementId(),
   error: null,
 }));
 
@@ -72,6 +104,8 @@ function applyMe(me: MeResponse) {
     exchangePoints: me.exchangePoints,
     firstGacha: me.firstGacha,
     jade: me.jade,
+    unclaimedGifts: me.unclaimedGifts,
+    latestAnnouncementId: me.latestAnnouncementId,
     ...(me.dailyBonus ? { dailyBonusNotice: me.dailyBonus } : {}),
     error: null,
   });
@@ -221,6 +255,18 @@ export async function equipCard(unitId: string, cardId: string): Promise<boolean
 }
 
 /** 引き継ぎコード（パスワードをまだ決めていなければnull）。読めなければ例外。 */
+/** お知らせと、受け取れるプレゼント。 */
+export async function fetchInbox(): Promise<InboxResponse> {
+  return api<InboxResponse>("/inbox");
+}
+
+/** プレゼントを受け取る（giftIdがnullなら全部）。受け取った中身を返す。 */
+export async function claimGifts(giftId: number | null): Promise<GiftClaimResponse> {
+  const res = await api<GiftClaimResponse>("/gifts/claim", { method: "POST", body: JSON.stringify(giftId === null ? {} : { giftId }) });
+  applyMe(res.me);
+  return res;
+}
+
 /** 段位戦の戦績。 */
 export async function fetchRankedHistory(): Promise<RankedHistoryResponse> {
   return api<RankedHistoryResponse>("/me/history");

@@ -7,6 +7,7 @@ import { GachaScreen } from "./GachaScreen.js";
 import { UnitsScreen } from "./UnitsScreen.js";
 import { TransferScreen } from "./TransferScreen.js";
 import { HistoryScreen } from "./HistoryScreen.js";
+import { InboxScreen, type InboxTab } from "./InboxScreen.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 
 /** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
@@ -55,6 +56,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const [showGacha, setShowGacha] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [inboxTab, setInboxTab] = useState<InboxTab | null>(null);
+  const unclaimedGifts = useAccountStore((s) => s.unclaimedGifts);
+  const hasUnreadNews = useAccountStore((s) => s.latestAnnouncementId !== null && s.latestAnnouncementId > s.seenAnnouncementId);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
   const needsFirstGacha = accountStatus === "ready" && firstGacha !== null && !firstGacha.confirmed;
   /** ネット対戦の操作（段位戦・友人戦）を出してよいか。 */
@@ -212,6 +216,18 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               戦績
             </button>
           )}
+          {!busy && (
+            <button type="button" className="btn online-lobby__gacha-btn" onClick={() => setInboxTab("news")}>
+              お知らせ
+              {hasUnreadNews && <span className="online-lobby__badge online-lobby__badge--dot" />}
+            </button>
+          )}
+          {!busy && (
+            <button type="button" className="btn online-lobby__gacha-btn" onClick={() => setInboxTab("gifts")}>
+              プレゼント
+              {unclaimedGifts > 0 && <span className="online-lobby__badge">{unclaimedGifts}</span>}
+            </button>
+          )}
         </div>
       )}
       {!needsFirstGacha && dailyBonusNotice !== null && (
@@ -223,6 +239,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showUnits && <UnitsScreen onClose={() => setShowUnits(false)} />}
       {showTransfer && <TransferScreen onClose={() => setShowTransfer(false)} />}
       {showHistory && <HistoryScreen onClose={() => setShowHistory(false)} />}
+      {inboxTab && <InboxScreen initialTab={inboxTab} onClose={() => setInboxTab(null)} />}
 
       {ready && !busy && (
         <div className="online-lobby__section">
