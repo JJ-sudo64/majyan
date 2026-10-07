@@ -4,6 +4,7 @@
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
+  ACCOUNT_DELETE_CONFIRM,
   ONLINE_API_PREFIX,
   type AccountProfile,
   type ApiErrorResponse,
@@ -13,6 +14,8 @@ import {
   type GuestAccountResponse,
   type MeResponse,
   type RankedHistoryResponse,
+  type RecordsResponse,
+  type RankingResponse,
   type TransferCodeResponse,
 } from "@majyan/core";
 import { normalizeDisplayName, transferPasswordProblem, type AccountService } from "./accounts.js";
@@ -163,6 +166,13 @@ export function createApiHandler(options: HttpApiOptions) {
           if (profile) sendJson(res, 200, ranks.history(profile.id) satisfies RankedHistoryResponse);
           return true;
         }
+        case "GET /me/records": {
+          const profile = authed(req, res);
+          if (profile) {
+            sendJson(res, 200, { jade: wallet.history(profile.id), gacha: collections.gachaHistory(profile.id) } satisfies RecordsResponse);
+          }
+          return true;
+        }
         case "GET /inbox": {
           if (!inbox) return fail(res, 404, "見つかりません"), true;
           const profile = authed(req, res);
@@ -186,6 +196,21 @@ export function createApiHandler(options: HttpApiOptions) {
             throw err;
           }
           sendJson(res, 200, { ...claimed, me: me(profile) } satisfies GiftClaimResponse);
+          return true;
+        }
+        case "POST /me/delete": {
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { confirm?: unknown };
+          // 押し間違いで消えないよう、画面で確認の言葉を打ってもらう。
+          if (body.confirm !== ACCOUNT_DELETE_CONFIRM) return fail(res, 400, `確認のため「${ACCOUNT_DELETE_CONFIRM}」と入力してください`), true;
+          accounts.deleteAccount(profile.id);
+          sendJson(res, 200, {});
+          return true;
+        }
+        case "GET /ranking": {
+          const profile = authed(req, res);
+          if (profile) sendJson(res, 200, ranks.ranking(profile.id) satisfies RankingResponse);
           return true;
         }
         case "GET /me/transfer": {

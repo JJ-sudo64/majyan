@@ -38,6 +38,9 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/units/equip {unitId, cardId} (Bearer) → MeResponse        手持ちのキャラにカードを付ける（外せない）
 //   GET  /api/me/history          (Bearer)     → RankedHistoryResponse 段位戦の戦績（通算の順位と最近の対局）
 //   GET  /api/inbox               (Bearer)     → InboxResponse         お知らせと、受け取れるプレゼント
+//   GET  /api/me/records          (Bearer)     → RecordsResponse       雀玉の増減とガチャの結果の履歴
+//   GET  /api/ranking             (Bearer)     → RankingResponse       段位の上位と、自分の順位
+//   POST /api/me/delete {confirm} (Bearer)     → {}                    退会（confirmはACCOUNT_DELETE_CONFIRM）
 //   POST /api/gifts/claim {giftId?} (Bearer)   → GiftClaimResponse     プレゼントを受け取る（giftId無しなら全部）
 //   POST /api/dev/reset-collection (Bearer)    → MeResponse            開発用: 手持ちと最初の10連を作った直後に戻す（--dev-tools時のみ）
 //   失敗時は 4xx と ApiErrorResponse
@@ -207,6 +210,70 @@ export interface GiftClaimResponse {
   jade: number;
   items: GachaItem[];
   me: MeResponse;
+}
+
+/** 雀玉の増減の記録の理由（サーバーのjade_ledger.reason）→ 画面の表示。 */
+export const JADE_REASON_LABELS: Record<string, string> = {
+  "starting-bonus": "はじめての雀玉",
+  "daily-login": "ログインボーナス",
+  "ranked-reward": "段位戦の報酬",
+  gift: "プレゼント",
+  "gacha-1": "ガチャ（1回）",
+  "gacha-10": "ガチャ（10連）",
+  mission: "ミッション",
+};
+
+export interface JadeHistoryEntry {
+  /** 時刻（ミリ秒）。 */
+  at: number;
+  freeDelta: number;
+  paidDelta: number;
+  freeAfter: number;
+  paidAfter: number;
+  reason: string;
+}
+
+/** ガチャの記録の種類（サーバーのgacha_log.kind）→ 画面の表示。 */
+export const GACHA_KIND_LABELS: Record<string, string> = {
+  "first-gacha": "最初の10連",
+  "gacha-1": "ガチャ（1回）",
+  "gacha-10": "ガチャ（10連）",
+  exchange: "交換（天井）",
+};
+
+export interface GachaHistoryEntry {
+  at: number;
+  kind: string;
+  results: GachaItem[];
+}
+
+export interface RecordsResponse {
+  /** 新しい順。 */
+  jade: JadeHistoryEntry[];
+  /** 新しい順。 */
+  gacha: GachaHistoryEntry[];
+}
+
+/** 退会の時に打ってもらう確認の言葉。 */
+export const ACCOUNT_DELETE_CONFIRM = "退会する";
+
+export interface RankingEntry {
+  /** 順位（同じ段位・ポイントなら同じ順位）。 */
+  position: number;
+  displayName: string;
+  rankLabel: string;
+  points: number;
+  gamesPlayed: number;
+  isYou: boolean;
+}
+
+export interface RankingResponse {
+  /** 上位（段位戦を1回以上打った人だけ）。 */
+  top: RankingEntry[];
+  /** 自分（まだ打っていなければnull）。topに入っていない時もここで分かる。 */
+  you: RankingEntry | null;
+  /** 順位に載っている人数。 */
+  totalPlayers: number;
 }
 
 export interface ApiErrorResponse {

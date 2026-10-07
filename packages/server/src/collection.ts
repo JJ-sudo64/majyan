@@ -21,6 +21,7 @@ import {
   TEN_PULL_GUARANTEE,
   type CharacterUnit,
   type FirstGachaState,
+  type GachaHistoryEntry,
   type GachaItem,
 } from "@majyan/core";
 import { transaction, type Database } from "./db.js";
@@ -277,6 +278,14 @@ export class CollectionService {
       }
     }
     return isNew;
+  }
+
+  /** ガチャの結果の記録（新しい順）。 */
+  gachaHistory(userId: string, limit = 100): GachaHistoryEntry[] {
+    const rows = this.db
+      .prepare("SELECT kind, results_json, created_at FROM gacha_log WHERE user_id = ? ORDER BY id DESC LIMIT ?")
+      .all(userId, limit) as { kind: string; results_json: string; created_at: number }[];
+    return rows.map((r) => ({ at: r.created_at, kind: r.kind, results: JSON.parse(r.results_json) as GachaItem[] }));
   }
 
   private log(userId: string, kind: string, results: GachaItem[]): void {

@@ -12,6 +12,8 @@ import {
   type RankedHistoryEntry,
   type RankedHistoryResponse,
   type RankedPlaceStats,
+  type RankingEntry,
+  type RankingResponse,
   type RankResult,
   type RankState,
   type RankView,
@@ -43,6 +45,9 @@ export interface RankedSeatRecord {
   place: 1 | 2 | 3 | 4;
   finalScore: number;
 }
+
+/** ランキングに出す人数。 */
+export const RANKING_SIZE = 100;
 
 /** 戦績で返す最近の対局の数。 */
 export const RANKED_HISTORY_LIMIT = 20;
@@ -194,5 +199,47 @@ export class RankService {
       };
     });
     return { total, byFormat, recent };
+  }
+
+  /** 段位の高い順のランキング（段位戦を1回以上打った人だけ）。 */
+  ranking(userId: string, size = RANKING_SIZE): RankingResponse {
+    // 退会したアカウント（users.deleted_at）は載せない。
+    const base = `FROM user_ranks r JOIN users u ON u.id = r.user_id WHERE r.games_played > 0 AND u.deleted_at IS NULL`;
+    const order = "r.tier DESC, r.level DESC, r.points DESC";
+    type Row = { user_id: string; display_name: string; tier: number; level: number; points: number; games_played: number };
+    const toEntry = (row: Row, position: number): RankingEntry => {
+      const rank = { tier: row.tier, level: row.level, points: row.points };
+      return {
+        position,
+        displayName: row.display_name,
+        rankLabel: isValidRank(rank) ? rankLabel(rank) : "",
+        points: row.points,
+        gamesPlayed: row.games_played,
+        isYou: row.user_id === userId,
+      };
+    };
+    /** 自分より上の人数＋1（同じ段位・ポイントなら同じ順位）。 */
+    const positionOf = (row: Row) =>
+      (
+        this.db
+          .prepare(
+            `SELECT COUNT(*) AS n ${base} AND (r.tier > ? OR (r.tier = ? AND r.level > ?) OR (r.tier = ? AND r.level = ? AND r.points > ?))`,
+          )
+          .get(row.tier, row.tier, row.level, row.tier, row.level, row.points) as { n: number }
+      ).n + 1;
+    const rows = this.db
+      .prepare(`SELECT r.user_id, u.display_name, r.tier, r.level, r.points, r.games_played ${base} ORDER BY ${order}, r.updated_at LIMIT ?`)
+      .all(size) as Row[];
+    const top: RankingEntry[] = [];
+    rows.forEach((row, i) => {
+      const prev = rows[i - 1];
+      const tied = prev && prev.tier === row.tier && prev.level === row.level && prev.points === row.points;
+      top.push(toEntry(row, tied ? top[i - 1]!.position : i + 1));
+    });
+    const mine = this.db
+      .prepare(`SELECT r.user_id, u.display_name, r.tier, r.level, r.points, r.games_played ${base} AND r.user_id = ?`)
+      .get(userId) as Row | undefined;
+    const totalPlayers = (this.db.prepare(`SELECT COUNT(*) AS n ${base}`).get() as { n: number }).n;
+    return { top, you: mine ? toEntry(mine, positionOf(mine)) : null, totalPlayers };
   }
 }

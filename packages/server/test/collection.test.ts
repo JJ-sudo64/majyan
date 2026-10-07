@@ -136,8 +136,10 @@ describe("first 10-pull", () => {
 describe("pity exchange", () => {
   it("earns one exchange point per paid pull", () => {
     const { collections, userId } = setup();
-    collections.rollGacha(userId, 10);
+    const rolled = collections.rollGacha(userId, 10);
     expect(collections.exchangePoints(userId)).toBe(10);
+    // ガチャの履歴に結果がそのまま残る。
+    expect(collections.gachaHistory(userId)).toEqual([expect.objectContaining({ kind: "gacha-10", results: rolled.results })]);
   });
 
   it("trades points for a chosen ★3 character or card, and only a ★3", () => {

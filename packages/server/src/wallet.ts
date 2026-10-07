@@ -13,6 +13,7 @@ import {
   RANKED_JADE_DAILY_CAP,
   STARTING_JADE,
   type JadeBalance,
+  type JadeHistoryEntry,
   type MatchFormat,
 } from "@majyan/core";
 import { transaction, type Database } from "./db.js";
@@ -123,5 +124,30 @@ export class WalletService {
       this.grantFree(userId, amount, "ranked-reward", matchId);
       return amount;
     });
+  }
+
+  /** 雀玉の増減の記録（新しい順）。 */
+  history(userId: string, limit = 100): JadeHistoryEntry[] {
+    const rows = this.db
+      .prepare(
+        `SELECT free_delta, paid_delta, free_after, paid_after, reason, created_at FROM jade_ledger
+         WHERE user_id = ? ORDER BY id DESC LIMIT ?`,
+      )
+      .all(userId, limit) as {
+      free_delta: number;
+      paid_delta: number;
+      free_after: number;
+      paid_after: number;
+      reason: string;
+      created_at: number;
+    }[];
+    return rows.map((r) => ({
+      at: r.created_at,
+      freeDelta: r.free_delta,
+      paidDelta: r.paid_delta,
+      freeAfter: r.free_after,
+      paidAfter: r.paid_after,
+      reason: r.reason,
+    }));
   }
 }

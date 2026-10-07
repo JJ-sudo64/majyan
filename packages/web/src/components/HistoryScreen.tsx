@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, type MatchFormat, type RankedHistoryResponse, type RankedPlaceStats } from "@majyan/core";
-import { fetchRankedHistory } from "../online/account.js";
+import {
+  CARDS,
+  CHARACTERS,
+  type MatchFormat,
+  type RankedHistoryResponse,
+  type RankedPlaceStats,
+  type RankingEntry,
+  type RankingResponse,
+} from "@majyan/core";
+import { fetchRankedHistory, fetchRanking } from "../online/account.js";
 
 const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
 
@@ -41,8 +49,59 @@ function StatsRow({ label, stats }: { label: string; stats: RankedPlaceStats }) 
   );
 }
 
-/** 段位戦の戦績（通算の順位の成績と、最近の対局）。 */
+function RankingRow({ e }: { e: RankingEntry }) {
+  return (
+    <tr className={e.isYou ? "ranking-screen__you" : undefined}>
+      <td className="ranking-screen__position">{e.position}</td>
+      <td className="ranking-screen__name">{e.displayName}</td>
+      <td className="history-screen__rank">{e.rankLabel}</td>
+      <td>{e.points} pt</td>
+      <td>{e.gamesPlayed}戦</td>
+    </tr>
+  );
+}
+
+/** 段位の高い順のランキング。自分が上位に入っていなくても最後に自分の順位を出す。 */
+function RankingView() {
+  const [ranking, setRanking] = useState<RankingResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    fetchRanking()
+      .then(setRanking)
+      .catch((err: Error) => setError(err.message));
+  }, []);
+  if (error) return <p className="online-lobby__error">{error}</p>;
+  if (!ranking) return <p className="setup-lead">読み込んでいます…</p>;
+  const youInTop = ranking.top.some((e) => e.isYou);
+  return (
+    <>
+      <p className="setup-lead">
+        段位戦を打った {ranking.totalPlayers.toLocaleString()} 人中
+        {ranking.you ? ` あなたは ${ranking.you.position.toLocaleString()} 位` : "（あなたはまだ段位戦を打っていません）"}
+      </p>
+      <table className="history-screen__stats ranking-screen__table">
+        <tbody>
+          {ranking.top.map((e) => (
+            <RankingRow key={`${e.position}-${e.displayName}-${e.isYou}`} e={e} />
+          ))}
+          {ranking.you && !youInTop && (
+            <>
+              <tr className="ranking-screen__gap">
+                <td colSpan={5}>⋮</td>
+              </tr>
+              <RankingRow e={ranking.you} />
+            </>
+          )}
+        </tbody>
+      </table>
+      {ranking.top.length === 0 && <p className="setup-lead">まだ誰も段位戦を打っていません。</p>}
+    </>
+  );
+}
+
+/** 段位戦の戦績（通算の順位の成績と、最近の対局）と、段位のランキング。 */
 export function HistoryScreen({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<"history" | "ranking">("history");
   const [history, setHistory] = useState<RankedHistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,16 +115,24 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="gacha-screen history-screen" onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">戦績（段位戦）</div>
+          <div className="inbox-screen__tabs">
+            <button type="button" className={`inbox-screen__tab${tab === "history" ? " is-active" : ""}`} onClick={() => setTab("history")}>
+              戦績（段位戦）
+            </button>
+            <button type="button" className={`inbox-screen__tab${tab === "ranking" ? " is-active" : ""}`} onClick={() => setTab("ranking")}>
+              ランキング
+            </button>
+          </div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
           </button>
         </div>
 
-        {!history && !error && <p className="setup-lead">読み込んでいます…</p>}
-        {error && <p className="online-lobby__error">{error}</p>}
+        {tab === "ranking" && <RankingView />}
+        {tab === "history" && !history && !error && <p className="setup-lead">読み込んでいます…</p>}
+        {tab === "history" && error && <p className="online-lobby__error">{error}</p>}
 
-        {history && (
+        {tab === "history" && history && (
           <>
             <table className="history-screen__stats">
               <thead>

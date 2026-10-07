@@ -220,6 +220,10 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (gift_id, user_id)
   );
   `,
+  // 11: 退会（行は消さずに印を付ける。雀玉の記録などは残す必要があるため）
+  `
+  ALTER TABLE users ADD COLUMN deleted_at INTEGER;
+  `,
 ];
 
 export type Database = DatabaseSyncType;

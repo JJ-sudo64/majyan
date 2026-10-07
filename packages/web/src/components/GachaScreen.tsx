@@ -14,6 +14,7 @@ import {
 } from "@majyan/core";
 import { exchangeItem, rollGacha, useAccountStore } from "../online/account.js";
 import { GachaCard, RARITY_STARS } from "./GachaCard.js";
+import { RecordsScreen } from "./RecordsScreen.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
 
@@ -39,6 +40,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<GachaRollResponse | null>(null);
   const [showRates, setShowRates] = useState(false);
+  const [showRecords, setShowRecords] = useState(false);
   const [showExchange, setShowExchange] = useState(false);
   const [exchangeTarget, setExchangeTarget] = useState<GachaItem | null>(null);
   const total = jade ? jade.free + jade.paid : 0;
@@ -167,9 +169,15 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRates((v) => !v)}>
-          提供割合{showRates ? "を閉じる" : "を見る"}
-        </button>
+        <div className="setup-buttons">
+          <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRates((v) => !v)}>
+            提供割合{showRates ? "を閉じる" : "を見る"}
+          </button>
+          <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRecords(true)}>
+            ガチャ・雀玉の履歴
+          </button>
+        </div>
+        {showRecords && <RecordsScreen onClose={() => setShowRecords(false)} />}
         {showRates && (
           <div className="gacha-screen__rates">
             {RARITIES.map((r) => {

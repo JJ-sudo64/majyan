@@ -51,6 +51,11 @@ describe("gifts", () => {
     expect(inbox.claim(old.id, id)).toEqual({ jade: 300, items: [{ kind: "character", id: "masato" }] });
     expect(wallet.balance(old.id).free).toBe(startJade + 300);
     expect(collections.units(old.id).map((u) => u.characterId)).toEqual(["masato"]);
+    // 雀玉の履歴に「プレゼント」として新しい順で残る。
+    expect(wallet.history(old.id).map((e) => [e.reason, e.freeDelta])).toEqual([
+      ["gift", 300],
+      ["starting-bonus", startJade],
+    ]);
     // 2回目は受け取れない。
     expect(() => inbox.claim(old.id, id)).toThrow(GiftError);
     expect(inbox.claim(old.id, null)).toEqual({ jade: 0, items: [] });

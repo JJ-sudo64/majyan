@@ -58,6 +58,9 @@ interface UserRow {
 
 const toProfile = (row: UserRow): AccountProfile => ({ id: row.id, displayName: row.display_name, createdAt: row.created_at });
 
+/** 退会したアカウントの表示名。 */
+export const DELETED_USER_NAME = "退会したユーザー";
+
 export class AccountService {
   constructor(
     private readonly db: Database,
@@ -85,7 +88,8 @@ export class AccountService {
     if (typeof token !== "string" || token.length < 20 || token.length > 200) return null;
     const row = this.db
       .prepare(
-        `SELECT u.id, u.display_name, u.created_at FROM auth_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = ?`,
+        `SELECT u.id, u.display_name, u.created_at FROM auth_tokens t JOIN users u ON u.id = t.user_id
+         WHERE t.token_hash = ? AND u.deleted_at IS NULL`,
       )
       .get(hashToken(token)) as UserRow | undefined;
     if (!row) return null;
@@ -161,7 +165,9 @@ export class AccountService {
   }
 
   getProfile(userId: string): AccountProfile | null {
-    const row = this.db.prepare("SELECT id, display_name, created_at FROM users WHERE id = ?").get(userId) as UserRow | undefined;
+    const row = this.db.prepare("SELECT id, display_name, created_at FROM users WHERE id = ? AND deleted_at IS NULL").get(userId) as
+      | UserRow
+      | undefined;
     return row ? toProfile(row) : null;
   }
 
@@ -172,5 +178,19 @@ export class AccountService {
     const profile = this.getProfile(userId);
     if (!profile) throw new Error("アカウントが見つかりません");
     return profile;
+  }
+
+  /**
+   * 退会。ログインの鍵と引き継ぎコードを消して二度と入れなくし、名前を消す（他の人の戦績に
+   * 残っている名前も）。行そのものは消さない（雀玉の増減の記録などは法律上残す必要があり、
+   * 問い合わせにも答えられるように）。
+   */
+  deleteAccount(userId: string): void {
+    transaction(this.db, () => {
+      this.db.prepare("UPDATE users SET display_name = ?, deleted_at = ? WHERE id = ?").run(DELETED_USER_NAME, this.now(), userId);
+      this.db.prepare("DELETE FROM auth_tokens WHERE user_id = ?").run(userId);
+      this.db.prepare("DELETE FROM transfer_credentials WHERE user_id = ?").run(userId);
+      this.db.prepare("UPDATE ranked_match_seats SET name = ? WHERE user_id = ?").run(DELETED_USER_NAME, userId);
+    });
   }
 }

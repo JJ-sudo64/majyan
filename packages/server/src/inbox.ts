@@ -160,7 +160,7 @@ export class InboxService {
     }
     if (jade === 0 && items.length === 0) throw new GiftError("中身（雀玉・キャラ・カード）がありません");
     const target = g.targetUserId ?? null;
-    if (target && !this.db.prepare("SELECT 1 FROM users WHERE id = ?").get(target)) throw new GiftError("宛先のアカウントがありません");
+    if (target && !this.db.prepare("SELECT 1 FROM users WHERE id = ? AND deleted_at IS NULL").get(target)) throw new GiftError("宛先のアカウントがありません");
     const t = this.now();
     if (g.expiresAt != null && g.expiresAt <= t) throw new GiftError("期限が過去になっています");
     const result = this.db

@@ -21,6 +21,8 @@ import {
   type MeResponse,
   type RankView,
   type RankedHistoryResponse,
+  type RecordsResponse,
+  type RankingResponse,
   type TransferCodeResponse,
 } from "@majyan/core";
 
@@ -267,6 +269,22 @@ export async function claimGifts(giftId: number | null): Promise<GiftClaimRespon
   return res;
 }
 
+/** 雀玉の増減とガチャの結果の履歴。 */
+export async function fetchRecords(): Promise<RecordsResponse> {
+  return api<RecordsResponse>("/me/records");
+}
+
+/** 段位のランキング。 */
+export async function fetchRanking(): Promise<RankingResponse> {
+  return api<RankingResponse>("/ranking");
+}
+
+/** 退会する（取り消せない）。成功したらこのブラウザからもアカウントを外す。失敗したら例外。 */
+export async function deleteAccount(confirm: string): Promise<void> {
+  await api<object>("/me/delete", { method: "POST", body: JSON.stringify({ confirm }) });
+  clearLocalAccount();
+}
+
 /** 段位戦の戦績。 */
 export async function fetchRankedHistory(): Promise<RankedHistoryResponse> {
   return api<RankedHistoryResponse>("/me/history");
@@ -303,6 +321,11 @@ export async function loginWithTransfer(code: string, password: string): Promise
  * サーバー側のアカウントは残るので、引き継ぎのパスワードを決めてあれば戻れる。
  */
 export function forgetAccountForTesting(): void {
+  clearLocalAccount();
+}
+
+/** このブラウザからアカウントの鍵と読み込んだ中身を消す。 */
+function clearLocalAccount(): void {
   memoryToken = null;
   saveToken(null);
   useAccountStore.setState({
@@ -315,6 +338,8 @@ export function forgetAccountForTesting(): void {
     firstGacha: null,
     jade: null,
     dailyBonusNotice: null,
+    unclaimedGifts: 0,
+    latestAnnouncementId: null,
     error: null,
   });
 }

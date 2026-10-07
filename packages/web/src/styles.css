@@ -5443,3 +5443,71 @@ button {
   color: #b8f0ff;
   font-size: 14px;
 }
+
+/* ガチャ・雀玉の履歴（RecordsScreen） */
+.records-screen__table td {
+  font-size: 13px;
+}
+.records-screen__date {
+  white-space: nowrap;
+  opacity: 0.75;
+}
+.records-screen__gacha-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.records-screen__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+.records-screen__item {
+  opacity: 0.8;
+}
+.records-screen__item--r2 {
+  opacity: 1;
+  color: #b8f0ff;
+}
+.records-screen__item--r3 {
+  opacity: 1;
+  color: #ffd34d;
+  font-weight: bold;
+}
+
+/* 退会（TransferScreen） */
+.transfer-screen__delete-open {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.transfer-screen__delete {
+  background: #9b2c2c;
+  border-color: #e5484d;
+  color: #fff;
+}
+
+/* ランキング（HistoryScreenのタブ） */
+.ranking-screen__table td {
+  font-size: 14px;
+}
+.ranking-screen__position {
+  width: 3em;
+  font-weight: bold;
+  color: #ffe08a;
+}
+.ranking-screen__name {
+  text-align: left !important;
+  max-width: 12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ranking-screen__you td {
+  background: rgba(212, 175, 55, 0.18);
+  font-weight: bold;
+}
+.ranking-screen__gap td {
+  opacity: 0.5;
+  border-bottom: none;
+}

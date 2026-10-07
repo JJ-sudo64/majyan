@@ -191,7 +191,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           )}
           {!busy && (
             <button type="button" className="btn online-lobby__rename" onClick={() => setShowTransfer(true)}>
-              引き継ぎ
+              引き継ぎ・退会
             </button>
           )}
         </div>

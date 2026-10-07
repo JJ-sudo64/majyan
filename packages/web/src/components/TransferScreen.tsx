@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { TRANSFER_PASSWORD_MAX_LENGTH, TRANSFER_PASSWORD_MIN_LENGTH, formatTransferCode } from "@majyan/core";
-import { fetchTransferCode, loginWithTransfer, setTransferPassword, useAccountStore } from "../online/account.js";
+import { ACCOUNT_DELETE_CONFIRM, TRANSFER_PASSWORD_MAX_LENGTH, TRANSFER_PASSWORD_MIN_LENGTH, formatTransferCode } from "@majyan/core";
+import { deleteAccount, fetchTransferCode, loginWithTransfer, setTransferPassword, useAccountStore } from "../online/account.js";
 
 /**
  * 引き継ぎ。今のアカウントに引き継ぎのパスワードを決める（コードはサーバーが作る）のと、
@@ -20,6 +20,9 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [abandonOk, setAbandonOk] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -66,11 +69,24 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
     }
   }
 
+  async function submitDelete() {
+    if (deleteConfirm !== ACCOUNT_DELETE_CONFIRM || busy) return;
+    setBusy(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount(deleteConfirm);
+      onClose();
+    } catch (err) {
+      setDeleteError((err as Error).message);
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="gacha-screen transfer-screen" onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">引き継ぎ</div>
+          <div className="setup-character-select__label">{profile ? "引き継ぎ・退会" : "引き継ぎ"}</div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
           </button>
@@ -174,6 +190,41 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
           </div>
           {loginError && <p className="online-lobby__error">{loginError}</p>}
         </section>
+
+        {profile && (
+          <section className="transfer-screen__section">
+            {!showDelete ? (
+              <button type="button" className="btn btn--secondary transfer-screen__delete-open" onClick={() => setShowDelete(true)}>
+                退会する
+              </button>
+            ) : (
+              <>
+                <div className="online-lobby__section-title">退会</div>
+                <p className="transfer-screen__note">
+                  退会すると、このアカウント（{profile.displayName} さん）には二度と入れません。雀玉・キャラ・カード・段位はすべて使えなくなり、引き継ぎコードも消えます。取り消しはできません。
+                </p>
+                <label className="online-lobby__field">
+                  <span>確認のため「{ACCOUNT_DELETE_CONFIRM}」と入力してください</span>
+                  <input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} />
+                </label>
+                <div className="setup-buttons">
+                  <button
+                    type="button"
+                    className="btn transfer-screen__delete"
+                    disabled={deleteConfirm !== ACCOUNT_DELETE_CONFIRM || busy}
+                    onClick={() => void submitDelete()}
+                  >
+                    退会する
+                  </button>
+                  <button type="button" className="btn btn--secondary" onClick={() => setShowDelete(false)}>
+                    やめる
+                  </button>
+                </div>
+                {deleteError && <p className="online-lobby__error">{deleteError}</p>}
+              </>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );
