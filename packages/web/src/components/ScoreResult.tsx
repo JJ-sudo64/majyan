@@ -95,7 +95,10 @@ function WinningHandView({ round, player }: { round: RoundState; player: PlayerI
 function resolveYakuVoiceClip(character: Character, y: YakuResult, round: RoundState, player: PlayerIndex): string | undefined {
   if (y.name === "自風牌") return character.windVoiceClips?.[seatWindOf(round.dealerSeat, player)];
   if (y.name === "場風牌") return character.windVoiceClips?.[round.roundWind];
-  if (y.name === "ドラ" || y.name === "裏ドラ" || y.name === "赤ドラ") return character.doraVoiceClips?.[y.han];
+  if (y.name === "ドラ" || y.name === "裏ドラ" || y.name === "赤ドラ") {
+    if (y.han >= 13) return character.doraManyVoiceClip;
+    return character.doraVoiceClips?.[y.han];
+  }
   return character.yakuVoiceClips?.[y.name];
 }
 

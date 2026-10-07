@@ -138,6 +138,8 @@ export interface Character {
   /** ドラ・裏ドラ・赤ドラが乗った本数ごとの収録ボイス（種別を問わず本数のみで
       決まる。例えば表ドラ2枚でも裏ドラ2枚でも同じ「ドラ2」を再生する）。 */
   doraVoiceClips?: Partial<Record<number, string>>;
+  /** ドラ・裏ドラ・赤ドラが13本以上乗った時の収録ボイス（「ドラ沢山」）。 */
+  doraManyVoiceClip?: string;
   /** アバター画像のパス（public/配下）。ナメプレート等、小さい円形表示用。 */
   avatar: string;
   /** 必殺技発動演出（カットイン）用の縦長立ち絵。未指定ならavatarを代わりに使う。 */
