@@ -10,6 +10,8 @@ import {
   type ApiErrorResponse,
   type GachaRollResponse,
   type GiftClaimResponse,
+  type MissionClaimResponse,
+  type MissionsResponse,
   type InboxResponse,
   type GuestAccountResponse,
   type MeResponse,
@@ -23,6 +25,7 @@ import type { RankService } from "./ranks.js";
 import { GachaError, type CollectionService } from "./collection.js";
 import { InsufficientJadeError, type WalletService } from "./wallet.js";
 import { GiftError, type InboxService } from "./inbox.js";
+import { MissionError, type MissionService } from "./missions.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
 
@@ -33,6 +36,8 @@ export interface HttpApiOptions {
   wallet: WalletService;
   /** お知らせ・プレゼントボックス。無ければその機能のAPIは404。 */
   inbox?: InboxService;
+  /** デイリーミッション。無ければその機能のAPIは404。 */
+  missions?: MissionService;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
   guestsPerHourPerIp?: number;
   /** 引き継ぎコードでの入室に失敗できる回数（同じ接続元から、1時間あたり）。パスワードの総当たり対策。 */
@@ -89,7 +94,7 @@ function bearerToken(req: IncomingMessage): string | null {
 
 /** /api 配下なら処理してtrueを返す。それ以外のパスはfalse（呼び出し側が静的ファイル等を返す）。 */
 export function createApiHandler(options: HttpApiOptions) {
-  const { accounts, ranks, collections, wallet, inbox } = options;
+  const { accounts, ranks, collections, wallet, inbox, missions } = options;
   const me = (profile: AccountProfile, dailyBonus: number | null = null): MeResponse => ({
     profile,
     rank: ranks.get(profile.id),
@@ -101,6 +106,7 @@ export function createApiHandler(options: HttpApiOptions) {
     firstGacha: collections.firstGachaState(profile.id),
     unclaimedGifts: inbox?.unclaimedCount(profile.id) ?? 0,
     latestAnnouncementId: inbox?.latestAnnouncementId() ?? null,
+    claimableMissions: missions?.claimableCount(profile.id) ?? 0,
   });
   const now = options.now ?? Date.now;
   const limit = options.guestsPerHourPerIp ?? 20;
@@ -171,6 +177,29 @@ export function createApiHandler(options: HttpApiOptions) {
           if (profile) {
             sendJson(res, 200, { jade: wallet.history(profile.id), gacha: collections.gachaHistory(profile.id) } satisfies RecordsResponse);
           }
+          return true;
+        }
+        case "GET /missions": {
+          if (!missions) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (profile) sendJson(res, 200, { missions: missions.list(profile.id), resetsAt: missions.resetsAt() } satisfies MissionsResponse);
+          return true;
+        }
+        case "POST /missions/claim": {
+          if (!missions) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { missionId?: unknown };
+          const missionId = body.missionId ?? null;
+          if (missionId !== null && typeof missionId !== "string") return fail(res, 400, "ミッションが正しくありません"), true;
+          let jade;
+          try {
+            jade = missions.claim(profile.id, missionId);
+          } catch (err) {
+            if (err instanceof MissionError) return fail(res, 409, err.message), true;
+            throw err;
+          }
+          sendJson(res, 200, { jade, missions: missions.list(profile.id), me: me(profile) } satisfies MissionClaimResponse);
           return true;
         }
         case "GET /inbox": {

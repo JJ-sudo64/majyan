@@ -14,6 +14,7 @@ import type { SeatOptions } from "./seatView.js";
 import type { ClockDisplay } from "./turnClock.js";
 import type { RankState } from "./ranked.js";
 import type { GachaItem } from "./gacha.js";
+import type { MissionView } from "./missions.js";
 
 /** WebSocketの接続先パス（開発時はViteがこのパスをサーバーへ中継する）。 */
 export const ONLINE_WS_PATH = "/ws";
@@ -40,6 +41,8 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   GET  /api/inbox               (Bearer)     → InboxResponse         お知らせと、受け取れるプレゼント
 //   GET  /api/me/records          (Bearer)     → RecordsResponse       雀玉の増減とガチャの結果の履歴
 //   GET  /api/ranking             (Bearer)     → RankingResponse       段位の上位と、自分の順位
+//   GET  /api/missions            (Bearer)     → MissionsResponse      今日のデイリーミッション
+//   POST /api/missions/claim {missionId?} (Bearer) → MissionClaimResponse 達成したミッションの報酬を受け取る（無指定なら全部）
 //   POST /api/me/delete {confirm} (Bearer)     → {}                    退会（confirmはACCOUNT_DELETE_CONFIRM）
 //   POST /api/gifts/claim {giftId?} (Bearer)   → GiftClaimResponse     プレゼントを受け取る（giftId無しなら全部）
 //   POST /api/dev/reset-collection (Bearer)    → MeResponse            開発用: 手持ちと最初の10連を作った直後に戻す（--dev-tools時のみ）
@@ -121,6 +124,8 @@ export interface MeResponse {
   unclaimedGifts: number;
   /** 今出ているお知らせのうち一番新しいもののID（未読の印。無ければnull）。 */
   latestAnnouncementId: number | null;
+  /** 達成して報酬を受け取っていないミッションの数（ミッションボタンの印）。 */
+  claimableMissions: number;
 }
 
 /** 手持ちのキャラ1体。カードは一度付けたら外せない。 */
@@ -274,6 +279,19 @@ export interface RankingResponse {
   you: RankingEntry | null;
   /** 順位に載っている人数。 */
   totalPlayers: number;
+}
+
+export interface MissionsResponse {
+  missions: MissionView[];
+  /** 次にリセットされる時刻（ミリ秒）。 */
+  resetsAt: number;
+}
+
+export interface MissionClaimResponse {
+  /** 今回受け取った雀玉。 */
+  jade: number;
+  missions: MissionView[];
+  me: MeResponse;
 }
 
 export interface ApiErrorResponse {

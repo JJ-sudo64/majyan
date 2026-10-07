@@ -5511,3 +5511,23 @@ button {
   opacity: 0.5;
   border-bottom: none;
 }
+
+/* デイリーミッション（MissionsScreen） */
+.missions-screen__bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.missions-screen__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d4af37, #ffe08a);
+}
+.missions-screen__mission.is-claimed {
+  opacity: 0.55;
+}
+.missions-screen__claimed {
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.8;
+}

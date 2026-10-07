@@ -14,6 +14,8 @@ import {
   type FirstGachaState,
   type GachaRollResponse,
   type GiftClaimResponse,
+  type MissionClaimResponse,
+  type MissionsResponse,
   type InboxResponse,
   type JadeBalance,
   type ApiErrorResponse,
@@ -76,6 +78,8 @@ interface AccountState {
   latestAnnouncementId: number | null;
   /** このブラウザで最後に読んだお知らせのID。 */
   seenAnnouncementId: number;
+  /** 達成して報酬を受け取っていないミッションの数。 */
+  claimableMissions: number;
   error: string | null;
 }
 
@@ -92,6 +96,7 @@ export const useAccountStore = create<AccountState>(() => ({
   unclaimedGifts: 0,
   latestAnnouncementId: null,
   seenAnnouncementId: loadSeenAnnouncementId(),
+  claimableMissions: 0,
   error: null,
 }));
 
@@ -108,6 +113,7 @@ function applyMe(me: MeResponse) {
     jade: me.jade,
     unclaimedGifts: me.unclaimedGifts,
     latestAnnouncementId: me.latestAnnouncementId,
+    claimableMissions: me.claimableMissions,
     ...(me.dailyBonus ? { dailyBonusNotice: me.dailyBonus } : {}),
     error: null,
   });
@@ -274,6 +280,21 @@ export async function fetchRecords(): Promise<RecordsResponse> {
   return api<RecordsResponse>("/me/records");
 }
 
+/** 今日のデイリーミッション。 */
+export async function fetchMissions(): Promise<MissionsResponse> {
+  return api<MissionsResponse>("/missions");
+}
+
+/** 達成したミッションの報酬を受け取る（missionIdがnullなら全部）。 */
+export async function claimMissions(missionId: string | null): Promise<MissionClaimResponse> {
+  const res = await api<MissionClaimResponse>("/missions/claim", {
+    method: "POST",
+    body: JSON.stringify(missionId === null ? {} : { missionId }),
+  });
+  applyMe(res.me);
+  return res;
+}
+
 /** 段位のランキング。 */
 export async function fetchRanking(): Promise<RankingResponse> {
   return api<RankingResponse>("/ranking");
@@ -340,6 +361,7 @@ function clearLocalAccount(): void {
     dailyBonusNotice: null,
     unclaimedGifts: 0,
     latestAnnouncementId: null,
+    claimableMissions: 0,
     error: null,
   });
 }

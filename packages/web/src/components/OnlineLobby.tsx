@@ -8,6 +8,7 @@ import { UnitsScreen } from "./UnitsScreen.js";
 import { TransferScreen } from "./TransferScreen.js";
 import { HistoryScreen } from "./HistoryScreen.js";
 import { InboxScreen, type InboxTab } from "./InboxScreen.js";
+import { MissionsScreen } from "./MissionsScreen.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 
 /** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
@@ -58,6 +59,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const [showHistory, setShowHistory] = useState(false);
   const [inboxTab, setInboxTab] = useState<InboxTab | null>(null);
   const unclaimedGifts = useAccountStore((s) => s.unclaimedGifts);
+  const claimableMissions = useAccountStore((s) => s.claimableMissions);
+  const [showMissions, setShowMissions] = useState(false);
   const hasUnreadNews = useAccountStore((s) => s.latestAnnouncementId !== null && s.latestAnnouncementId > s.seenAnnouncementId);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
   const needsFirstGacha = accountStatus === "ready" && firstGacha !== null && !firstGacha.confirmed;
@@ -228,6 +231,12 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               {unclaimedGifts > 0 && <span className="online-lobby__badge">{unclaimedGifts}</span>}
             </button>
           )}
+          {!busy && (
+            <button type="button" className="btn online-lobby__gacha-btn" onClick={() => setShowMissions(true)}>
+              ミッション
+              {claimableMissions > 0 && <span className="online-lobby__badge">{claimableMissions}</span>}
+            </button>
+          )}
         </div>
       )}
       {!needsFirstGacha && dailyBonusNotice !== null && (
@@ -240,6 +249,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showTransfer && <TransferScreen onClose={() => setShowTransfer(false)} />}
       {showHistory && <HistoryScreen onClose={() => setShowHistory(false)} />}
       {inboxTab && <InboxScreen initialTab={inboxTab} onClose={() => setInboxTab(null)} />}
+      {showMissions && <MissionsScreen onClose={() => setShowMissions(false)} />}
 
       {ready && !busy && (
         <div className="online-lobby__section">
