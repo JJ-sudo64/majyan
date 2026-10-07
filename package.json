@@ -13,6 +13,7 @@
     "typecheck": "npm run typecheck -w packages/core && npm run typecheck -w packages/web && npm run typecheck -w packages/server",
     "dev:server": "npm run dev -w packages/server",
     "admin": "npm run admin -w packages/server --",
+    "normalize-audio": "node scripts/normalize-audio.mjs",
     "build:web": "npm run build -w packages/web",
     "start": "npm run build -w packages/web && npm run start -w packages/server"
   }
