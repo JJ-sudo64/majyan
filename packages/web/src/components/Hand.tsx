@@ -323,18 +323,29 @@ export function Hand({ round }: { round: RoundState }) {
   // ここでも流用し、5秒間だけ該当牌をtile--sanshoku-hintで光らせる。
   // swapEffect用のprevGaugeRefと共用すると片方のuseEffectが先に消費して
   // しまい判定が壊れるため、専用のrefを別に持つ。
+  // 消す時計は発動ごとのキー(sanshokuHint.key)だけに結び付ける。手牌の変化で
+  // 時計が止まると、5秒後に消えず光りっぱなしになる（以前の不具合）。
+  // また満タン未満からの0（新しい対局の始まり等）は発動ではないので光らせない。
   const prevSanshokuGaugeRef = useRef(player.skillGauge);
-  const [sanshokuHintCodes, setSanshokuHintCodes] = useState<Set<TileCode> | null>(null);
+  const [sanshokuHint, setSanshokuHint] = useState<{ codes: Set<TileCode>; key: number } | null>(null);
+  const sanshokuHintCodes = sanshokuHint?.codes ?? null;
   useEffect(() => {
     const prevGauge = prevSanshokuGaugeRef.current;
     prevSanshokuGaugeRef.current = player.skillGauge;
-    if (character?.skill.id === "masato-sanshoku-kirameki" && prevGauge > 0 && player.skillGauge === 0) {
-      setSanshokuHintCodes(computeSanshokuHintCodes(player.hand));
-      const timer = setTimeout(() => setSanshokuHintCodes(null), 5000);
-      return () => clearTimeout(timer);
+    if (
+      character?.skill.id === "masato-sanshoku-kirameki" &&
+      prevGauge >= character.gaugeMax &&
+      player.skillGauge === 0
+    ) {
+      setSanshokuHint((prev) => ({ codes: computeSanshokuHintCodes(player.hand), key: (prev?.key ?? 0) + 1 }));
     }
-    return undefined;
   }, [character, player.skillGauge, player.hand]);
+  const sanshokuHintKey = sanshokuHint?.key;
+  useEffect(() => {
+    if (sanshokuHintKey === undefined) return undefined;
+    const timer = setTimeout(() => setSanshokuHint(null), 5000);
+    return () => clearTimeout(timer);
+  }, [sanshokuHintKey]);
 
   // まだ切るか決めていないツモ牌（drawnTile）は待ち判定には含めない
   // 「確定している13枚相当」で計算する。自分のターンでなければ
