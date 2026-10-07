@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSettingsStore } from "../store/settingsStore.js";
+import { useGameStore } from "../store/gameStore.js";
 import { useTile3DDebugStore } from "../store/tile3dDebugStore.js";
 import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
 import { TABLE_BACKGROUND_OPTIONS, useTableBackgroundStore } from "../store/tableBackgroundStore.js";
@@ -17,6 +18,7 @@ export function SettingsPanel() {
   const autoTsumogiri = useSettingsStore((s) => s.autoTsumogiri);
   const setAutoTsumogiri = useSettingsStore((s) => s.setAutoTsumogiri);
   const autoWin = useSettingsStore((s) => s.autoWin);
+  const replaying = useGameStore((s) => s.replay !== null);
   const setAutoWin = useSettingsStore((s) => s.setAutoWin);
   const tile3dEnabled = useSettingsStore((s) => s.tile3dEnabled);
   const setTile3dEnabled = useSettingsStore((s) => s.setTile3dEnabled);
@@ -51,7 +53,8 @@ export function SettingsPanel() {
 
   return (
     <>
-      <div className="settings-panel">
+      {/* 牌譜の再生中は自分で打たないので、自動ツモ切り・自動和了は出さない。 */}
+      {!replaying && <div className="settings-panel">
         <div className="hud__row hud__auto-toggles">
           <button
             type="button"
@@ -68,7 +71,7 @@ export function SettingsPanel() {
             自動和了{autoWin ? " ON" : " OFF"}
           </button>
         </div>
-      </div>
+      </div>}
 
       {createPortal(
         <div className="volume-gear-wrap" ref={wrapRef}>

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_TIME_LIMIT_RULES, type ServerMessage, type OnlineSeatView, type MatchFormat } from "@majyan/core";
+import { DEFAULT_TIME_LIMIT_RULES, replayRoundFrames, type ServerMessage, type OnlineSeatView, type MatchFormat } from "@majyan/core";
 import { RoomManager, type Client } from "../src/rooms.js";
 import { AccountService } from "../src/accounts.js";
 import { openDatabase, type Database } from "../src/db.js";
@@ -7,6 +7,7 @@ import { RankService } from "../src/ranks.js";
 import { Matchmaker } from "../src/matchmaking.js";
 import { CollectionService } from "../src/collection.js";
 import { WalletService } from "../src/wallet.js";
+import { ReplayStore } from "../src/replays.js";
 import type { SessionTiming } from "../src/matchSession.js";
 
 function makeRng(seed: number): () => number {
@@ -49,6 +50,7 @@ let ranks: RankService;
 let collections: CollectionService;
 let rooms: RoomManager;
 let matchmaker: Matchmaker | undefined;
+let replays: ReplayStore;
 
 function setup(cpuFillMs = 20_000) {
   db = openDatabase(":memory:");
@@ -56,7 +58,8 @@ function setup(cpuFillMs = 20_000) {
   ranks = new RankService(db);
   const authenticate = (token: string) => accounts.authenticate(token);
   collections = new CollectionService(db, makeRng(9), () => Date.now());
-  rooms = new RoomManager({ authenticate, ranks, collections, wallet: new WalletService(db), rng: makeRng(5), timing: FAST });
+  replays = new ReplayStore(db);
+  rooms = new RoomManager({ authenticate, ranks, collections, wallet: new WalletService(db), rng: makeRng(5), timing: FAST, replays });
   matchmaker = new Matchmaker({ rooms, ranks, authenticate, cpuFillMs });
   return matchmaker;
 }
@@ -256,6 +259,29 @@ describe("ranked match", () => {
     const you = entry.seats.find((s) => s.isYou)!;
     expect(you).toMatchObject({ name: "A", place: result.place, characterId: a.client.view.match.round.characterIds[0] });
     expect(entry.seats.find((s) => s.name === "B")?.isYou).toBe(false);
+
+    // 牌譜を最初から当て直すと、実際の対局とまったく同じ最終結果になる。
+    expect(entry.hasReplay).toBe(true);
+    const replay = replays.load(entry.matchId, a.profile.id)!;
+    expect(replay.yourSeat).toBe(entry.seats.find((s) => s.isYou) && replay.yourSeat);
+    expect(replay.seats.filter((s) => s.isCpu)).toHaveLength(2);
+    let last = null;
+    for (const [i, round] of replay.rounds.entries()) {
+      const frames = replayRoundFrames(round);
+      expect(frames.states).toHaveLength(round.actions.length + 1); // 途中で記録と食い違わない
+      expect(frames.settled).not.toBeNull();
+      // 次の局の始まりの持ち点は、この局の精算後の持ち点と同じ。
+      const next = replay.rounds[i + 1];
+      if (next) expect(next.start.scores).toEqual(frames.settled!.match.scores);
+      last = frames.settled!.match;
+    }
+    expect(last!.finished).toBe(true);
+    const finalBySeat = db.prepare("SELECT seat, final_score FROM ranked_match_seats WHERE match_id = ? ORDER BY seat").all(entry.matchId) as {
+      final_score: number;
+    }[];
+    expect(last!.scores).toEqual(finalBySeat.map((r) => r.final_score));
+    // 対局に出ていない人には見せない。
+    expect(replays.load(entry.matchId, player("部外者").profile.id)).toBeNull();
   });
 
   it("lets a player who dropped out return to the running match instead of queueing again", () => {

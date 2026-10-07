@@ -25,6 +25,7 @@ import {
   type RankView,
   type RankedHistoryResponse,
   type RecordsResponse,
+  type ReplayResponse,
   type RankingResponse,
   type TransferCodeResponse,
 } from "@majyan/core";
@@ -316,6 +317,11 @@ export async function claimMissions(missionId: string | null): Promise<MissionCl
   });
   applyMe(res.me);
   return res;
+}
+
+/** 段位戦の牌譜。 */
+export async function fetchReplay(matchId: string): Promise<ReplayResponse> {
+  return api<ReplayResponse>(`/replays/${encodeURIComponent(matchId)}`);
 }
 
 /** 段位のランキング。 */

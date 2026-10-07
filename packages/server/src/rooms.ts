@@ -30,6 +30,7 @@ import type { MatchStore } from "./matchStore.js";
 import type { RankService } from "./ranks.js";
 import type { CollectionService } from "./collection.js";
 import type { WalletService } from "./wallet.js";
+import type { ReplayStore } from "./replays.js";
 
 export interface Client {
   readonly id: string;
@@ -81,6 +82,8 @@ export interface RoomManagerOptions {
   wallet?: WalletService;
   /** 対局中の部屋の保存先。無ければ保存しない（再起動で対局が消える）。 */
   store?: MatchStore;
+  /** 段位戦の牌譜の保存先。無ければ牌譜を取らない。 */
+  replays?: ReplayStore;
   /** 再起動して対局を戻した直後、人間が入り直してくるのを待つ時間（その間は自動操作しない）。 */
   restoreGraceMs?: number;
 }
@@ -297,6 +300,10 @@ export class RoomManager {
       send: (seat, view) => room.members.find((m) => m.seat === seat)?.client?.send({ t: "state", view }),
       onFinished: room.ranked ? (finished) => this.finishRanked(room, finished) : undefined,
       onChange: () => this.persist(room),
+      onRoundRecorded:
+        room.ranked && this.options.replays
+          ? (roundIndex, round) => this.options.replays!.saveRound(room.ranked!.matchId, roundIndex, round)
+          : undefined,
     };
   }
 

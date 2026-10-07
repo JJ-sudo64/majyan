@@ -8,7 +8,8 @@ import {
   type RankingEntry,
   type RankingResponse,
 } from "@majyan/core";
-import { fetchRankedHistory, fetchRanking } from "../online/account.js";
+import { fetchRankedHistory, fetchRanking, fetchReplay } from "../online/account.js";
+import { useGameStore } from "../store/gameStore.js";
 
 const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
 
@@ -104,6 +105,19 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<"history" | "ranking">("history");
   const [history, setHistory] = useState<RankedHistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadingReplay, setLoadingReplay] = useState<string | null>(null);
+
+  async function openReplay(matchId: string) {
+    setLoadingReplay(matchId);
+    setError(null);
+    try {
+      // 再生を始めると卓の画面に切り替わる（App.tsx）。終了するとこのロビーに戻る。
+      useGameStore.getState().openReplay(await fetchReplay(matchId));
+    } catch (err) {
+      setError((err as Error).message);
+      setLoadingReplay(null);
+    }
+  }
 
   useEffect(() => {
     fetchRankedHistory()
@@ -130,7 +144,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
 
         {tab === "ranking" && <RankingView />}
         {tab === "history" && !history && !error && <p className="setup-lead">読み込んでいます…</p>}
-        {tab === "history" && error && <p className="online-lobby__error">{error}</p>}
+        {error && <p className="online-lobby__error">{error}</p>}
 
         {tab === "history" && history && (
           <>
@@ -167,6 +181,16 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                     </span>
                     {e.rankAfter && <span className="history-screen__rank">→ {e.rankAfter}</span>}
                     <span className="history-screen__date">{formatDate(e.finishedAt)}</span>
+                    {e.hasReplay && (
+                      <button
+                        type="button"
+                        className="btn online-lobby__gacha-btn"
+                        disabled={loadingReplay !== null}
+                        onClick={() => void openReplay(e.matchId)}
+                      >
+                        {loadingReplay === e.matchId ? "読み込み中…" : "牌譜"}
+                      </button>
+                    )}
                   </div>
                   {e.seats.length > 0 && (
                     <ol className="history-screen__seats">

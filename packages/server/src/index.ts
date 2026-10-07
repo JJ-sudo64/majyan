@@ -35,6 +35,7 @@ import { WalletService } from "./wallet.js";
 import { InboxService } from "./inbox.js";
 import { MissionService } from "./missions.js";
 import { FriendService } from "./friends.js";
+import { ReplayStore } from "./replays.js";
 import { scheduleBackups } from "./backup.js";
 import { MatchStore } from "./matchStore.js";
 import { DEFAULT_CPU_FILL_MS, Matchmaker } from "./matchmaking.js";
@@ -75,7 +76,8 @@ const inbox = new InboxService(db, collections, wallet);
 const missions = new MissionService(db, wallet);
 const authenticate = (token: string) => accounts.authenticate(token);
 // 対局中の卓はDBへ保存しておき、再起動したら続きから再開する（入り直せば同じ席に戻れる）。
-const rooms = new RoomManager({ authenticate, ranks, collections, wallet, store: new MatchStore(db) });
+const replays = new ReplayStore(db);
+const rooms = new RoomManager({ authenticate, ranks, collections, wallet, store: new MatchStore(db), replays });
 const restoredMatches = rooms.restoreSavedMatches();
 const friends = new FriendService(db, { ranks, presenceOf: (userId) => rooms.presenceOf(userId) });
 const matchmaker = new Matchmaker({
@@ -94,6 +96,7 @@ const handleApi = createApiHandler({
   inbox,
   missions,
   friends,
+  replays,
   clientIp,
   devTools,
   // 開発中は「新しいアカウントで始める」で何度も作り直すため、制限をゆるめる。

@@ -49,6 +49,7 @@ import {
   DEFAULT_TIME_LIMIT_RULES,
   type AiDifficulty,
   type GameAction,
+  type ReplayRound,
   type MatchClocks,
   type MatchState,
   type OnlineSeatView,
@@ -97,6 +98,8 @@ export interface MatchSessionOptions {
   onFinished?: (match: MatchState) => void;
   /** 局面が変わるたびに呼ばれる（snapshot()を保存するため）。 */
   onChange?: () => void;
+  /** 1局が終わるたびに、その局の牌譜（局の始まりの状態と操作の並び）を渡す。無ければ記録しない。 */
+  onRoundRecorded?: (roundIndex: number, round: ReplayRound) => void;
 }
 
 /** 再起動をまたいで対局を続けるために保存する中身（JSONにできる値だけ）。 */
@@ -111,6 +114,8 @@ export interface SessionSnapshot {
   roundEndAcks: PlayerIndex[];
   lastScoreAdjustment: { delta: [number, number, number, number]; key: number } | null;
   finishReported: boolean;
+  /** 記録中の局の牌譜（牌譜を取っていない対局・古い保存では無い）。 */
+  replay?: { roundIndex: number; round: ReplayRound } | null;
 }
 
 export class MatchSession {
@@ -136,6 +141,9 @@ export class MatchSession {
   private readonly onChange: MatchSessionOptions["onChange"];
   /** 再開直後、切断中の人間が入り直してくるのを待つ期限（この時刻までは自動操作しない）。 */
   private awayGraceUntil = 0;
+  private readonly onRoundRecorded: MatchSessionOptions["onRoundRecorded"];
+  /** 記録中の局の牌譜（onRoundRecordedが無ければnull）。 */
+  private replay: { roundIndex: number; round: ReplayRound } | null;
 
   constructor(options: MatchSessionOptions) {
     this.match = options.match;
@@ -147,6 +155,8 @@ export class MatchSession {
     this.clocks = createMatchClocks(this.timing.rules);
     this.onFinished = options.onFinished;
     this.onChange = options.onChange;
+    this.onRoundRecorded = options.onRoundRecorded;
+    this.replay = this.onRoundRecorded ? { roundIndex: 0, round: { start: this.match, actions: [] } } : null;
   }
 
   /** 保存しておいた対局から作り直す（続きはresumeで始める）。人間の席は全員切断中にする。 */
@@ -160,6 +170,8 @@ export class MatchSession {
     for (const seat of snapshot.roundEndAcks) session.roundEndAcks.add(seat);
     session.lastScoreAdjustment = snapshot.lastScoreAdjustment;
     session.finishReported = snapshot.finishReported;
+    // 保存に牌譜が無い（古い保存）なら、続きの局から記録する（途中の局は残らない）。
+    if (session.onRoundRecorded) session.replay = snapshot.replay ?? null;
     return session;
   }
 
@@ -182,6 +194,7 @@ export class MatchSession {
       roundEndAcks: [...this.roundEndAcks],
       lastScoreAdjustment: this.lastScoreAdjustment,
       finishReported: this.finishReported,
+      replay: this.replay,
     };
   }
 
@@ -269,6 +282,7 @@ export class MatchSession {
     }
     const before = this.match.round;
     this.match = result.match;
+    this.replay?.round.actions.push(action);
     if (result.scoreAdjustment) {
       this.lastScoreAdjustment = { delta: result.scoreAdjustment, key: (this.lastScoreAdjustment?.key ?? 0) + 1 };
     }
@@ -355,6 +369,13 @@ export class MatchSession {
     const decision = pendingDecision(round);
 
     if (decision.kind === "round-over") {
+      if (this.replay) {
+        try {
+          this.onRoundRecorded?.(this.replay.roundIndex, this.replay.round);
+        } catch (err) {
+          console.error("[majyan-server] 牌譜の保存に失敗しました:", err);
+        }
+      }
       const { match, outcome } = settleRound(this.match);
       this.match = match;
       this.lastRoundOutcome = outcome;
@@ -418,6 +439,10 @@ export class MatchSession {
   private advanceRound(): void {
     if (!this.pendingRoundEnd || this.match.finished) return;
     this.match = advanceToNextRound(this.match, this.rng, this.cpuSeats());
+    // 古い保存から再開して記録が途切れている対局（replayがnull）は、欠けた牌譜になるので記録しない。
+    if (this.replay && !this.match.finished) {
+      this.replay = { roundIndex: this.replay.roundIndex + 1, round: { start: this.match, actions: [] } };
+    }
     this.pendingRoundEnd = false;
     this.roundEndDeadline = null;
     this.lastRoundOutcome = null;

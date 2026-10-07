@@ -28,6 +28,7 @@ import { InsufficientJadeError, type WalletService } from "./wallet.js";
 import { GiftError, type InboxService } from "./inbox.js";
 import { MissionError, type MissionService } from "./missions.js";
 import { FriendError, type FriendService } from "./friends.js";
+import type { ReplayStore } from "./replays.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
 
@@ -42,6 +43,8 @@ export interface HttpApiOptions {
   missions?: MissionService;
   /** フレンド。無ければその機能のAPIは404。 */
   friends?: FriendService;
+  /** 段位戦の牌譜。無ければその機能のAPIは404。 */
+  replays?: ReplayStore;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
   guestsPerHourPerIp?: number;
   /** 引き継ぎコードでの入室に失敗できる回数（同じ接続元から、1時間あたり）。パスワードの総当たり対策。 */
@@ -98,7 +101,7 @@ function bearerToken(req: IncomingMessage): string | null {
 
 /** /api 配下なら処理してtrueを返す。それ以外のパスはfalse（呼び出し側が静的ファイル等を返す）。 */
 export function createApiHandler(options: HttpApiOptions) {
-  const { accounts, ranks, collections, wallet, inbox, missions, friends } = options;
+  const { accounts, ranks, collections, wallet, inbox, missions, friends, replays } = options;
   const me = (profile: AccountProfile, dailyBonus: number | null = null): MeResponse => ({
     profile,
     rank: ranks.get(profile.id),
@@ -145,6 +148,15 @@ export function createApiHandler(options: HttpApiOptions) {
     if (path !== ONLINE_API_PREFIX && !path.startsWith(`${ONLINE_API_PREFIX}/`)) return false;
     const route = `${req.method} ${path.slice(ONLINE_API_PREFIX.length)}`;
     try {
+      if (req.method === "GET" && route.startsWith("GET /replays/")) {
+        const matchId = decodeURIComponent(route.slice("GET /replays/".length));
+        const profile = authed(req, res);
+        if (!profile) return true;
+        const replay = replays && /^[\w-]{1,64}$/.test(matchId) ? replays.load(matchId, profile.id) : null;
+        if (!replay) return fail(res, 404, "牌譜が見つかりません"), true;
+        sendJson(res, 200, replay);
+        return true;
+      }
       switch (route) {
         case "POST /guest": {
           const body = (await readJson(req)) as { displayName?: unknown };

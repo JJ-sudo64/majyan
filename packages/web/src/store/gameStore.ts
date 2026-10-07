@@ -11,7 +11,11 @@ import {
   pendingDecision,
   randomCardId,
   randomCharacterIds,
+  fromViewerSeat,
   redactMatchForSeat,
+  replayRoundFrames,
+  rotateMatchForViewer,
+  rotateOutcomeForViewer,
   settleRound,
   shareUnchanged,
   DEFAULT_AI_DIFFICULTY,
@@ -24,6 +28,8 @@ import {
   type OnlineSeatView,
   type PendingDecision,
   type PlayerIndex,
+  type ReplayResponse,
+  type ReplayRoundFrames,
   type RoundScoreOutcome,
   type RoundState,
   type SeatInfo,
@@ -71,6 +77,71 @@ function viewStateFor(full: MatchState | null): Pick<GameStoreState, "fullMatch"
   return { fullMatch: full, match: redactMatchForSeat(full, HUMAN), humanOptions: options, humanCallOptions: options.call };
 }
 
+/** 牌譜の再生中の状態。 */
+export interface ReplayState {
+  data: ReplayResponse;
+  /** どの席の視点で見ているか（本物の座席番号）。 */
+  viewer: PlayerIndex;
+  /** 全員の手牌を表で見せるか。 */
+  revealAll: boolean;
+  roundIndex: number;
+  /** stops内の位置。stops.lengthと同じ値は結果画面（局が最後まで終わっている時だけ）。 */
+  step: number;
+  frames: ReplayRoundFrames;
+  /** 1手ずつ進める時に止まる局面（frames.statesの添字）。ツモと「鳴かない」の応答は
+      見た目がほとんど変わらないので飛ばし、打牌・鳴き・和了などで止まる。 */
+  stops: number[];
+}
+
+const NO_OPTIONS: SeatOptions = { turn: null, call: null, canSwapStartingTile: false };
+
+/** 牌譜の1局ぶんで進められる最後のstep。 */
+export function replayLastStep(r: ReplayState): number {
+  return r.stops.length - 1 + (r.frames.settled ? 1 : 0);
+}
+
+function replayStops(data: ReplayResponse, roundIndex: number, frames: ReplayRoundFrames): number[] {
+  const actions = data.rounds[roundIndex]!.actions;
+  const stops = [0];
+  for (let i = 1; i < frames.states.length; i++) {
+    const type = actions[i - 1]!.type;
+    if ((type !== "draw" && type !== "skip") || i === frames.states.length - 1) stops.push(i);
+  }
+  return stops;
+}
+
+/** 牌譜の今のstepを、画面に渡す状態（見ている席を0番に回した版）にする。 */
+function replayViewState(r: ReplayState): Partial<GameStoreState> {
+  const showResult = !!r.frames.settled && r.step >= r.stops.length;
+  const base = showResult ? r.frames.settled!.match : r.frames.states[r.stops[Math.min(r.step, r.stops.length - 1)]!]!;
+  let match = rotateMatchForViewer(r.revealAll ? base : redactMatchForSeat(base, r.viewer), r.viewer);
+  // 他家の手牌は「自分に公開されている」時だけ表で描くので、全員表示ではその印を付ける。
+  if (r.revealAll) match = { ...match, round: { ...match.round, handsRevealedTo: HUMAN } };
+  const onlineSeats = ([0, 1, 2, 3] as PlayerIndex[]).map((i): SeatInfo => {
+    const seat = r.data.seats[fromViewerSeat(i, r.viewer)]!;
+    return { name: seat.name, rankLabel: null, isCpu: seat.isCpu, disconnected: false };
+  });
+  return {
+    replay: r,
+    online: false,
+    fullMatch: null,
+    match,
+    humanOptions: NO_OPTIONS,
+    humanCallOptions: null,
+    pendingRoundEnd: showResult,
+    lastRoundOutcome: showResult ? rotateOutcomeForViewer(r.frames.settled!.outcome, r.viewer) : null,
+    onlineSeats,
+    clock: null,
+    debugMode: false,
+    history: [],
+  };
+}
+
+function replayAtRound(data: ReplayResponse, roundIndex: number, viewer: PlayerIndex, revealAll: boolean): ReplayState {
+  const frames = replayRoundFrames(data.rounds[roundIndex]!);
+  return { data, viewer, revealAll, roundIndex, step: 0, frames, stops: replayStops(data, roundIndex, frames) };
+}
+
 interface GameStoreState {
   /** 本物の対局状態（他家の手牌・山を含む）。進行ロジック専用で、画面の
       コンポーネントからは読まないこと（読むなら下のmatch）。 */
@@ -115,6 +186,14 @@ interface GameStoreState {
   roundEndAcknowledged: boolean;
   roundEndDeadline: number | null;
   applyOnlineView: (view: OnlineSeatView) => void;
+  /** 牌譜の再生中ならその状態（再生中は操作を受け付けず、局面はreplay*で動かす）。 */
+  replay: ReplayState | null;
+  openReplay: (data: ReplayResponse) => void;
+  /** 1手進める/戻す。局の端では隣の局へ移る。 */
+  replayStep: (delta: 1 | -1) => void;
+  replayGotoRound: (roundIndex: number) => void;
+  replaySetViewer: (viewer: PlayerIndex) => void;
+  replayToggleRevealAll: () => void;
   startMatch: (
     format: MatchFormat,
     debugMode?: boolean,
@@ -312,6 +391,45 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   clock: null,
   roundEndAcknowledged: false,
   roundEndDeadline: null,
+  replay: null,
+
+  openReplay: (data) => {
+    if (data.rounds.length === 0) return;
+    set(replayViewState(replayAtRound(data, 0, data.yourSeat, false)));
+  },
+
+  replayStep: (delta) => {
+    const r = get().replay;
+    if (!r) return;
+    const step = r.step + delta;
+    if (step > replayLastStep(r)) {
+      if (r.roundIndex + 1 < r.data.rounds.length) set(replayViewState(replayAtRound(r.data, r.roundIndex + 1, r.viewer, r.revealAll)));
+      return;
+    }
+    if (step < 0) {
+      if (r.roundIndex === 0) return;
+      const prev = replayAtRound(r.data, r.roundIndex - 1, r.viewer, r.revealAll);
+      set(replayViewState({ ...prev, step: replayLastStep(prev) }));
+      return;
+    }
+    set(replayViewState({ ...r, step }));
+  },
+
+  replayGotoRound: (roundIndex) => {
+    const r = get().replay;
+    if (!r || roundIndex < 0 || roundIndex >= r.data.rounds.length) return;
+    set(replayViewState(replayAtRound(r.data, roundIndex, r.viewer, r.revealAll)));
+  },
+
+  replaySetViewer: (viewer) => {
+    const r = get().replay;
+    if (r) set(replayViewState({ ...r, viewer }));
+  },
+
+  replayToggleRevealAll: () => {
+    const r = get().replay;
+    if (r) set(replayViewState({ ...r, revealAll: !r.revealAll }));
+  },
 
   applyOnlineView: (view) => {
     const state = get();
@@ -424,6 +542,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   acknowledgeRoundEnd: () => {
     const state = get();
+    // 牌譜の結果画面の「次の局へ」は、次の局の最初へ進む。
+    if (state.replay) {
+      get().replayGotoRound(state.replay.roundIndex + 1);
+      return;
+    }
     if (state.online) {
       onlineLink.send({ t: "nextRound" });
       set({ roundEndAcknowledged: true });
@@ -444,6 +567,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   backToTitle: () => {
     if (get().online) onlineLink.close();
     set({
+      replay: null,
       online: false,
       onlineSeats: null,
       clock: null,

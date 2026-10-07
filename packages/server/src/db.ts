@@ -242,6 +242,15 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (user_id, friend_id)
   );
   `,
+  // 13: 段位戦の牌譜（1局ずつgzipしたJSON。対局が終わる前から局ごとに書いていく）
+  `
+  CREATE TABLE match_replays (
+    match_id TEXT NOT NULL,
+    round_index INTEGER NOT NULL,
+    data BLOB NOT NULL,
+    PRIMARY KEY (match_id, round_index)
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

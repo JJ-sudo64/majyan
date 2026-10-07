@@ -7,7 +7,7 @@
  * rotateMatchForViewer参照）に回してある。画面から送る操作(action)も同じく
  * 自分=0の番号で組み立てて送り、サーバー側で本物の座席番号に戻す。
  */
-import type { GameAction } from "./actions.js";
+import type { GameAction, PlayerIndex } from "./actions.js";
 import type { MatchFormat, MatchState } from "./gameState.js";
 import type { RoundScoreOutcome } from "./gameEngine.js";
 import type { SeatOptions } from "./seatView.js";
@@ -15,6 +15,7 @@ import type { ClockDisplay } from "./turnClock.js";
 import type { RankState } from "./ranked.js";
 import type { GachaItem } from "./gacha.js";
 import type { MissionView } from "./missions.js";
+import type { ReplayRound } from "./replay.js";
 
 /** WebSocketの接続先パス（開発時はViteがこのパスをサーバーへ中継する）。 */
 export const ONLINE_WS_PATH = "/ws";
@@ -44,6 +45,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   GET  /api/missions            (Bearer)     → MissionsResponse      今日のデイリーミッション
 //   POST /api/missions/claim {missionId?} (Bearer) → MissionClaimResponse 達成したミッションの報酬を受け取る（無指定なら全部）
 //   POST /api/me/delete {confirm} (Bearer)     → {}                    退会（confirmはACCOUNT_DELETE_CONFIRM）
+//   GET  /api/replays/<対局ID>     (Bearer)     → ReplayResponse        段位戦の牌譜（その対局に出た人だけ）
 //   GET  /api/friends             (Bearer)     → FriendsResponse       フレンド・申請の一覧と自分のフレンドコード
 //   POST /api/friends/request {code} (Bearer)  → FriendsResponse       フレンド申請（相手からも申請が来ていればその場で成立）
 //   POST /api/friends/respond {code, accept} (Bearer) → FriendsResponse 届いた申請を承認・お断り
@@ -178,6 +180,8 @@ export interface RankedHistoryEntry {
   rankAfter: string;
   /** 卓の4人を順位順に。席の記録を始める前の対局は空。 */
   seats: RankedHistorySeat[];
+  /** 牌譜が残っているか（牌譜の記録を始める前の対局はfalse）。 */
+  hasReplay: boolean;
 }
 
 export interface RankedHistoryResponse {
@@ -338,6 +342,22 @@ export interface FriendsResponse {
   incoming: FriendRequestView[];
   /** 自分が出した申請（新しい順）。 */
   outgoing: FriendRequestView[];
+}
+
+export interface ReplaySeat {
+  name: string;
+  isCpu: boolean;
+}
+
+export interface ReplayResponse {
+  matchId: string;
+  format: MatchFormat;
+  finishedAt: number;
+  /** 本物の座席番号の順。 */
+  seats: [ReplaySeat, ReplaySeat, ReplaySeat, ReplaySeat];
+  /** 見ている人が座っていた席（最初はこの席の視点で見せる）。 */
+  yourSeat: PlayerIndex;
+  rounds: ReplayRound[];
 }
 
 export interface ApiErrorResponse {

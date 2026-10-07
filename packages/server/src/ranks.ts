@@ -179,6 +179,7 @@ export class RankService {
         final_score: number;
       }[];
       return {
+        hasReplay: !!this.db.prepare("SELECT 1 FROM match_replays WHERE match_id = ? LIMIT 1").get(row.match_id),
         matchId: row.match_id,
         format: row.format,
         finishedAt: row.finished_at,
