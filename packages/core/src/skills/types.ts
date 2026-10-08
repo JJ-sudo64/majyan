@@ -151,6 +151,9 @@ export interface Character {
       絵の中の牌(中・東など)は実際の和了牌・宣言牌と食い違って見えるので、
       牌が写っている絵はcropで牌を外した範囲だけを見せる。 */
   declarationArt?: Partial<Record<"riichi" | "tsumo" | "ron", DeclarationArt>>;
+  /** 必殺技を発動した時の1枚絵（技名が描き込まれた16:9の絵）。あれば立ち絵の
+      カットイン(cutin)の代わりに、宣言カットインと同じ帯でこれを出す。 */
+  skillArt?: DeclarationArt;
   /** 宣言カットインのフラッシュ・光・重ねる文字の色（CSSの色）。絵の色調に
       合わせる。未指定なら紫。 */
   declarationAccent?: string;

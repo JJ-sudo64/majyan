@@ -172,6 +172,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/hiiragi-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/hiiragi-ron.webp", keepEdge: "right" },
     },
+    // 「開花」の筆文字が左端寄り。
+    skillArt: { src: "/declarations/hiiragi-skill.webp", keepEdge: "left" },
     declarationAccent: "#ff4fa3",
     gaugeMax: 100,
     gaugePerTurn: 10,
@@ -203,6 +205,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/nagi-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/nagi-ron.webp", keepEdge: "right" },
     },
+    // 「積み込み」の筆文字が左端ぎりぎり。
+    skillArt: { src: "/declarations/nagi-skill.webp", keepEdge: "left" },
     declarationAccent: "#a866ff",
     // 引き直す牌はランダム（カエデと違い有効牌が保証されない賭け）なので、
     // 制約なしで発動できる点を割り引いてカエデより速くする。
@@ -252,6 +256,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/raiko-tsumo.webp", keepEdge: "top-left" },
       ron: { src: "/declarations/raiko-ron.webp", keepEdge: "right" },
     },
+    // 「一閃」の筆文字が左上ぎりぎり。
+    skillArt: { src: "/declarations/raiko-skill.webp", keepEdge: "top-left" },
     declarationAccent: "#ffc83d",
     gaugeMax: RAIKO_GAUGE_MAX,
     gaugePerTurn: 12,
@@ -341,6 +347,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/toki-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/toki-ron.webp", keepEdge: "right" },
     },
+    // 「嶺上顕現」の筆文字が左上から左端に沿う。
+    skillArt: { src: "/declarations/toki-skill.webp", keepEdge: "left" },
     declarationAccent: "#8a5cff",
     gaugeMax: 100,
     gaugePerTurn: 14,
@@ -378,6 +386,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/kagerou-tsumo.webp", keepEdge: "top-left" },
       ron: { src: "/declarations/kagerou-ron.webp", keepEdge: "top-left" },
     },
+    // 「透視の術」の筆文字が左端に沿う。
+    skillArt: { src: "/declarations/kagerou-skill.webp", keepEdge: "left" },
     declarationAccent: "#9d6bff",
     // 他家3人の手牌が丸見えになる情報アドバンテージは大きいため、標準(10)より遅くする。
     gaugeMax: 100,
@@ -412,6 +422,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/luna-tsumo.webp", keepEdge: "top-left" },
       ron: { src: "/declarations/luna-ron.webp", keepEdge: "top-left" },
     },
+    // 「運命の采配」の筆文字が左上に描き込まれている（宣言の絵と同じくkeepEdge: "top-left"）。
+    skillArt: { src: "/declarations/luna-skill.webp", keepEdge: "top-left" },
     declarationAccent: "#b57bff",
     gaugeMax: 100,
     gaugePerTurn: 10,
@@ -451,6 +463,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/subaru-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/subaru-ron.webp", keepEdge: "top-left" },
     },
+    // 「山読み」の筆文字が左上ぎりぎりにある。
+    skillArt: { src: "/declarations/subaru-skill.webp", keepEdge: "top-left" },
     declarationAccent: "#4f8dff",
     // 手牌が見えるカゲロウと違い「残り枚数の精度が上がる」だけの地味な効果
     // のため、標準(10)より速くする。
@@ -486,6 +500,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/kaede-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/kaede-ron.webp", keepEdge: "right" },
     },
+    // 「手ほどき」の筆文字は下の中央。
+    skillArt: { src: "/declarations/kaede-skill.webp" },
     declarationAccent: "#ff4a3d",
     voiceClips: {
       chi: "/voices/kaede/chi.wav",
@@ -641,6 +657,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/jin-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/jin-ron.webp", keepEdge: "right" },
     },
+    // 「大明立直」の筆文字が右端寄り。
+    skillArt: { src: "/declarations/jin-skill.webp", keepEdge: "right" },
     declarationAccent: "#ff2e3a",
     gaugeMax: 100,
     gaugePerTurn: 10,
@@ -678,6 +696,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/ren-tsumo.webp", crop: { x: 0, y: 0, w: 1, h: 0.94 }, keepEdge: "right" },
       ron: { src: "/declarations/ren-ron.webp", keepEdge: "right" },
     },
+    // 「捲る運命」の筆文字が右端寄り。左下の中と卓の牌はcropで外す（文字のすぐ右の小さな牌は文字と重なるので残る）。
+    skillArt: { src: "/declarations/ren-skill.webp", crop: { x: 0.41, y: 0, w: 0.59, h: 0.86 }, keepEdge: "right" },
     declarationAccent: "#e0b040",
     gaugeMax: 100,
     gaugePerTurn: 10,
@@ -718,6 +738,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/masato-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/masato-ron.webp", keepEdge: "right" },
     },
+    // 「三色の煌めき」の筆文字が右上。
+    skillArt: { src: "/declarations/masato-skill.webp", keepEdge: "right" },
     declarationAccent: "#d9a441",
     voiceClips: {
       chi: "/voices/masato/chi.wav",
@@ -837,6 +859,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/mirai-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/mirai-ron.webp", keepEdge: "right" },
     },
+    // 「未来視」の筆文字が右端寄り。
+    skillArt: { src: "/declarations/mirai-skill.webp", keepEdge: "right" },
     declarationAccent: "#b05cff",
     gaugeMax: 100,
     gaugePerTurn: 10,
@@ -876,6 +900,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/saki-tsumo.webp", crop: { x: 0.35, y: 0, w: 0.65, h: 1 }, keepEdge: "right" },
       ron: { src: "/declarations/saki-ron.webp", crop: { x: 0, y: 0, w: 1, h: 0.79 }, keepEdge: "right" },
     },
+    // 「特技ドラ引き」の筆文字が右端寄り（周りの光る板は牌の裏なので外さない）。
+    skillArt: { src: "/declarations/saki-skill.webp", keepEdge: "right" },
     declarationAccent: "#c86bff",
     gaugeMax: SAKI_GAUGE_MAX,
     gaugePerTurn: 8,
@@ -933,6 +959,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/naoki-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/naoki-ron.webp", keepEdge: "right" },
     },
+    // 「クマクマタイム」の筆文字が右上。
+    skillArt: { src: "/declarations/naoki-skill.webp", keepEdge: "right" },
     declarationAccent: "#a45cff",
     // パッシブ専用（onActivateが無い）ため、ゲージ関連の値は実質未使用
     // （SkillGauge.tsxがonActivateの無いキャラのバー自体を表示しない）。
@@ -985,6 +1013,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/tomohiro-tsumo.webp", crop: { x: 0, y: 0, w: 1, h: 0.96 }, keepEdge: "right" },
       ron: { src: "/declarations/tomohiro-ron.webp", keepEdge: "right" },
     },
+    // 「手牌が一枚しかない人」の筆文字が右端まで横に長い。
+    skillArt: { src: "/declarations/tomohiro-skill.webp", keepEdge: "right" },
     declarationAccent: "#b070ff",
     // パッシブ専用（onActivateが無い）ため、ゲージ関連の値は実質未使用
     // （SkillGauge.tsxがonActivateの無いキャラのバー自体を表示しない）。
@@ -1041,6 +1071,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/koki-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/koki-ron.webp", keepEdge: "right" },
     },
+    // 「太っ腹」の筆文字が右下寄り（札束・チップは牌ではないので外さない）。
+    skillArt: { src: "/declarations/koki-skill.webp", keepEdge: "right" },
     declarationAccent: "#f0b83c",
     // 発動後は局が終わるまで何度でも（ドラを切るたび）再発動する持続効果で
     // 単発の必殺技より価値が高いため、標準(10)より遅くする。
@@ -1118,6 +1150,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/takaharu-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/takaharu-ron.webp", keepEdge: "right" },
     },
+    // 「アトミックベタ降り」の筆文字が右端寄り。
+    skillArt: { src: "/declarations/takaharu-skill.webp", keepEdge: "right" },
     declarationAccent: "#ffc94a",
     // 局が終わるまで何度でも張り直せる持続的なロン無効化は単発の必殺技より
     // 価値が高いため、標準(10)より遅くする。
@@ -1170,6 +1204,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/nyanjiro-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/nyanjiro-ron.webp", keepEdge: "right" },
     },
+    // 「アトミックリーチ」の筆文字が右下まで伸びる。
+    skillArt: { src: "/declarations/nyanjiro-skill.webp", keepEdge: "right" },
     declarationAccent: "#e8a93c",
     // 局が終わるまで他家3人全員のリーチを封じる強力な妨害効果のため、
     // 標準(10)より遅くする。
@@ -1214,6 +1250,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/mebius-tsumo.webp", keepEdge: "left" },
       ron: { src: "/declarations/mebius-ron.webp", keepEdge: "left" },
     },
+    // 「陰陽配牌」の筆文字が右端寄り。
+    skillArt: { src: "/declarations/mebius-skill.webp", keepEdge: "right" },
     declarationAccent: "#7a5cff",
     // パッシブ専用（onActivateが無い）ため、ゲージ関連の値は実質未使用
     // （SkillGauge.tsxがonActivateの無いキャラのバー自体を表示しない）。
@@ -1266,6 +1304,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/zeno-tsumo.webp", keepEdge: "left" },
       ron: { src: "/declarations/zeno-ron.webp", keepEdge: "left" },
     },
+    // 「時間停止」の筆文字が右下寄り（右上の小さな牌は髪と近くcropで外せないので残す）。
+    skillArt: { src: "/declarations/zeno-skill.webp", keepEdge: "right" },
     declarationAccent: "#8f6bff",
     gaugeMax: 100,
     gaugePerTurn: 8,
@@ -1310,6 +1350,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/kagami-tsumo.webp", keepEdge: "left" },
       ron: { src: "/declarations/kagami-ron.webp", keepEdge: "left" },
     },
+    // 「写し身」の筆文字が右端寄り。
+    skillArt: { src: "/declarations/kagami-skill.webp", keepEdge: "right" },
     declarationAccent: "#5b8cff",
     gaugeMax: 100,
     gaugePerTurn: 10,
@@ -1357,6 +1399,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/karin-tsumo.webp", keepEdge: "left" },
       ron: { src: "/declarations/karin-ron.webp", keepEdge: "right" },
     },
+    // 「借り物競争」の筆文字が右端寄り。
+    skillArt: { src: "/declarations/karin-skill.webp", keepEdge: "right" },
     declarationAccent: "#b25cff",
     // 通常キャラの半分（gaugePerTurn 10→5, gaugePerDealIn 20→10）。
     // 「同卓者の技を自由に選べる」という自由度の高さの代償として、
@@ -1391,6 +1435,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/sena-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/sena-ron.webp", crop: { x: 0, y: 0, w: 1, h: 0.8 }, keepEdge: "left" },
     },
+    // 「様子見」の筆文字が右端寄り。
+    skillArt: { src: "/declarations/sena-skill.webp", keepEdge: "right" },
     declarationAccent: "#a15cff",
     // 効果が弱い（1巡やり過ごすだけで打点・進行には一切寄与しない）代わりに、
     // 打牌のたびのゲージ上昇を標準の倍にしている（gaugePerTurn 10→20）。
@@ -1445,6 +1491,8 @@ export const CHARACTERS: Record<string, Character> = {
       tsumo: { src: "/declarations/mio-tsumo.webp", keepEdge: "right" },
       ron: { src: "/declarations/mio-ron.webp", keepEdge: "right" },
     },
+    // 「取り返し」の筆文字が右下まで伸びる。
+    skillArt: { src: "/declarations/mio-skill.webp", keepEdge: "right" },
     declarationAccent: "#9f5cff",
     gaugeMax: 100,
     gaugePerTurn: 10,

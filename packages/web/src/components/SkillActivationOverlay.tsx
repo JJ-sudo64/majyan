@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CHARACTERS, CUTIN_DISPLAY_MS, type Character, type RoundState } from "@majyan/core";
+import { DeclarationCutinView, skillCutin } from "./DeclarationCutinOverlay.js";
 
 /** ネット対戦ではこの間サーバーが制限時間を止める（turnClock.tsのcutinHoldMs）。 */
 const DISPLAY_MS = CUTIN_DISPLAY_MS.skill;
@@ -89,6 +90,9 @@ export function SkillActivationOverlay({ round }: { round: RoundState }) {
  * SkillActivationOverlayと、全キャラ一覧(CutinGallery.tsx)の両方で使う。
  */
 export function SkillActivationView({ character }: { character: Character }) {
+  // 技名入りの1枚絵があるキャラは、宣言カットインと同じ帯で見せる。
+  const art = skillCutin(character);
+  if (art) return <DeclarationCutinView cutin={art} />;
   return (
     <div className="skill-activation-overlay">
       <div className="skill-activation-overlay__flash" />

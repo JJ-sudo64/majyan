@@ -2257,6 +2257,10 @@ button {
 .declaration-cutin--riichi {
   --dur: 1.6s;
 }
+/* 必殺技の1枚絵（CUTIN_DISPLAY_MS.skillと同じ長さ）。 */
+.declaration-cutin--skill {
+  --dur: 1.7s;
+}
 .declaration-cutin__flash {
   position: absolute;
   inset: 0;

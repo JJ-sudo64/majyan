@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { CHARACTERS, CUTIN_DISPLAY_MS, type DeclarationArt, type RoundState } from "@majyan/core";
+import { CHARACTERS, CUTIN_DISPLAY_MS, type Character, type DeclarationArt, type RoundState } from "@majyan/core";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 
 export type Declaration = "riichi" | "tsumo" | "ron";
@@ -17,7 +17,8 @@ const ART_ASPECT = 16 / 9;
 const DEFAULT_ACCENT = "#a866ff";
 
 interface ActiveCutin {
-  kind: Declaration;
+  /** "skill"は必殺技の1枚絵（Character.skillArt。SkillActivationView.tsxから出す）。 */
+  kind: Declaration | "skill";
   src: string;
   /** 絵に文字が描き込まれていない時だけtrue（演出側で文字を重ねる）。 */
   addWord: boolean;
@@ -30,6 +31,13 @@ interface ActiveCutin {
 
 function cutinFor(round: RoundState, seat: number, kind: Declaration): Omit<ActiveCutin, "key"> | null {
   return characterCutin(round.characterIds[seat]!, kind);
+}
+
+/** 必殺技の1枚絵(Character.skillArt)のカットイン。無ければnull。 */
+export function skillCutin(character: Character): Omit<ActiveCutin, "key"> | null {
+  const art = character.skillArt;
+  if (!art) return null;
+  return { kind: "skill", src: art.src, addWord: false, crop: art.crop, keepEdge: art.keepEdge, accent: character.declarationAccent ?? DEFAULT_ACCENT };
 }
 
 /** キャラIDと宣言から、カットインの表示内容を作る。1枚絵が無ければnull。 */
@@ -137,7 +145,7 @@ export function DeclarationCutinOverlay({ round }: { round: RoundState }) {
   // リーチのカットインは表示時間が過ぎたら消す（和了のカットインは上の予定で消す）。
   useEffect(() => {
     if (!active || active.kind !== "riichi") return undefined;
-    const timer = setTimeout(() => setActive(null), DISPLAY_MS[active.kind]);
+    const timer = setTimeout(() => setActive(null), DISPLAY_MS.riichi);
     return () => clearTimeout(timer);
   }, [active]);
 
@@ -160,6 +168,7 @@ export function DeclarationCutinOverlay({ round }: { round: RoundState }) {
  * DeclarationCutinOverlayと、全キャラ一覧(CutinGallery.tsx)の両方で使う。
  */
 export function DeclarationCutinView({ cutin }: { cutin: Omit<ActiveCutin, "key"> }) {
+  const word = cutin.kind === "skill" ? null : WORDS[cutin.kind];
   const { crop } = cutin;
   // cropがあれば、帯をその範囲の縦横比にし、絵を拡大・ずらして範囲だけを帯に写す。
   const bandStyle = crop ? ({ "--band-aspect": (crop.w / crop.h) * ART_ASPECT } as CSSProperties) : undefined;
@@ -183,7 +192,7 @@ export function DeclarationCutinView({ cutin }: { cutin: Omit<ActiveCutin, "key"
         <img className="declaration-cutin__art" src={cutin.src} alt="" style={artStyle} />
         <div className="declaration-cutin__sweep" />
       </div>
-      {cutin.addWord && <div className="declaration-cutin__word">{WORDS[cutin.kind]}</div>}
+      {cutin.addWord && word && <div className="declaration-cutin__word">{word}</div>}
     </div>
   );
 }
