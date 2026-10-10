@@ -1366,10 +1366,11 @@ export const CHARACTERS: Record<string, Character> = {
       tenpai: "/voices/kagami/tenpai.wav",
       noten: "/voices/kagami/noten.wav",
     },
-    // キーの決まりはカエデのyakuVoiceClipsと同じ。「ダブル立直」は収録が無い。
+    // キーの決まりはカエデのyakuVoiceClipsと同じ。
     yakuVoiceClips: {
       "立直": "/voices/kagami/riichi.wav",
       "門前清自摸和": "/voices/kagami/tsumo.wav",
+      "ダブル立直": "/voices/kagami/yaku/ダブルリーチ.wav",
       "一発": "/voices/kagami/yaku/一発.wav",
       "平和": "/voices/kagami/yaku/平和.wav",
       "断幺九": "/voices/kagami/yaku/タンヤオ.wav",
