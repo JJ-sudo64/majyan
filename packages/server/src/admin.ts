@@ -20,19 +20,25 @@
  *                                                     Stripeで全額返金すれば通知で自動的に反映されるので、普段は不要）
  *   age reset --to アカウントID                       生まれた年月の登録を消す（本人の入れ間違いの時。次に買う時に聞き直す）
  *
+ *   report list [--all]                               通報の一覧（既定はまだ対応していないものだけ）
+ *   report done <番号>                                通報を対応済みにする
+ *   user rename --to アカウントID [--name 新しい名前]  名前を変える（--name無しなら「プレイヤー1234」のような名前にする）
+ *
  *   user find <名前かIDの先頭8文字以上>               アカウントを探す（IDは画面の「引き継ぎ」に出ている）
  *   catalog                                           キャラ・カードのID一覧
  *   backup                                            今すぐDBのバックアップを取る（置き場所はサーバーと同じ BACKUP_DIR）
  */
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { CARDS, CHARACTERS, characterRarity, PURCHASE_STATUS_LABELS, type GachaItem } from "@majyan/core";
+import { CARDS, CHARACTERS, characterRarity, PURCHASE_STATUS_LABELS, REPORT_REASONS, type GachaItem } from "@majyan/core";
 import { openDatabase, type Database } from "./db.js";
 import { CollectionService } from "./collection.js";
 import { WalletService } from "./wallet.js";
 import { GiftError, InboxService } from "./inbox.js";
 import { backupNow } from "./backup.js";
 import { ShopService } from "./shop.js";
+import { ModerationService } from "./moderation.js";
+import { AccountService } from "./accounts.js";
 
 /** プレゼントの受け取り期限の既定（日）。 */
 const DEFAULT_GIFT_DAYS = 30;
@@ -171,6 +177,36 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       const userId = resolveUserId(db, values.to);
       return [new ShopService(db, wallet, { now }).resetBirthMonth(userId) ? `${userId} さんの生まれた年月の登録を消しました` : `${userId} さんは生まれた年月を登録していません`];
     }
+    case "report list": {
+      const { values } = parseArgs({ args: rest, options: { all: { type: "boolean" } } });
+      for (const r of new ModerationService(db, now).list(!values.all)) {
+        const renamed = r.targetNameNow === r.targetNameThen ? "" : `（今の名前: ${r.targetNameNow}）`;
+        out.push(
+          `#${r.id} [${r.handled ? "対応済み" : "未対応"}] ${fmt(r.createdAt)} ${REPORT_REASONS[r.reason] ?? r.reason} → ${r.targetNameThen}${renamed} ` +
+            `${r.targetId.slice(0, ACCOUNT_ID_PREFIX_LENGTH)}（通報した人 ${r.targetReporters}人） 対局:${r.matchId} 通報者:${r.reporterId.slice(0, ACCOUNT_ID_PREFIX_LENGTH)}`,
+        );
+      }
+      if (!out.length) out.push(values.all ? "通報はまだありません" : "対応していない通報はありません");
+      return out;
+    }
+    case "report done": {
+      const id = positiveInt(rest[0], "番号");
+      if (id === undefined) throw new UsageError("対応済みにする通報の番号を指定してください");
+      return [new ModerationService(db, now).markHandled(id) ? `通報 #${id} を対応済みにしました` : `通報 #${id} は未対応の中にありません`];
+    }
+    case "user rename": {
+      const { values } = parseArgs({ args: rest, options: { to: { type: "string" }, name: { type: "string" } } });
+      if (!values.to) throw new UsageError("--to でアカウントIDを指定してください");
+      const userId = resolveUserId(db, values.to);
+      const accounts = new AccountService(db, now);
+      let name: string;
+      try {
+        name = values.name ? accounts.rename(userId, values.name).displayName : accounts.resetName(userId);
+      } catch {
+        throw new UsageError("その名前には変えられません（長すぎる等）");
+      }
+      return [`${userId} さんの名前を「${name}」に変えました`];
+    }
     case "user find": {
       const key = rest.join(" ").trim();
       if (!key) throw new UsageError("探す名前かIDを指定してください");
@@ -200,7 +236,7 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       return [`バックアップを作りました: ${backupNow(db, { dir: backupDir, keep: Number(process.env.BACKUP_KEEP) || 28, now })}`];
     }
     default:
-      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / purchase list|refund / age reset / user find / catalog / backup（詳しくは src/admin.ts の先頭）");
+      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / purchase list|refund / age reset / report list|done / user find|rename / catalog / backup（詳しくは src/admin.ts の先頭）");
   }
 }
 

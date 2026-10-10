@@ -32,10 +32,12 @@ import { MissionError, type MissionService } from "./missions.js";
 import { FriendError, type FriendService } from "./friends.js";
 import type { ReplayStore } from "./replays.js";
 import { ShopError, type ShopService } from "./shop.js";
+import { isNameBlocked, ReportError, type ModerationService } from "./moderation.js";
 import { parseStripeWebhook } from "./stripe.js";
 import { createAdminHandler, type AdminApiOptions } from "./adminApi.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
+const BLOCKED_NAME_MESSAGE = "その名前は使えません。別の名前にしてください";
 /** 決済会社からの通知の上限（購入1件の通知は数KB）。 */
 const MAX_WEBHOOK_BYTES = 256 * 1024;
 
@@ -52,6 +54,8 @@ export interface HttpApiOptions {
   friends?: FriendService;
   /** 段位戦の牌譜。無ければその機能のAPIは404。 */
   replays?: ReplayStore;
+  /** 通報。無ければその機能のAPIは404。 */
+  moderation?: ModerationService;
   /** 雀玉の販売。無ければその機能のAPIは404。 */
   shop?: ShopService;
   /** Stripeの通知の署名を確かめる鍵（STRIPE_WEBHOOK_SECRET）。無ければ通知は受け付けない。 */
@@ -114,7 +118,7 @@ function bearerToken(req: IncomingMessage): string | null {
 
 /** /api 配下なら処理してtrueを返す。それ以外のパスはfalse（呼び出し側が静的ファイル等を返す）。 */
 export function createApiHandler(options: HttpApiOptions) {
-  const { accounts, ranks, collections, wallet, inbox, missions, friends, replays, shop } = options;
+  const { accounts, ranks, collections, wallet, inbox, missions, friends, replays, shop, moderation } = options;
   const me = (profile: AccountProfile, dailyBonus: number | null = null): MeResponse => ({
     profile,
     rank: ranks.get(profile.id),
@@ -189,6 +193,7 @@ export function createApiHandler(options: HttpApiOptions) {
           const body = (await readJson(req)) as { displayName?: unknown };
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
+          if (isNameBlocked(name)) return fail(res, 400, BLOCKED_NAME_MESSAGE), true;
           if (!allowGuestCreation(clientIp(req))) {
             return fail(res, 429, "アカウントの作成が多すぎます。しばらくしてからお試しください"), true;
           }
@@ -208,6 +213,7 @@ export function createApiHandler(options: HttpApiOptions) {
           const body = (await readJson(req)) as { displayName?: unknown };
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
+          if (isNameBlocked(name)) return fail(res, 400, BLOCKED_NAME_MESSAGE), true;
           sendJson(res, 200, me(accounts.rename(profile.id, name)));
           return true;
         }
@@ -382,6 +388,20 @@ export function createApiHandler(options: HttpApiOptions) {
             throw err;
           }
           sendJson(res, 200, me(profile));
+          return true;
+        }
+        case "POST /reports": {
+          if (!moderation) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { matchId?: unknown; seat?: unknown; reason?: unknown };
+          try {
+            moderation.report(profile.id, body.matchId, body.seat, body.reason);
+          } catch (err) {
+            if (err instanceof ReportError) return fail(res, 409, err.message), true;
+            throw err;
+          }
+          sendJson(res, 200, {});
           return true;
         }
         case "GET /shop": {

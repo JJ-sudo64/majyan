@@ -5313,6 +5313,27 @@ button {
   text-align: left;
   opacity: 0.85;
 }
+.history-screen__report {
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.history-screen__report:hover {
+  opacity: 1;
+}
+.history-screen__report-form {
+  margin-top: 8px;
+}
+.history-screen__report-form select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+}
 @media (max-width: 560px) {
   .history-screen__seats {
     grid-template-columns: 1fr;

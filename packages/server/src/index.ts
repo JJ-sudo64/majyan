@@ -45,6 +45,7 @@ import { FriendService } from "./friends.js";
 import { ReplayStore } from "./replays.js";
 import { CpuPool } from "./cpuPool.js";
 import { ShopService } from "./shop.js";
+import { ModerationService } from "./moderation.js";
 import { StripeProvider } from "./stripe.js";
 import { scheduleBackups } from "./backup.js";
 import { MatchStore } from "./matchStore.js";
@@ -128,6 +129,7 @@ const shop = new ShopService(db, wallet, {
   testMode: devTools,
 });
 console.log(`[majyan-server] 雀玉の販売: ${{ live: "Stripeで販売中", test: "テスト購入（お金は動きません）", closed: "なし" }[shop.mode]}`);
+const moderation = new ModerationService(db);
 const handleApi = createApiHandler({
   accounts,
   ranks,
@@ -138,6 +140,7 @@ const handleApi = createApiHandler({
   friends,
   replays,
   shop,
+  moderation,
   stripeWebhookSecret: liveSales ? stripeWebhookSecret : undefined,
   publicUrl: process.env.PUBLIC_URL || undefined,
   admin: {
@@ -145,6 +148,8 @@ const handleApi = createApiHandler({
     inbox,
     ranks,
     wallet,
+    accounts,
+    moderation,
     token: process.env.ADMIN_TOKEN || undefined,
     liveStats: () => rooms.liveStats(),
   },

@@ -17,6 +17,8 @@ import type { Database } from "./db.js";
 import { GiftError, type InboxService } from "./inbox.js";
 import type { RankService } from "./ranks.js";
 import type { WalletService } from "./wallet.js";
+import type { AccountService } from "./accounts.js";
+import type { ModerationService } from "./moderation.js";
 import { ACCOUNT_ID_PREFIX_LENGTH, endOfJstDay } from "./admin.js";
 
 const DAY_MS = 24 * 60 * 60_000;
@@ -30,6 +32,9 @@ export interface AdminApiOptions {
   inbox: InboxService;
   ranks: RankService;
   wallet: WalletService;
+  /** 通報の確認と名前の変更。無ければその機能は404。 */
+  accounts?: AccountService;
+  moderation?: ModerationService;
   /** サーバーのADMIN_TOKEN。空なら管理APIは無効（常に404）。 */
   token: string | undefined;
   liveStats?: () => { liveRooms: number; liveMatches: number };
@@ -80,6 +85,7 @@ export function createAdminHandler(options: AdminApiOptions) {
         Date.parse(`${jstDate(t).slice(0, 7)}-01T00:00:00+09:00`),
       ),
       paidJadeOutstanding: count("SELECT SUM(paid_jade) AS n FROM wallets"),
+      openReports: options.moderation?.openCount() ?? 0,
       ...(options.liveStats?.() ?? { liveRooms: 0, liveMatches: 0 }),
     };
   }
@@ -209,7 +215,34 @@ export function createAdminHandler(options: AdminApiOptions) {
           sendJson(res, 200, inbox.allGifts());
           return true;
         }
+        case "POST /users/rename": {
+          if (!options.accounts) return fail(res, 404, "見つかりません"), true;
+          const body = (await options.readJson(req)) as { id?: unknown; name?: unknown };
+          const id = resolveUser(str(body.id));
+          const name = str(body.name).trim();
+          try {
+            if (name) options.accounts.rename(id, name);
+            else options.accounts.resetName(id);
+          } catch {
+            throw new AdminInputError("その名前には変えられません（長すぎる等）");
+          }
+          sendJson(res, 200, findUsers(id));
+          return true;
+        }
+        case "POST /reports/done": {
+          if (!options.moderation) return fail(res, 404, "見つかりません"), true;
+          const body = (await options.readJson(req)) as { id?: unknown };
+          options.moderation.markHandled(nonNegInt(body.id, "番号"));
+          sendJson(res, 200, options.moderation.list(true));
+          return true;
+        }
         default:
+          if (req.method === "GET" && subPath === "/reports") {
+            if (!options.moderation) return fail(res, 404, "見つかりません"), true;
+            const all = new URL(req.url ?? "/", "http://localhost").searchParams.get("all") === "1";
+            sendJson(res, 200, options.moderation.list(!all));
+            return true;
+          }
           if (req.method === "GET" && subPath === "/users") {
             const q = new URL(req.url ?? "/", "http://localhost").searchParams.get("q") ?? "";
             sendJson(res, 200, findUsers(q));

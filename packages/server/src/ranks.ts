@@ -165,12 +165,13 @@ export class RankService {
       points_after: number;
     }[];
     const seatQuery = this.db.prepare(
-      `SELECT user_id, name, character_id, card_id, place, final_score FROM ranked_match_seats
+      `SELECT seat, user_id, name, character_id, card_id, place, final_score FROM ranked_match_seats
        WHERE match_id = ? ORDER BY place, seat`,
     );
     const recent: RankedHistoryEntry[] = rows.map((row) => {
       const after = { tier: row.tier_after, level: row.level_after, points: row.points_after };
       const seats = seatQuery.all(row.match_id) as {
+        seat: number;
         user_id: string | null;
         name: string;
         character_id: string;
@@ -189,6 +190,7 @@ export class RankService {
         // 段位の表を後から調整して範囲外になった記録は、ラベルだけ出せないので空にする。
         rankAfter: isValidRank(after) ? rankLabel(after) : "",
         seats: seats.map((s) => ({
+          seat: s.seat,
           name: s.name,
           isYou: s.user_id === userId,
           isCpu: s.user_id === null,

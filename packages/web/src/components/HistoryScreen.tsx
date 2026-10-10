@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import {
   CARDS,
   CHARACTERS,
+  REPORT_REASONS,
   type MatchFormat,
+  type ReportReason,
   type RankedHistoryResponse,
   type RankedPlaceStats,
   type RankingEntry,
   type RankingResponse,
 } from "@majyan/core";
-import { fetchRankedHistory, fetchRanking, fetchReplay } from "../online/account.js";
+import { fetchRankedHistory, fetchRanking, fetchReplay, reportPlayer } from "../online/account.js";
 import { useGameStore } from "../store/gameStore.js";
 
 const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
@@ -106,6 +108,26 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
   const [history, setHistory] = useState<RankedHistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingReplay, setLoadingReplay] = useState<string | null>(null);
+  /** 通報しようとしている相手（理由を選んで送るまで）。 */
+  const [reporting, setReporting] = useState<{ matchId: string; seat: number; name: string } | null>(null);
+  const [reportReason, setReportReason] = useState<ReportReason>("name");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function sendReport() {
+    if (!reporting || reportBusy) return;
+    setReportBusy(true);
+    setError(null);
+    try {
+      await reportPlayer(reporting.matchId, reporting.seat, reportReason);
+      setNotice(`${reporting.name} さんを通報しました。運営が確認します。`);
+      setReporting(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setReportBusy(false);
+    }
+  }
 
   async function openReplay(matchId: string) {
     setLoadingReplay(matchId);
@@ -145,6 +167,11 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
         {tab === "ranking" && <RankingView />}
         {tab === "history" && !history && !error && <p className="setup-lead">読み込んでいます…</p>}
         {error && <p className="online-lobby__error">{error}</p>}
+        {notice && (
+          <div className="online-lobby__notice" onClick={() => setNotice(null)}>
+            {notice}
+          </div>
+        )}
 
         {tab === "history" && history && (
           <>
@@ -206,9 +233,38 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                             {s.cardId && <small> ＋ {CARDS[s.cardId]?.name ?? s.cardId}</small>}
                           </span>
                           <span className="history-screen__score">{s.finalScore.toLocaleString()}</span>
+                          {!s.isYou && !s.isCpu && (
+                            <button
+                              type="button"
+                              className="history-screen__report"
+                              onClick={() => setReporting({ matchId: e.matchId, seat: s.seat, name: s.name })}
+                            >
+                              通報
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ol>
+                  )}
+                  {reporting?.matchId === e.matchId && (
+                    <div className="first-gacha__confirm history-screen__report-form">
+                      <p>{reporting.name} さんを通報します。理由を選んでください。</p>
+                      <select value={reportReason} onChange={(ev) => setReportReason(ev.target.value as ReportReason)}>
+                        {(Object.keys(REPORT_REASONS) as ReportReason[]).map((r) => (
+                          <option key={r} value={r}>
+                            {REPORT_REASONS[r]}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="setup-buttons">
+                        <button type="button" className="btn btn--primary" disabled={reportBusy} onClick={() => void sendReport()}>
+                          通報する
+                        </button>
+                        <button type="button" className="btn btn--secondary" onClick={() => setReporting(null)}>
+                          やめる
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </li>
               ))}

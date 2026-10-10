@@ -171,6 +171,17 @@ export class AccountService {
     return row ? toProfile(row) : null;
   }
 
+  /** 運営用: 不適切な名前を、当たり障りのない名前に変える。変えた後の名前を返す。 */
+  resetName(userId: string): string {
+    const name = `プレイヤー${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
+    transaction(this.db, () => {
+      this.rename(userId, name);
+      // 戦績に残っている名前も変える（不適切な名前を他の人の画面に残さない）。
+      this.db.prepare("UPDATE ranked_match_seats SET name = ? WHERE user_id = ?").run(name, userId);
+    });
+    return name;
+  }
+
   rename(userId: string, displayName: string): AccountProfile {
     const name = normalizeDisplayName(displayName);
     if (!name) throw new Error("名前が正しくありません");

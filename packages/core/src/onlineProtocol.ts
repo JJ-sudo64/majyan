@@ -51,6 +51,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/friends/respond {code, accept} (Bearer) → FriendsResponse 届いた申請を承認・お断り
 //   POST /api/friends/remove {code} (Bearer)   → FriendsResponse       フレンドをやめる／出した申請を取り下げる
 //   POST /api/gifts/claim {giftId?} (Bearer)   → GiftClaimResponse     プレゼントを受け取る（giftId無しなら全部）
+//   POST /api/reports {matchId, seat, reason} (Bearer) → {}             段位戦で同じ卓だった人を通報する
 //   POST /api/dev/reset-collection (Bearer)    → MeResponse            開発用: 手持ちと最初の10連を作った直後に戻す（--dev-tools時のみ）
 //   失敗時は 4xx と ApiErrorResponse
 // ---------------------------------------------------------------------------
@@ -158,6 +159,8 @@ export interface RankedPlaceStats {
 
 /** 段位戦1試合の、ある席の人（CPUを含む）。 */
 export interface RankedHistorySeat {
+  /** その対局での席（通報する時に相手を指す番号）。 */
+  seat: number;
   name: string;
   isYou: boolean;
   isCpu: boolean;
@@ -271,6 +274,16 @@ export interface RecordsResponse {
   gacha: GachaHistoryEntry[];
 }
 
+/** 通報の理由（サーバーのreports.reason）→ 画面の表示。 */
+export const REPORT_REASONS = {
+  name: "不適切な名前",
+  stalling: "わざと時間を使う・放置する",
+  collusion: "他の人と組んで打っている",
+  cheat: "不正なツールを使っている疑い",
+  other: "その他の迷惑な行為",
+} as const;
+export type ReportReason = keyof typeof REPORT_REASONS;
+
 /** 退会の時に打ってもらう確認の言葉。 */
 export const ACCOUNT_DELETE_CONFIRM = "退会する";
 
@@ -372,6 +385,9 @@ export interface ReplayResponse {
 //   POST /api/admin/gifts {title, message?, jade?, items?, to?, includeNewAccounts?, days?} → AdminGift[]
 //   POST /api/admin/gifts/cancel {id}           → AdminGift[]
 //   GET  /api/admin/users?q=名前かID             → AdminUser[]
+//   POST /api/admin/users/rename {id, name?}    → AdminUser[]   名前を変える（name無しなら当たり障りのない名前にする）
+//   GET  /api/admin/reports?all=1               → AdminReport[] 通報（既定はまだ対応していないものだけ）
+//   POST /api/admin/reports/done {id}           → AdminReport[]
 // ---------------------------------------------------------------------------
 
 export const ADMIN_TOKEN_HEADER = "x-admin-token";
@@ -394,6 +410,8 @@ export interface AdminStats {
   salesYenMonth: number;
   /** 使われずに残っている有償の雀玉の合計（資金決済法の未使用残高の目安）。 */
   paidJadeOutstanding: number;
+  /** まだ対応していない通報の数。 */
+  openReports: number;
   /** 今つながっている卓・対局中の卓。 */
   liveRooms: number;
   liveMatches: number;
@@ -408,6 +426,21 @@ export interface AdminGift extends Gift {
   includeNewAccounts: boolean;
   cancelled: boolean;
   claimedCount: number;
+}
+
+export interface AdminReport {
+  id: number;
+  reporterId: string;
+  targetId: string;
+  matchId: string;
+  reason: ReportReason;
+  /** 通報された時の名前と、今の名前。 */
+  targetNameThen: string;
+  targetNameNow: string;
+  /** その人を通報したことのある人の数（同じ人からの重複は数えない）。 */
+  targetReporters: number;
+  createdAt: number;
+  handled: boolean;
 }
 
 export interface AdminUser {

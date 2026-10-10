@@ -5,6 +5,8 @@ import {
   CHARACTERS,
   ONLINE_API_PREFIX,
   characterRarity,
+  REPORT_REASONS,
+  type AdminReport,
   type AdminAnnouncement,
   type AdminGift,
   type AdminStats,
@@ -16,7 +18,7 @@ import {
  * 閉じるまでだけ覚える（sessionStorage）。ゲーム本体とは別のページで、本体の状態には触らない。
  */
 const TOKEN_KEY = "majyan.admin.token";
-type Tab = "stats" | "news" | "gifts" | "users";
+type Tab = "stats" | "news" | "gifts" | "users" | "reports";
 
 function loadToken(): string {
   try {
@@ -132,6 +134,7 @@ export function AdminPage() {
             ["news", "お知らせ"],
             ["gifts", "プレゼント"],
             ["users", "アカウント検索"],
+            ["reports", "通報"],
           ] as [Tab, string][]
         ).map(([t, label]) => (
           <button key={t} type="button" className={tab === t ? "is-active" : ""} onClick={() => setTab(t)}>
@@ -145,6 +148,7 @@ export function AdminPage() {
       {tab === "news" && <NewsTab token={token} run={run} />}
       {tab === "gifts" && <GiftsTab token={token} run={run} />}
       {tab === "users" && <UsersTab token={token} run={run} />}
+      {tab === "reports" && <ReportsTab token={token} run={run} />}
     </div>
   );
 }
@@ -168,6 +172,7 @@ function StatsTab({ token, run }: { token: string; run: Run }) {
     ["今日の売上（円）", stats.salesYenToday],
     ["今月の売上（円）", stats.salesYenMonth],
     ["残っている有償の雀玉", stats.paidJadeOutstanding],
+    ["対応していない通報", stats.openReports],
     ["今ある部屋", stats.liveRooms],
     ["対局中の卓", stats.liveMatches],
   ];
@@ -416,6 +421,13 @@ function UsersTab({ token, run }: { token: string; run: Run }) {
     const u = await run(() => adminApi<AdminUser[]>(token, `/users?q=${encodeURIComponent(q.trim())}`));
     if (u) setUsers(u);
   }
+  /** 名前を変える。空欄なら当たり障りのない名前（プレイヤー1234）になる。 */
+  async function rename(user: AdminUser) {
+    const name = window.prompt(`${user.displayName} さんの新しい名前（空欄なら「プレイヤー1234」のような名前にします）`, "");
+    if (name === null) return;
+    const changed = await run(() => adminApi<AdminUser[]>(token, "/users/rename", { id: user.id, name }), "名前を変えました");
+    if (changed?.[0]) setUsers((list) => list?.map((u) => (u.id === user.id ? changed[0]! : u)) ?? null);
+  }
   return (
     <>
       <form
@@ -441,6 +453,7 @@ function UsersTab({ token, run }: { token: string; run: Run }) {
               <th>雀玉（無償/有償）</th>
               <th>作成</th>
               <th>最終ログイン</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -456,6 +469,87 @@ function UsersTab({ token, run }: { token: string; run: Run }) {
                 </td>
                 <td>{fmt(u.createdAt)}</td>
                 <td>{fmt(u.lastLoginAt)}</td>
+                <td>
+                  {!u.deleted && (
+                    <button type="button" onClick={() => void rename(u)}>
+                      名前を変える
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}
+
+/** 対戦相手の通報。見て、必要なら名前を変えるなどしてから「対応済み」にする。 */
+function ReportsTab({ token, run }: { token: string; run: Run }) {
+  const [reports, setReports] = useState<AdminReport[] | null>(null);
+  const [all, setAll] = useState(false);
+  useEffect(() => {
+    void run(() => adminApi<AdminReport[]>(token, `/reports${all ? "?all=1" : ""}`)).then((r) => r && setReports(r));
+  }, [token, all]);
+
+  async function done(id: number) {
+    const open = await run(() => adminApi<AdminReport[]>(token, "/reports/done", { id }), "対応済みにしました");
+    if (!open) return;
+    setReports((list) => (all ? (list?.map((r) => (r.id === id ? { ...r, handled: true } : r)) ?? null) : open));
+  }
+  async function resetName(report: AdminReport) {
+    if (!window.confirm(`${report.targetNameNow} さんの名前を「プレイヤー1234」のような名前に変えますか？`)) return;
+    const changed = await run(() => adminApi<AdminUser[]>(token, "/users/rename", { id: report.targetId }), "名前を変えました");
+    const name = changed?.[0]?.displayName;
+    if (name) setReports((list) => list?.map((r) => (r.targetId === report.targetId ? { ...r, targetNameNow: name } : r)) ?? null);
+  }
+
+  return (
+    <>
+      <label className="admin-row">
+        <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} />
+        対応済みも出す
+      </label>
+      <p className="admin-note">通報は記録されるだけで、自動では何も起きません。内容を見て対応してください。</p>
+      {reports && reports.length === 0 && <p>{all ? "通報はまだありません。" : "対応していない通報はありません。"}</p>}
+      {reports && reports.length > 0 && (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>日時</th>
+              <th>理由</th>
+              <th>通報された人</th>
+              <th>通報した人</th>
+              <th>対局</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {reports.map((r) => (
+              <tr key={r.id} className={r.handled ? "admin-deleted" : undefined}>
+                <td>{r.id}</td>
+                <td>{fmt(r.createdAt)}</td>
+                <td>{REPORT_REASONS[r.reason] ?? r.reason}</td>
+                <td>
+                  {r.targetNameThen}
+                  {r.targetNameNow !== r.targetNameThen && `（今: ${r.targetNameNow}）`}
+                  <div className="admin-mono">{r.targetId}</div>
+                  <div className="admin-note">これまでに通報した人: {r.targetReporters}人</div>
+                </td>
+                <td className="admin-mono">{r.reporterId.slice(0, 8)}</td>
+                <td className="admin-mono">{r.matchId}</td>
+                <td>
+                  <button type="button" onClick={() => void resetName(r)}>
+                    名前を変える
+                  </button>{" "}
+                  {!r.handled && (
+                    <button type="button" onClick={() => void done(r.id)}>
+                      対応済みにする
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

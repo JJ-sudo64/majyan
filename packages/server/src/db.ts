@@ -281,6 +281,22 @@ export const MIGRATIONS: readonly string[] = [
     declared_at INTEGER NOT NULL
   );
   `,
+  // 15: 対戦相手の通報（運営が見て対応する。自動では何もしない）
+  `
+  CREATE TABLE reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reporter_id TEXT NOT NULL REFERENCES users(id),
+    target_id TEXT NOT NULL REFERENCES users(id),
+    match_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    -- 通報された時の名前（後で名前を変えられても分かるように）
+    target_name TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    handled_at INTEGER,
+    UNIQUE (reporter_id, target_id, match_id)
+  );
+  CREATE INDEX reports_target ON reports(target_id);
+  `,
 ];
 
 export type Database = DatabaseSyncType;

@@ -30,6 +30,7 @@ import {
   type TransferCodeResponse,
   type CheckoutResponse,
   type ShopResponse,
+  type ReportReason,
 } from "@majyan/core";
 
 const TOKEN_KEY = "majyan.account.token";
@@ -345,6 +346,11 @@ export async function startCheckout(productId: string): Promise<CheckoutResponse
 /** 開発用: テスト購入を払ったことにする（サーバーが --dev-tools の時だけ）。 */
 export async function payTestPurchase(purchaseId: string): Promise<ShopResponse> {
   return applyShop(await api<ShopResponse>("/dev/shop/pay", { method: "POST", body: JSON.stringify({ purchaseId }) }));
+}
+
+/** 段位戦で同じ卓だった人を通報する（seatは戦績の一覧にある席の番号）。失敗したら例外。 */
+export async function reportPlayer(matchId: string, seat: number, reason: ReportReason): Promise<void> {
+  await api<object>("/reports", { method: "POST", body: JSON.stringify({ matchId, seat, reason }) });
 }
 
 /** 段位戦の牌譜。 */
