@@ -2879,8 +2879,10 @@ button {
   /* キャラクターパネル(.character-panel--bottom)の下端と被らないよう、
      手牌側にできるだけ寄せて余白を切り詰める（.character-panel--bottom
      側もtopを上げて余裕を作っているが、リーチ表示等でパネルが伸びた
-     場合に備えてこちらも極力手牌に寄せておく）。 */
-  margin-bottom: 0px;
+     場合に備えてこちらも極力手牌に寄せておく）。
+     手牌にぴったり付けると待ちの牌が手牌の上端（牌の厚み）に食い込んで低く見える
+     ため、プレートに当たらない範囲で浮かせる。 */
+  margin-bottom: 10px;
   z-index: 5;
   display: flex;
   flex-direction: row;
@@ -2888,6 +2890,11 @@ button {
   align-items: center;
   row-gap: 4px;
   column-gap: 14px;
+}
+/* ネット対戦ではプレートにプレイヤー名の行が増えて下端が下がり、待ちとの隙間が
+   ほとんど無くなる。浮かせるとプレートに当たるので、その時は手牌に付けたままにする。 */
+body:has(.character-panel--bottom .character-panel__player-name) .hand-top-status {
+  margin-bottom: 0;
 }
 .wait-row {
   display: flex;
