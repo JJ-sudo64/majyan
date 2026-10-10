@@ -1904,10 +1904,7 @@ button {
 }
 .character-panel--left .skill-gauge,
 .character-panel--right .skill-gauge,
-.character-panel--top .skill-gauge,
-.character-panel--left .riichi-badge,
-.character-panel--right .riichi-badge,
-.character-panel--top .riichi-badge {
+.character-panel--top .skill-gauge {
   align-self: center;
 }
 /* 画面縦中央(50%)から上寄り(28%)に調整（44%ではまだ足りないとの指摘により再調整）。 */
@@ -2036,10 +2033,26 @@ button {
   max-width: 110px;
   margin-top: 2px;
 }
+/* リーチの印はプレートの中に積まず、外の横に出す。中に積むとその1行ぶんプレートが
+   縦に伸び、下にある表示（自分なら手牌の上の待ち・ベタ降り等、他家なら必殺技ゲージ）に
+   かかってしまっていた。外に出せば、リーチしてもプレートの大きさは変わらない。 */
 .character-panel .riichi-badge {
-  align-self: flex-start;
-  font-size: 11px;
-  padding: 0 5px;
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  margin-left: 6px;
+  transform: translateY(-50%);
+  font-size: 12px;
+  padding: 1px 6px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+/* 下家は画面の右端にいるので、内側（左）に出す。 */
+.character-panel--right .riichi-badge {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 6px;
 }
 
 /* 必殺技ゲージ。溜まっている間は帯を伸ばすだけ、満タンになったら
