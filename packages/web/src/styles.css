@@ -2876,18 +2876,6 @@ button {
   align-self: flex-end;
   margin-bottom: 20px;
 }
-/* ベタ降りの行は文が長く、そのままの大きさだと右端が自分の捨て牌の3段目に
-   かかって牌が見づらくなる。捨て牌の左端より手前で終わるよう、文字を小さくする。 */
-.wait-row--betaori {
-  gap: 4px;
-}
-.wait-row--betaori .wait-row__label {
-  font-size: 11px;
-}
-.wait-row--betaori .wait-row__shield {
-  font-size: 9px;
-  padding: 1px 4px;
-}
 .wait-row__label {
   display: flex;
   align-items: center;

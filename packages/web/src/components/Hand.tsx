@@ -445,10 +445,10 @@ export function Hand({ round }: { round: RoundState }) {
             </div>
           )}
           {player.bettaoriActive && (
-            <div className="wait-row wait-row--betaori">
+            <div className="wait-row">
               <span className="wait-row__label">ベタ降り</span>
               <span className={`wait-row__shield${player.bettaoriShield ? " wait-row__shield--up" : ""}`}>
-                {player.bettaoriShield ? "盾あり（ロンされない）" : "盾なし（メンツを崩すと盾が立つ）"}
+                {player.bettaoriShield ? "盾あり" : "盾なし"}
               </span>
             </div>
           )}
