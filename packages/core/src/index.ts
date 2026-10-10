@@ -22,5 +22,6 @@ export * from "./ranked.js";
 export * from "./gacha.js";
 export * from "./missions.js";
 export * from "./shop.js";
+export * from "./legal.js";
 export * from "./replay.js";
 export * from "./shareUnchanged.js";

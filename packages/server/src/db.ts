@@ -297,6 +297,11 @@ export const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX reports_target ON reports(target_id);
   `,
+  // 16: 同意した利用規約・プライバシーポリシーの版（NULLはまだ同意していない）
+  `
+  ALTER TABLE users ADD COLUMN terms_version TEXT;
+  ALTER TABLE users ADD COLUMN terms_accepted_at INTEGER;
+  `,
 ];
 
 export type Database = DatabaseSyncType;

@@ -6012,3 +6012,40 @@ button {
     opacity: 0;
   }
 }
+
+/* ---- 利用規約・プライバシーポリシー ---- */
+.online-lobby__agree {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.online-lobby__link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #ffe08a;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.legal-screen__body {
+  max-height: min(56vh, 520px);
+  overflow-y: auto;
+  padding-right: 6px;
+  text-align: left;
+}
+.legal-screen__body h3 {
+  margin: 14px 0 4px;
+  font-size: 15px;
+  color: #ffe08a;
+}
+.legal-screen__body p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.legal-screen__version {
+  font-size: 12px;
+  opacity: 0.6;
+}

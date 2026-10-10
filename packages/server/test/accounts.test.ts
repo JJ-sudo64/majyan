@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import {
   DAILY_LOGIN_JADE,
+  TERMS_VERSION,
   STARTING_JADE,
   formatTransferCode,
   type GachaRollResponse,
@@ -177,7 +178,10 @@ describe("account HTTP API", () => {
     });
 
   it("creates a guest, reads it back and renames it", async () => {
-    const created = await post("/api/guest", { displayName: "ゲスト" });
+    // 利用規約に同意していなければ作れない。
+    expect((await post("/api/guest", { displayName: "ゲスト" })).status).toBe(400);
+    expect((await post("/api/guest", { displayName: "ゲスト", termsVersion: "1999-01-01" })).status).toBe(400);
+    const created = await post("/api/guest", { displayName: "ゲスト", termsVersion: TERMS_VERSION });
     expect(created.status).toBe(200);
     const { token, profile } = (await created.json()) as GuestAccountResponse;
 
@@ -245,7 +249,7 @@ describe("account HTTP API", () => {
 
   it("limits how many guests one address can create", async () => {
     const statuses: number[] = [];
-    for (let i = 0; i < 4; i++) statuses.push((await post("/api/guest", { displayName: `g${i}` })).status);
+    for (let i = 0; i < 4; i++) statuses.push((await post("/api/guest", { displayName: `g${i}`, termsVersion: TERMS_VERSION })).status);
     // 上の1件目のテストで1つ作っているので、上限3の残りは2。
     expect(statuses).toEqual([200, 200, 429, 429]);
   });

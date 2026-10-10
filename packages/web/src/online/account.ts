@@ -8,6 +8,7 @@
 import { create } from "zustand";
 import {
   ONLINE_API_PREFIX,
+  TERMS_VERSION,
   type AccountProfile,
   type CharacterUnit,
   type GachaItem,
@@ -67,6 +68,8 @@ type AccountStatus =
 interface AccountState {
   status: AccountStatus;
   profile: AccountProfile | null;
+  /** 今の版の利用規約・プライバシーポリシーに同意済みか（読み込む前はtrue扱いにして画面を止めない）。 */
+  termsAccepted: boolean;
   rank: RankView | null;
   /** 手持ちのキャラ（同じキャラでも1体ずつ別。付けたカードも入る）。 */
   units: CharacterUnit[];
@@ -93,6 +96,7 @@ interface AccountState {
 export const useAccountStore = create<AccountState>(() => ({
   status: "unknown",
   profile: null,
+  termsAccepted: true,
   rank: null,
   units: [],
   cards: {},
@@ -113,6 +117,7 @@ function applyMe(me: MeResponse) {
   useAccountStore.setState({
     status: "ready",
     profile: me.profile,
+    termsAccepted: me.termsAccepted,
     rank: me.rank,
     units: me.units,
     cards: me.cards,
@@ -198,7 +203,8 @@ export async function createGuestAccount(displayName: string): Promise<void> {
   try {
     const { token, profile } = await api<GuestAccountResponse>("/guest", {
       method: "POST",
-      body: JSON.stringify({ displayName }),
+      // 名前の欄の下で、利用規約とプライバシーポリシーに同意してもらっている。
+      body: JSON.stringify({ displayName, termsVersion: TERMS_VERSION }),
     });
     memoryToken = token;
     saveToken(token);
@@ -207,6 +213,15 @@ export async function createGuestAccount(displayName: string): Promise<void> {
     void loadAccount();
   } catch (err) {
     useAccountStore.setState({ status: "none", error: (err as Error).message });
+  }
+}
+
+/** 今の版の利用規約・プライバシーポリシーに同意する（版が変わった後、前からのアカウントで開いた時）。 */
+export async function acceptTerms(): Promise<void> {
+  try {
+    applyMe(await api<MeResponse>("/me/terms", { method: "POST", body: JSON.stringify({ version: TERMS_VERSION }) }));
+  } catch (err) {
+    useAccountStore.setState({ error: (err as Error).message });
   }
 }
 
@@ -415,6 +430,7 @@ function clearLocalAccount(): void {
   useAccountStore.setState({
     status: "none",
     profile: null,
+    termsAccepted: true,
     rank: null,
     units: [],
     cards: {},

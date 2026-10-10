@@ -68,6 +68,17 @@ export class AccountService {
   ) {}
 
   /** ゲストアカウントを作り、ログイン用の鍵を返す（鍵はこの時しか分からない）。 */
+  /** 今の版の利用規約・プライバシーポリシーに同意したことを記録する。 */
+  acceptTerms(userId: string, version: string): void {
+    this.db.prepare("UPDATE users SET terms_version = ?, terms_accepted_at = ? WHERE id = ?").run(version, this.now(), userId);
+  }
+
+  /** その人が同意した版（まだならnull）。 */
+  termsVersion(userId: string): string | null {
+    const row = this.db.prepare("SELECT terms_version FROM users WHERE id = ?").get(userId) as { terms_version: string | null } | undefined;
+    return row?.terms_version ?? null;
+  }
+
   createGuest(displayName: string): { profile: AccountProfile; token: string } {
     const name = normalizeDisplayName(displayName);
     if (!name) throw new Error("名前が正しくありません");

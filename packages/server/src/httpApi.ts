@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   ACCOUNT_DELETE_CONFIRM,
   ONLINE_API_PREFIX,
+  TERMS_VERSION,
   type AccountProfile,
   type ApiErrorResponse,
   type GachaRollResponse,
@@ -37,6 +38,7 @@ import { parseStripeWebhook } from "./stripe.js";
 import { createAdminHandler, type AdminApiOptions } from "./adminApi.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
+const TERMS_REQUIRED_MESSAGE = "利用規約とプライバシーポリシーへの同意が必要です";
 const BLOCKED_NAME_MESSAGE = "その名前は使えません。別の名前にしてください";
 /** 決済会社からの通知の上限（購入1件の通知は数KB）。 */
 const MAX_WEBHOOK_BYTES = 256 * 1024;
@@ -121,6 +123,7 @@ export function createApiHandler(options: HttpApiOptions) {
   const { accounts, ranks, collections, wallet, inbox, missions, friends, replays, shop, moderation } = options;
   const me = (profile: AccountProfile, dailyBonus: number | null = null): MeResponse => ({
     profile,
+    termsAccepted: accounts.termsVersion(profile.id) === TERMS_VERSION,
     rank: ranks.get(profile.id),
     jade: wallet.balance(profile.id),
     dailyBonus,
@@ -190,14 +193,17 @@ export function createApiHandler(options: HttpApiOptions) {
       }
       switch (route) {
         case "POST /guest": {
-          const body = (await readJson(req)) as { displayName?: unknown };
+          const body = (await readJson(req)) as { displayName?: unknown; termsVersion?: unknown };
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
           if (isNameBlocked(name)) return fail(res, 400, BLOCKED_NAME_MESSAGE), true;
+          // 画面が古い版の規約を見せていた時も通さない（読み込み直せば新しい版が出る）。
+          if (body.termsVersion !== TERMS_VERSION) return fail(res, 400, TERMS_REQUIRED_MESSAGE), true;
           if (!allowGuestCreation(clientIp(req))) {
             return fail(res, 429, "アカウントの作成が多すぎます。しばらくしてからお試しください"), true;
           }
           const { profile, token } = accounts.createGuest(name);
+          accounts.acceptTerms(profile.id, TERMS_VERSION);
           sendJson(res, 200, { token, profile } satisfies GuestAccountResponse);
           return true;
         }
@@ -215,6 +221,15 @@ export function createApiHandler(options: HttpApiOptions) {
           if (!name) return fail(res, 400, "名前を入力してください"), true;
           if (isNameBlocked(name)) return fail(res, 400, BLOCKED_NAME_MESSAGE), true;
           sendJson(res, 200, me(accounts.rename(profile.id, name)));
+          return true;
+        }
+        case "POST /me/terms": {
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { version?: unknown };
+          if (body.version !== TERMS_VERSION) return fail(res, 400, TERMS_REQUIRED_MESSAGE), true;
+          accounts.acceptTerms(profile.id, TERMS_VERSION);
+          sendJson(res, 200, me(profile));
           return true;
         }
         case "GET /me/history": {

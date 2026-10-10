@@ -51,6 +51,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/friends/respond {code, accept} (Bearer) → FriendsResponse 届いた申請を承認・お断り
 //   POST /api/friends/remove {code} (Bearer)   → FriendsResponse       フレンドをやめる／出した申請を取り下げる
 //   POST /api/gifts/claim {giftId?} (Bearer)   → GiftClaimResponse     プレゼントを受け取る（giftId無しなら全部）
+//   POST /api/me/terms {version}  (Bearer)     → MeResponse            今の利用規約・プライバシーポリシーに同意する
 //   POST /api/reports {matchId, seat, reason} (Bearer) → {}             段位戦で同じ卓だった人を通報する
 //   POST /api/dev/reset-collection (Bearer)    → MeResponse            開発用: 手持ちと最初の10連を作った直後に戻す（--dev-tools時のみ）
 //   失敗時は 4xx と ApiErrorResponse
@@ -116,6 +117,8 @@ export interface JadeBalance {
 
 export interface MeResponse {
   profile: AccountProfile;
+  /** 今の版の利用規約・プライバシーポリシー（legal.tsのTERMS_VERSION）に同意済みか。 */
+  termsAccepted: boolean;
   rank: RankView;
   jade: JadeBalance;
   /** このリクエストで今日のログインボーナスを受け取った場合、その雀玉の数。 */

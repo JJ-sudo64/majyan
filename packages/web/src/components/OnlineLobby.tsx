@@ -10,6 +10,7 @@ import { HistoryScreen } from "./HistoryScreen.js";
 import { InboxScreen, type InboxTab } from "./InboxScreen.js";
 import { MissionsScreen } from "./MissionsScreen.js";
 import { ShopScreen } from "./ShopScreen.js";
+import { LegalScreen, TermsConsent } from "./LegalScreen.js";
 import { FriendsScreen } from "./FriendsScreen.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 
@@ -67,6 +68,10 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   /** 支払いのページから戻ってきた時の印（?shop=done / cancel）。読んだらURLからは消す。 */
   const [shopReturn] = useState(() => new URLSearchParams(window.location.search).get(SHOP_RETURN_PARAM));
   const [showShop, setShowShop] = useState(shopReturn !== null);
+  const [showLegal, setShowLegal] = useState(false);
+  /** アカウントを作る時の「同意する」のチェック。 */
+  const [agreed, setAgreed] = useState(false);
+  const termsAccepted = useAccountStore((s) => s.termsAccepted);
   const incomingFriendRequests = useAccountStore((s) => s.incomingFriendRequests);
   const hasUnreadNews = useAccountStore((s) => s.latestAnnouncementId !== null && s.latestAnnouncementId > s.seenAnnouncementId);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
@@ -118,7 +123,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     if (profile) {
       await renameAccount(trimmed);
       setRenaming(false);
-    } else {
+    } else if (agreed) {
       await createGuestAccount(trimmed);
       // 作った後は欄を空にしておく（開発用の「新しいアカウントで始める」で戻った時に前の名前が残らないように）。
       if (useAccountStore.getState().status !== "none") setName("");
@@ -169,7 +174,18 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               }}
             />
           </label>
-          <button type="button" className="btn btn--primary" disabled={!name.trim()} onClick={() => void submitName()}>
+          {!profile && (
+            <label className="online-lobby__agree">
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+              <span>
+                <button type="button" className="online-lobby__link" onClick={() => setShowLegal(true)}>
+                  利用規約とプライバシーポリシー
+                </button>
+                に同意する
+              </span>
+            </label>
+          )}
+          <button type="button" className="btn btn--primary" disabled={!name.trim() || (!profile && !agreed)} onClick={() => void submitName()}>
             {profile ? "変更する" : "はじめる"}
           </button>
           {renaming && (
@@ -209,6 +225,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {!busy && (
             <button type="button" className="btn online-lobby__rename" onClick={() => setShowTransfer(true)}>
               引き継ぎ・退会
+            </button>
+          )}
+          {!busy && (
+            <button type="button" className="btn online-lobby__rename" onClick={() => setShowLegal(true)}>
+              規約
             </button>
           )}
           {!busy && !needsFirstGacha && (
@@ -275,6 +296,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showHistory && <HistoryScreen onClose={() => setShowHistory(false)} />}
       {inboxTab && <InboxScreen initialTab={inboxTab} onClose={() => setInboxTab(null)} />}
       {showMissions && <MissionsScreen onClose={() => setShowMissions(false)} />}
+      {showLegal && <LegalScreen onClose={() => setShowLegal(false)} />}
+      {profile && !termsAccepted && <TermsConsent />}
       {showShop && profile && !needsFirstGacha && <ShopScreen returned={shopReturn} onClose={() => setShowShop(false)} />}
       {showFriends && (
         <FriendsScreen
