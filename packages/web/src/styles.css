@@ -5860,3 +5860,134 @@ button {
   font-weight: normal;
   opacity: 0.75;
 }
+
+/* ---- ネット対戦のスタンプ ---- */
+.online-stamps {
+  position: fixed;
+  right: 16px;
+  bottom: 92px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.online-stamps__toggle {
+  padding: 5px 12px;
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffe08a;
+  font-size: 13px;
+  cursor: pointer;
+}
+.online-stamps__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  border-radius: 10px;
+  background: rgba(10, 8, 4, 0.92);
+}
+.online-stamps__choice {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.online-stamps__choice:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.3);
+}
+.online-stamps__choice:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.online-stamps__mute {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  color: #fff;
+  font-size: 12px;
+  opacity: 0.8;
+}
+/* 吹き出しはStageの中（卓と同じ縮尺）に置く。 */
+.online-stamp {
+  position: absolute;
+  z-index: 890;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 340px;
+  pointer-events: none;
+  animation: online-stamp-pop 3.5s ease forwards;
+}
+.online-stamp--seat0 {
+  left: 50%;
+  bottom: 30%;
+  translate: -50% 0;
+}
+.online-stamp--seat1 {
+  right: 3%;
+  top: 42%;
+  flex-direction: row-reverse;
+}
+.online-stamp--seat2 {
+  left: 50%;
+  top: 12%;
+  translate: -50% 0;
+}
+.online-stamp--seat3 {
+  left: 3%;
+  top: 42%;
+}
+.online-stamp__avatar {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #ffe08a;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  background: #222;
+}
+.online-stamp__bubble {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #222;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.online-stamp__name {
+  font-size: 11px;
+  opacity: 0.65;
+}
+.online-stamp__text {
+  font-size: 16px;
+  font-weight: bold;
+}
+@keyframes online-stamp-pop {
+  0% {
+    opacity: 0;
+    scale: 0.7;
+  }
+  6% {
+    opacity: 1;
+    scale: 1.06;
+  }
+  10% {
+    scale: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

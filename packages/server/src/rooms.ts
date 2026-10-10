@@ -16,6 +16,9 @@ import {
   randomCharacterIds,
   DEFAULT_AI_DIFFICULTY,
   ROOM_CODE_MAX_LENGTH,
+  STAMP_COOLDOWN_MS,
+  stampById,
+  toViewerSeat,
   type AccountProfile,
   type ClientMessage,
   type LobbyMember,
@@ -44,6 +47,8 @@ interface Member {
   unitId: string | null;
   client: Client | null;
   seat: PlayerIndex | null;
+  /** 最後にスタンプを送った時刻（連打の制限用。保存はしない）。 */
+  lastStampAt?: number;
 }
 
 interface Room {
@@ -280,6 +285,19 @@ export class RoomManager {
       case "nextRound":
         if (room.session && member.seat !== null) room.session.handleNextRound(member.seat);
         return;
+      case "stamp": {
+        if (!room.session || member.seat === null || !stampById(message.stampId)) return;
+        const now = Date.now();
+        // 早すぎる分は黙って捨てる（画面側も同じ間隔で押せなくしている）。
+        if (member.lastStampAt !== undefined && now - member.lastStampAt < STAMP_COOLDOWN_MS) return;
+        member.lastStampAt = now;
+        const from = member.seat;
+        for (const m of room.members) {
+          if (m.seat !== null) m.client?.send({ t: "stamp", seat: toViewerSeat(from, m.seat), stampId: message.stampId });
+        }
+        for (const sp of room.spectators) sp.client.send({ t: "stamp", seat: toViewerSeat(from, sp.seat), stampId: message.stampId });
+        return;
+      }
     }
   }
 

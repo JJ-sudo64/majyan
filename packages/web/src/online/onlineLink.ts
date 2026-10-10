@@ -12,6 +12,7 @@ import {
   type ClientMessage,
   type LobbyMember,
   type MatchFormat,
+  type PlayerIndex,
   type RankResult,
   type ServerMessage,
 } from "@majyan/core";
@@ -50,6 +51,33 @@ interface OnlineStoreState {
   rankResult: RankResult | null;
   /** 対局中に切れて、自動で入り直そうとしている（次の試みを待っている間も含む）。 */
   autoRejoining: boolean;
+  /** 届いたスタンプ（seatは自分から見た座席番号。atはDate.now()基準）。新しいものが後ろ。 */
+  stamps: { key: number; seat: PlayerIndex; stampId: string; at: number }[];
+  /** スタンプを表示しない設定（このブラウザだけ）。 */
+  stampsMuted: boolean;
+}
+
+const STAMPS_MUTED_KEY = "majyan.stamps.muted";
+/** 覚えておくスタンプの数（画面には新しい数秒分しか出さない）。 */
+const MAX_KEPT_STAMPS = 8;
+let nextStampKey = 1;
+
+function loadStampsMuted(): boolean {
+  try {
+    return localStorage.getItem(STAMPS_MUTED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setStampsMuted(muted: boolean) {
+  useOnlineStore.setState({ stampsMuted: muted });
+  try {
+    if (muted) localStorage.setItem(STAMPS_MUTED_KEY, "1");
+    else localStorage.removeItem(STAMPS_MUTED_KEY);
+  } catch {
+    // 保存できなくても、このページを開いている間は効く。
+  }
 }
 
 export const useOnlineStore = create<OnlineStoreState>(() => ({
@@ -61,6 +89,8 @@ export const useOnlineStore = create<OnlineStoreState>(() => ({
   ranked: false,
   rankResult: null,
   autoRejoining: false,
+  stamps: [],
+  stampsMuted: loadStampsMuted(),
 }));
 
 let socket: WebSocket | null = null;
@@ -151,6 +181,15 @@ function handleMessage(message: ServerMessage) {
       rejoinConnection = false;
       useOnlineStore.setState({ status: "playing", error: null });
       useGameStore.getState().applyOnlineView(message.view);
+      return;
+    case "stamp":
+      useOnlineStore.setState((s) => ({
+        stamps: [
+          // 同じ人の前のスタンプは新しいものに置き換える（同じ席に重ねて出さない）。
+          ...s.stamps.filter((x) => x.seat !== message.seat).slice(-(MAX_KEPT_STAMPS - 1)),
+          { key: nextStampKey++, seat: message.seat, stampId: message.stampId, at: Date.now() },
+        ],
+      }));
       return;
     case "error":
       if (message.fatal) {

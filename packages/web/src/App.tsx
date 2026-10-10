@@ -6,6 +6,7 @@ import { MatchSetup } from "./components/MatchSetup.js";
 import { OnlineLobby } from "./components/OnlineLobby.js";
 import { OnlineConnectionOverlay } from "./components/OnlineConnectionOverlay.js";
 import { OnlineTurnTimer } from "./components/OnlineTurnTimer.js";
+import { OnlineStampBubbles, OnlineStamps } from "./components/OnlineStamps.js";
 import { ReplayControls } from "./components/ReplayControls.js";
 import { SpectatorBanner } from "./components/SpectatorBanner.js";
 import { Table } from "./components/Table.js";
@@ -30,9 +31,11 @@ export default function App() {
       <>
         <Stage>
           <Table />
+          {online && <OnlineStampBubbles />}
         </Stage>
         {online && !spectating && <OnlineTurnTimer />}
         {online && !spectating && <OnlineConnectionOverlay />}
+        {online && <OnlineStamps canSend={!spectating} />}
         {spectating && <SpectatorBanner />}
         {replaying && <ReplayControls />}
       </>

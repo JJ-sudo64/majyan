@@ -426,6 +426,33 @@ export interface ApiErrorResponse {
 }
 
 // ---------------------------------------------------------------------------
+// スタンプ（対局中に送れる決まった言葉。自由な文章は送れない＝暴言の対策が要らない）
+// ---------------------------------------------------------------------------
+
+export interface Stamp {
+  id: string;
+  text: string;
+}
+
+export const STAMPS: readonly Stamp[] = [
+  { id: "hello", text: "よろしくお願いします" },
+  { id: "thanks", text: "ありがとう！" },
+  { id: "nice", text: "ナイス！" },
+  { id: "wow", text: "すごい…！" },
+  { id: "hmm", text: "うーん…" },
+  { id: "ouch", text: "やられた…" },
+  { id: "sorry", text: "ごめんなさい" },
+  { id: "gg", text: "おつかれさまでした" },
+];
+
+export function stampById(id: unknown): Stamp | null {
+  return STAMPS.find((s) => s.id === id) ?? null;
+}
+
+/** 同じ人が続けてスタンプを送れる間隔（連打で画面を埋められないように）。 */
+export const STAMP_COOLDOWN_MS = 3000;
+
+// ---------------------------------------------------------------------------
 // 画面 → サーバー
 // ---------------------------------------------------------------------------
 
@@ -446,6 +473,8 @@ export type ClientMessage =
   | { t: "action"; action: GameAction }
   /** 局の結果を見終わった（全員が押すか時間切れで次局へ進む）。 */
   | { t: "nextRound" }
+  /** 対局中にスタンプを送る（同じ卓の全員と観戦者に届く）。 */
+  | { t: "stamp"; stampId: string }
   /** フレンドの対局を観戦する（フレンドコードで指定。誰の手の内も見えない）。 */
   | { t: "spectate"; authToken: string; friendCode: string }
   | { t: "leave" };
@@ -511,6 +540,8 @@ export type ServerMessage =
   | { t: "rankResult"; result: RankResult }
   | { t: "lobby"; room: string; members: LobbyMember[] }
   | { t: "state"; view: OnlineSeatView }
+  /** 誰かがスタンプを送った（seatは受け取る人から見た座席番号）。 */
+  | { t: "stamp"; seat: PlayerIndex; stampId: string }
   /** 操作が受け付けられなかった等。fatal なら接続を閉じてタイトルへ戻す。 */
   | { t: "error"; message: string; fatal?: boolean };
 

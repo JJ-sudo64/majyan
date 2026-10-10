@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_TIME_LIMIT_RULES, hasAnyCallOption, type ServerMessage, type OnlineSeatView } from "@majyan/core";
+import { DEFAULT_TIME_LIMIT_RULES, STAMP_COOLDOWN_MS, hasAnyCallOption, type ServerMessage, type OnlineSeatView } from "@majyan/core";
 import { RoomManager, type Client, type RoomManagerOptions } from "../src/rooms.js";
 import { AccountService } from "../src/accounts.js";
 import { openDatabase } from "../src/db.js";
@@ -214,6 +214,22 @@ describe("match over the network", () => {
     const after = a.view.match.round.players[0]!;
     expect(after.discards.at(-1)?.tile.id).toBe(tile.id);
     expect(a.view.options.turn).toBeNull();
+  });
+
+  it("delivers a stamp to everyone from their own point of view, and drops spam and unknown stamps", () => {
+    const { rooms, a, b } = startTwoPlayers(2);
+    const bFromA = a.view.seats.map((s) => s.name).indexOf("B");
+    rooms.handleMessage(b, { t: "stamp", stampId: "hello" });
+    expect(a.last("stamp")).toEqual({ t: "stamp", seat: bFromA, stampId: "hello" });
+    expect(b.last("stamp")).toEqual({ t: "stamp", seat: 0, stampId: "hello" });
+
+    const count = () => a.received.filter((m) => m.t === "stamp").length;
+    rooms.handleMessage(b, { t: "stamp", stampId: "nice" }); // 早すぎる
+    rooms.handleMessage(a, { t: "stamp", stampId: "no-such-stamp" });
+    expect(count()).toBe(1);
+    vi.advanceTimersByTime(STAMP_COOLDOWN_MS);
+    rooms.handleMessage(b, { t: "stamp", stampId: "nice" });
+    expect(count()).toBe(2);
   });
 
   it("refuses draws from clients", () => {

@@ -82,6 +82,8 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return isValidAction(m.action) ? (m as ClientMessage) : null;
     case "spectate":
       return isStr(m.authToken) && isStr(m.friendCode, 30) ? (m as ClientMessage) : null;
+    case "stamp":
+      return isStr(m.stampId, 20) ? (m as ClientMessage) : null;
     case "nextRound":
     case "leave":
       return m as ClientMessage;
