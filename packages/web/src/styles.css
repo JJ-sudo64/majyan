@@ -2856,6 +2856,13 @@ button {
   gap: 6px;
   min-height: 0;
 }
+/* 牌の並ばない行（ベタ降りの盾の表示だけ等）は背が低く、そのままだと文字が手牌の
+   上端（牌の厚みぶん、手牌の枠より上にはみ出して描かれる）にめり込む。牌の並ぶ行は
+   行の高さがあるので文字が上に来るが、こちらは無いので、厚みぶんだけ持ち上げる。 */
+.wait-row:not(:has(.wait-row__tiles)) {
+  align-self: flex-end;
+  margin-bottom: 20px;
+}
 .wait-row__label {
   display: flex;
   align-items: center;
