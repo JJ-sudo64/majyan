@@ -24,13 +24,16 @@
  *   report done <番号>                                通報を対応済みにする
  *   user rename --to アカウントID [--name 新しい名前]  名前を変える（--name無しなら「プレイヤー1234」のような名前にする）
  *
+ *   user suspend --to アカウントID [--days 日数] [--reason メモ]  利用停止（対戦・購入ができなくなる。--days無しは無期限）
+ *   user unsuspend --to アカウントID                  利用停止を解く
+ *
  *   user find <名前かIDの先頭8文字以上>               アカウントを探す（IDは画面の「引き継ぎ」に出ている）
  *   catalog                                           キャラ・カードのID一覧
  *   backup                                            今すぐDBのバックアップを取る（置き場所はサーバーと同じ BACKUP_DIR）
  */
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { CARDS, CHARACTERS, characterRarity, PURCHASE_STATUS_LABELS, REPORT_REASONS, type GachaItem } from "@majyan/core";
+import { CARDS, CHARACTERS, characterRarity, PURCHASE_STATUS_LABELS, REPORT_REASONS, SUSPENDED_FOREVER, type GachaItem } from "@majyan/core";
 import { openDatabase, type Database } from "./db.js";
 import { CollectionService } from "./collection.js";
 import { WalletService } from "./wallet.js";
@@ -207,6 +210,22 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       }
       return [`${userId} さんの名前を「${name}」に変えました`];
     }
+    case "user suspend":
+    case "user unsuspend": {
+      const { values } = parseArgs({ args: rest, options: { to: { type: "string" }, days: { type: "string" }, reason: { type: "string" } } });
+      if (!values.to) throw new UsageError("--to でアカウントIDを指定してください");
+      const userId = resolveUserId(db, values.to);
+      const accounts = new AccountService(db, now);
+      if (command === "unsuspend") {
+        accounts.suspend(userId, null);
+        return [`${userId} さんの利用停止を解きました`];
+      }
+      const days = positiveInt(values.days, "日数");
+      if (days === 0) throw new UsageError("日数は1以上にしてください（解く時は user unsuspend）");
+      const until = days === undefined ? SUSPENDED_FOREVER : now() + days * 24 * 60 * 60_000;
+      accounts.suspend(userId, until, values.reason ?? null);
+      return [`${userId} さんを${days === undefined ? "無期限で" : `${fmt(until)} まで`}利用停止にしました`];
+    }
     case "user find": {
       const key = rest.join(" ").trim();
       if (!key) throw new UsageError("探す名前かIDを指定してください");
@@ -236,7 +255,7 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       return [`バックアップを作りました: ${backupNow(db, { dir: backupDir, keep: Number(process.env.BACKUP_KEEP) || 28, now })}`];
     }
     default:
-      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / purchase list|refund / age reset / report list|done / user find|rename / catalog / backup（詳しくは src/admin.ts の先頭）");
+      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / purchase list|refund / age reset / report list|done / user find|rename|suspend|unsuspend / catalog / backup（詳しくは src/admin.ts の先頭）");
   }
 }
 

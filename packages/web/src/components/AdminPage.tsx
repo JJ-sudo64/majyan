@@ -421,6 +421,14 @@ function UsersTab({ token, run }: { token: string; run: Run }) {
     const u = await run(() => adminApi<AdminUser[]>(token, `/users?q=${encodeURIComponent(q.trim())}`));
     if (u) setUsers(u);
   }
+  /** 利用停止（日数。0で解除、-1で無期限）。 */
+  async function suspend(user: AdminUser) {
+    const input = window.prompt(`${user.displayName} さんを何日間利用停止にしますか？（0で解除、-1で無期限）`, user.suspendedUntil ? "0" : "7");
+    if (input === null) return;
+    const days = Number(input);
+    const changed = await run(() => adminApi<AdminUser[]>(token, "/users/suspend", { id: user.id, days }), days === 0 ? "利用停止を解きました" : "利用停止にしました");
+    if (changed?.[0]) setUsers((list) => list?.map((u) => (u.id === user.id ? changed[0]! : u)) ?? null);
+  }
   /** 名前を変える。空欄なら当たり障りのない名前（プレイヤー1234）になる。 */
   async function rename(user: AdminUser) {
     const name = window.prompt(`${user.displayName} さんの新しい名前（空欄なら「プレイヤー1234」のような名前にします）`, "");
@@ -460,7 +468,10 @@ function UsersTab({ token, run }: { token: string; run: Run }) {
             {users.map((u) => (
               <tr key={u.id} className={u.deleted ? "admin-deleted" : undefined}>
                 <td className="admin-mono">{u.id}</td>
-                <td>{u.displayName}</td>
+                <td>
+                  {u.displayName}
+                  {u.suspendedUntil !== null && <div className="admin-error">利用停止中（{fmt(u.suspendedUntil)} まで）</div>}
+                </td>
                 <td>
                   {u.rankLabel}（{u.gamesPlayed}戦）
                 </td>
@@ -471,9 +482,14 @@ function UsersTab({ token, run }: { token: string; run: Run }) {
                 <td>{fmt(u.lastLoginAt)}</td>
                 <td>
                   {!u.deleted && (
-                    <button type="button" onClick={() => void rename(u)}>
-                      名前を変える
-                    </button>
+                    <>
+                      <button type="button" onClick={() => void rename(u)}>
+                        名前を変える
+                      </button>{" "}
+                      <button type="button" onClick={() => void suspend(u)}>
+                        {u.suspendedUntil !== null ? "利用停止を変える" : "利用停止"}
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>
@@ -497,6 +513,12 @@ function ReportsTab({ token, run }: { token: string; run: Run }) {
     const open = await run(() => adminApi<AdminReport[]>(token, "/reports/done", { id }), "対応済みにしました");
     if (!open) return;
     setReports((list) => (all ? (list?.map((r) => (r.id === id ? { ...r, handled: true } : r)) ?? null) : open));
+  }
+  async function suspend(report: AdminReport) {
+    const input = window.prompt(`${report.targetNameNow} さんを何日間利用停止にしますか？（0で解除、-1で無期限）`, "7");
+    if (input === null) return;
+    const days = Number(input);
+    await run(() => adminApi<AdminUser[]>(token, "/users/suspend", { id: report.targetId, days }), days === 0 ? "利用停止を解きました" : "利用停止にしました");
   }
   async function resetName(report: AdminReport) {
     if (!window.confirm(`${report.targetNameNow} さんの名前を「プレイヤー1234」のような名前に変えますか？`)) return;
@@ -543,6 +565,9 @@ function ReportsTab({ token, run }: { token: string; run: Run }) {
                 <td>
                   <button type="button" onClick={() => void resetName(r)}>
                     名前を変える
+                  </button>{" "}
+                  <button type="button" onClick={() => void suspend(r)}>
+                    利用停止
                   </button>{" "}
                   {!r.handled && (
                     <button type="button" onClick={() => void done(r.id)}>

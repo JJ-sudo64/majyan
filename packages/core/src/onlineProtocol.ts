@@ -61,7 +61,20 @@ export interface AccountProfile {
   id: string;
   displayName: string;
   createdAt: number;
+  /** 利用停止中なら、それが解ける時刻（ミリ秒）。停止されていなければnull。 */
+  suspendedUntil: number | null;
 }
+
+/** 利用停止中の人に見せる文（対戦・購入を断る時と、ロビーの表示）。 */
+export function suspensionMessage(until: number): string {
+  // 無期限（運営が解くまで）は遠い未来の時刻で表す。
+  if (until >= SUSPENDED_FOREVER) return "このアカウントは利用を停止されています";
+  const date = new Date(until).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", dateStyle: "short", timeStyle: "short" });
+  return `このアカウントは利用を停止されています（${date} まで）`;
+}
+
+/** 無期限の利用停止を表す時刻（西暦9999年）。 */
+export const SUSPENDED_FOREVER = Date.UTC(9999, 0, 1);
 
 export interface GuestAccountResponse {
   /** ログイン用の鍵。この時しか受け取れないので、画面側はブラウザに保存しておく。 */
@@ -389,6 +402,7 @@ export interface ReplayResponse {
 //   POST /api/admin/gifts/cancel {id}           → AdminGift[]
 //   GET  /api/admin/users?q=名前かID             → AdminUser[]
 //   POST /api/admin/users/rename {id, name?}    → AdminUser[]   名前を変える（name無しなら当たり障りのない名前にする）
+//   POST /api/admin/users/suspend {id, days}    → AdminUser[]   利用停止（daysは日数。0で解除、-1で無期限）
 //   GET  /api/admin/reports?all=1               → AdminReport[] 通報（既定はまだ対応していないものだけ）
 //   POST /api/admin/reports/done {id}           → AdminReport[]
 // ---------------------------------------------------------------------------
@@ -452,6 +466,8 @@ export interface AdminUser {
   createdAt: number;
   lastLoginAt: number;
   deleted: boolean;
+  /** 利用停止中なら、それが解ける時刻。 */
+  suspendedUntil: number | null;
   rankLabel: string;
   gamesPlayed: number;
   jade: JadeBalance;

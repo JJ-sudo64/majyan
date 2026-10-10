@@ -54,9 +54,15 @@ interface UserRow {
   id: string;
   display_name: string;
   created_at: number;
+  suspended_until: number | null;
 }
 
-const toProfile = (row: UserRow): AccountProfile => ({ id: row.id, displayName: row.display_name, createdAt: row.created_at });
+const toProfile = (row: UserRow, now: number): AccountProfile => ({
+  id: row.id,
+  displayName: row.display_name,
+  createdAt: row.created_at,
+  suspendedUntil: row.suspended_until !== null && row.suspended_until > now ? row.suspended_until : null,
+});
 
 /** 退会したアカウントの表示名。 */
 export const DELETED_USER_NAME = "退会したユーザー";
@@ -91,7 +97,7 @@ export class AccountService {
         .prepare("INSERT INTO auth_tokens (token_hash, user_id, created_at, last_used_at) VALUES (?, ?, ?, ?)")
         .run(hashToken(token), id, now, now);
     });
-    return { profile: { id, displayName: name, createdAt: now }, token };
+    return { profile: { id, displayName: name, createdAt: now, suspendedUntil: null }, token };
   }
 
   /** 鍵からアカウントを引く。知らない鍵ならnull。 */
@@ -99,7 +105,7 @@ export class AccountService {
     if (typeof token !== "string" || token.length < 20 || token.length > 200) return null;
     const row = this.db
       .prepare(
-        `SELECT u.id, u.display_name, u.created_at FROM auth_tokens t JOIN users u ON u.id = t.user_id
+        `SELECT u.id, u.display_name, u.created_at, u.suspended_until FROM auth_tokens t JOIN users u ON u.id = t.user_id
          WHERE t.token_hash = ? AND u.deleted_at IS NULL`,
       )
       .get(hashToken(token)) as UserRow | undefined;
@@ -107,7 +113,7 @@ export class AccountService {
     const now = this.now();
     this.db.prepare("UPDATE auth_tokens SET last_used_at = ? WHERE token_hash = ?").run(now, hashToken(token));
     this.db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run(now, row.id);
-    return toProfile(row);
+    return toProfile(row, this.now());
   }
 
   /** ログイン用の鍵を新しく発行する（引き継ぎで別の端末から入った時など）。 */
@@ -176,10 +182,18 @@ export class AccountService {
   }
 
   getProfile(userId: string): AccountProfile | null {
-    const row = this.db.prepare("SELECT id, display_name, created_at FROM users WHERE id = ? AND deleted_at IS NULL").get(userId) as
+    const row = this.db.prepare("SELECT id, display_name, created_at, suspended_until FROM users WHERE id = ? AND deleted_at IS NULL").get(userId) as
       | UserRow
       | undefined;
-    return row ? toProfile(row) : null;
+    return row ? toProfile(row, this.now()) : null;
+  }
+
+  /**
+   * 運営用: 利用を止める（untilまで対戦・購入ができない。ログインと手持ちの確認はできる）。
+   * 無期限はSUSPENDED_FOREVER、解除はnull。
+   */
+  suspend(userId: string, until: number | null, reason: string | null = null): void {
+    this.db.prepare("UPDATE users SET suspended_until = ?, suspended_reason = ? WHERE id = ?").run(until, until === null ? null : reason, userId);
   }
 
   /** 運営用: 不適切な名前を、当たり障りのない名前に変える。変えた後の名前を返す。 */

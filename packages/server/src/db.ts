@@ -302,6 +302,11 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE users ADD COLUMN terms_version TEXT;
   ALTER TABLE users ADD COLUMN terms_accepted_at INTEGER;
   `,
+  // 17: 利用停止（この時刻までは対戦・購入ができない。NULLは停止していない）
+  `
+  ALTER TABLE users ADD COLUMN suspended_until INTEGER;
+  ALTER TABLE users ADD COLUMN suspended_reason TEXT;
+  `,
 ];
 
 export type Database = DatabaseSyncType;

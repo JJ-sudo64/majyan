@@ -8,6 +8,7 @@ import { timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   ADMIN_TOKEN_HEADER,
+  SUSPENDED_FOREVER,
   jstDate,
   type AdminStats,
   type AdminUser,
@@ -95,7 +96,7 @@ export function createAdminHandler(options: AdminApiOptions) {
     if (!key) return [];
     const rows = db
       .prepare(
-        `SELECT id, display_name, created_at, last_login_at, deleted_at FROM users
+        `SELECT id, display_name, created_at, last_login_at, deleted_at, suspended_until FROM users
          WHERE display_name LIKE '%' || ? || '%' OR (length(?) >= ? AND id LIKE lower(?) || '%') OR friend_code = ?
          ORDER BY last_login_at DESC LIMIT 50`,
       )
@@ -105,6 +106,7 @@ export function createAdminHandler(options: AdminApiOptions) {
       created_at: number;
       last_login_at: number;
       deleted_at: number | null;
+      suspended_until: number | null;
     }[];
     return rows.map((r) => {
       const rank = ranks.get(r.id);
@@ -114,6 +116,7 @@ export function createAdminHandler(options: AdminApiOptions) {
         createdAt: r.created_at,
         lastLoginAt: r.last_login_at,
         deleted: r.deleted_at !== null,
+        suspendedUntil: r.suspended_until !== null && r.suspended_until > now() ? r.suspended_until : null,
         rankLabel: rank.label,
         gamesPlayed: rank.gamesPlayed,
         jade: wallet.balance(r.id),
@@ -226,6 +229,16 @@ export function createAdminHandler(options: AdminApiOptions) {
           } catch {
             throw new AdminInputError("その名前には変えられません（長すぎる等）");
           }
+          sendJson(res, 200, findUsers(id));
+          return true;
+        }
+        case "POST /users/suspend": {
+          if (!options.accounts) return fail(res, 404, "見つかりません"), true;
+          const body = (await options.readJson(req)) as { id?: unknown; days?: unknown };
+          const id = resolveUser(str(body.id));
+          const days = Number(body.days);
+          if (!Number.isInteger(days) || days < -1 || days > 3650) throw new AdminInputError("日数は0（解除）・-1（無期限）・1〜3650のどれかにしてください");
+          options.accounts.suspend(id, days === 0 ? null : days === -1 ? SUSPENDED_FOREVER : now() + days * DAY_MS, "admin");
           sendJson(res, 200, findUsers(id));
           return true;
         }

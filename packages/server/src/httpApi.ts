@@ -7,6 +7,7 @@ import {
   ACCOUNT_DELETE_CONFIRM,
   ONLINE_API_PREFIX,
   TERMS_VERSION,
+  suspensionMessage,
   type AccountProfile,
   type ApiErrorResponse,
   type GachaRollResponse,
@@ -436,6 +437,7 @@ export function createApiHandler(options: HttpApiOptions) {
             if (route.endsWith("/age")) shop.declareBirthMonth(profile.id, body.birthMonth);
             else if (route.endsWith("/pay")) shop.completeTestPurchase(profile.id, body.purchaseId);
             else {
+              if (profile.suspendedUntil !== null) return fail(res, 403, suspensionMessage(profile.suspendedUntil)), true;
               const base = returnBase(req);
               if (!base) return fail(res, 400, "戻り先のページが分かりません"), true;
               sendJson(res, 200, (await shop.startCheckout(profile.id, body.productId, base)) satisfies CheckoutResponse);

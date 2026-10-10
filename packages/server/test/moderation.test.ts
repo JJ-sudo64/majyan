@@ -157,3 +157,61 @@ describe("moderation over HTTP", () => {
     }
   });
 });
+
+describe("suspension", () => {
+  it("keeps a suspended account out of rooms, the ranked queue and the shop until it ends", async () => {
+    const { db, clock, now, accounts, a } = setup();
+    const { RoomManager } = await import("../src/rooms.js");
+    const { Matchmaker } = await import("../src/matchmaking.js");
+    const { ShopService } = await import("../src/shop.js");
+    const { SUSPENDED_FOREVER } = await import("@majyan/core");
+    const ranks = new RankService(db);
+    const rooms = new RoomManager({ authenticate: (token) => accounts.authenticate(token), ranks });
+    const matchmaker = new Matchmaker({ rooms, ranks, authenticate: (token) => accounts.authenticate(token), cpuFillMs: 60_000 });
+    const messages: { t: string; message?: string; fatal?: boolean }[] = [];
+    const client = { id: "c1", send: (m: { t: string }) => void messages.push(m) };
+    try {
+      expect(runAdmin(db, ["user", "suspend", "--to", a.profile.id, "--days", "3", "--reason", "テスト"], now)[0]).toContain("利用停止にしました");
+      expect(accounts.authenticate(a.token)!.suspendedUntil).toBe(clock.t + 3 * 24 * 60 * 60_000);
+
+      rooms.handleMessage(client, { t: "join", room: "abc", authToken: a.token, unitId: null });
+      expect(messages.at(-1)).toMatchObject({ t: "error", fatal: true });
+      expect(messages.at(-1)!.message).toContain("利用を停止されています");
+      matchmaker.handleMessage(client, { t: "queueRanked", authToken: a.token, format: "tonpuusen", unitId: null });
+      expect(messages).toHaveLength(2);
+      expect(messages.at(-1)!.message).toContain("利用を停止されています");
+
+      // 期限が過ぎれば、何もしなくても戻る。
+      clock.t += 3 * 24 * 60 * 60_000 + 1;
+      expect(accounts.authenticate(a.token)!.suspendedUntil).toBeNull();
+      rooms.handleMessage(client, { t: "join", room: "abc", authToken: a.token, unitId: null });
+      expect(messages.at(-1)!.t).toBe("lobby");
+
+      // 無期限と解除。
+      runAdmin(db, ["user", "suspend", "--to", a.profile.id], now);
+      expect(accounts.authenticate(a.token)!.suspendedUntil).toBe(SUSPENDED_FOREVER);
+      const wallet = new WalletService(db, now);
+      const shop = new ShopService(db, wallet, { testMode: true, now });
+      const handleApi = createApiHandler({ accounts, ranks, collections: new CollectionService(db, Math.random, now, wallet), wallet, shop, now });
+      const server = createServer(async (req, res) => void (await handleApi(req, res)));
+      await new Promise<void>((r) => server.listen(0, r));
+      const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      const checkout = () =>
+        fetch(`${origin}/api/shop/checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${a.token}`, Origin: origin },
+          body: JSON.stringify({ productId: "jade-160" }),
+        });
+      try {
+        shop.declareBirthMonth(a.profile.id, "1990-01");
+        expect((await checkout()).status).toBe(403);
+        expect(runAdmin(db, ["user", "unsuspend", "--to", a.profile.id], now)[0]).toContain("解きました");
+        expect((await checkout()).status).toBe(200);
+      } finally {
+        server.close();
+      }
+    } finally {
+      matchmaker.dispose();
+    }
+  });
+});

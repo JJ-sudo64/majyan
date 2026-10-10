@@ -9,6 +9,7 @@
  */
 import {
   rankOrdinal,
+  suspensionMessage,
   type AccountProfile,
   type ClientMessage,
   type MatchFormat,
@@ -69,6 +70,10 @@ export class Matchmaker {
     const account = this.options.authenticate(message.authToken);
     if (!account) {
       client.send({ t: "error", message: "ログインし直してください（アカウントが確認できませんでした）", fatal: true });
+      return;
+    }
+    if (account.suspendedUntil !== null) {
+      client.send({ t: "error", message: suspensionMessage(account.suspendedUntil), fatal: true });
       return;
     }
     if (message.format !== "hanchan" && message.format !== "tonpuusen") return;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, SHOP_RETURN_PARAM, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, SHOP_RETURN_PARAM, suspensionMessage, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
@@ -241,6 +241,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
       )}
       {profile && renaming && accountError && <p className="online-lobby__error">{accountError}</p>}
+      {profile && profile.suspendedUntil !== null && (
+        <p className="online-lobby__error">{suspensionMessage(profile.suspendedUntil)}。対戦と雀玉の購入はできません。</p>
+      )}
       {needsFirstGacha && <FirstGacha />}
       {!needsFirstGacha && profile && rank && (
         <div className="online-lobby__rank">

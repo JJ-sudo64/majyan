@@ -18,6 +18,7 @@ import {
   ROOM_CODE_MAX_LENGTH,
   STAMP_COOLDOWN_MS,
   stampById,
+  suspensionMessage,
   toViewerSeat,
   type AccountProfile,
   type ClientMessage,
@@ -308,6 +309,10 @@ export class RoomManager {
       client.send({ t: "error", message: "ログインし直してください（アカウントが確認できませんでした）", fatal: true });
       return;
     }
+    if (account.suspendedUntil !== null) {
+      client.send({ t: "error", message: suspensionMessage(account.suspendedUntil), fatal: true });
+      return;
+    }
     const targetId = this.options.resolveSpectateTarget?.(account.id, message.friendCode) ?? null;
     if (!targetId) {
       client.send({ t: "error", message: "観戦できるのはフレンドの対局だけです", fatal: true });
@@ -424,6 +429,10 @@ export class RoomManager {
     const account = this.options.authenticate(message.authToken);
     if (!account) {
       client.send({ t: "error", message: "ログインし直してください（アカウントが確認できませんでした）", fatal: true });
+      return;
+    }
+    if (account.suspendedUntil !== null) {
+      client.send({ t: "error", message: suspensionMessage(account.suspendedUntil), fatal: true });
       return;
     }
     const code = sanitize(message.room, ROOM_CODE_MAX_LENGTH);
