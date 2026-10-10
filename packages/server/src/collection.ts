@@ -23,6 +23,7 @@ import {
   type FirstGachaState,
   type GachaHistoryEntry,
   type GachaItem,
+  type GachaPickup,
 } from "@majyan/core";
 import { transaction, type Database } from "./db.js";
 import type { WalletService } from "./wallet.js";
@@ -50,6 +51,22 @@ interface UnitRow {
   card_id: string | null;
 }
 
+interface PickupRow {
+  id: number;
+  title: string;
+  items_json: string;
+  starts_at: number;
+  ends_at: number;
+}
+
+const toPickup = (row: PickupRow): GachaPickup => ({
+  id: row.id,
+  title: row.title,
+  items: JSON.parse(row.items_json) as GachaItem[],
+  startsAt: row.starts_at,
+  endsAt: row.ends_at,
+});
+
 const isKnown = (item: GachaItem) => (item.kind === "character" ? CHARACTER_IDS : CARD_IDS).includes(item.id);
 
 /** 以前は最初の10連の結果をキャラIDの配列で保存していたので、その形も読めるようにする。 */
@@ -68,6 +85,42 @@ export class CollectionService {
     /** 通常のガチャで雀玉を払う先。 */
     private readonly wallet?: WalletService,
   ) {}
+
+  /** 今やっているピックアップ（重なっていたら後から始まった方）。無ければnull。 */
+  activePickup(): GachaPickup | null {
+    const t = this.now();
+    const row = this.db
+      .prepare("SELECT * FROM gacha_pickups WHERE starts_at <= ? AND ends_at > ? ORDER BY starts_at DESC, id DESC LIMIT 1")
+      .get(t, t) as unknown as PickupRow | undefined;
+    return row ? toPickup(row) : null;
+  }
+
+  /** 運営用: ピックアップの一覧（新しい順。終わったものも）。 */
+  allPickups(): GachaPickup[] {
+    return (this.db.prepare("SELECT * FROM gacha_pickups ORDER BY id DESC LIMIT 100").all() as unknown as PickupRow[]).map(toPickup);
+  }
+
+  /** 運営用: ピックアップを予定に入れる。対象は同じレア度に偏っていてもよい。 */
+  addPickup(input: { title: string; items: GachaItem[]; startsAt: number; endsAt: number }): number {
+    const title = input.title.trim();
+    if (!title) throw new GachaError("ピックアップの題を入れてください");
+    if (input.items.length === 0) throw new GachaError("ピックアップするキャラかカードを1つ以上選んでください");
+    const unknown = input.items.find((item) => !isKnown(item));
+    if (unknown) throw new GachaError(`知らない${unknown.kind === "character" ? "キャラ" : "カード"}です: ${unknown.id}`);
+    if (!(input.endsAt > input.startsAt)) throw new GachaError("終わりは始まりより後にしてください");
+    const result = this.db
+      .prepare("INSERT INTO gacha_pickups (title, items_json, starts_at, ends_at, created_at) VALUES (?, ?, ?, ?, ?)")
+      .run(title, JSON.stringify(input.items.map((i) => ({ kind: i.kind, id: i.id }))), input.startsAt, input.endsAt, this.now());
+    return Number(result.lastInsertRowid);
+  }
+
+  /** 運営用: ピックアップを今すぐ終わらせる（まだ始まっていなければ取り消す）。 */
+  endPickup(id: number): boolean {
+    const t = this.now();
+    return (
+      this.db.prepare("UPDATE gacha_pickups SET ends_at = ?, starts_at = MIN(starts_at, ?) WHERE id = ? AND ends_at > ?").run(t, t, id, t).changes > 0
+    );
+  }
 
   private addUnit(userId: string, characterId: string, source: string): string {
     const unitId = randomBytes(12).toString("hex");
@@ -231,7 +284,7 @@ export class CollectionService {
     if (!wallet) throw new Error("雀玉が使えません");
     return transaction(this.db, () => {
       wallet.spend(userId, count === 10 ? GACHA_PRICE.ten : GACHA_PRICE.single, `gacha-${count}`);
-      const results = rollGacha(this.rng, count, count === 10 ? TEN_PULL_GUARANTEE : undefined);
+      const results = rollGacha(this.rng, count, count === 10 ? TEN_PULL_GUARANTEE : undefined, this.activePickup());
       const isNew = this.grant(userId, results, "gacha");
       this.addExchangePoints(userId, count * EXCHANGE_POINTS_PER_PULL);
       this.log(userId, `gacha-${count}`, results);

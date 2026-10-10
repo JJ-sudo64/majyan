@@ -307,6 +307,18 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE users ADD COLUMN suspended_until INTEGER;
   ALTER TABLE users ADD COLUMN suspended_reason TEXT;
   `,
+  // 18: ガチャのピックアップ（期間限定で、決めたキャラ・カードが出やすくなる）
+  `
+  CREATE TABLE gacha_pickups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    -- GachaItem[]
+    items_json TEXT NOT NULL,
+    starts_at INTEGER NOT NULL,
+    ends_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

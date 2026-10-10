@@ -197,3 +197,56 @@ describe("migration to units", () => {
     }
   });
 });
+
+describe("pickup", () => {
+  it("is active only inside its period, and can be scheduled and ended from the admin command", async () => {
+    const { runAdmin } = await import("../src/admin.js");
+    const db = openDatabase(":memory:");
+    const clock = { t: Date.UTC(2026, 9, 10, 3, 0, 0) };
+    const now = () => clock.t;
+    const collections = new CollectionService(db, Math.random, now);
+    const DAY = 24 * 60 * 60_000;
+    expect(collections.activePickup()).toBeNull();
+    expect(() => collections.addPickup({ title: "x", items: [{ kind: "character", id: "nobody" }], startsAt: 0, endsAt: 1 })).toThrow(GachaError);
+    expect(() => collections.addPickup({ title: "x", items: [], startsAt: 0, endsAt: 1 })).toThrow(GachaError);
+
+    expect(runAdmin(db, ["pickup", "add", "--title", "ゼノ祭り", "--character", "zeno", "--card", "nullify", "--days", "3"], now)[0]).toContain("#1");
+    expect(runAdmin(db, ["pickup", "add", "--title", "来月", "--character", "raiko", "--start", "2026-11-01"], now)[0]).toContain("#2");
+    expect(collections.activePickup()).toMatchObject({ id: 1, title: "ゼノ祭り", items: [{ kind: "character", id: "zeno" }, { kind: "card", id: "nullify" }] });
+    expect(runAdmin(db, ["pickup", "list"], now).join("\n")).toMatch(/#2 \[予定\][\s\S]*#1 \[開催中\]/);
+
+    clock.t += 3 * DAY;
+    expect(collections.activePickup()).toBeNull();
+    clock.t = Date.parse("2026-11-01T00:00:00+09:00");
+    expect(collections.activePickup()).toMatchObject({ id: 2 });
+    expect(runAdmin(db, ["pickup", "end", "2"], now)[0]).toContain("終わらせました");
+    expect(collections.activePickup()).toBeNull();
+    expect(runAdmin(db, ["pickup", "end", "2"], now)[0]).toContain("もう終わっています");
+  });
+
+  it("makes the featured ★3 come up far more often in real rolls", () => {
+    const db = openDatabase(":memory:");
+    const now = () => 1_000_000;
+    const wallet = new WalletService(db, now);
+    let seed = 12345;
+    const rng = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 0xffffffff;
+    };
+    const collections = new CollectionService(db, rng, now, wallet);
+    const { profile } = new AccountService(db, now).createGuest("A");
+    wallet.grantFree(profile.id, 1500 * 150, "test");
+    collections.addPickup({ title: "ゼノ", items: [{ kind: "character", id: "zeno" }], startsAt: 0, endsAt: 2_000_000 });
+    let zeno = 0;
+    let otherTop = 0;
+    for (let i = 0; i < 150; i++) {
+      for (const item of collections.rollGacha(profile.id, 10).results) {
+        if (item.kind === "character" && item.id === "zeno") zeno++;
+        else if (gachaPool(3).some((p) => p.kind === item.kind && p.id === item.id)) otherTop++;
+      }
+    }
+    // 1500回: ゼノは約1.65%（約25回）、他の★3は合わせて約1.35%（約20回）。ふだんならゼノは約4.5回。
+    expect(zeno).toBeGreaterThan(12);
+    expect(zeno + otherTop).toBeLessThan(90);
+  });
+});

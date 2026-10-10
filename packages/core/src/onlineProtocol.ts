@@ -13,7 +13,7 @@ import type { RoundScoreOutcome } from "./gameEngine.js";
 import type { SeatOptions } from "./seatView.js";
 import type { ClockDisplay } from "./turnClock.js";
 import type { RankState } from "./ranked.js";
-import type { GachaItem } from "./gacha.js";
+import type { GachaItem, GachaPickup } from "./gacha.js";
 import type { MissionView } from "./missions.js";
 import type { ReplayRound } from "./replay.js";
 
@@ -142,6 +142,8 @@ export interface MeResponse {
   cards: Record<string, number>;
   /** 天井の交換ポイント（gacha.tsのEXCHANGE_COST）。 */
   exchangePoints: number;
+  /** 今やっているピックアップ（無ければnull）。 */
+  pickup: GachaPickup | null;
   firstGacha: FirstGachaState;
   /** 受け取っていないプレゼントの数（プレゼントボタンの印）。 */
   unclaimedGifts: number;

@@ -15,6 +15,11 @@
  *        （--include-new を付けると後から作った人も）。期限は既定30日。
  *   gift cancel <番号>                                まだ受け取っていない人に出さなくする
  *
+ *   pickup list                                       ガチャのピックアップの一覧（終わったものも）
+ *   pickup add --title 題 [--character キャラID]... [--card カードID]... [--start 2026-11-01] [--days 14]
+ *        対象のキャラ・カードが出やすくなる期間を入れる（--start無しは今から。その日の0時から。期間は既定14日）
+ *   pickup end <番号>                                 ピックアップを今すぐ終わらせる
+ *
  *   purchase list [--to アカウントID]                  雀玉の購入の記録（新しい順に50件）
  *   purchase refund <購入の番号>                      返金した購入の雀玉を取り上げる（お金の返金はStripeの管理画面で行う。
  *                                                     Stripeで全額返金すれば通知で自動的に反映されるので、普段は不要）
@@ -35,7 +40,7 @@ import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { CARDS, CHARACTERS, characterRarity, PURCHASE_STATUS_LABELS, REPORT_REASONS, SUSPENDED_FOREVER, type GachaItem } from "@majyan/core";
 import { openDatabase, type Database } from "./db.js";
-import { CollectionService } from "./collection.js";
+import { CollectionService, GachaError } from "./collection.js";
 import { WalletService } from "./wallet.js";
 import { GiftError, InboxService } from "./inbox.js";
 import { backupNow } from "./backup.js";
@@ -43,6 +48,8 @@ import { ShopService } from "./shop.js";
 import { ModerationService } from "./moderation.js";
 import { AccountService } from "./accounts.js";
 
+/** ピックアップの期間の既定（日）。 */
+const DEFAULT_PICKUP_DAYS = 14;
 /** プレゼントの受け取り期限の既定（日）。 */
 const DEFAULT_GIFT_DAYS = 30;
 /** 問い合わせでアカウントIDを先頭だけ伝えてもらう時の最短の長さ。 */
@@ -81,7 +88,8 @@ function positiveInt(value: string | undefined, label: string): number | undefin
 /** コマンドを1つ実行して、表示する行を返す（テストから呼べるように出力はしない）。 */
 export function runAdmin(db: Database, argv: string[], now: () => number = Date.now, backupDir?: string): string[] {
   const wallet = new WalletService(db, now);
-  const inbox = new InboxService(db, new CollectionService(db, Math.random, now, wallet), wallet, now);
+  const collections = new CollectionService(db, Math.random, now, wallet);
+  const inbox = new InboxService(db, collections, wallet, now);
   const [group, command, ...rest] = argv;
   const out: string[] = [];
 
@@ -159,6 +167,46 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       const id = positiveInt(rest[0], "番号");
       if (id === undefined) throw new UsageError("取り消すプレゼントの番号を指定してください");
       return [inbox.cancelGift(id) ? `プレゼント #${id} を取り消しました（受け取り済みの分はそのまま）` : `プレゼント #${id} は取り消せません`];
+    }
+    case "pickup list": {
+      for (const p of collections.allPickups()) {
+        const state = p.endsAt <= now() ? "終了" : p.startsAt > now() ? "予定" : "開催中";
+        out.push(`#${p.id} [${state}] ${fmt(p.startsAt)}〜${fmt(p.endsAt)} ${p.title}（${p.items.map(itemName).join("・")}）`);
+      }
+      if (!out.length) out.push("ピックアップはまだありません");
+      return out;
+    }
+    case "pickup add": {
+      const { values } = parseArgs({
+        args: rest,
+        options: {
+          title: { type: "string" },
+          character: { type: "string", multiple: true },
+          card: { type: "string", multiple: true },
+          start: { type: "string" },
+          days: { type: "string" },
+        },
+      });
+      if (!values.title) throw new UsageError("--title を指定してください");
+      const days = positiveInt(values.days, "日数") ?? DEFAULT_PICKUP_DAYS;
+      if (days === 0) throw new UsageError("日数は1以上にしてください");
+      // endOfJstDayは「その日が終わる時刻」なので、1日戻してその日の0時にする。
+      const startsAt = values.start ? endOfJstDay(values.start) - 24 * 60 * 60_000 : now();
+      const id = collections.addPickup({
+        title: values.title,
+        items: [
+          ...(values.character ?? []).map((id) => ({ kind: "character" as const, id })),
+          ...(values.card ?? []).map((id) => ({ kind: "card" as const, id })),
+        ],
+        startsAt,
+        endsAt: startsAt + days * 24 * 60 * 60_000,
+      });
+      return [`ピックアップ #${id} を入れました（${fmt(startsAt)}〜${fmt(startsAt + days * 24 * 60 * 60_000)}）`];
+    }
+    case "pickup end": {
+      const id = positiveInt(rest[0], "番号");
+      if (id === undefined) throw new UsageError("終わらせるピックアップの番号を指定してください");
+      return [collections.endPickup(id) ? `ピックアップ #${id} を終わらせました` : `ピックアップ #${id} はもう終わっています`];
     }
     case "purchase list": {
       const { values } = parseArgs({ args: rest, options: { to: { type: "string" } } });
@@ -255,7 +303,7 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       return [`バックアップを作りました: ${backupNow(db, { dir: backupDir, keep: Number(process.env.BACKUP_KEEP) || 28, now })}`];
     }
     default:
-      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / purchase list|refund / age reset / report list|done / user find|rename|suspend|unsuspend / catalog / backup（詳しくは src/admin.ts の先頭）");
+      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / pickup list|add|end / purchase list|refund / age reset / report list|done / user find|rename|suspend|unsuspend / catalog / backup（詳しくは src/admin.ts の先頭）");
   }
 }
 
@@ -271,7 +319,7 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename
     const backupDir = process.env.BACKUP_DIR ?? resolve(dirname(databasePath), "backups");
     for (const line of runAdmin(db, process.argv.slice(2), Date.now, backupDir)) console.log(line);
   } catch (err) {
-    if (err instanceof UsageError || err instanceof GiftError || (err as { code?: string }).code?.startsWith("ERR_PARSE_ARGS")) {
+    if (err instanceof UsageError || err instanceof GiftError || err instanceof GachaError || (err as { code?: string }).code?.startsWith("ERR_PARSE_ARGS")) {
       console.error(`エラー: ${(err as Error).message}`);
       process.exitCode = 1;
     } else {

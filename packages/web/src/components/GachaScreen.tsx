@@ -7,8 +7,11 @@ import {
   GACHA_PRICE,
   GACHA_RARITY_RATES,
   gachaPool,
+  itemRate,
+  pickupItemsOf,
   TEN_PULL_GUARANTEE,
   type GachaItem,
+  rarityOf,
   type GachaRollResponse,
   type Rarity,
 } from "@majyan/core";
@@ -37,6 +40,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
   const exchangePoints = useAccountStore((s) => s.exchangePoints);
   const units = useAccountStore((s) => s.units);
   const cards = useAccountStore((s) => s.cards);
+  const pickup = useAccountStore((s) => s.pickup);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<GachaRollResponse | null>(null);
   const [showRates, setShowRates] = useState(false);
@@ -83,6 +87,31 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
             </span>
           )}
         </div>
+
+        {pickup && (
+          <div className="gacha-screen__pickup">
+            <div className="gacha-screen__pickup-title">
+              ピックアップ：{pickup.title}
+              <span className="gacha-screen__pickup-until">
+                {new Date(pickup.endsAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} まで
+              </span>
+            </div>
+            <div className="gacha-screen__pickup-items">
+              {pickup.items.map((item) => {
+                const character = item.kind === "character" ? CHARACTERS[item.id] : undefined;
+                return (
+                  <span key={`${item.kind}-${item.id}`} className="gacha-screen__pickup-item">
+                    {character ? <img src={character.avatar} alt="" /> : <span className="gacha-card__card-icon">カード</span>}
+                    <span>
+                      {RARITY_STARS[rarityOf(item)]} {fullName(item)}
+                      <small>出る確率 {percent(itemRate(item, pickup))}（ふだんは {percent(itemRate(item))}）</small>
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {result && (
           <div className="first-gacha__grid">
@@ -184,12 +213,18 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
               const pool = gachaPool(r);
               const chars = pool.filter((i) => i.kind === "character");
               const cardItems = pool.filter((i) => i.kind === "card");
+              const featured = pickupItemsOf(pickup, r);
+              const others = pool.filter((i) => !featured.some((f) => sameItem(f, i)));
               return (
                 <div key={r} className="gacha-screen__rate-block">
                   <div className="gacha-screen__rate-head">
-                    {RARITY_STARS[r]}　{percent(GACHA_RARITY_RATES[r])}（キャラ{chars.length}人・カード{cardItems.length}枚、1つあたり
-                    {percent(GACHA_RARITY_RATES[r] / pool.length)}）
+                    {RARITY_STARS[r]}　{percent(GACHA_RARITY_RATES[r])}（キャラ{chars.length}人・カード{cardItems.length}枚、
+                    {featured.length > 0
+                      ? `ピックアップは1つあたり${percent(itemRate(featured[0]!, pickup))}、その他は1つあたり${others[0] ? percent(itemRate(others[0], pickup)) : "-"}`
+                      : `1つあたり${percent(GACHA_RARITY_RATES[r] / pool.length)}`}
+                    ）
                   </div>
+                  {featured.length > 0 && <div className="gacha-screen__rate-names">ピックアップ：{featured.map(fullName).join("、")}</div>}
                   <div className="gacha-screen__rate-names">キャラ：{chars.map(fullName).join("、")}</div>
                   <div className="gacha-screen__rate-names">カード：{cardItems.map(fullName).join("、")}</div>
                 </div>

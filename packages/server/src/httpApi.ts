@@ -131,6 +131,7 @@ export function createApiHandler(options: HttpApiOptions) {
     units: collections.units(profile.id),
     cards: collections.cards(profile.id),
     exchangePoints: collections.exchangePoints(profile.id),
+    pickup: collections.activePickup(),
     firstGacha: collections.firstGachaState(profile.id),
     unclaimedGifts: inbox?.unclaimedCount(profile.id) ?? 0,
     latestAnnouncementId: inbox?.latestAnnouncementId() ?? null,

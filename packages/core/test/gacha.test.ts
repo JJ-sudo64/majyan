@@ -13,8 +13,11 @@ import {
   rarityOf,
   rollFirstGacha,
   rollGacha,
+  PICKUP_SHARE,
+  pickupItemsOf,
   TEN_PULL_GUARANTEE,
   type GachaItem,
+  type GachaPickup,
 } from "../src/gacha.js";
 
 function makeRng(seed: number): () => number {
@@ -99,5 +102,49 @@ describe("jade helpers", () => {
     // 2026-10-01 14:59:59Z = 23:59:59 JST, 15:00:00Z = 翌日 00:00 JST
     expect(jstDate(Date.UTC(2026, 9, 1, 14, 59, 59))).toBe("2026-10-01");
     expect(jstDate(Date.UTC(2026, 9, 1, 15, 0, 0))).toBe("2026-10-02");
+  });
+});
+
+describe("pickup", () => {
+  const pickup: GachaPickup = {
+    id: 1,
+    title: "テスト",
+    items: [
+      { kind: "character", id: "zeno" },
+      { kind: "card", id: "han-up-1" },
+      { kind: "character", id: "no-such-character" },
+    ],
+    startsAt: 0,
+    endsAt: 1,
+  };
+  const all: GachaItem[] = [...gachaPool(1), ...gachaPool(2), ...gachaPool(3)];
+
+  it("keeps rarity rates and the total at 1 while raising only the featured items", () => {
+    expect(all.reduce((sum, item) => sum + itemRate(item, pickup), 0)).toBeCloseTo(1, 10);
+    for (const r of [1, 2, 3] as const) {
+      expect(gachaPool(r).reduce((sum, item) => sum + itemRate(item, pickup), 0)).toBeCloseTo(GACHA_RARITY_RATES[r], 10);
+    }
+    const zeno: GachaItem = { kind: "character", id: "zeno" };
+    // ★3の半分がピックアップの1人に集まる。
+    expect(itemRate(zeno, pickup)).toBeCloseTo(GACHA_RARITY_RATES[3] * PICKUP_SHARE + itemRate(zeno) * (1 - PICKUP_SHARE), 10);
+    expect(itemRate({ kind: "character", id: "raiko" }, pickup)).toBeCloseTo(itemRate({ kind: "character", id: "raiko" }) * (1 - PICKUP_SHARE), 10);
+    // 対象のいない★1はふだんどおり。知らないIDは無視する。
+    expect(itemRate({ kind: "character", id: "masato" }, pickup)).toBe(itemRate({ kind: "character", id: "masato" }));
+    expect(pickupItemsOf(pickup, 3)).toEqual([zeno]);
+  });
+
+  it("rolls at the displayed rates", () => {
+    const n = 60_000;
+    const results = rollGacha(makeRng(7), n, undefined, pickup);
+    const count = (item: GachaItem) => results.filter((r) => r.kind === item.kind && r.id === item.id).length / n;
+    for (const item of [
+      { kind: "character", id: "zeno" },
+      { kind: "card", id: "han-up-1" },
+      { kind: "character", id: "raiko" },
+      { kind: "character", id: "masato" },
+    ] as GachaItem[]) {
+      const expected = itemRate(item, pickup);
+      expect(Math.abs(count(item) - expected)).toBeLessThan(4 * Math.sqrt((expected * (1 - expected)) / n) + 1e-4);
+    }
   });
 });

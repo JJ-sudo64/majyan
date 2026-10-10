@@ -12,6 +12,7 @@ import {
   type AccountProfile,
   type CharacterUnit,
   type GachaItem,
+  type GachaPickup,
   type FirstGachaState,
   type GachaRollResponse,
   type GiftClaimResponse,
@@ -76,6 +77,8 @@ interface AccountState {
   /** まだどのキャラにも付けていないカードの枚数。 */
   cards: Record<string, number>;
   exchangePoints: number;
+  /** 今やっているガチャのピックアップ。 */
+  pickup: GachaPickup | null;
   firstGacha: FirstGachaState | null;
   jade: JadeBalance | null;
   /** 直前に受け取ったログインボーナス（お知らせを出したら画面側でnullに戻す）。 */
@@ -101,6 +104,7 @@ export const useAccountStore = create<AccountState>(() => ({
   units: [],
   cards: {},
   exchangePoints: 0,
+  pickup: null,
   firstGacha: null,
   jade: null,
   dailyBonusNotice: null,
@@ -122,6 +126,7 @@ function applyMe(me: MeResponse) {
     units: me.units,
     cards: me.cards,
     exchangePoints: me.exchangePoints,
+    pickup: me.pickup,
     firstGacha: me.firstGacha,
     jade: me.jade,
     unclaimedGifts: me.unclaimedGifts,
@@ -435,6 +440,7 @@ function clearLocalAccount(): void {
     units: [],
     cards: {},
     exchangePoints: 0,
+    pickup: null,
     firstGacha: null,
     jade: null,
     dailyBonusNotice: null,

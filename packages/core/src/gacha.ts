@@ -121,10 +121,42 @@ export function gachaPool(rarity: Rarity, kind?: GachaItem["kind"]): GachaItem[]
   return [...characters, ...cards];
 }
 
-/** 1回引いた時にそのもの1つが出る確率（提供割合の表示用）。 */
-export function itemRate(item: GachaItem): number {
+/**
+ * ピックアップ（期間限定で、決めたキャラ・カードが出やすくなる）。
+ *
+ * レア度ごとの確率は変えない。あるレア度に当たった時、そのレア度のピックアップ対象が
+ * あれば、PICKUP_SHAREの確率で対象の中から（均等に）選び、残りはそのレア度の全部の中から
+ * （対象も含めて均等に）選ぶ。対象のいないレア度はいつもどおり。
+ */
+export interface GachaPickup {
+  id: number;
+  title: string;
+  items: GachaItem[];
+  /** 始まる・終わる時刻（ミリ秒）。 */
+  startsAt: number;
+  endsAt: number;
+}
+
+/** そのレア度に当たった時、ピックアップ対象の中から選ぶ確率（仮の値）。 */
+export const PICKUP_SHARE = 0.5;
+
+const sameGachaItem = (a: GachaItem, b: GachaItem) => a.kind === b.kind && a.id === b.id;
+
+/** ピックアップ対象のうち、そのレア度のもの（知らないID・重複は除く）。 */
+export function pickupItemsOf(pickup: GachaPickup | null | undefined, rarity: Rarity): GachaItem[] {
+  if (!pickup) return [];
+  const pool = gachaPool(rarity);
+  return pool.filter((item) => pickup.items.some((p) => sameGachaItem(p, item)));
+}
+
+/** 1回引いた時にそのもの1つが出る確率（提供割合の表示用）。pickupを渡すと、その期間中の確率。 */
+export function itemRate(item: GachaItem, pickup?: GachaPickup | null): number {
   const rarity = rarityOf(item);
-  return GACHA_RARITY_RATES[rarity] / gachaPool(rarity).length;
+  const base = GACHA_RARITY_RATES[rarity] / gachaPool(rarity).length;
+  const featured = pickupItemsOf(pickup, rarity);
+  if (featured.length === 0) return base;
+  const boost = featured.some((p) => sameGachaItem(p, item)) ? (GACHA_RARITY_RATES[rarity] * PICKUP_SHARE) / featured.length : 0;
+  return base * (1 - PICKUP_SHARE) + boost;
 }
 
 function pickRarity(rng: () => number): Rarity {
@@ -134,7 +166,9 @@ function pickRarity(rng: () => number): Rarity {
   return 1;
 }
 
-function pickItem(rng: () => number, rarity: Rarity, kind?: GachaItem["kind"]): GachaItem {
+function pickItem(rng: () => number, rarity: Rarity, kind?: GachaItem["kind"], pickup?: GachaPickup | null): GachaItem {
+  const featured = pickupItemsOf(pickup, rarity).filter((item) => !kind || item.kind === kind);
+  if (featured.length > 0 && rng() < PICKUP_SHARE) return featured[Math.floor(rng() * featured.length)]!;
   const pool = gachaPool(rarity, kind);
   return pool[Math.floor(rng() * pool.length)]!;
 }
@@ -144,12 +178,13 @@ const meets = (item: GachaItem, g: GachaGuarantee) => rarityOf(item) >= g.rarity
 /**
  * ガチャをcount回引く。guaranteeを渡すと、結果にその条件を満たすものが1つも
  * 無かった場合に、最後の1枠をその条件で引き直す（「10連で★2以上が1つ確定」等）。
+ * pickupを渡すと、その対象が出やすくなる（GachaPickup参照）。
  */
-export function rollGacha(rng: () => number, count: number, guarantee?: GachaGuarantee): GachaItem[] {
+export function rollGacha(rng: () => number, count: number, guarantee?: GachaGuarantee, pickup?: GachaPickup | null): GachaItem[] {
   const results: GachaItem[] = [];
-  for (let i = 0; i < count; i++) results.push(pickItem(rng, pickRarity(rng)));
+  for (let i = 0; i < count; i++) results.push(pickItem(rng, pickRarity(rng), undefined, pickup));
   if (guarantee && count > 0 && !results.some((item) => meets(item, guarantee))) {
-    results[count - 1] = pickItem(rng, guarantee.rarity, guarantee.kind);
+    results[count - 1] = pickItem(rng, guarantee.rarity, guarantee.kind, pickup);
   }
   return results;
 }

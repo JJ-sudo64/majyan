@@ -6049,3 +6049,52 @@ button {
   font-size: 12px;
   opacity: 0.6;
 }
+
+/* ---- ガチャのピックアップ ---- */
+.gacha-screen__pickup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #ffe08a;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(229, 72, 77, 0.15));
+}
+.gacha-screen__pickup-title {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: bold;
+  color: #ffe08a;
+}
+.gacha-screen__pickup-until {
+  font-size: 12px;
+  font-weight: normal;
+  color: #fff;
+  opacity: 0.8;
+}
+.gacha-screen__pickup-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+.gacha-screen__pickup-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  text-align: left;
+}
+.gacha-screen__pickup-item img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+}
+.gacha-screen__pickup-item small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.8;
+}
