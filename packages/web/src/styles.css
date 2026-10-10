@@ -2047,6 +2047,32 @@ button {
   white-space: nowrap;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
+/* 自分にかかっている技の状態（未来視・ベタ降り）。プレートの左横に、見出しを上・
+   中身を下にして縦に積む（横幅を取らないように）。 */
+.character-panel__side-status {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  margin-right: 8px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.character-panel__side-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(9, 6, 3, 0.7);
+}
+.character-panel__side-item .wait-row__label {
+  font-size: 12px;
+}
 /* 下家は画面の右端にいるので、内側（左）に出す。 */
 .character-panel--right .riichi-badge {
   left: auto;
@@ -2868,13 +2894,6 @@ button {
   align-items: center;
   gap: 6px;
   min-height: 0;
-}
-/* 牌の並ばない行（ベタ降りの盾の表示だけ等）は背が低く、そのままだと文字が手牌の
-   上端（牌の厚みぶん、手牌の枠より上にはみ出して描かれる）にめり込む。牌の並ぶ行は
-   行の高さがあるので文字が上に来るが、こちらは無いので、厚みぶんだけ持ち上げる。 */
-.wait-row:not(:has(.wait-row__tiles)) {
-  align-self: flex-end;
-  margin-bottom: 20px;
 }
 .wait-row__label {
   display: flex;

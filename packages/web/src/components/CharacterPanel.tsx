@@ -2,6 +2,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { CHARACTERS, WIND_NAMES, seatWindOf, type PlayerIndex, type RoundState } from "@majyan/core";
 import { TIME_STOP_FAKE_TURN_STEP_MS, useGameStore } from "../store/gameStore.js";
 import { SkillGauge } from "./SkillGauge.js";
+import { TileView } from "./TileView.js";
 
 const SEAT_LABELS: Record<number, string> = { 1: "下家CPU", 2: "対面CPU", 3: "上家CPU" };
 
@@ -151,6 +152,29 @@ export function CharacterPanel({
         {p.riichi && <span className="riichi-badge">リーチ</span>}
         <SkillGauge round={round} player={player} />
       </div>
+      {/* 自分にかかっている技の状態（未来視で見えた牌・ベタ降りの盾）。以前は手牌の左上に
+          待ちと並べていたが、並ぶほど右へ伸びて自分の捨て牌にかかるため、プレートの左横に
+          出す（プレートの外に置くので、出てもプレートの大きさは変わらない）。 */}
+      {isSelf && (p.revealedFutureDraws.length > 0 || p.bettaoriActive) && (
+        <div className="character-panel__side-status">
+          {p.revealedFutureDraws.length > 0 && (
+            <div className="character-panel__side-item">
+              <span className="wait-row__label">未来視</span>
+              <div className="wait-row__tiles">
+                {p.revealedFutureDraws.map((code, i) => (
+                  <TileView key={i} code={code} tiny highlightable={false} />
+                ))}
+              </div>
+            </div>
+          )}
+          {p.bettaoriActive && (
+            <div className="character-panel__side-item">
+              <span className="wait-row__label">ベタ降り</span>
+              <span className={`wait-row__shield${p.bettaoriShield ? " wait-row__shield--up" : ""}`}>{p.bettaoriShield ? "盾あり" : "盾なし"}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

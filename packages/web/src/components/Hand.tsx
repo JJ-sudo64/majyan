@@ -398,22 +398,14 @@ export function Hand({ round }: { round: RoundState }) {
   // 全て.hand-top-status（手牌の真上・中央、通常フロー内）に一本化する。
   // 通常フロー内に置くことで、内容がどれだけ増えても手牌側が自動で押し
   // 下げられ「絶対に被らない」ことを保証する。
-  const showTopStatus = player.revealedFutureDraws.length > 0 || waitingTiles.length > 0 || player.bettaoriActive;
+  // 未来視・ベタ降りの表示は、待ちと横に並ぶと自分の捨て牌にかかるほど右へ伸びて
+  // しまうため、ネームプレートの左横（CharacterPanel.tsx）へ移した。ここは待ちだけ。
+  const showTopStatus = waitingTiles.length > 0;
 
   return (
     <div className={`hand-area${frozen ? " hand-area--frozen" : ""}`}>
       {showTopStatus && (
         <div className="hand-top-status">
-          {player.revealedFutureDraws.length > 0 && (
-            <div className="wait-row">
-              <span className="wait-row__label">未来視</span>
-              <div className="wait-row__tiles">
-                {player.revealedFutureDraws.map((code, i) => (
-                  <TileView key={i} code={code} tiny highlightable={false} />
-                ))}
-              </div>
-            </div>
-          )}
           {waitingTiles.length > 0 && (
             <div className="wait-row">
               <span className="wait-row__label">
@@ -442,14 +434,6 @@ export function Hand({ round }: { round: RoundState }) {
                   );
                 })}
               </div>
-            </div>
-          )}
-          {player.bettaoriActive && (
-            <div className="wait-row">
-              <span className="wait-row__label">ベタ降り</span>
-              <span className={`wait-row__shield${player.bettaoriShield ? " wait-row__shield--up" : ""}`}>
-                {player.bettaoriShield ? "盾あり" : "盾なし"}
-              </span>
             </div>
           )}
         </div>
