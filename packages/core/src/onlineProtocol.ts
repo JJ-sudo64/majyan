@@ -236,6 +236,8 @@ export const JADE_REASON_LABELS: Record<string, string> = {
   "gacha-1": "ガチャ（1回）",
   "gacha-10": "ガチャ（10連）",
   mission: "ミッション",
+  purchase: "雀玉の購入",
+  "purchase-refund": "購入の返金",
 };
 
 export interface JadeHistoryEntry {
@@ -387,6 +389,11 @@ export interface AdminStats {
   /** 今日配った無償の雀玉（ログボ・報酬・プレゼント等）と、使われた雀玉。 */
   jadeGrantedToday: number;
   jadeSpentToday: number;
+  /** 今日・今月（日本時間）の売上（円。返金した分は除く）。 */
+  salesYenToday: number;
+  salesYenMonth: number;
+  /** 使われずに残っている有償の雀玉の合計（資金決済法の未使用残高の目安）。 */
+  paidJadeOutstanding: number;
   /** 今つながっている卓・対局中の卓。 */
   liveRooms: number;
   liveMatches: number;

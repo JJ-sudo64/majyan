@@ -18,6 +18,11 @@
  *   BACKUP_KEEP       残すバックアップの数（既定28＝6時間おきで1週間分）
  *   ADMIN_TOKEN       管理画面（/?admin）と運営用API（/api/admin）の合言葉。未設定なら管理画面は使えない。
  *                     推測されない長い文字列にする（例: node -e "console.log(crypto.randomBytes(24).toString('base64url'))"）
+ *   STRIPE_SECRET_KEY 雀玉の販売に使うStripeの秘密の鍵（sk_live_… / 試す時は sk_test_…）。未設定なら売らない。
+ *   STRIPE_WEBHOOK_SECRET Stripeの通知の署名を確かめる鍵（whsec_…）。通知先は <公開URL>/api/shop/stripe-webhook。
+ *                     受け取る通知: checkout.session.completed / async_payment_succeeded /
+ *                     async_payment_failed / expired と charge.refunded
+ *   PUBLIC_URL        このゲームを公開しているURL（支払いの後に戻る先。例: https://example.com）
  *
  * 引数 --dev-tools（npm run dev:server が付ける）: 開発用の操作（最初の10連のやり直し等）を
  * 受け付け、アカウント作成の回数制限をゆるめる。npm start（本番）では付けない。
@@ -26,7 +31,7 @@ import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
-import { ONLINE_DEFAULT_PORT, ONLINE_WS_PATH, type ServerMessage } from "@majyan/core";
+import { ONLINE_DEFAULT_PORT, ONLINE_WS_PATH, sellerInfoComplete, type ServerMessage } from "@majyan/core";
 import { RoomManager, type Client } from "./rooms.js";
 import { AccountService } from "./accounts.js";
 import { openDatabase } from "./db.js";
@@ -39,6 +44,8 @@ import { MissionService } from "./missions.js";
 import { FriendService } from "./friends.js";
 import { ReplayStore } from "./replays.js";
 import { CpuPool } from "./cpuPool.js";
+import { ShopService } from "./shop.js";
+import { StripeProvider } from "./stripe.js";
 import { scheduleBackups } from "./backup.js";
 import { MatchStore } from "./matchStore.js";
 import { DEFAULT_CPU_FILL_MS, Matchmaker } from "./matchmaking.js";
@@ -104,6 +111,23 @@ const matchmaker = new Matchmaker({
 });
 const devTools = process.argv.includes("--dev-tools");
 if (devTools) console.log("[majyan-server] 開発用の操作を有効にしています（--dev-tools）");
+// 雀玉の販売: Stripeの鍵がそろっていて、販売者の表示（core/shop.tsのSELLER_INFO）が埋まっている時だけ売る
+// （Stripeのテスト用の鍵なら、表示が未記入でも試せる）。開発中（--dev-tools）で鍵が無ければ、
+// お金の動かない「テスト購入」になる。
+const stripeKey = process.env.STRIPE_SECRET_KEY || undefined;
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || undefined;
+const liveSales = !!stripeKey && !!stripeWebhookSecret && (sellerInfoComplete() || stripeKey.startsWith("sk_test_"));
+if (stripeKey && !liveSales) {
+  console.warn(
+    "[majyan-server] 雀玉の販売は始めません: " +
+      (stripeWebhookSecret ? "販売者の表示（packages/core/src/shop.ts の SELLER_INFO）が未記入です" : "STRIPE_WEBHOOK_SECRET が未設定です"),
+  );
+}
+const shop = new ShopService(db, wallet, {
+  provider: liveSales ? new StripeProvider(stripeKey) : undefined,
+  testMode: devTools,
+});
+console.log(`[majyan-server] 雀玉の販売: ${{ live: "Stripeで販売中", test: "テスト購入（お金は動きません）", closed: "なし" }[shop.mode]}`);
 const handleApi = createApiHandler({
   accounts,
   ranks,
@@ -113,6 +137,9 @@ const handleApi = createApiHandler({
   missions,
   friends,
   replays,
+  shop,
+  stripeWebhookSecret: liveSales ? stripeWebhookSecret : undefined,
+  publicUrl: process.env.PUBLIC_URL || undefined,
   admin: {
     db,
     inbox,

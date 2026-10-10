@@ -19,6 +19,8 @@ import {
   type RankedHistoryResponse,
   type RecordsResponse,
   type RankingResponse,
+  type CheckoutResponse,
+  type ShopResponse,
   type TransferCodeResponse,
 } from "@majyan/core";
 import { normalizeDisplayName, transferPasswordProblem, type AccountService } from "./accounts.js";
@@ -29,9 +31,13 @@ import { GiftError, type InboxService } from "./inbox.js";
 import { MissionError, type MissionService } from "./missions.js";
 import { FriendError, type FriendService } from "./friends.js";
 import type { ReplayStore } from "./replays.js";
+import { ShopError, type ShopService } from "./shop.js";
+import { parseStripeWebhook } from "./stripe.js";
 import { createAdminHandler, type AdminApiOptions } from "./adminApi.js";
 
 const MAX_BODY_BYTES = 4 * 1024;
+/** 決済会社からの通知の上限（購入1件の通知は数KB）。 */
+const MAX_WEBHOOK_BYTES = 256 * 1024;
 
 export interface HttpApiOptions {
   accounts: AccountService;
@@ -46,6 +52,12 @@ export interface HttpApiOptions {
   friends?: FriendService;
   /** 段位戦の牌譜。無ければその機能のAPIは404。 */
   replays?: ReplayStore;
+  /** 雀玉の販売。無ければその機能のAPIは404。 */
+  shop?: ShopService;
+  /** Stripeの通知の署名を確かめる鍵（STRIPE_WEBHOOK_SECRET）。無ければ通知は受け付けない。 */
+  stripeWebhookSecret?: string;
+  /** このゲームを公開しているURL（支払いの後に戻る先）。無ければリクエストのOriginを使う。 */
+  publicUrl?: string;
   /** 運営用API（/api/admin/...）。tokenが空なら無効。 */
   admin?: Omit<AdminApiOptions, "readJson" | "sendJson" | "clientIp">;
   /** ゲストアカウントを作れる回数（同じ接続元から、1時間あたり）。大量作成の嫌がらせ対策。 */
@@ -73,28 +85,26 @@ const fail = (res: ServerResponse, status: number, error: string) => sendJson(re
 
 class BodyTooLargeError extends Error {}
 
-function readJson(req: IncomingMessage): Promise<unknown> {
+function readText(req: IncomingMessage, maxBytes: number): Promise<string> {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks: Buffer[] = [];
     // 上限を超えても接続は切らずに読み捨てる（途中で切ると返事を返せないため）。
     req.on("data", (chunk: Buffer) => {
       size += chunk.length;
-      if (size <= MAX_BODY_BYTES) chunks.push(chunk);
+      if (size <= maxBytes) chunks.push(chunk);
     });
     req.on("end", () => {
-      if (size > MAX_BODY_BYTES) {
-        reject(new BodyTooLargeError());
-        return;
-      }
-      try {
-        resolve(chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {});
-      } catch (err) {
-        reject(err);
-      }
+      if (size > maxBytes) reject(new BodyTooLargeError());
+      else resolve(Buffer.concat(chunks).toString("utf8"));
     });
     req.on("error", reject);
   });
+}
+
+async function readJson(req: IncomingMessage): Promise<unknown> {
+  const text = await readText(req, MAX_BODY_BYTES);
+  return text ? JSON.parse(text) : {};
 }
 
 function bearerToken(req: IncomingMessage): string | null {
@@ -104,7 +114,7 @@ function bearerToken(req: IncomingMessage): string | null {
 
 /** /api 配下なら処理してtrueを返す。それ以外のパスはfalse（呼び出し側が静的ファイル等を返す）。 */
 export function createApiHandler(options: HttpApiOptions) {
-  const { accounts, ranks, collections, wallet, inbox, missions, friends, replays } = options;
+  const { accounts, ranks, collections, wallet, inbox, missions, friends, replays, shop } = options;
   const me = (profile: AccountProfile, dailyBonus: number | null = null): MeResponse => ({
     profile,
     rank: ranks.get(profile.id),
@@ -144,6 +154,13 @@ export function createApiHandler(options: HttpApiOptions) {
     const profile = accounts.authenticate(bearerToken(req));
     if (!profile) fail(res, 401, "ログインし直してください");
     return profile;
+  }
+
+  /** 支払いの後に戻ってくるページ。分からなければnull。 */
+  function returnBase(req: IncomingMessage): string | null {
+    const base = options.publicUrl ?? req.headers.origin;
+    if (!base || !/^https?:\/\/[^/?#]+/.test(base)) return null;
+    return `${base.replace(/[?#].*$/, "").replace(/\/+$/, "")}/`;
   }
 
   const handleAdmin = options.admin ? createAdminHandler({ ...options.admin, readJson, sendJson, clientIp }) : null;
@@ -365,6 +382,57 @@ export function createApiHandler(options: HttpApiOptions) {
             throw err;
           }
           sendJson(res, 200, me(profile));
+          return true;
+        }
+        case "GET /shop": {
+          if (!shop) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (profile) sendJson(res, 200, shop.view(profile.id) satisfies ShopResponse);
+          return true;
+        }
+        case "POST /shop/age":
+        case "POST /shop/checkout":
+        case "POST /dev/shop/pay": {
+          if (!shop || (route.startsWith("POST /dev/") && !options.devTools)) return fail(res, 404, "見つかりません"), true;
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const body = (await readJson(req)) as { birthMonth?: unknown; productId?: unknown; purchaseId?: unknown };
+          try {
+            if (route.endsWith("/age")) shop.declareBirthMonth(profile.id, body.birthMonth);
+            else if (route.endsWith("/pay")) shop.completeTestPurchase(profile.id, body.purchaseId);
+            else {
+              const base = returnBase(req);
+              if (!base) return fail(res, 400, "戻り先のページが分かりません"), true;
+              sendJson(res, 200, (await shop.startCheckout(profile.id, body.productId, base)) satisfies CheckoutResponse);
+              return true;
+            }
+          } catch (err) {
+            if (err instanceof ShopError) return fail(res, 409, err.message), true;
+            throw err;
+          }
+          sendJson(res, 200, shop.view(profile.id) satisfies ShopResponse);
+          return true;
+        }
+        case "POST /shop/stripe-webhook": {
+          const secret = options.stripeWebhookSecret;
+          if (!shop || !secret) return fail(res, 404, "見つかりません"), true;
+          const raw = await readText(req, MAX_WEBHOOK_BYTES);
+          const signature = req.headers["stripe-signature"];
+          const event = parseStripeWebhook(raw, Array.isArray(signature) ? signature[0] : signature, secret, now());
+          if (!event) return fail(res, 400, "署名が正しくありません"), true;
+          try {
+            if (event.kind === "paid") {
+              if (event.currency !== "jpy") throw new Error(`円以外の支払いです: ${event.purchaseId} ${event.currency}`);
+              shop.complete(event.purchaseId, { sessionId: event.sessionId, paymentId: event.paymentId, amountYen: event.amount });
+            } else if (event.kind === "expired") shop.cancel(event.purchaseId);
+            // 一部だけの返金は雀玉を動かさない（運営が手で調整する）。
+            else if (event.kind === "refunded" && event.full) shop.refundByPayment(event.paymentId);
+          } catch (err) {
+            // 200以外を返すとStripeが後でもう一度送ってくる。
+            console.error("[majyan-server] 決済の通知を処理できませんでした:", err);
+            return fail(res, 500, "処理できませんでした"), true;
+          }
+          sendJson(res, 200, { received: true });
           return true;
         }
         case "POST /dev/reset-collection": {

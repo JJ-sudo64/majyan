@@ -15,18 +15,24 @@
  *        （--include-new を付けると後から作った人も）。期限は既定30日。
  *   gift cancel <番号>                                まだ受け取っていない人に出さなくする
  *
+ *   purchase list [--to アカウントID]                  雀玉の購入の記録（新しい順に50件）
+ *   purchase refund <購入の番号>                      返金した購入の雀玉を取り上げる（お金の返金はStripeの管理画面で行う。
+ *                                                     Stripeで全額返金すれば通知で自動的に反映されるので、普段は不要）
+ *   age reset --to アカウントID                       生まれた年月の登録を消す（本人の入れ間違いの時。次に買う時に聞き直す）
+ *
  *   user find <名前かIDの先頭8文字以上>               アカウントを探す（IDは画面の「引き継ぎ」に出ている）
  *   catalog                                           キャラ・カードのID一覧
  *   backup                                            今すぐDBのバックアップを取る（置き場所はサーバーと同じ BACKUP_DIR）
  */
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { CARDS, CHARACTERS, characterRarity, type GachaItem } from "@majyan/core";
+import { CARDS, CHARACTERS, characterRarity, PURCHASE_STATUS_LABELS, type GachaItem } from "@majyan/core";
 import { openDatabase, type Database } from "./db.js";
 import { CollectionService } from "./collection.js";
 import { WalletService } from "./wallet.js";
 import { GiftError, InboxService } from "./inbox.js";
 import { backupNow } from "./backup.js";
+import { ShopService } from "./shop.js";
 
 /** プレゼントの受け取り期限の既定（日）。 */
 const DEFAULT_GIFT_DAYS = 30;
@@ -145,6 +151,26 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       if (id === undefined) throw new UsageError("取り消すプレゼントの番号を指定してください");
       return [inbox.cancelGift(id) ? `プレゼント #${id} を取り消しました（受け取り済みの分はそのまま）` : `プレゼント #${id} は取り消せません`];
     }
+    case "purchase list": {
+      const { values } = parseArgs({ args: rest, options: { to: { type: "string" } } });
+      const shop = new ShopService(db, wallet, { now });
+      for (const p of shop.adminList(values.to ? resolveUserId(db, values.to) : null)) {
+        const jade = p.bonusJade ? `有償${p.paidJade}+無償${p.bonusJade}` : `有償${p.paidJade}`;
+        out.push(`${p.id} [${PURCHASE_STATUS_LABELS[p.status]}] ${fmt(p.createdAt)} ${p.priceYen}円 雀玉:${jade} ${p.provider} ${p.userId.slice(0, ACCOUNT_ID_PREFIX_LENGTH)}`);
+      }
+      if (!out.length) out.push("購入の記録はまだありません");
+      return out;
+    }
+    case "purchase refund": {
+      if (!rest[0]) throw new UsageError("購入の番号を指定してください（purchase list で分かります）");
+      return [new ShopService(db, wallet, { now }).refund(rest[0]) ? `購入 ${rest[0]} の雀玉を取り上げました` : `購入 ${rest[0]} は購入済みの状態ではありません`];
+    }
+    case "age reset": {
+      const { values } = parseArgs({ args: rest, options: { to: { type: "string" } } });
+      if (!values.to) throw new UsageError("--to でアカウントIDを指定してください");
+      const userId = resolveUserId(db, values.to);
+      return [new ShopService(db, wallet, { now }).resetBirthMonth(userId) ? `${userId} さんの生まれた年月の登録を消しました` : `${userId} さんは生まれた年月を登録していません`];
+    }
     case "user find": {
       const key = rest.join(" ").trim();
       if (!key) throw new UsageError("探す名前かIDを指定してください");
@@ -174,7 +200,7 @@ export function runAdmin(db: Database, argv: string[], now: () => number = Date.
       return [`バックアップを作りました: ${backupNow(db, { dir: backupDir, keep: Number(process.env.BACKUP_KEEP) || 28, now })}`];
     }
     default:
-      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / user find / catalog / backup（詳しくは src/admin.ts の先頭）");
+      throw new UsageError("使い方: news list|add|end / gift list|send|cancel / purchase list|refund / age reset / user find / catalog / backup（詳しくは src/admin.ts の先頭）");
   }
 }
 

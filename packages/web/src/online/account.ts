@@ -28,6 +28,8 @@ import {
   type ReplayResponse,
   type RankingResponse,
   type TransferCodeResponse,
+  type CheckoutResponse,
+  type ShopResponse,
 } from "@majyan/core";
 
 const TOKEN_KEY = "majyan.account.token";
@@ -317,6 +319,32 @@ export async function claimMissions(missionId: string | null): Promise<MissionCl
   });
   applyMe(res.me);
   return res;
+}
+
+/** 雀玉の販売の状態を読み、残高をストアにも反映する。 */
+function applyShop(shop: ShopResponse): ShopResponse {
+  useAccountStore.setState({ jade: shop.jade });
+  return shop;
+}
+
+/** 雀玉の販売（商品・今月の額・購入の記録）。 */
+export async function fetchShop(): Promise<ShopResponse> {
+  return applyShop(await api<ShopResponse>("/shop"));
+}
+
+/** 生まれた年月（"2008-04"）を登録する。一度登録したら変えられない。 */
+export async function declareBirthMonth(birthMonth: string): Promise<ShopResponse> {
+  return applyShop(await api<ShopResponse>("/shop/age", { method: "POST", body: JSON.stringify({ birthMonth }) }));
+}
+
+/** 購入を始める。urlがあればそのページで支払う（無ければ開発用のテスト購入）。 */
+export async function startCheckout(productId: string): Promise<CheckoutResponse> {
+  return api<CheckoutResponse>("/shop/checkout", { method: "POST", body: JSON.stringify({ productId }) });
+}
+
+/** 開発用: テスト購入を払ったことにする（サーバーが --dev-tools の時だけ）。 */
+export async function payTestPurchase(purchaseId: string): Promise<ShopResponse> {
+  return applyShop(await api<ShopResponse>("/dev/shop/pay", { method: "POST", body: JSON.stringify({ purchaseId }) }));
 }
 
 /** 段位戦の牌譜。 */

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, SHOP_RETURN_PARAM, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
@@ -9,6 +9,7 @@ import { TransferScreen } from "./TransferScreen.js";
 import { HistoryScreen } from "./HistoryScreen.js";
 import { InboxScreen, type InboxTab } from "./InboxScreen.js";
 import { MissionsScreen } from "./MissionsScreen.js";
+import { ShopScreen } from "./ShopScreen.js";
 import { FriendsScreen } from "./FriendsScreen.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 
@@ -63,6 +64,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const claimableMissions = useAccountStore((s) => s.claimableMissions);
   const [showMissions, setShowMissions] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  /** 支払いのページから戻ってきた時の印（?shop=done / cancel）。読んだらURLからは消す。 */
+  const [shopReturn] = useState(() => new URLSearchParams(window.location.search).get(SHOP_RETURN_PARAM));
+  const [showShop, setShowShop] = useState(shopReturn !== null);
   const incomingFriendRequests = useAccountStore((s) => s.incomingFriendRequests);
   const hasUnreadNews = useAccountStore((s) => s.latestAnnouncementId !== null && s.latestAnnouncementId > s.seenAnnouncementId);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
@@ -87,6 +91,13 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     // 段位戦の後に戻ってきた時などに段位を最新にするため、開くたびに読み直す。
     void loadAccount();
   }, []);
+
+  useEffect(() => {
+    if (shopReturn === null) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete(SHOP_RETURN_PARAM);
+    window.history.replaceState(null, "", url);
+  }, [shopReturn]);
 
   useEffect(() => {
     if (!queued) return;
@@ -219,6 +230,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           <span className="online-lobby__rank-games">{rank.gamesPlayed}戦</span>
           {jade && <span className="online-lobby__jade">雀玉 {(jade.free + jade.paid).toLocaleString()}</span>}
           {!busy && (
+            <button type="button" className="btn online-lobby__gacha-btn" onClick={() => setShowShop(true)}>
+              雀玉を買う
+            </button>
+          )}
+          {!busy && (
             <button type="button" className="btn online-lobby__gacha-btn" onClick={() => setShowGacha(true)}>
               ガチャ
             </button>
@@ -259,6 +275,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showHistory && <HistoryScreen onClose={() => setShowHistory(false)} />}
       {inboxTab && <InboxScreen initialTab={inboxTab} onClose={() => setInboxTab(null)} />}
       {showMissions && <MissionsScreen onClose={() => setShowMissions(false)} />}
+      {showShop && profile && !needsFirstGacha && <ShopScreen returned={shopReturn} onClose={() => setShowShop(false)} />}
       {showFriends && (
         <FriendsScreen
           onClose={() => setShowFriends(false)}

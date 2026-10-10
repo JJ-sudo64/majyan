@@ -251,6 +251,36 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (match_id, round_index)
   );
   `,
+  // 14: 雀玉の購入と、購入の上限を決めるための生まれた年月
+  `
+  CREATE TABLE purchases (
+    id TEXT PRIMARY KEY,
+    -- 退会しても購入の記録は残す（usersの行は消さない運用）
+    user_id TEXT NOT NULL REFERENCES users(id),
+    product_id TEXT NOT NULL,
+    price_yen INTEGER NOT NULL,
+    paid_jade INTEGER NOT NULL,
+    bonus_jade INTEGER NOT NULL,
+    -- pending / paid / refunded / cancelled
+    status TEXT NOT NULL,
+    -- 'stripe' / 'test'
+    provider TEXT NOT NULL,
+    -- 決済会社側の番号（Stripeなら Checkout Session と PaymentIntent）
+    provider_session TEXT,
+    provider_payment TEXT,
+    created_at INTEGER NOT NULL,
+    paid_at INTEGER,
+    refunded_at INTEGER
+  );
+  CREATE INDEX purchases_user ON purchases(user_id, created_at);
+  CREATE INDEX purchases_payment ON purchases(provider_payment);
+  CREATE TABLE user_birth (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    -- "2008-04"
+    birth_month TEXT NOT NULL,
+    declared_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

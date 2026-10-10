@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SHOP_RETURN_PARAM } from "@majyan/core";
 import { useGameStore } from "./store/gameStore.js";
 import { TitleScreen } from "./components/TitleScreen.js";
 import { MatchSetup } from "./components/MatchSetup.js";
@@ -18,7 +19,8 @@ export default function App() {
   const online = useGameStore((s) => s.online);
   const replaying = useGameStore((s) => s.replay !== null);
   const spectating = useGameStore((s) => s.spectating);
-  const [screen, setScreen] = useState<Screen>("title");
+  // 支払いのページから戻ってきた時（?shop=…）は、雀玉を買う画面のあるオンラインの入口から始める。
+  const [screen, setScreen] = useState<Screen>(() => (new URLSearchParams(window.location.search).has(SHOP_RETURN_PARAM) ? "online" : "title"));
   // タイトル画面～キャラクター選択画面（対局開始前）の間だけ流すBGM。
   // 対局が始まる（match有り→Table.tsx側のuseBgmに切り替わる）と自然に止まる。
   useTitleBgm(!match);

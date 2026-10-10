@@ -74,6 +74,12 @@ export function createAdminHandler(options: AdminApiOptions) {
       gachaRollsToday: count("SELECT COUNT(*) AS n FROM gacha_log WHERE created_at >= ? AND kind LIKE 'gacha-%'", dayStart),
       jadeGrantedToday: count("SELECT SUM(free_delta) AS n FROM jade_ledger WHERE created_at >= ? AND free_delta > 0", dayStart),
       jadeSpentToday: -count("SELECT SUM(free_delta + paid_delta) AS n FROM jade_ledger WHERE created_at >= ? AND free_delta + paid_delta < 0", dayStart),
+      salesYenToday: count("SELECT SUM(price_yen) AS n FROM purchases WHERE status = 'paid' AND paid_at >= ?", dayStart),
+      salesYenMonth: count(
+        "SELECT SUM(price_yen) AS n FROM purchases WHERE status = 'paid' AND paid_at >= ?",
+        Date.parse(`${jstDate(t).slice(0, 7)}-01T00:00:00+09:00`),
+      ),
+      paidJadeOutstanding: count("SELECT SUM(paid_jade) AS n FROM wallets"),
       ...(options.liveStats?.() ?? { liveRooms: 0, liveMatches: 0 }),
     };
   }

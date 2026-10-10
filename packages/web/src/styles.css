@@ -5766,3 +5766,97 @@ button {
   color: #666;
   font-size: 12px;
 }
+
+/* ---- 雀玉を買う画面 ---- */
+.shop-screen__test {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(229, 72, 77, 0.2);
+  font-size: 13px;
+}
+.shop-screen__age {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.shop-screen__age-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.shop-screen__age-inputs select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 15px;
+}
+.shop-screen__products {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.shop-screen__product {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 8px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+.shop-screen__product:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.shop-screen__product.is-selected {
+  background: rgba(212, 175, 55, 0.22);
+  border-color: #ffe08a;
+}
+.shop-screen__product-jade {
+  font-size: 17px;
+  font-weight: bold;
+  color: #ffe08a;
+}
+.shop-screen__product-bonus {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.shop-screen__product-price {
+  margin-top: 4px;
+  font-size: 15px;
+}
+.shop-screen__status {
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+.shop-screen__status--refunded {
+  color: #ff9a9d;
+}
+.shop-screen__legal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+.shop-screen__legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.shop-screen__legal-table th,
+.shop-screen__legal-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+.shop-screen__legal-table th {
+  width: 9em;
+  font-weight: normal;
+  opacity: 0.75;
+}

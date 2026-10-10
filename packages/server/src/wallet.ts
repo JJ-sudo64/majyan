@@ -75,6 +75,30 @@ export class WalletService {
     });
   }
 
+  /** 買った雀玉を渡す（買った分は有償、おまけは無償）。 */
+  grantPurchase(userId: string, paid: number, bonusFree: number, purchaseId: string): JadeBalance {
+    if (!Number.isInteger(paid) || paid <= 0 || !Number.isInteger(bonusFree) || bonusFree < 0) throw new Error("雀玉の数が正しくありません");
+    return transaction(this.db, () => {
+      this.ensure(userId);
+      return this.change(userId, bonusFree, paid, "purchase", purchaseId);
+    });
+  }
+
+  /**
+   * 返金された購入の雀玉を取り上げる。すでに使われた分は残高がマイナスにならない範囲で
+   * 取り上げる（足りなかった分は記録から分かる）。実際に取り上げた数を返す。
+   */
+  revokePurchase(userId: string, paid: number, bonusFree: number, purchaseId: string): { paid: number; free: number } {
+    return transaction(this.db, () => {
+      const row = this.ensure(userId);
+      const takePaid = Math.min(row.paid_jade, paid);
+      // 有償で足りない分は無償からも引く（買った雀玉を先に使い切って返金、を得にしない）。
+      const takeFree = Math.min(row.free_jade, bonusFree + (paid - takePaid));
+      this.change(userId, -takeFree, -takePaid, "purchase-refund", purchaseId);
+      return { paid: takePaid, free: takeFree };
+    });
+  }
+
   /** 雀玉を使う（無償分から先に減らす）。足りなければInsufficientJadeError。 */
   spend(userId: string, amount: number, reason: string, ref: string | null = null): JadeBalance {
     if (!Number.isInteger(amount) || amount <= 0) throw new Error("雀玉の数が正しくありません");

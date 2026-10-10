@@ -165,6 +165,9 @@ function StatsTab({ token, run }: { token: string; run: Run }) {
     ["今日のガチャ（回数）", stats.gachaRollsToday],
     ["今日配った無償の雀玉", stats.jadeGrantedToday],
     ["今日使われた雀玉", stats.jadeSpentToday],
+    ["今日の売上（円）", stats.salesYenToday],
+    ["今月の売上（円）", stats.salesYenMonth],
+    ["残っている有償の雀玉", stats.paidJadeOutstanding],
     ["今ある部屋", stats.liveRooms],
     ["対局中の卓", stats.liveMatches],
   ];
