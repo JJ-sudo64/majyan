@@ -65,6 +65,7 @@ function emptyPlayer(codes: TileCode[]): PlayerRoundState {
     guaranteedRinshan: false,
     tileSwapsRemaining: 0,
     pendingTileSwapNextRound: false,
+    pendingPairDealNextRound: false,
     openRiichi: false,
     guaranteedUraDora: false,
     revealedFutureDraws: [],
@@ -74,6 +75,7 @@ function emptyPlayer(codes: TileCode[]): PlayerRoundState {
     bettaoriShield: false,
     atomicRiichi: false,
     timeStopTurnsRemaining: 0,
+    ruleChangeActive: false,
   };
 }
 

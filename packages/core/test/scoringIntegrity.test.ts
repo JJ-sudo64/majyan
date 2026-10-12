@@ -34,6 +34,7 @@ const base: WinContext = {
   doraIndicators: [],
   uraDoraIndicators: [],
   bonusHan: 0,
+  keepClosedHandYaku: false,
 };
 const ctx = (o: Partial<WinContext>): WinContext => ({ ...base, ...o });
 const names = (a: WinAnalysis | null) => a!.yaku.map((y) => y.name);
@@ -188,7 +189,9 @@ function player(codes: TileCode[], overrides: Partial<PlayerRoundState> = {}): P
     guaranteedRinshan: false,
     tileSwapsRemaining: 0,
     pendingTileSwapNextRound: false,
+    pendingPairDealNextRound: false,
     timeStopTurnsRemaining: 0,
+    ruleChangeActive: false,
     ...overrides,
   } as PlayerRoundState;
 }

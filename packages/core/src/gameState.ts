@@ -36,6 +36,11 @@ export interface PlayerRoundState {
       次局の配牌（matchFormat.tsのdealNewRound）にこの値を明示的に橋渡しする
       （gameStore.tsのacknowledgeRoundEnd参照）。 */
   pendingTileSwapNextRound: boolean;
+  /** コウジの必殺技「対々の約束」の発動フラグ。trueのまま局を終えると、次局の
+      配牌（matchFormat.tsのdealNewRound）でトイツが4組以上になるよう山の牌と
+      入れ替える。pendingTileSwapNextRoundと同じく局をまたいで明示的に橋渡しする
+      （matchController.tsのadvanceToNextRound参照）。 */
+  pendingPairDealNextRound: boolean;
   /** オープンリーチとして立直を宣言したかどうか。必殺技「大明立直」がゲージ
       満タンの状態でのリーチ宣言時に自動的にtrueにする（useSkillを介さない。
       gameEngine.tsのapplyRiichiAction参照）。立直中は手牌が全員に公開され
@@ -86,6 +91,10 @@ export interface PlayerRoundState {
       自身に戻る（＝2巡連続で行動できる）。0になった時点で通常通り次家へ
       手番が進む（gameEngine.tsのresolveDiscardTurnTransition参照）。 */
   timeStopTurnsRemaining: number;
+  /** 南南の必殺技「ルール変更」の効果中か。その局の間ずっと続き、局をまたいでは
+      持ち越さない（次局の配牌でfalseに戻る）。本人の和了の役判定にだけ効く
+      （gameEngine.tsのbuildWinContext→WinContext.keepClosedHandYaku参照）。 */
+  ruleChangeActive: boolean;
   /** 同巡内フリテン: 当たり牌が出たのに和了しなかった（見逃した）。次に自分がツモるか
       鳴くまでロンできない（gameEngine.tsのmarkPassedWinningTile参照）。 */
   missedRonFuriten?: boolean;

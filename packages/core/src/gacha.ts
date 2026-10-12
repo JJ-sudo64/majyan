@@ -46,6 +46,8 @@ export const CHARACTER_RARITY: Record<string, Rarity> = {
   kagami: 2,
   toki: 2,
   mebius: 2,
+  koji: 2,
+  nannan: 2,
   // ★1: 効果が控えめ・運次第・見た目だけ等
   hiiragi: 1,
   nagi: 1,

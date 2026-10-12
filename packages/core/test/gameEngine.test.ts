@@ -25,7 +25,9 @@ function emptyPlayer(codes: TileCode[]): PlayerRoundState {
     guaranteedRinshan: false,
     tileSwapsRemaining: 0,
     pendingTileSwapNextRound: false,
+    pendingPairDealNextRound: false,
     timeStopTurnsRemaining: 0,
+    ruleChangeActive: false,
   };
 }
 

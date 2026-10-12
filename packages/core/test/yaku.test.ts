@@ -29,6 +29,7 @@ const baseContext: WinContext = {
   doraIndicators: [],
   uraDoraIndicators: [],
   bonusHan: 0,
+  keepClosedHandYaku: false,
 };
 
 function ctx(overrides: Partial<WinContext>): WinContext {
@@ -329,5 +330,49 @@ describe("analyzeWin - chuurenpoutou", () => {
     const h = hand(["1m","1m","4m","5m","6m","7m","8m","9m","9m","9m","5m"], melds);
     const result = analyzeWin(h, ctx({ winTile: "5m", isTsumo: true }));
     expect(result === null || !yakuNames(result.yaku).some((n) => n.includes("九蓮宝燈"))).toBe(true);
+  });
+});
+
+describe("analyzeWin - 南南の「ルール変更」(keepClosedHandYaku)", () => {
+  const chi = (codes: [TileCode, TileCode, TileCode]): Meld => ({
+    type: "chi",
+    tiles: codes.map(tile),
+    calledFromRelative: 3,
+    calledTile: tile(codes[0]),
+  });
+
+  it("removes kuisagari from 一気通貫 on an open hand", () => {
+    const h = hand(["4m","5m","6m","7m","8m","9m","2p","3p","4p","5s","5s"], [chi(["1m","2m","3m"])]);
+    const normal = analyzeWin(h, ctx({ winTile: "9m" }));
+    const changed = analyzeWin(h, ctx({ winTile: "9m", keepClosedHandYaku: true }));
+    expect(normal!.yaku.find((y) => y.name === "一気通貫")!.han).toBe(1);
+    expect(changed!.yaku.find((y) => y.name === "一気通貫")!.han).toBe(2);
+  });
+
+  it("removes kuisagari from 混一色 / 純全帯幺九 / 三色同順", () => {
+    const honitsu = hand(["4m","5m","6m","7m","8m","9m","1z","1z","1z","5m","5m"], [chi(["1m","2m","3m"])]);
+    expect(analyzeWin(honitsu, ctx({ winTile: "9m" }))!.yaku.find((y) => y.name === "混一色")!.han).toBe(2);
+    expect(analyzeWin(honitsu, ctx({ winTile: "9m", keepClosedHandYaku: true }))!.yaku.find((y) => y.name === "混一色")!.han).toBe(3);
+
+    const junchan = hand(["7m","8m","9m","1p","2p","3p","7s","8s","9s","1s","1s"], [chi(["1m","2m","3m"])]);
+    expect(analyzeWin(junchan, ctx({ winTile: "9m" }))!.yaku.find((y) => y.name === "純全帯幺九")!.han).toBe(2);
+    expect(analyzeWin(junchan, ctx({ winTile: "9m", keepClosedHandYaku: true }))!.yaku.find((y) => y.name === "純全帯幺九")!.han).toBe(3);
+
+    const sanshoku = hand(["2p","3p","4p","2s","3s","4s","6m","7m","8m","5p","5p"], [chi(["2m","3m","4m"])]);
+    expect(analyzeWin(sanshoku, ctx({ winTile: "8m" }))!.yaku.find((y) => y.name === "三色同順")!.han).toBe(1);
+    expect(analyzeWin(sanshoku, ctx({ winTile: "8m", keepClosedHandYaku: true }))!.yaku.find((y) => y.name === "三色同順")!.han).toBe(2);
+  });
+
+  it("lets 平和 and 一盃口 stand on an open hand that otherwise has no yaku", () => {
+    const h = hand(["2m","3m","4m","5p","6p","7p","3s","4s","5s","9p","9p"], [chi(["2m","3m","4m"])]);
+    expect(analyzeWin(h, ctx({ winTile: "5s" }))).toBeNull(); // 普段は役なし
+    const changed = analyzeWin(h, ctx({ winTile: "5s", keepClosedHandYaku: true }));
+    expect(yakuNames(changed!.yaku)).toEqual(expect.arrayContaining(["平和", "一盃口"]));
+  });
+
+  it("still does not give 門前清自摸和 to an open hand", () => {
+    const h = hand(["2m","3m","4m","5p","6p","7p","3s","4s","5s","9p","9p"], [chi(["2m","3m","4m"])]);
+    const changed = analyzeWin(h, ctx({ winTile: "5s", isTsumo: true, keepClosedHandYaku: true }));
+    expect(yakuNames(changed!.yaku)).not.toContain("門前清自摸和");
   });
 });

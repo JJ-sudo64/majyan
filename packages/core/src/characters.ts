@@ -1369,6 +1369,60 @@ export const CHARACTERS: Record<string, Character> = {
       },
     },
   },
+  koji: {
+    id: "koji",
+    name: "対子使い・コウジ",
+    description: "必殺技「対々の約束」: 発動した次の局は、配牌にトイツ（同じ牌2枚）が必ず4組以上そろっている。",
+    winQuote: "二枚ずつ、きっちり揃えておいた。約束は守る主義なんでね。",
+    // 専用の立ち絵・カットイン・宣言の絵は未用意。差し替えるまで仮の座席アイコンを使う。
+    avatar: "/avatars/seat1.svg",
+    gaugeMax: 100,
+    gaugePerTurn: 10,
+    gaugePerDealIn: 20,
+    skill: {
+      id: "koji-toitoi-no-yakusoku",
+      name: "対々の約束",
+      voiceName: "トイトイのヤクソク",
+      description: "発動すると、次の局の配牌でトイツ（同じ牌2枚。3枚以上そろった牌も1組と数える）が必ず4組以上になる。足りない分は山の牌と入れ替えてそろえる。効果が出るまでの間はゲージが溜まらない。",
+      hooks: {
+        // ルナの「運命の采配」と同じく、ここではフラグを立てるだけ。実際の
+        // 配牌の書き換えはmatchFormat.tsのdealNewRound、局をまたぐ橋渡しは
+        // matchController.tsのadvanceToNextRoundが担う。
+        onActivate: (ctx) => ({
+          ...ctx.round,
+          players: updatePlayer(ctx.round, ctx.owner, (pl) => ({ ...pl, pendingPairDealNextRound: true })),
+        }),
+      },
+    },
+  },
+  nannan: {
+    id: "nannan",
+    name: "中国からの刺客・南南",
+    // 「南南」は規則読みだと「みなみみなみ」等に誤読されるため読みを指定する。
+    voiceName: "中国からの刺客・ナンナン",
+    description: "必殺技「ルール変更」: 発動したその局の間、鳴いても役が下がらず（食い下がり無し）、平和や一盃口も鳴いたまま成立する。",
+    winQuote: "ここのルールは、わたしが決める。鳴いても安くならない、それが本場の麻雀ネ。",
+    // 専用の立ち絵・カットイン・宣言の絵は未用意。差し替えるまで仮の座席アイコンを使う。
+    avatar: "/avatars/seat2.svg",
+    gaugeMax: 100,
+    gaugePerTurn: 10,
+    gaugePerDealIn: 20,
+    skill: {
+      id: "nannan-rule-henkou",
+      name: "ルール変更",
+      activationCondition: "ルール変更の効果中は使えません",
+      description: "発動すると、その局が終わるまで自分の和了だけルールが変わる。混一色・清一色・純全帯幺九・混全帯幺九・三色同順・一気通貫は鳴いていても門前と同じ翻数になり、平和・一盃口・二盃口も鳴いたまま成立する（門前清自摸和は門前のみ。符は通常どおり）。次の局には持ち越さない。",
+      hooks: {
+        // 既に効果中なら二重に発動しても意味が無いので使えなくする。
+        canActivate: (ctx) => !ctx.round.players[ctx.owner]!.ruleChangeActive,
+        // 役判定への反映はgameEngine.tsのbuildWinContextが行う。
+        onActivate: (ctx) => ({
+          ...ctx.round,
+          players: updatePlayer(ctx.round, ctx.owner, (pl) => ({ ...pl, ruleChangeActive: true })),
+        }),
+      },
+    },
+  },
   zeno: {
     id: "zeno",
     name: "刻を止める者・ゼノ",

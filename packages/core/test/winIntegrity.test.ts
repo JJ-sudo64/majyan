@@ -29,7 +29,9 @@ function player(codes: TileCode[], overrides: Partial<PlayerRoundState> = {}): P
     guaranteedRinshan: false,
     tileSwapsRemaining: 0,
     pendingTileSwapNextRound: false,
+    pendingPairDealNextRound: false,
     timeStopTurnsRemaining: 0,
+    ruleChangeActive: false,
     ...overrides,
   };
 }
@@ -272,6 +274,7 @@ describe("which block the winning tile completed", () => {
     doraIndicators: [],
     uraDoraIndicators: [],
     bonusHan: 0,
+    keepClosedHandYaku: false,
   };
 
   it("never treats a called meld as the block the winning tile completed", () => {

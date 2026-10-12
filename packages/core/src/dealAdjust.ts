@@ -1,6 +1,6 @@
 /**
- * 配牌そのものを書き換えるパッシブ効果（メビウスの必殺技「陰陽配牌」、
- * カード「面子確約」「ドラ確約」）で共有するヘルパー群。
+ * 配牌そのものを書き換える効果（メビウスの必殺技「陰陽配牌」、コウジの
+ * 必殺技「対々の約束」、カード「面子確約」「ドラ確約」）で共有するヘルパー群。
  * いずれも「手牌の一部を山の牌と入れ替える」操作のみで実現し、
  * 山・手牌の合計牌数、各牌の総数は常に保たれる。
  */
@@ -98,4 +98,41 @@ export function ensureAtLeastOneDora(hand: Hand, wall: WallState): { hand: Hand;
   if (wallIndex === -1) return { hand, wall };
   const target = wall.liveTiles[wallIndex]!;
   return swapHandTilesWithWall(hand, wall, [hand.concealed[0]!.id], [target.id]);
+}
+
+/** 手牌のトイツ（同じ牌2枚以上の組。刻子・4枚もそれぞれ1組と数える）の数。 */
+export function countPairs(tiles: Tile[]): number {
+  const counts = new Map<TileCode, number>();
+  for (const t of tiles) counts.set(t.code, (counts.get(t.code) ?? 0) + 1);
+  let pairs = 0;
+  for (const c of counts.values()) if (c >= 2) pairs++;
+  return pairs;
+}
+
+/** 手牌のトイツがminPairs組に満たなければ、手牌に1枚しかない牌と同じ牌を
+    山から1枚持ってきて、手牌の別の1枚と入れ替えることを繰り返す。外す牌は
+    手牌に1枚しかない牌を優先し、無ければ3枚以上ある牌から外す（どちらも
+    外して既存のトイツが減らないので、1回の入れ替えで必ず1組増える）。
+    13枚でトイツが足りない間は1枚だけの牌が必ずあるが、それと同じ牌が山に
+    残っていなければ不発（極めて稀）。 */
+export function ensureAtLeastPairs(hand: Hand, wall: WallState, minPairs: number): { hand: Hand; wall: WallState } {
+  let current = { hand, wall };
+  for (let i = 0; i < minPairs; i++) {
+    const concealed = current.hand.concealed;
+    if (countPairs(concealed) >= minPairs) break;
+    const countOf = (code: TileCode) => concealed.filter((t) => t.code === code).length;
+    const singles = concealed.filter((t) => countOf(t.code) === 1);
+    let target: Tile | undefined;
+    for (const s of singles) {
+      target = current.wall.liveTiles.find((t) => t.code === s.code);
+      if (target) break;
+    }
+    if (!target) break;
+    const targetCode = target.code;
+    const removable =
+      [...singles].reverse().find((t) => t.code !== targetCode) ?? concealed.find((t) => countOf(t.code) >= 3);
+    if (!removable) break;
+    current = swapHandTilesWithWall(current.hand, current.wall, [removable.id], [target.id]);
+  }
+  return current;
 }

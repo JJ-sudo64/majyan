@@ -38,6 +38,10 @@ export interface WinContext {
   /** カード「小手先の一翻」「会心の二翻」で加算される翻数。ドラと同様、
       既に他に役がある和了にのみ乗る（役満には乗らない）。 */
   bonusHan: number;
+  /** 南南の必殺技「ルール変更」の効果中か。trueなら鳴いていても食い下がりが無く
+      （混一色・純全帯幺九・混全帯幺九・三色同順・一気通貫・清一色）、平和・
+      一盃口・二盃口も成立する。門前清自摸和と符計算は通常どおり鳴きを考慮する。 */
+  keepClosedHandYaku: boolean;
 }
 
 export interface YakuResult {
@@ -292,6 +296,9 @@ function evaluateRegularYaku(
   winningBlockIndex: number,
 ): YakuResult[] {
   const results: YakuResult[] = [];
+  // 役の成立・翻数だけを見る時の「鳴いているか」。南南の「ルール変更」中は
+  // 鳴いていても門前と同じに扱う（門前清自摸和だけは名前どおり門前のみ）。
+  const openForYaku = isOpen && !context.keepClosedHandYaku;
   const isPairWin = winningBlockIndex === -1;
   const winningBlock = isPairWin ? { kind: "triplet" as const, tile: pair, concealed: true } : sets[winningBlockIndex]!;
   const waitType = classifyWait(context.winTile, winningBlock, isPairWin);
@@ -308,7 +315,7 @@ function evaluateRegularYaku(
 
   const allSequences = sets.every((s) => s.kind === "sequence");
   const pairIsYakuhai = isDragon(pair) || pair === windTileCode(context.seatWind) || pair === windTileCode(context.roundWind);
-  if (!isOpen && allSequences && !pairIsYakuhai && waitType === "ryanmen") {
+  if (!openForYaku && allSequences && !pairIsYakuhai && waitType === "ryanmen") {
     results.push({ name: "平和", han: 1 });
   }
 
@@ -326,7 +333,7 @@ function evaluateRegularYaku(
     if (s.tile === windTileCode(context.roundWind)) results.push({ name: "場風牌", han: 1 });
   }
 
-  if (!isOpen) {
+  if (!openForYaku) {
     const seqTiles = sets.filter((s) => s.kind === "sequence").map((s) => s.tile);
     const dupCount: Map<TileCode, number> = new Map();
     for (const t of seqTiles) dupCount.set(t, (dupCount.get(t) ?? 0) + 1);
@@ -347,7 +354,7 @@ function evaluateRegularYaku(
       seqByStart.get(n)!.add(suit);
     }
     const hasSanshoku = [...seqByStart.values()].some((s) => s.has("m") && s.has("p") && s.has("s"));
-    if (hasSanshoku) results.push({ name: "三色同順", han: isOpen ? 1 : 2 });
+    if (hasSanshoku) results.push({ name: "三色同順", han: openForYaku ? 1 : 2 });
   }
 
   // 三色同刻
@@ -375,7 +382,7 @@ function evaluateRegularYaku(
       seqStartsBySuit.get(suit)!.add(numberOf(s.tile));
     }
     const hasIttsuu = [...seqStartsBySuit.values()].some((set) => set.has(1) && set.has(4) && set.has(7));
-    if (hasIttsuu) results.push({ name: "一気通貫", han: isOpen ? 1 : 2 });
+    if (hasIttsuu) results.push({ name: "一気通貫", han: openForYaku ? 1 : 2 });
   }
 
   // チャンタ・純全帯幺九・混老頭
@@ -388,9 +395,9 @@ function evaluateRegularYaku(
       // 全て刻子/対子で構成され、かつ全牌が么九牌 -> 混老頭（清一色相当の全牌么九は上位でyakuman判定済み）
       results.push({ name: "混老頭", han: 2 });
     } else if (junchanOk) {
-      results.push({ name: "純全帯幺九", han: isOpen ? 2 : 3 });
+      results.push({ name: "純全帯幺九", han: openForYaku ? 2 : 3 });
     } else if (chantaOk) {
-      results.push({ name: "混全帯幺九", han: isOpen ? 1 : 2 });
+      results.push({ name: "混全帯幺九", han: openForYaku ? 1 : 2 });
     }
   }
 
@@ -426,8 +433,8 @@ function evaluateRegularYaku(
     const suits = new Set(allCodes.map((c) => suitOf(c)));
     const numberedSuits = new Set([...suits].filter((s) => s !== "z"));
     const hasHonor = suits.has("z");
-    if (numberedSuits.size === 1 && hasHonor) results.push({ name: "混一色", han: isOpen ? 2 : 3 });
-    else if (numberedSuits.size === 1 && !hasHonor) results.push({ name: "清一色", han: isOpen ? 5 : 6 });
+    if (numberedSuits.size === 1 && hasHonor) results.push({ name: "混一色", han: openForYaku ? 2 : 3 });
+    else if (numberedSuits.size === 1 && !hasHonor) results.push({ name: "清一色", han: openForYaku ? 5 : 6 });
   }
 
   return results;

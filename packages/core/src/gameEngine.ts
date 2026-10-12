@@ -124,8 +124,8 @@ function resolveGuaranteedRinshan(
 }
 
 /** 必殺技ゲージを加算する（キャラのgaugeMaxで頭打ち）。キャラ未設定なら何もしない。
-    ルナの「運命の采配」発動後、次局の配牌入れ替えがまだ未消費(pendingTileSwapNextRound)
-    の間はゲージ加算自体を止める。これが無いと次局を待つ間にもゲージが再度満タンに
+    ルナの「運命の采配」・コウジの「対々の約束」発動後、次局の配牌効果がまだ未消費
+    (pendingTileSwapNextRound/pendingPairDealNextRound)の間はゲージ加算自体を止める。これが無いと次局を待つ間にもゲージが再度満タンに
     なり、効果の解決を待たずに何度も連発できてしまう。 */
 /** オーラス（この対局形式の最終局。本場を重ねている間もroundWind/roundNumberは
     据え置きなのでその間ずっとtrueのまま）かどうか。カード「最後の粘り」用。 */
@@ -136,7 +136,7 @@ function isFinalHand(round: RoundState): boolean {
 function gainGauge(round: RoundState, player: PlayerIndex, players: RoundState["players"], amount: number): RoundState["players"] {
   const character = CHARACTERS[round.characterIds[player]];
   if (!character || amount <= 0) return players;
-  if (players[player].pendingTileSwapNextRound) return players;
+  if (players[player].pendingTileSwapNextRound || players[player].pendingPairDealNextRound) return players;
   // カード「最後の粘り」: 持っているだけの常時効果。オーラスの間だけゲージ
   // 増加量が2倍になる（消費はされない）。
   const boosted = round.cardIds[player] === "last-stand" && isFinalHand(round) ? amount * 2 : amount;
@@ -231,6 +231,7 @@ function buildWinContext(
     // カード「小手先の一翻」「会心の二翻」で加算される翻数。カードの持ち主
     // 本人の和了にのみ乗る。
     bonusHan: round.cardBonusHan[player],
+    keepClosedHandYaku: p.ruleChangeActive,
   };
 }
 

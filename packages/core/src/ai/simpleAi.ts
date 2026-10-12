@@ -126,10 +126,69 @@ function safetyTier(code: TileCode, opponentDiscardsByPlayer: TileCode[][], qual
   return 0;
 }
 
-/** ポン/チー/大明槓した結果、タンヤオ・役牌のどちらかにまだ届く見込みがあるか（役なし開手を避けるための簡易チェック）。 */
+/** 南南の「ルール変更」中（鳴いても食い下がらず、平和・一盃口も付く）に、鳴いた手が
+    それらの役に届く見込みがあるか（hasPlausibleYakuOpenの追加分）。
+    - 平和・一盃口・三色同順・一気通貫: 鳴きがチーだけなら順子手のまま狙える
+    - 混一色・清一色: 鳴いた面子が1色（＋字牌）で、手全体の8割以上がその色と字牌
+    - 混全帯幺九・純全帯幺九: 鳴いた面子がすべて么九牌を含み、手牌の7割以上が么九牌か
+      么九牌と順子を組める牌（1〜3・7〜9） */
+function hasPlausibleRuleChangeYaku(hand: Hand): boolean {
+  const calls = hand.melds.filter((m) => m.type !== "ankan");
+  if (calls.every((m) => m.type === "chi")) return true;
+
+  const allCodes = allHandTileCodes(hand);
+  const callSuits = new Set(calls.flatMap((m) => m.tiles.map((t) => suitOf(t.code))).filter((s) => s !== "z"));
+  if (callSuits.size <= 1) {
+    const suitCounts = new Map<string, number>();
+    for (const c of allCodes) if (suitOf(c) !== "z") suitCounts.set(suitOf(c), (suitCounts.get(suitOf(c)) ?? 0) + 1);
+    const mainSuit = [...callSuits][0] ?? [...suitCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    const inFlush = allCodes.filter((c) => suitOf(c) === "z" || suitOf(c) === mainSuit).length;
+    if (inFlush >= allCodes.length * 0.8) return true;
+  }
+
+  if (calls.every((m) => m.tiles.some((t) => isTerminalOrHonor(t.code)))) {
+    const outside = hand.concealed.filter((t) => isOutsideLeaning(t.code)).length;
+    if (outside >= hand.concealed.length * 0.7) return true;
+  }
+  return false;
+}
+
+/** 南南の「ルール変更」中に、打牌で寄せていく方向。手全体（副露を含む）の8割以上が
+    1色＋字牌なら染め手（その色）、そうでなく手牌の7割以上が端寄り（1〜3・7〜9・字牌）
+    ならチャンタ、どちらでもなければnull（平和・三色・一通は通常の牌効率のままで十分）。 */
+type RuleChangePlan = { kind: "flush"; suit: string } | { kind: "outside" } | null;
+
+function isOutsideLeaning(code: TileCode): boolean {
+  return isTerminalOrHonor(code) || numberOf(code) <= 3 || numberOf(code) >= 7;
+}
+
+function ruleChangePlan(hand: Hand): RuleChangePlan {
+  const allCodes = allHandTileCodes(hand);
+  const suitCounts = new Map<string, number>();
+  for (const c of allCodes) if (suitOf(c) !== "z") suitCounts.set(suitOf(c), (suitCounts.get(suitOf(c)) ?? 0) + 1);
+  const mainSuit = [...suitCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (mainSuit) {
+    const inFlush = allCodes.filter((c) => suitOf(c) === "z" || suitOf(c) === mainSuit).length;
+    if (inFlush >= allCodes.length * 0.8) return { kind: "flush", suit: mainSuit };
+  }
+  const outside = hand.concealed.filter((t) => isOutsideLeaning(t.code)).length;
+  if (outside >= hand.concealed.length * 0.7) return { kind: "outside" };
+  return null;
+}
+
+/** ruleChangePlanの方向に沿って、残しておきたい牌か。 */
+function keepsRuleChangePlan(code: TileCode, plan: RuleChangePlan): boolean {
+  if (!plan) return false;
+  if (plan.kind === "flush") return suitOf(code) === "z" || suitOf(code) === plan.suit;
+  return isOutsideLeaning(code);
+}
+
+/** ポン/チー/大明槓した結果、タンヤオ・役牌のどちらかにまだ届く見込みがあるか（役なし開手を避けるための簡易チェック）。
+    南南の「ルール変更」中は、鳴いても付くようになる役（平和・混一色・チャンタ等）も見込みに数える。 */
 function hasPlausibleYakuOpen(hand: Hand, round: RoundState, player: PlayerIndex): boolean {
   const allCodes = allHandTileCodes(hand);
   if (allCodes.every((c) => !isTerminalOrHonor(c))) return true;
+  if (round.players[player].ruleChangeActive && hasPlausibleRuleChangeYaku(hand)) return true;
 
   if (hand.melds.some((m) => m.type !== "chi" && isYakuhaiCode(m.tiles[0]!.code, round, player))) return true;
 
@@ -200,6 +259,9 @@ export function decideTurnAction(round: RoundState, player: PlayerIndex, difficu
     }
   } else {
     const doraCodes = profile.valueAware ? computeDoraCodes(round) : null;
+    // 南南の「ルール変更」中は、シャンテン数が同じ打牌の中で染め手・チャンタに
+    // 寄せる（Lv3以上。ドラ・役牌の温存よりは優先度を下げる）。
+    const plan = profile.valueAware && p.ruleChangeActive ? ruleChangePlan(p.hand) : null;
     let bestPenalty = Infinity;
     for (const t of p.hand.concealed) {
       const { hand: rest } = removeTileFromHand(p.hand, t.id);
@@ -210,8 +272,11 @@ export function decideTurnAction(round: RoundState, player: PlayerIndex, difficu
         doraCodes !== null &&
         (t.isRed === true || doraCodes.has(t.code) || (sameCodeCount >= 2 && isYakuhaiCode(t.code, round, player)));
       // シャンテン数の差(1000単位)を最優先し、その中でドラ/役牌温存(10点)、
-      // さらにその中で端牌/字牌優先(1点)、という優先順位になるよう重みを分離する。
-      const penalty = shanten * 1000 + (isValuable ? 10 : 0) + (terminalOrHonor ? 0 : 1);
+      // 「ルール変更」中の染め手・チャンタへの寄せ(5点)、さらにその中で
+      // 端牌/字牌優先(1点)、という優先順位になるよう重みを分離する。
+      // 寄せている間は端牌/字牌優先をやめる（染め手の字牌・チャンタの端牌を残すため）。
+      const steering = keepsRuleChangePlan(t.code, plan) ? 5 : 0;
+      const penalty = shanten * 1000 + (isValuable ? 10 : 0) + steering + (plan || terminalOrHonor ? 0 : 1);
       if (penalty < bestPenalty) {
         bestPenalty = penalty;
         bestTileId = t.id;

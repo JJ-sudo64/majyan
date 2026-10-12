@@ -17,7 +17,12 @@ import {
   reclaimableDiscardTileIds,
 } from "../src/gameEngine.js";
 import { CHARACTERS } from "../src/characters.js";
-import { dealNewRound } from "../src/matchFormat.js";
+import { createMatch, dealNewRound } from "../src/matchFormat.js";
+import { advanceToNextRound, applyMatchAction, pendingDecision, settleRound } from "../src/matchController.js";
+import { decideCpuCallResponse, decideCpuTurnAction } from "../src/ai/cpuPlayer.js";
+import { decideCallResponse, decideTurnAction } from "../src/ai/simpleAi.js";
+import { countPairs } from "../src/dealAdjust.js";
+import { allTileCodes } from "../src/tiles.js";
 import { calcShanten } from "../src/shanten.js";
 import { uraDoraIndicators, doraIndicators, type WallState } from "../src/wall.js";
 import { nextTileForDora, isNumbered, numberOf, suitOf } from "../src/tiles.js";
@@ -67,6 +72,7 @@ function emptyPlayer(codes: TileCode[]): PlayerRoundState {
     guaranteedRinshan: false,
     tileSwapsRemaining: 0,
     pendingTileSwapNextRound: false,
+    pendingPairDealNextRound: false,
     openRiichi: false,
     guaranteedUraDora: false,
     revealedFutureDraws: [],
@@ -76,6 +82,7 @@ function emptyPlayer(codes: TileCode[]): PlayerRoundState {
     bettaoriShield: false,
     atomicRiichi: false,
     timeStopTurnsRemaining: 0,
+    ruleChangeActive: false,
   };
 }
 
@@ -1093,6 +1100,145 @@ describe("mebius's passive onDealHand (陰陽配牌)", () => {
     expect(withMebius.players[1]!.hand.concealed.map((t) => t.code)).toEqual(
       withoutMebius.players[1]!.hand.concealed.map((t) => t.code),
     );
+  });
+});
+
+describe("koji's 対々の約束 (next-round pair deal)", () => {
+  it("onActivate reserves the pair deal for next round and resets gauge", () => {
+    const round = makeRound({
+      players: [
+        { ...emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z", "3z"]), skillGauge: 100 },
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer(["5m", "5m", "5m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      characterIds: ["koji", "", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      lastDrawnTile: { id: "drawn1", code: "3z" },
+    });
+    const next = applyAction(round, { type: "useSkill", player: 0 });
+    expect(next.players[0]!.pendingPairDealNextRound).toBe(true);
+    expect(next.players[0]!.skillGauge).toBe(0);
+
+    // 効果が出るまでの間はゲージが溜まらない（連発防止）。
+    const discardId = next.players[0]!.hand.concealed.find((t) => t.code === "3z")!.id;
+    const afterDiscard = applyAction(next, { type: "discard", player: 0, tileId: discardId });
+    expect(afterDiscard.players[0]!.skillGauge).toBe(0);
+  });
+
+  it("every seat gets at least 4 pairs across many deals, keeping all tile counts intact", () => {
+    let alreadyEnough = 0;
+    for (let seed = 1; seed <= 2000; seed++) {
+      const seat = (seed % 4) as PlayerIndex;
+      const flags: [boolean, boolean, boolean, boolean] = [false, false, false, false];
+      flags[seat] = true;
+      // メビウス・ナオキ・カードの配牌効果と同卓していても4組になることを確かめる。
+      const chars: [string, string, string, string] = ["mebius", "naoki", "koji", "hiiragi"];
+      const cards: [string | null, string | null, string | null, string | null] = ["meld-guarantee", "dora-guarantee", null, null];
+      const without = dealNewRound(1, 1, 1, 0, 0, makeSeededRng(seed), chars, undefined, undefined, true, cards, undefined, undefined, "hanchan");
+      const round = dealNewRound(1, 1, 1, 0, 0, makeSeededRng(seed), chars, undefined, undefined, true, cards, undefined, undefined, "hanchan", flags);
+      if (countPairs(without.players[seat]!.hand.concealed) >= 4) alreadyEnough++;
+
+      expect(countPairs(round.players[seat]!.hand.concealed)).toBeGreaterThanOrEqual(4);
+      expect(round.players[seat]!.hand.concealed.length).toBe(13);
+      for (const other of [0, 1, 2, 3] as PlayerIndex[]) {
+        if (other === seat) continue;
+        expect(round.players[other]!.hand.concealed.map((t) => t.code)).toEqual(without.players[other]!.hand.concealed.map((t) => t.code));
+      }
+      const all = [...round.players.flatMap((p) => p.hand.concealed), ...round.wall.liveTiles, ...round.wall.deadWall];
+      expect(new Set(all.map((t) => t.id)).size).toBe(136);
+      for (const code of allTileCodes()) expect(all.filter((t) => t.code === code).length).toBe(4);
+    }
+    expect(alreadyEnough).toBeLessThan(2000); // 前提: 素の配牌では4組に届かないことが多い
+  });
+
+  it("carries the flag across advanceToNextRound and clears it afterwards", () => {
+    const rng = makeSeededRng(5);
+    let match = createMatch("hanchan", rng, ["", "", "koji", ""]);
+    for (let steps = 0; pendingDecision(match.round).kind !== "round-over"; steps++) {
+      if (steps > 5000) throw new Error("局が終わりません");
+      const d = pendingDecision(match.round);
+      if (d.kind === "draw") match = applyMatchAction(match, { type: "draw", player: d.seat }).match;
+      else if (d.kind === "turn") match = applyMatchAction(match, decideCpuTurnAction(match.round, d.seat)).match;
+      else if (d.kind === "call") match = applyMatchAction(match, decideCpuCallResponse(match.round, d.seat)).match;
+    }
+    const players = [...match.round.players] as RoundState["players"];
+    players[2] = { ...players[2]!, pendingPairDealNextRound: true };
+    match = { ...match, round: { ...match.round, players } };
+    match = advanceToNextRound(settleRound(match).match, rng, []);
+    expect(countPairs(match.round.players[2]!.hand.concealed)).toBeGreaterThanOrEqual(4);
+    expect(match.round.players[2]!.pendingPairDealNextRound).toBe(false);
+  });
+});
+
+describe("nannan's ルール変更", () => {
+  it("turns on the rule change for the rest of the round and can't be stacked", () => {
+    const round = makeRound({
+      players: [
+        { ...emptyPlayer(["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z", "3z"]), skillGauge: 100 },
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer(["5m", "5m", "5m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      characterIds: ["nannan", "", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      lastDrawnTile: { id: "drawn1", code: "3z" },
+    });
+    const next = applyAction(round, { type: "useSkill", player: 0 });
+    expect(next.players[0]!.ruleChangeActive).toBe(true);
+    expect(canUseSkill({ ...next, players: [{ ...next.players[0]!, skillGauge: 100 }, ...next.players.slice(1)] as RoundState["players"] }, 0)).toBe(false);
+    // 次局の配牌では元に戻る。
+    expect(dealNewRound(1, 2, 0, 0, 1, makeSeededRng(1), ["nannan", "", "", ""]).players[0]!.ruleChangeActive).toBe(false);
+  });
+
+  it("lets a selective CPU (Lv4) chi toward open 平和 etc. only while the rule change is on", () => {
+    // 么九牌があり役牌も無いのでタンヤオ・役牌には届かない。3mをチーすれば聴牌。
+    const cpu = emptyPlayer(["1m", "2m", "4p", "5p", "6p", "7s", "8s", "9s", "9p", "9p", "3s", "4s", "7m"]);
+    const base = makeRound({
+      players: [
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        cpu,
+        emptyPlayer(["5m", "5m", "5m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      characterIds: ["", "nannan", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-calls",
+      pendingCallWindow: {
+        discarderIndex: 0,
+        discardTile: { id: "d3m", code: "3m" },
+        isChankan: false,
+        awaitingPlayers: [1, 2, 3],
+        respondedBy: [],
+        declaredCalls: [],
+      },
+    });
+    expect(decideCallResponse(base, 1, 4).type).toBe("skip");
+    const changed = { ...base, players: base.players.map((p, i) => (i === 1 ? { ...p, ruleChangeActive: true } : p)) as RoundState["players"] };
+    expect(decideCallResponse(changed, 1, 4).type).toBe("chi");
+  });
+
+  it("steers a CPU's discards toward a flush while the rule change is on", () => {
+    // 萬子と字牌が大半。3z・5m・5pのどれを切ってもシャンテン数は同じ。
+    const round = makeRound({
+      players: [
+        emptyPlayer(["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m", "1z", "1z", "3z", "5p", "5m"]),
+        emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+        emptyPlayer(["5m", "5m", "5m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+        emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+      ],
+      characterIds: ["nannan", "", "", ""],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const codeOf = (r: RoundState, action: ReturnType<typeof decideTurnAction>) =>
+      action.type === "discard" ? r.players[0]!.hand.concealed.find((t) => t.id === action.tileId)!.code : null;
+
+    expect(codeOf(round, decideTurnAction(round, 0, 3))).toBe("3z"); // 普段は字牌から切る
+    const changed = { ...round, players: round.players.map((p, i) => (i === 0 ? { ...p, ruleChangeActive: true } : p)) as RoundState["players"] };
+    expect(codeOf(changed, decideTurnAction(changed, 0, 3))).toBe("5p"); // 染め手に寄せて他色を切る
   });
 });
 

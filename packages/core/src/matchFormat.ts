@@ -5,8 +5,12 @@ import type { PlayerIndex } from "./actions.js";
 import type { MatchFormat, MatchState, PlayerRoundState, RoundState } from "./gameState.js";
 import { randomCharacterIds, CHARACTERS } from "./characters.js";
 import { CARDS } from "./cards.js";
+import { ensureAtLeastPairs } from "./dealAdjust.js";
 
 const STARTING_SCORE = 25000;
+
+/** コウジの「対々の約束」で保証する配牌のトイツの数。 */
+const KOJI_MIN_PAIRS = 4;
 
 export function globalRoundIndex(roundWind: Wind, roundNumber: number): number {
   return (roundWind - 1) * 4 + (roundNumber - 1);
@@ -32,6 +36,7 @@ function createEmptyPlayerRoundState(skillGauge: number, tileSwapsRemaining: num
     guaranteedRinshan: false,
     tileSwapsRemaining,
     pendingTileSwapNextRound: false,
+    pendingPairDealNextRound: false,
     openRiichi: false,
     guaranteedUraDora: false,
     revealedFutureDraws: [],
@@ -41,6 +46,7 @@ function createEmptyPlayerRoundState(skillGauge: number, tileSwapsRemaining: num
     bettaoriShield: false,
     atomicRiichi: false,
     timeStopTurnsRemaining: 0,
+    ruleChangeActive: false,
   };
 }
 
@@ -78,6 +84,9 @@ export function dealNewRound(
       持たせる（createMatch経由で渡ってくる。単体でdealNewRoundを呼ぶテスト等
       では省略時"hanchan"扱い）。 */
   format: MatchFormat = "hanchan",
+  /** コウジの必殺技「対々の約束」が前局で発動されていたか。trueの座席は
+      今局の配牌をトイツ4組以上にする。 */
+  previousPendingPairDeals: [boolean, boolean, boolean, boolean] = [false, false, false, false],
 ): RoundState {
   let wall = buildWall(rng);
   const players: [PlayerRoundState, PlayerRoundState, PlayerRoundState, PlayerRoundState] = [
@@ -148,6 +157,16 @@ export function dealNewRound(
     if (!cardId) continue;
     const onDealHand = CARDS[cardId]?.hooks.onDealHand;
     if (onDealHand) dealtRound = onDealHand({ round: dealtRound, owner: seat });
+  }
+  // コウジの「対々の約束」。カリンの借用・カガミの写し身で発動した場合も
+  // 同じフラグが立つため、キャラのonDealHandではなくここで座席ごとに処理する。
+  // 「必ず」4組にするため、他の配牌効果より後に行う。
+  for (const seat of [0, 1, 2, 3] as PlayerIndex[]) {
+    if (!previousPendingPairDeals[seat]) continue;
+    const { hand, wall } = ensureAtLeastPairs(dealtRound.players[seat].hand, dealtRound.wall, KOJI_MIN_PAIRS);
+    const nextPlayers = [...dealtRound.players] as RoundState["players"];
+    nextPlayers[seat] = { ...nextPlayers[seat], hand };
+    dealtRound = { ...dealtRound, wall, players: nextPlayers };
   }
   return dealtRound;
 }
