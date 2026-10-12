@@ -1448,6 +1448,33 @@ export const CHARACTERS: Record<string, Character> = {
       },
     },
   },
+  deagari: {
+    id: "deagari",
+    // キャラ名・技名・台詞はすべて仮。決まったら差し替える。
+    name: "出和了の求道者（仮）",
+    voiceName: "デアガリの求道者",
+    description: "必殺技「出和了の誓い」: ゲージが満タンの状態でリーチすると自動的に発動する。そのリーチではツモ和了できなくなるが、ロン和了なら4翻アップする。",
+    winQuote: "ツモなんて要らない。お前の切った一枚で、全部決める。",
+    // 専用の立ち絵・カットイン・宣言の絵は未用意。差し替えるまで仮の座席アイコンを使う。
+    avatar: "/avatars/seat3.svg",
+    gaugeMax: 100,
+    gaugePerTurn: 10,
+    gaugePerDealIn: 20,
+    skill: {
+      id: "deagari-deagari-no-chikai",
+      name: "出和了の誓い",
+      voiceName: "デアガリのチカイ",
+      description: "必殺技ゲージが満タンの状態でリーチを宣言すると、自動的に発動する。そのリーチ中は、和了牌を引いてもツモ和了できない（ロン和了のみ。ツモを見送ってもフリテンにはならない）。その代わり、ロン和了すると「出和了の誓い」として4翻加算される。",
+      hooks: {
+        // にゃん次郎の「アトミックリーチ」と同じく、ゲージ満タンでのリーチ宣言
+        // そのものがトリガー（gameEngine.tsのapplyRiichiAction参照）。
+        onRiichi: (ctx) => ({
+          ...ctx.round,
+          players: updatePlayer(ctx.round, ctx.owner, (pl) => ({ ...pl, ronOnlyRiichi: true })),
+        }),
+      },
+    },
+  },
   zeno: {
     id: "zeno",
     name: "刻を止める者・ゼノ",

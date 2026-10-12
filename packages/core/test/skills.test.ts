@@ -83,6 +83,7 @@ function emptyPlayer(codes: TileCode[]): PlayerRoundState {
     atomicRiichi: false,
     timeStopTurnsRemaining: 0,
     ruleChangeActive: false,
+    ronOnlyRiichi: false,
   };
 }
 
@@ -1743,6 +1744,47 @@ describe("takaharu's passive skill (アトミックベタ降り)", () => {
     const next = applyAction(round, { type: "discard", player: 0, tileId: discardId, tsumogiri: false });
 
     expect(next.players[0]!.bettaoriShield).toBe(false); // もう1枚の1pでまだ順子を組めるので崩したとは言えない
+  });
+});
+
+describe("deagari's 出和了の誓い", () => {
+  // 2z単騎待ち。ツモった5zを切ってリーチする。
+  const tenpaiHand = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"] as TileCode[];
+
+  function riichiWith(gauge: number): RoundState {
+    let round = makeRound({
+      players: [{ ...emptyPlayer(tenpaiHand), skillGauge: gauge }, emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["deagari", "", "", ""],
+      wall: makeWall(["5z", "9m", "8m", "6m", "9p"]),
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    return applyAction(round, { type: "riichi", player: 0, tileId: round.lastDrawnTile!.id });
+  }
+
+  /** 立直後、本人が和了牌の2zをツモってきた局面。 */
+  function drewWinningTile(round: RoundState): RoundState {
+    const drawn = { id: "win2z", code: "2z" as TileCode };
+    const players = [...round.players] as RoundState["players"];
+    players[0] = { ...players[0]!, hand: { ...players[0]!.hand, concealed: [...players[0]!.hand.concealed, drawn] } };
+    return { ...round, players, currentTurn: 0, phase: "awaiting-discard", lastDrawnTile: drawn, pendingCallWindow: null };
+  }
+
+  it("riichi with a full gauge forbids tsumo but adds 4 han to a ron", () => {
+    const round = riichiWith(CHARACTERS.deagari!.gaugeMax);
+    expect(round.players[0]!.ronOnlyRiichi).toBe(true);
+    expect(round.players[0]!.skillGauge).toBe(0);
+
+    expect(canDeclareTsumo(drewWinningTile(round), 0)).toBeNull();
+
+    const ron = canDeclareRon(round, 0, "2z", 1, false);
+    expect(ron!.yaku).toContainEqual({ name: "出和了の誓い", han: 4 });
+  });
+
+  it("an ordinary riichi (gauge not full) can still tsumo and gets no bonus", () => {
+    const round = riichiWith(0);
+    expect(round.players[0]!.ronOnlyRiichi).toBe(false);
+    expect(canDeclareTsumo(drewWinningTile(round), 0)).not.toBeNull();
+    expect(canDeclareRon(round, 0, "2z", 1, false)!.yaku.map((y) => y.name)).not.toContain("出和了の誓い");
   });
 });
 

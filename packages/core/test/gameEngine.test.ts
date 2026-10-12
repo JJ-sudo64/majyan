@@ -28,6 +28,7 @@ function emptyPlayer(codes: TileCode[]): PlayerRoundState {
     pendingPairDealNextRound: false,
     timeStopTurnsRemaining: 0,
     ruleChangeActive: false,
+    ronOnlyRiichi: false,
   };
 }
 

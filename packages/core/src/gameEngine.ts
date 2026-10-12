@@ -232,6 +232,7 @@ function buildWinContext(
     // 本人の和了にのみ乗る。
     bonusHan: round.cardBonusHan[player],
     keepClosedHandYaku: p.ruleChangeActive,
+    ronOnlyRiichi: p.ronOnlyRiichi,
   };
 }
 
@@ -245,6 +246,8 @@ export function canDeclareTsumo(round: RoundState, player: PlayerIndex): WinAnal
   if (!drawn || !p.hand.concealed.some((t) => t.id === drawn.id)) return null;
   // 「取り返し」で河から戻した牌はツモってきた牌ではないので、それでツモ和了はできない。
   if (drawn.id === round.reclaimedDrawnTileId) return null;
+  // 「出和了の誓い」で立直した人はツモ和了できない（ロンのみ）。
+  if (p.ronOnlyRiichi) return null;
   const ctx = buildWinContext(round, player, drawn.code, true);
   return analyzeWin(p.hand, ctx);
 }

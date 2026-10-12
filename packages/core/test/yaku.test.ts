@@ -30,6 +30,7 @@ const baseContext: WinContext = {
   uraDoraIndicators: [],
   bonusHan: 0,
   keepClosedHandYaku: false,
+  ronOnlyRiichi: false,
 };
 
 function ctx(overrides: Partial<WinContext>): WinContext {

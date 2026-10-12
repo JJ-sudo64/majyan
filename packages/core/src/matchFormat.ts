@@ -47,6 +47,7 @@ function createEmptyPlayerRoundState(skillGauge: number, tileSwapsRemaining: num
     atomicRiichi: false,
     timeStopTurnsRemaining: 0,
     ruleChangeActive: false,
+    ronOnlyRiichi: false,
   };
 }
 
