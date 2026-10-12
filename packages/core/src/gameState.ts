@@ -95,8 +95,9 @@ export interface PlayerRoundState {
       持ち越さない（次局の配牌でfalseに戻る）。本人の和了の役判定にだけ効く
       （gameEngine.tsのbuildWinContext→WinContext.keepClosedHandYaku参照）。 */
   ruleChangeActive: boolean;
-  /** 必殺技「出和了の誓い」で立直したか。立直中はツモ和了できない代わりに、
-      ロン和了なら4翻加算される（gameEngine.tsのcanDeclareTsumo/buildWinContext、
+  /** 必殺技「出和了の誓い」で立直したか。立直中は和了牌をツモってこない
+      （ツモ和了もできない）代わりに、ロン和了なら4翻加算される（gameEngine.tsの
+      keepWinningTileFromRonOnlyRiichi/canDeclareTsumo/buildWinContext、
       yaku/index.tsのWinContext.ronOnlyRiichi参照）。局をまたいでは持ち越さない。 */
   ronOnlyRiichi: boolean;
   /** 同巡内フリテン: 当たり牌が出たのに和了しなかった（見逃した）。次に自分がツモるか

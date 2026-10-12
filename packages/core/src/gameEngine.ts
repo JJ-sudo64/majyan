@@ -92,6 +92,22 @@ function clearAllIppatsu(
   return { players: next, cardUsesRemaining };
 }
 
+/** 「出和了の誓い」で立直した人には和了牌を引かせない（引いてもツモ和了できず、
+    ツモ切りした和了牌でロンするのは相手から見て理不尽なため、そもそも来ないようにする）。
+    これから引くtileが本人の待ち牌なら、山（liveTiles）に残る待ち牌以外の1枚と入れ替える。
+    山に待ち牌以外が残っていなければ入れ替えられない（海底間際の極めて稀なケース）。 */
+function keepWinningTileFromRonOnlyRiichi(p: PlayerRoundState, tile: Tile, wall: WallState, skipIndex: number): { tile: Tile; wall: WallState } {
+  if (!p.ronOnlyRiichi) return { tile, wall };
+  const waits = new Set(getWaitingTiles(p.hand));
+  if (!waits.has(tile.code)) return { tile, wall };
+  const swapIndex = wall.liveTiles.findIndex((t, i) => i !== skipIndex && !waits.has(t.code));
+  if (swapIndex === -1) return { tile, wall };
+  const liveTiles = [...wall.liveTiles];
+  const replacement = liveTiles[swapIndex]!;
+  liveTiles[swapIndex] = tile;
+  return { tile: replacement, wall: { ...wall, liveTiles } };
+}
+
 interface RinshanResolution {
   tile: Tile;
   wall: WallState;
@@ -190,12 +206,7 @@ export function isFuriten(player: PlayerRoundState): boolean {
   const waits = getWaitingTiles(player.hand);
   if (waits.length === 0) return false;
   if (player.missedRonFuriten || player.riichiFuriten) return true;
-  // 「出和了の誓い」の立直中は和了牌を引いてもツモ和了できず、ツモ切りが強制される。
-  // その牌で自分の河のフリテンにならないよう、立直宣言牌より後の打牌は数えない
-  // （宣言牌までは自分で選んで切った牌なので数える）。
-  const riichiIndex = player.ronOnlyRiichi ? player.discards.findIndex((d) => d.isRiichiDeclaration) : -1;
-  const countedDiscards = riichiIndex >= 0 ? player.discards.slice(0, riichiIndex + 1) : player.discards;
-  const discardedCodes = new Set(countedDiscards.map((d) => d.tile.code));
+  const discardedCodes = new Set(player.discards.map((d) => d.tile.code));
   return waits.some((w) => discardedCodes.has(w));
 }
 
@@ -552,6 +563,16 @@ function applyDrawAction(round: RoundState, player: PlayerIndex): RoundState {
     const onBeforeDraw = CHARACTERS[preDrawRound.characterIds[owner]]?.skill.hooks.onBeforeDraw;
     if (onBeforeDraw) preDrawRound = onBeforeDraw({ round: preDrawRound, owner }, player);
   }
+  // 次のツモ(liveTiles[0])が「出和了の誓い」の和了牌なら山の別の牌と入れ替えておく。
+  {
+    const next = preDrawRound.wall.liveTiles[0]!;
+    const kept = keepWinningTileFromRonOnlyRiichi(preDrawRound.players[player], next, preDrawRound.wall, 0);
+    if (kept.tile !== next) {
+      const liveTiles = [...kept.wall.liveTiles];
+      liveTiles[0] = kept.tile;
+      preDrawRound = { ...preDrawRound, wall: { ...kept.wall, liveTiles } };
+    }
+  }
   const { tile, wall } = drawFromLive(preDrawRound.wall);
   const players = updatePlayer(preDrawRound.players, player, (p) => ({
     ...p,
@@ -760,8 +781,11 @@ function applyAnkanAction(round: RoundState, action: AnkanAction): RoundState {
   const ippatsuResult = clearAllIppatsu(round, players);
   players = ippatsuResult.players;
 
-  const { tile: rinshanTile, wall: wallAfterDraw } = drawRinshan(round.wall);
-  const wall = revealNextDora(wallAfterDraw);
+  const { tile: drawnRinshan, wall: wallAfterDraw } = drawRinshan(round.wall);
+  // 「出和了の誓い」の立直中にできるカンは暗槓だけなので、嶺上牌の入れ替えはここだけでよい。
+  const kept = keepWinningTileFromRonOnlyRiichi(players[action.player], drawnRinshan, revealNextDora(wallAfterDraw), -1);
+  const rinshanTile = kept.tile;
+  const wall = kept.wall;
   const resolved = resolveGuaranteedRinshan(players, action.player, players[action.player].hand, rinshanTile, wall);
   players = updatePlayer(players, action.player, (pl) => ({
     ...pl,

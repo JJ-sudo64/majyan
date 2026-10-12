@@ -1780,12 +1780,42 @@ describe("deagari's 出和了の誓い", () => {
     expect(ron!.yaku).toContainEqual({ name: "出和了の誓い", han: 4 });
   });
 
-  it("passing the winning tile on the draw (forced tsumogiri) does not make the later ron furiten", () => {
-    const passed = drewWinningTile(riichiWith(CHARACTERS.deagari!.gaugeMax));
-    const afterPass = applyAction(passed, { type: "discard", player: 0, tileId: "win2z", tsumogiri: true });
-    expect(afterPass.players[0]!.discards.at(-1)!.tile.code).toBe("2z"); // 和了牌が自分の河に入っている
-    const ron = canDeclareRon({ ...afterPass, phase: "awaiting-discard", currentTurn: 1, pendingCallWindow: null }, 0, "2z", 1, false);
-    expect(ron!.yaku).toContainEqual({ name: "出和了の誓い", han: 4 });
+  it("never draws a winning tile during this riichi: the next draw is swapped with another wall tile", () => {
+    // 立直後、山の先頭に和了牌の2zが来ている局面で本人がツモる。
+    const round = riichiWith(CHARACTERS.deagari!.gaugeMax);
+    const wall = makeWall(["2z", "2z", "9m", "8p"]);
+    const atDraw = { ...round, wall, currentTurn: 0 as const, phase: "awaiting-draw" as const, pendingCallWindow: null };
+    const drawn = applyAction(atDraw, { type: "draw", player: 0 });
+    expect(drawn.lastDrawnTile!.code).toBe("9m"); // 2z（2枚とも）を飛ばして待ち牌以外を引く
+    expect(drawn.wall.liveTiles.map((t) => t.code)).toEqual(["2z", "2z", "8p"]); // 2zは山に残る
+    expect(drawn.wall.liveTiles.length).toBe(wall.liveTiles.length - 1);
+
+    // 普通のリーチ（ゲージ不足）なら和了牌をそのまま引く。
+    const normal = riichiWith(0);
+    const normalDrawn = applyAction({ ...normal, wall, currentTurn: 0, phase: "awaiting-draw", pendingCallWindow: null }, { type: "draw", player: 0 });
+    expect(normalDrawn.lastDrawnTile!.code).toBe("2z");
+  });
+
+  it("the rinshan tile after an ankan during this riichi is not a winning tile either", () => {
+    const round = riichiWith(CHARACTERS.deagari!.gaugeMax);
+    // 4枚目の1zをツモって暗槓する（2z単騎の待ちは変わらない）。嶺上牌はすべて2z。
+    const fourth = { id: "fourth1z", code: "1z" as TileCode };
+    const players = [...round.players] as RoundState["players"];
+    players[0] = { ...players[0]!, hand: { ...players[0]!.hand, concealed: [...players[0]!.hand.concealed, fourth] } };
+    const deadWall = Array.from({ length: 14 }, (_, i) => ({ id: `dead${i}`, code: "2z" as TileCode }));
+    const atKan: RoundState = {
+      ...round,
+      players,
+      wall: { ...makeWall(["9m", "8p", "7s"]), deadWall },
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      lastDrawnTile: fourth,
+      pendingCallWindow: null,
+    };
+    const afterKan = applyAction(atKan, { type: "ankan", player: 0, tileCode: "1z" });
+    expect(afterKan.lastDrawnTile!.code).not.toBe("2z");
+    expect(afterKan.players[0]!.hand.concealed.some((t) => t.code === "2z" && t.id.startsWith("dead"))).toBe(false);
+    expect(afterKan.wall.liveTiles.some((t) => t.code === "2z")).toBe(true); // 嶺上の2zは山へ回る
   });
 
   it("a winning tile discarded before the riichi still makes it furiten", () => {
