@@ -124,7 +124,7 @@ function resolveGuaranteedRinshan(
 }
 
 /** 必殺技ゲージを加算する（キャラのgaugeMaxで頭打ち）。キャラ未設定なら何もしない。
-    ルナの「運命の采配」・コウジの「対々の約束」発動後、次局の配牌効果がまだ未消費
+    ルナの「運命の采配」・コウジの「対子の約束」発動後、次局の配牌効果がまだ未消費
     (pendingTileSwapNextRound/pendingPairDealNextRound)の間はゲージ加算自体を止める。これが無いと次局を待つ間にもゲージが再度満タンに
     なり、効果の解決を待たずに何度も連発できてしまう。 */
 /** オーラス（この対局形式の最終局。本場を重ねている間もroundWind/roundNumberは

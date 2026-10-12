@@ -1372,17 +1372,29 @@ export const CHARACTERS: Record<string, Character> = {
   koji: {
     id: "koji",
     name: "対子使い・コウジ",
-    description: "必殺技「対々の約束」: 発動した次の局は、配牌にトイツ（同じ牌2枚）が必ず4組以上そろっている。",
+    description: "必殺技「対子の約束」: 発動した次の局は、配牌にトイツ（同じ牌2枚）が必ず4組以上そろっている。",
     winQuote: "二枚ずつ、きっちり揃えておいた。約束は守る主義なんでね。",
-    // 専用の立ち絵・カットイン・宣言の絵は未用意。差し替えるまで仮の座席アイコンを使う。
-    avatar: "/avatars/seat1.svg",
+    avatar: "/avatars/characters/koji.webp",
+    // アイコンと縦長カットインは、リーチの絵から顔まわりを切り出したもの。
+    cutin: "/avatars/characters/koji-cutin.webp",
+    // 3枚とも「リーチ」「ロン」「ツモ」の金文字が右側に描き込まれている。
+    // 牌は写っていないのでcrop不要。文字が右端寄りなのでkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/koji-riichi.webp", keepEdge: "right" },
+      tsumo: { src: "/declarations/koji-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/koji-ron.webp", keepEdge: "right" },
+    },
+    // 「対子の約束」の金文字が左下。舞っている牌は無地の面しか見えず、実際の牌と
+    // 食い違わないのでcrop不要。元絵は5:4のため、左右をぼかして延ばし16:9にしてある。
+    skillArt: { src: "/declarations/koji-skill.webp", keepEdge: "left" },
+    declarationAccent: "#e8b530",
     gaugeMax: 100,
     gaugePerTurn: 10,
     gaugePerDealIn: 20,
     skill: {
       id: "koji-toitoi-no-yakusoku",
-      name: "対々の約束",
-      voiceName: "トイトイのヤクソク",
+      name: "対子の約束",
+      voiceName: "トイツのヤクソク",
       description: "発動すると、次の局の配牌でトイツ（同じ牌2枚。3枚以上そろった牌も1組と数える）が必ず4組以上になる。足りない分は山の牌と入れ替えてそろえる。効果が出るまでの間はゲージが溜まらない。",
       hooks: {
         // ルナの「運命の采配」と同じく、ここではフラグを立てるだけ。実際の

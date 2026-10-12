@@ -1103,7 +1103,7 @@ describe("mebius's passive onDealHand (陰陽配牌)", () => {
   });
 });
 
-describe("koji's 対々の約束 (next-round pair deal)", () => {
+describe("koji's 対子の約束 (next-round pair deal)", () => {
   it("onActivate reserves the pair deal for next round and resets gauge", () => {
     const round = makeRound({
       players: [

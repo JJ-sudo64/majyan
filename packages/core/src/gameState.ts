@@ -36,7 +36,7 @@ export interface PlayerRoundState {
       次局の配牌（matchFormat.tsのdealNewRound）にこの値を明示的に橋渡しする
       （gameStore.tsのacknowledgeRoundEnd参照）。 */
   pendingTileSwapNextRound: boolean;
-  /** コウジの必殺技「対々の約束」の発動フラグ。trueのまま局を終えると、次局の
+  /** コウジの必殺技「対子の約束」の発動フラグ。trueのまま局を終えると、次局の
       配牌（matchFormat.tsのdealNewRound）でトイツが4組以上になるよう山の牌と
       入れ替える。pendingTileSwapNextRoundと同じく局をまたいで明示的に橋渡しする
       （matchController.tsのadvanceToNextRound参照）。 */
