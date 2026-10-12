@@ -1414,8 +1414,21 @@ export const CHARACTERS: Record<string, Character> = {
     voiceName: "中国からの刺客・ナンナン",
     description: "必殺技「ルール変更」: 発動したその局の間、鳴いても役が下がらず（食い下がり無し）、平和や一盃口も鳴いたまま成立する。",
     winQuote: "ここのルールは、わたしが決める。鳴いても安くならない、それが本場の麻雀ネ。",
-    // 専用の立ち絵・カットイン・宣言の絵は未用意。差し替えるまで仮の座席アイコンを使う。
-    avatar: "/avatars/seat2.svg",
+    avatar: "/avatars/characters/nannan.webp",
+    // アイコンと縦長カットインは、リーチの絵から顔まわりを切り出したもの。
+    cutin: "/avatars/characters/nannan-cutin.webp",
+    // 3枚とも「リーチ」「ツモ」「ロン」の金文字が右側に描き込まれている。
+    // 牌は写っていないのでcrop不要。文字が右端寄りなのでkeepEdge: "right"にする。
+    declarationArt: {
+      riichi: { src: "/declarations/nannan-riichi.webp", keepEdge: "right" },
+      tsumo: { src: "/declarations/nannan-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/nannan-ron.webp", keepEdge: "right" },
+    },
+    // 「ルール変更」の金文字が下側いっぱい。元絵(5:4)から右端と下端の牌を切り落とし、
+    // 左右をぼかして延ばして16:9にしてある。左端・左上・右上と「更」の右の小さな
+    // 牌は技名や顔と重なって外せないため残している。
+    skillArt: { src: "/declarations/nannan-skill.webp", keepEdge: "left" },
+    declarationAccent: "#e8b530",
     gaugeMax: 100,
     gaugePerTurn: 10,
     gaugePerDealIn: 20,
