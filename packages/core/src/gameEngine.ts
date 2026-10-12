@@ -190,7 +190,12 @@ export function isFuriten(player: PlayerRoundState): boolean {
   const waits = getWaitingTiles(player.hand);
   if (waits.length === 0) return false;
   if (player.missedRonFuriten || player.riichiFuriten) return true;
-  const discardedCodes = new Set(player.discards.map((d) => d.tile.code));
+  // 「出和了の誓い」の立直中は和了牌を引いてもツモ和了できず、ツモ切りが強制される。
+  // その牌で自分の河のフリテンにならないよう、立直宣言牌より後の打牌は数えない
+  // （宣言牌までは自分で選んで切った牌なので数える）。
+  const riichiIndex = player.ronOnlyRiichi ? player.discards.findIndex((d) => d.isRiichiDeclaration) : -1;
+  const countedDiscards = riichiIndex >= 0 ? player.discards.slice(0, riichiIndex + 1) : player.discards;
+  const discardedCodes = new Set(countedDiscards.map((d) => d.tile.code));
   return waits.some((w) => discardedCodes.has(w));
 }
 

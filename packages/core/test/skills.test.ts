@@ -1780,6 +1780,24 @@ describe("deagari's 出和了の誓い", () => {
     expect(ron!.yaku).toContainEqual({ name: "出和了の誓い", han: 4 });
   });
 
+  it("passing the winning tile on the draw (forced tsumogiri) does not make the later ron furiten", () => {
+    const passed = drewWinningTile(riichiWith(CHARACTERS.deagari!.gaugeMax));
+    const afterPass = applyAction(passed, { type: "discard", player: 0, tileId: "win2z", tsumogiri: true });
+    expect(afterPass.players[0]!.discards.at(-1)!.tile.code).toBe("2z"); // 和了牌が自分の河に入っている
+    const ron = canDeclareRon({ ...afterPass, phase: "awaiting-discard", currentTurn: 1, pendingCallWindow: null }, 0, "2z", 1, false);
+    expect(ron!.yaku).toContainEqual({ name: "出和了の誓い", han: 4 });
+  });
+
+  it("a winning tile discarded before the riichi still makes it furiten", () => {
+    const round = riichiWith(CHARACTERS.deagari!.gaugeMax);
+    const players = [...round.players] as RoundState["players"];
+    players[0] = {
+      ...players[0]!,
+      discards: [{ tile: { id: "old2z", code: "2z" }, calledAway: false, isRiichiDeclaration: false, isTsumogiri: false }, ...players[0]!.discards],
+    };
+    expect(canDeclareRon({ ...round, players }, 0, "2z", 1, false)).toBeNull();
+  });
+
   it("an ordinary riichi (gauge not full) can still tsumo and gets no bonus", () => {
     const round = riichiWith(0);
     expect(round.players[0]!.ronOnlyRiichi).toBe(false);
