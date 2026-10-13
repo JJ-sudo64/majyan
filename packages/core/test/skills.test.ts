@@ -1747,7 +1747,7 @@ describe("takaharu's passive skill (アトミックベタ降り)", () => {
   });
 });
 
-describe("deagari's 出和了の誓い", () => {
+describe("deagari's 狙い撃ち", () => {
   // 2z単騎待ち。ツモった5zを切ってリーチする。
   const tenpaiHand = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"] as TileCode[];
 
@@ -1777,7 +1777,7 @@ describe("deagari's 出和了の誓い", () => {
     expect(canDeclareTsumo(drewWinningTile(round), 0)).toBeNull();
 
     const ron = canDeclareRon(round, 0, "2z", 1, false);
-    expect(ron!.yaku).toContainEqual({ name: "出和了の誓い", han: 4 });
+    expect(ron!.yaku).toContainEqual({ name: "狙い撃ち", han: 4 });
   });
 
   it("never draws a winning tile during this riichi: the next draw is swapped with another wall tile", () => {
@@ -1832,7 +1832,7 @@ describe("deagari's 出和了の誓い", () => {
     const round = riichiWith(0);
     expect(round.players[0]!.ronOnlyRiichi).toBe(false);
     expect(canDeclareTsumo(drewWinningTile(round), 0)).not.toBeNull();
-    expect(canDeclareRon(round, 0, "2z", 1, false)!.yaku.map((y) => y.name)).not.toContain("出和了の誓い");
+    expect(canDeclareRon(round, 0, "2z", 1, false)!.yaku.map((y) => y.name)).not.toContain("狙い撃ち");
   });
 });
 

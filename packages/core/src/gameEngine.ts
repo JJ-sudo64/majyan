@@ -92,7 +92,7 @@ function clearAllIppatsu(
   return { players: next, cardUsesRemaining };
 }
 
-/** 「出和了の誓い」で立直した人には和了牌を引かせない（引いてもツモ和了できず、
+/** 「狙い撃ち」で立直した人には和了牌を引かせない（引いてもツモ和了できず、
     ツモ切りした和了牌でロンするのは相手から見て理不尽なため、そもそも来ないようにする）。
     これから引くtileが本人の待ち牌なら、山（liveTiles）に残る待ち牌以外の1枚と入れ替える。
     山に待ち牌以外が残っていなければ入れ替えられない（海底間際の極めて稀なケース）。 */
@@ -262,7 +262,7 @@ export function canDeclareTsumo(round: RoundState, player: PlayerIndex): WinAnal
   if (!drawn || !p.hand.concealed.some((t) => t.id === drawn.id)) return null;
   // 「取り返し」で河から戻した牌はツモってきた牌ではないので、それでツモ和了はできない。
   if (drawn.id === round.reclaimedDrawnTileId) return null;
-  // 「出和了の誓い」で立直した人はツモ和了できない（ロンのみ）。
+  // 「狙い撃ち」で立直した人はツモ和了できない（ロンのみ）。
   if (p.ronOnlyRiichi) return null;
   const ctx = buildWinContext(round, player, drawn.code, true);
   return analyzeWin(p.hand, ctx);
@@ -563,7 +563,7 @@ function applyDrawAction(round: RoundState, player: PlayerIndex): RoundState {
     const onBeforeDraw = CHARACTERS[preDrawRound.characterIds[owner]]?.skill.hooks.onBeforeDraw;
     if (onBeforeDraw) preDrawRound = onBeforeDraw({ round: preDrawRound, owner }, player);
   }
-  // 次のツモ(liveTiles[0])が「出和了の誓い」の和了牌なら山の別の牌と入れ替えておく。
+  // 次のツモ(liveTiles[0])が「狙い撃ち」の和了牌なら山の別の牌と入れ替えておく。
   {
     const next = preDrawRound.wall.liveTiles[0]!;
     const kept = keepWinningTileFromRonOnlyRiichi(preDrawRound.players[player], next, preDrawRound.wall, 0);
@@ -782,7 +782,7 @@ function applyAnkanAction(round: RoundState, action: AnkanAction): RoundState {
   players = ippatsuResult.players;
 
   const { tile: drawnRinshan, wall: wallAfterDraw } = drawRinshan(round.wall);
-  // 「出和了の誓い」の立直中にできるカンは暗槓だけなので、嶺上牌の入れ替えはここだけでよい。
+  // 「狙い撃ち」の立直中にできるカンは暗槓だけなので、嶺上牌の入れ替えはここだけでよい。
   const kept = keepWinningTileFromRonOnlyRiichi(players[action.player], drawnRinshan, revealNextDora(wallAfterDraw), -1);
   const rinshanTile = kept.tile;
   const wall = kept.wall;

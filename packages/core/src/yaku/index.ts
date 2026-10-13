@@ -42,7 +42,7 @@ export interface WinContext {
       （混一色・純全帯幺九・混全帯幺九・三色同順・一気通貫・清一色）、平和・
       一盃口・二盃口も成立する。門前清自摸和と符計算は通常どおり鳴きを考慮する。 */
   keepClosedHandYaku: boolean;
-  /** 必殺技「出和了の誓い」で立直していたか。ロン和了なら「出和了の誓い」として
+  /** 必殺技「狙い撃ち」で立直していたか。ロン和了なら「狙い撃ち」として
       +4翻される（ツモ和了はそもそもgameEngine側で禁止している）。 */
   ronOnlyRiichi: boolean;
 }
@@ -310,7 +310,7 @@ function evaluateRegularYaku(
   else if (context.riichi) results.push({ name: "立直", han: 1 });
   if (context.ippatsu && (context.riichi || context.doubleRiichi)) results.push({ name: "一発", han: 1 });
   if (context.openRiichi && (context.riichi || context.doubleRiichi)) results.push({ name: "オープンリーチ", han: 3 });
-  if (context.ronOnlyRiichi && !context.isTsumo && (context.riichi || context.doubleRiichi)) results.push({ name: "出和了の誓い", han: 4 });
+  if (context.ronOnlyRiichi && !context.isTsumo && (context.riichi || context.doubleRiichi)) results.push({ name: "狙い撃ち", han: 4 });
   if (!isOpen && context.isTsumo) results.push({ name: "門前清自摸和", han: 1 });
   if (context.haitei && context.isTsumo) results.push({ name: "海底摸月", han: 1 });
   if (context.houtei && !context.isTsumo) results.push({ name: "河底撈魚", han: 1 });
@@ -450,7 +450,7 @@ function evaluateChiitoitsuYaku(pairs: TileCode[], context: WinContext, allCodes
   else if (context.riichi) results.push({ name: "立直", han: 1 });
   if (context.ippatsu && (context.riichi || context.doubleRiichi)) results.push({ name: "一発", han: 1 });
   if (context.openRiichi && (context.riichi || context.doubleRiichi)) results.push({ name: "オープンリーチ", han: 3 });
-  if (context.ronOnlyRiichi && !context.isTsumo && (context.riichi || context.doubleRiichi)) results.push({ name: "出和了の誓い", han: 4 });
+  if (context.ronOnlyRiichi && !context.isTsumo && (context.riichi || context.doubleRiichi)) results.push({ name: "狙い撃ち", han: 4 });
   if (context.isTsumo) results.push({ name: "門前清自摸和", han: 1 });
   if (context.haitei && context.isTsumo) results.push({ name: "海底摸月", han: 1 });
   if (context.houtei && !context.isTsumo) results.push({ name: "河底撈魚", han: 1 });
