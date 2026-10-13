@@ -13,6 +13,7 @@ import { ShopScreen } from "./ShopScreen.js";
 import { LegalScreen, TermsConsent } from "./LegalScreen.js";
 import { FriendsScreen } from "./FriendsScreen.js";
 import { DevAccountTools } from "./DevAccountTools.js";
+import { playUiClickFor } from "../sound.js";
 
 /** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
 function unitLabel(u: CharacterUnit): string {
@@ -265,7 +266,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   // アカウントがまだ無い・確認中・名前の変更中・最初の10連は、中央に1枚だけ出す。
   if (!profile || !ready || renaming) {
     return (
-      <div className="online-home online-lobby online-home--gate">
+      <div className="online-home online-lobby online-home--gate" onClickCapture={playUiClickFor}>
         <header className="oh-top">
           <button type="button" className="oh-back" onClick={back}>
             ← 戻る
@@ -341,7 +342,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="online-home online-lobby">
+    <div className="online-home online-lobby" onClickCapture={playUiClickFor}>
       <header className="oh-top">
         <button type="button" className="oh-back" onClick={back}>
           ← 戻る

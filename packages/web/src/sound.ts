@@ -138,3 +138,49 @@ export function playCountdownBeep(last = false) {
   osc.start(start);
   osc.stop(start + length + 0.02);
 }
+
+/**
+ * メニュー画面（選択画面・オンラインのホーム）のボタンを押した時の短い音。
+ * 音源ファイルを使わずWeb Audioで鳴らす。SE音量に従う。
+ * tap=ふつうのボタン、confirm=対局を始める・決定するなどの金色のボタン。
+ */
+export function playUiClick(kind: "tap" | "confirm" = "tap") {
+  if (typeof window === "undefined" || !window.AudioContext) return;
+  const volume = getSeVolume();
+  if (volume <= 0) return;
+  beepContext ??= new AudioContext();
+  const ctx = beepContext;
+  if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+  const start = ctx.currentTime;
+  // [開始の遅れ, 始まりの高さ, 終わりの高さ, 長さ, 大きさ]
+  const notes: [number, number, number, number, number][] =
+    kind === "confirm"
+      ? [
+          [0, 784, 784, 0.16, 0.16],
+          [0.07, 1175, 1175, 0.26, 0.14],
+        ]
+      : [[0, 660, 440, 0.07, 0.12]];
+  for (const [delay, from, to, length, level] of notes) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(from, start + delay);
+    if (to !== from) osc.frequency.exponentialRampToValueAtTime(to, start + delay + length);
+    gain.gain.setValueAtTime(0.0001, start + delay);
+    gain.gain.exponentialRampToValueAtTime(level * volume, start + delay + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + length);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start + delay);
+    osc.stop(start + delay + length + 0.02);
+  }
+}
+
+/**
+ * メニュー画面の一番外側の要素の onClickCapture に渡す。押されたのがボタン・リンクなら音を鳴らす
+ * （押せない状態のボタンでは鳴らさない）。
+ */
+export function playUiClickFor(event: { target: EventTarget | null }) {
+  const target = event.target instanceof Element ? event.target.closest("button, a, select") : null;
+  if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
+  playUiClick(target.matches(".oh-mode, .oh-cta, .btn--primary") ? "confirm" : "tap");
+}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CARDS, CHARACTERS, type AiDifficulty, type MatchFormat } from "@majyan/core";
 import { useGameStore, type CpuDifficultySettings } from "../store/gameStore.js";
+import { playUiClickFor } from "../sound.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
 const CARD_LIST = Object.values(CARDS);
@@ -91,7 +92,7 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
 
   return (
     // 見た目はオンラインのホーム画面（OnlineLobby.tsx）と共通の .online-home / .oh-* を使う。
-    <div className="online-home match-setup">
+    <div className="online-home match-setup" onClickCapture={playUiClickFor}>
       <header className="oh-top">
         <button type="button" className="oh-back" onClick={onBack}>
           ← タイトルへ
