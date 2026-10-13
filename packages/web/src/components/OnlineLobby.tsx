@@ -9,6 +9,7 @@ import { TransferScreen } from "./TransferScreen.js";
 import { HistoryScreen } from "./HistoryScreen.js";
 import { InboxScreen, type InboxTab } from "./InboxScreen.js";
 import { MissionsScreen } from "./MissionsScreen.js";
+import { RankGuideScreen } from "./RankGuideScreen.js";
 import { ShopScreen } from "./ShopScreen.js";
 import { LegalScreen, TermsConsent } from "./LegalScreen.js";
 import { FriendsScreen } from "./FriendsScreen.js";
@@ -90,6 +91,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const unclaimedGifts = useAccountStore((s) => s.unclaimedGifts);
   const claimableMissions = useAccountStore((s) => s.claimableMissions);
   const [showMissions, setShowMissions] = useState(false);
+  const [showRankGuide, setShowRankGuide] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
   /** 支払いのページから戻ってきた時の印（?shop=done / cancel）。読んだらURLからは消す。 */
   const [shopReturn] = useState(() => new URLSearchParams(window.location.search).get(SHOP_RETURN_PARAM));
@@ -201,6 +203,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showHistory && <HistoryScreen onClose={() => setShowHistory(false)} />}
       {inboxTab && <InboxScreen initialTab={inboxTab} onClose={() => setInboxTab(null)} />}
       {showMissions && <MissionsScreen onClose={() => setShowMissions(false)} />}
+      {showRankGuide && <RankGuideScreen rank={rank} onClose={() => setShowRankGuide(false)} />}
       {showLegal && <LegalScreen onClose={() => setShowLegal(false)} />}
       {profile && !termsAccepted && <TermsConsent />}
       {showShop && profile && !needsFirstGacha && <ShopScreen returned={shopReturn} onClose={() => setShowShop(false)} />}
@@ -360,7 +363,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           <div className="oh-player__text">
             <div className="oh-player__name">{profile.displayName}</div>
             {rank && (
-              <div className="oh-player__rank">
+              <button type="button" className="oh-player__rank" title="段位のしくみを見る" onClick={() => setShowRankGuide(true)}>
                 <span className="oh-player__rank-label">{rank.label}</span>
                 <span className="oh-player__rank-bar">
                   <span style={{ width: `${rankProgress * 100}%` }} />
@@ -368,7 +371,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 <span className="oh-player__rank-points">
                   {rank.maxPoints === null ? `${rank.points} pt` : `${rank.points} / ${rank.maxPoints}`}
                 </span>
-              </div>
+                <span className="oh-player__rank-help">?</span>
+              </button>
             )}
           </div>
         </div>
@@ -513,6 +517,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               </div>
               <p className="oh-card__lead">
                 段位の近い相手と自動で卓を組みます。{rank ? `現在 ${rank.label}・${rank.gamesPlayed}戦` : ""}
+                <button type="button" className="oh-link" onClick={() => setShowRankGuide(true)}>
+                  段位のしくみ
+                </button>
               </p>
               <div className="oh-modes">
                 <button type="button" className="oh-mode" onClick={() => onlineLink.queueRanked("tonpuusen", unitId)}>
