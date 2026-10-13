@@ -114,7 +114,10 @@ export function useGameSounds(round: RoundState | undefined) {
     const declaredIndex = riichiFlags.findIndex((r, i) => r && !prev[i]);
     if (declaredIndex !== -1) {
       playRiichiSound();
-      speakPlayerVoice(round, declaredIndex, "riichi", "リーチ");
+      // ダブルリーチは、その収録があるキャラだけ「ダブルリーチ」と言う。
+      const character = round ? CHARACTERS[round.characterIds[declaredIndex]!] : undefined;
+      const isDouble = !!round?.players[declaredIndex]?.doubleRiichi && !!character?.voiceClips?.doubleRiichi;
+      speakPlayerVoice(round, declaredIndex, isDouble ? "doubleRiichi" : "riichi", "リーチ");
     }
     prevRiichiFlagsRef.current = riichiFlags;
   }, [riichiSignature]);

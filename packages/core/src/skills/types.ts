@@ -85,12 +85,14 @@ export interface CharacterSkill {
 }
 
 /** 収録ボイスに対応するイベント種別。chi/pon/kan/riichi/tsumo/ron/tenpai/notenのみ
-    未収録時にspeak()のTTSへフォールバックする（他イベントは未収録なら無音）。 */
+    未収録時にspeak()のTTSへフォールバックする（他イベントは未収録なら無音）。
+    doubleRiichiはダブルリーチの宣言で、未収録ならriichiと同じ扱いになる。 */
 export type VoiceEvent =
   | "chi"
   | "pon"
   | "kan"
   | "riichi"
+  | "doubleRiichi"
   | "tsumo"
   | "ron"
   | "skillActivate"
