@@ -277,15 +277,42 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
             <h3>対局終了</h3>
             {rankResult && (
               <div className="score-rank-result">
-                {rankResult.place}位　{rankResult.before.label} {rankResult.before.points}pt →{" "}
-                <strong>{rankResult.after.label}</strong> {rankResult.after.points}pt（
-                <span className={rankResult.delta >= 0 ? "score-rank-result__delta--up" : "score-rank-result__delta--down"}>
-                  {rankResult.delta >= 0 ? `+${rankResult.delta}` : rankResult.delta}
-                </span>
-                ）
-                {rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && " 昇段！"}
-                {rankOrdinal(rankResult.after) < rankOrdinal(rankResult.before) && " 降段…"}
-                {rankResult.jadeReward > 0 && <div>報酬：雀玉 {rankResult.jadeReward}</div>}
+                <div className="score-rank-result__place">
+                  <strong>{rankResult.place}</strong>位
+                </div>
+                <div className="score-rank-result__body">
+                  <div className="score-rank-result__ranks">
+                    {rankOrdinal(rankResult.after) !== rankOrdinal(rankResult.before) && (
+                      <>
+                        <span className="score-rank-result__before">{rankResult.before.label}</span>
+                        <span className="score-rank-result__arrow">→</span>
+                      </>
+                    )}
+                    <strong>{rankResult.after.label}</strong>
+                    {rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && (
+                      <span className="score-rank-result__change score-rank-result__change--up">昇段！</span>
+                    )}
+                    {rankOrdinal(rankResult.after) < rankOrdinal(rankResult.before) && (
+                      <span className="score-rank-result__change score-rank-result__change--down">降段…</span>
+                    )}
+                  </div>
+                  <div className="score-rank-result__bar">
+                    <span
+                      style={{
+                        width: `${rankResult.after.maxPoints ? Math.min(100, Math.max(0, (rankResult.after.points / rankResult.after.maxPoints) * 100)) : 100}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="score-rank-result__points">
+                    {rankResult.after.maxPoints === null
+                      ? `${rankResult.after.points} pt`
+                      : `${rankResult.after.points} / ${rankResult.after.maxPoints} pt`}
+                    <span className={rankResult.delta >= 0 ? "score-rank-result__delta--up" : "score-rank-result__delta--down"}>
+                      {rankResult.delta >= 0 ? `+${rankResult.delta}` : rankResult.delta}
+                    </span>
+                    {rankResult.jadeReward > 0 && <span className="score-rank-result__jade">雀玉 +{rankResult.jadeReward}</span>}
+                  </div>
+                </div>
               </div>
             )}
             <button className="btn btn--primary" onClick={() => setShowVictory(true)}>

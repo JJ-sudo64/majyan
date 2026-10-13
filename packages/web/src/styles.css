@@ -7334,12 +7334,96 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 .modal .rank-card__score {
   font-variant-numeric: tabular-nums;
 }
+/* 段位戦の後の段位の増減（順位・段位・ゲージ・増減・雀玉の報酬）。 */
 .modal .score-rank-result {
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--oh-line);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(230, 195, 106, 0.6);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 0% 50%, rgba(230, 195, 106, 0.2), transparent 55%),
+    rgba(0, 0, 0, 0.4);
+}
+.score-rank-result__place {
+  flex-shrink: 0;
+  font-family: var(--oh-serif);
+  font-size: 16px;
+  color: var(--oh-gold);
+}
+.score-rank-result__place strong {
+  font-size: 40px;
+  line-height: 1;
+  color: #ffe9a8;
+}
+.score-rank-result__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.score-rank-result__ranks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-family: var(--oh-serif);
+  font-size: 19px;
+  color: #fff3d2;
+}
+.score-rank-result__before,
+.score-rank-result__arrow {
+  font-size: 14px;
+  opacity: 0.65;
+}
+.score-rank-result__change {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.score-rank-result__change--up {
+  background: linear-gradient(180deg, #f0cf78, #b98a2a);
+  color: #23170a;
+}
+.score-rank-result__change--down {
+  background: rgba(255, 138, 138, 0.2);
+  color: #ffb3b3;
+}
+.score-rank-result__bar {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+.score-rank-result__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--oh-gold-deep), #ffe9a8);
+}
+.score-rank-result__points {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.score-rank-result__points .score-rank-result__delta--up,
+.score-rank-result__points .score-rank-result__delta--down {
+  font-weight: bold;
+}
+.score-rank-result__jade {
+  margin-left: auto;
+  padding: 1px 10px;
+  border: 1px solid rgba(140, 220, 240, 0.5);
+  border-radius: 999px;
+  background: rgba(6, 20, 26, 0.8);
+  color: #d6f6ff;
 }
 
 /* これらの画面の中のふつうのボタン */
