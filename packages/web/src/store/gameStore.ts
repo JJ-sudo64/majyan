@@ -198,6 +198,8 @@ interface GameStoreState {
   openReplay: (data: ReplayResponse) => void;
   /** 1手進める/戻す。局の端では隣の局へ移る。 */
   replayStep: (delta: 1 | -1) => void;
+  /** 今の局の中で、指定した手数まで一気に移る（つまみでの移動用）。 */
+  replaySeek: (step: number) => void;
   replayGotoRound: (roundIndex: number) => void;
   replaySetViewer: (viewer: PlayerIndex) => void;
   replayToggleRevealAll: () => void;
@@ -476,6 +478,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return;
     }
     set(replayViewState({ ...r, step }));
+  },
+
+  replaySeek: (step) => {
+    const r = get().replay;
+    if (!r) return;
+    const clamped = Math.max(0, Math.min(replayLastStep(r), Math.round(step)));
+    if (clamped !== r.step) set(replayViewState({ ...r, step: clamped }));
   },
 
   replayGotoRound: (roundIndex) => {

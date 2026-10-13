@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSettingsStore } from "../store/settingsStore.js";
 import { useFitScale } from "../hooks/useFitScale.js";
+import { playUiClickFor } from "../sound.js";
 
 /** タイトル背景画像(1672x940)の実ピクセルサイズ。画像内に描かれたボタン絵の
     座標にそのまま合わせて実ボタンを重ねるため、Stageと同様に
@@ -34,7 +35,7 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
   }
 
   return (
-    <div className="title-screen" ref={containerRef}>
+    <div className="title-screen" ref={containerRef} onClickCapture={playUiClickFor}>
       <div className="title-screen__canvas" style={{ width: TITLE_WIDTH, height: TITLE_HEIGHT, zoom: scale }}>
         <img className="title-screen__bg" src="/title/title-bg.webp" alt="雀神" />
 

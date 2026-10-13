@@ -7216,8 +7216,19 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 }
 
 @media (max-width: 860px) and (orientation: portrait), (max-width: 640px) {
+  /* 上のバーに収まらないので、確認用ページへのリンクは2段目に小さく出す。 */
+  .match-setup .oh-top {
+    flex-wrap: wrap;
+    height: auto;
+    row-gap: 6px;
+  }
   .match-setup .setup-gallery-links {
-    display: none;
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+  .match-setup .setup-gallery-links a.oh-ghost {
+    padding: 4px 10px;
+    font-size: 11px;
   }
   /* キャラを選んでいない時は立ち絵が無いので、名札の分だけの高さにする。 */
   .match-setup .oh-stage:not(:has(.oh-stage__art)) {
@@ -7571,6 +7582,35 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   border-color: rgba(255, 255, 255, 0.28);
   background: rgba(255, 255, 255, 0.06);
   color: #f0f0f0;
+}
+/* この局の中を一気に移るつまみ。バーの幅いっぱいに1段使う。 */
+.replay-controls__seek {
+  flex: 1 1 100%;
+  order: -1;
+  width: 100%;
+  margin: 0;
+  accent-color: var(--oh-gold);
+  cursor: pointer;
+}
+/* たたんだ時は右下の小さな札にして、手牌と卓の中央を空ける。 */
+.replay-controls--folded {
+  left: auto;
+  right: 12px;
+  transform: none;
+  flex-wrap: nowrap;
+  gap: 10px;
+  padding: 6px 10px;
+  opacity: 0.92;
+}
+/* 手牌の右端にかからない幅に収めるため、手数の行は出さずボタンも詰める。 */
+.replay-controls--folded .replay-controls__info span {
+  display: none;
+}
+.replay-controls--folded .replay-controls__buttons .btn {
+  padding: 4px 8px;
+}
+.replay-controls--folded .replay-controls__info strong {
+  font-size: 13px;
 }
 .replay-controls select {
   padding: 3px 6px;
