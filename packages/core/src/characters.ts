@@ -828,9 +828,11 @@ export const CHARACTERS: Record<string, Character> = {
     },
     doraManyVoiceClip: "/voices/masato/yaku/ドラ沢山.wav",
     // 局面・点数に一切影響しない純粋な見た目だけの効果（このゲーム内で
-    // 最も弱い必殺技）なので、全キャラ中最速で溜まるようにする。
+    // 最も弱い必殺技）なので、標準(10)より少しだけ溜まりやすくする。以前は24
+    // （5打で満タン）で1局に何度も撃てて多すぎたため、9打で満タン＝1局に
+    // ぎりぎり1回撃てるくらいに抑えた。
     gaugeMax: 100,
-    gaugePerTurn: 24,
+    gaugePerTurn: 12,
     gaugePerDealIn: 20,
     skill: {
       id: "masato-sanshoku-kirameki",
@@ -1699,7 +1701,7 @@ export const CHARACTERS: Record<string, Character> = {
   sena: {
     id: "sena",
     name: "石橋の番人・セナ",
-    description: "必殺技「様子見」: 発動すると今引いた牌を山に戻し、打牌せずにそのまま次の人へ手番を渡す。安全に1巡やり過ごせる技で、弱い分ゲージの溜まりは早い。",
+    description: "必殺技「様子見」: 発動すると今引いた牌を山に戻し、打牌せずにそのまま次の人へ手番を渡す。安全に1巡やり過ごせる技で、弱い分ゲージの溜まりは少し早い。",
     winQuote: "危ない橋は渡らない。それだけで、案外生き残れるものでしょう？",
     avatar: "/avatars/characters/sena.webp",
     cutin: "/avatars/characters/sena-cutin.webp",
@@ -1716,10 +1718,11 @@ export const CHARACTERS: Record<string, Character> = {
     skillArt: { src: "/declarations/sena-skill.webp", keepEdge: "right" },
     declarationAccent: "#a15cff",
     // 効果が弱い（1巡やり過ごすだけで打点・進行には一切寄与しない）代わりに、
-    // 打牌のたびのゲージ上昇を標準の倍にしている（gaugePerTurn 10→20）。
-    // gaugePerDealInは標準の20のまま据え置き。
+    // 打牌のたびのゲージ上昇を標準(10)より少しだけ多くしている。以前は倍の20
+    // （5打で満タン）で1局に何度も撃てて多すぎたため、9打で満タン＝1局に
+    // ぎりぎり1回撃てるくらいに抑えた。gaugePerDealInは標準の20のまま据え置き。
     gaugeMax: 100,
-    gaugePerTurn: 20,
+    gaugePerTurn: 12,
     gaugePerDealIn: 20,
     skill: {
       id: "sena-yousumi",
