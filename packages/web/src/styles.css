@@ -7677,3 +7677,21 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
 }
+
+/* 対局に出すキャラを選ぶ一覧（OnlineLobby.tsx）の「おまかせ」の丸。 */
+.oh-unit-random {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--oh-line);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--oh-gold);
+}
+.oh-ghost:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

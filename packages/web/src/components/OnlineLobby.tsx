@@ -44,6 +44,8 @@ function Icon({ name }: { name: keyof typeof ICON_PATHS }) {
 
 /** 次回の入力を省くため、合言葉を覚えておく（ブラウザごと）。 */
 const ROOM_KEY = "majyan.online.room";
+/** 前回選んだ「対局に出すキャラ」（手持ちの1体のID）。おまかせの時は保存しない。 */
+const UNIT_KEY = "majyan.online.unit";
 
 function loadSaved(key: string): string {
   try {
@@ -107,7 +109,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const [renaming, setRenaming] = useState(false);
   const [roomCode, setRoomCode] = useState(() => loadSaved(ROOM_KEY));
   /** 対局に出す手持ちのキャラ（付いているカードごと出る）。null=おまかせ。 */
-  const [unitId, setUnitId] = useState<string | null>(null);
+  const [unitId, setUnitId] = useState<string | null>(() => loadSaved(UNIT_KEY) || null);
+  const [showUnitPicker, setShowUnitPicker] = useState(false);
   const [continueBelowZero, setContinueBelowZero] = useState(false);
   /** 上のバーの「その他」（名前の変更・引き継ぎ・規約）を開いているか。 */
   const [showMenu, setShowMenu] = useState(false);
@@ -121,6 +124,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     // 段位戦の後に戻ってきた時などに段位を最新にするため、開くたびに読み直す。
     void loadAccount();
   }, []);
+
+  useEffect(() => {
+    // 覚えていたキャラが手持ちに無い時（別のアカウントに替えた等）はおまかせに戻す。
+    if (accountStatus === "ready" && unitId !== null && !units.some((u) => u.unitId === unitId)) setUnitId(null);
+  }, [accountStatus, units, unitId]);
 
   useEffect(() => {
     if (shopReturn === null) return;
@@ -157,6 +165,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
 
   function changeLoadout(nextUnitId: string | null) {
     setUnitId(nextUnitId);
+    save(UNIT_KEY, nextUnitId ?? "");
     if (inRoom) onlineLink.send({ t: "setLoadout", unitId: nextUnitId });
   }
 
@@ -186,6 +195,55 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showLegal && <LegalScreen onClose={() => setShowLegal(false)} />}
       {profile && !termsAccepted && <TermsConsent />}
       {showShop && profile && !needsFirstGacha && <ShopScreen returned={shopReturn} onClose={() => setShowShop(false)} />}
+      {showUnitPicker && (
+        <div className="modal-overlay" onClick={() => setShowUnitPicker(false)}>
+          <div className="gacha-screen" onClick={(e) => e.stopPropagation()}>
+            <div className="setup-picker-modal__header">
+              <div className="setup-character-select__label">対局に出すキャラ</div>
+              <button type="button" className="setup-picker-modal__close" onClick={() => setShowUnitPicker(false)}>
+                ×
+              </button>
+            </div>
+            <p className="setup-lead">付けたカードごと対局に出ます。カードは下の「手持ち・カード」から付けられます。</p>
+            <div className="units-screen__grid">
+              <button
+                type="button"
+                className={`units-screen__unit${unitId === null ? " units-screen__unit--selected" : ""}`}
+                onClick={() => {
+                  changeLoadout(null);
+                  setShowUnitPicker(false);
+                }}
+              >
+                <span className="oh-unit-random">？</span>
+                <span className="units-screen__name">おまかせ</span>
+                <span className="units-screen__card units-screen__card--none">手持ちからランダム</span>
+              </button>
+              {units.map((u) => {
+                const character = CHARACTERS[u.characterId];
+                return (
+                  <button
+                    key={u.unitId}
+                    type="button"
+                    className={`units-screen__unit${unitId === u.unitId ? " units-screen__unit--selected" : ""}`}
+                    title={unitLabel(u)}
+                    onClick={() => {
+                      changeLoadout(u.unitId);
+                      setShowUnitPicker(false);
+                    }}
+                  >
+                    {character && <img src={character.avatar} alt="" />}
+                    <span className="units-screen__stars">{"★".repeat(characterRarity(u.characterId))}</span>
+                    <span className="units-screen__name">{character?.name.split("・").at(-1) ?? u.characterId}</span>
+                    <span className={`units-screen__card${u.cardId ? "" : " units-screen__card--none"}`}>
+                      {u.cardId ? (CARDS[u.cardId]?.name ?? "カード") : "カードなし"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       {showFriends && (
         <FriendsScreen
           onClose={() => setShowFriends(false)}
@@ -405,14 +463,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 ? `必殺技「${chosen.character.skill.name}」／${chosen.unit.cardId ? (CARDS[chosen.unit.cardId]?.name ?? "カード") : "カードなし"}`
                 : "手持ちからランダムに出ます"}
             </div>
-            <select value={unitId ?? ""} aria-label="対局に出すキャラ" onChange={(e) => changeLoadout(e.target.value || null)}>
-              <option value="">おまかせ（手持ちからランダム）</option>
-              {units.map((u) => (
-                <option key={u.unitId} value={u.unitId}>
-                  {unitLabel(u)}
-                </option>
-              ))}
-            </select>
+            <div className="oh-plate__buttons">
+              <button type="button" className="oh-ghost oh-plate__change" disabled={status === "connecting" || queued} onClick={() => setShowUnitPicker(true)}>
+                キャラを変える
+              </button>
+            </div>
           </div>
         </section>
 
