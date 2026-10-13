@@ -6144,3 +6144,1536 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   font-size: 11px;
   opacity: 0.8;
 }
+
+/* ---------------------------------------------------------------------------
+   オンラインのホーム画面（OnlineLobby.tsx）。上のバー・左の立ち絵・右の対戦
+   パネル・下のメニューの4つ。重ねて出す画面（.modal-overlay、z-index:10）より
+   下に置くため、この中のz-indexは5までにする。
+   --------------------------------------------------------------------------- */
+.online-home {
+  --oh-gold: #e6c36a;
+  --oh-gold-deep: #a9812c;
+  --oh-ink: rgba(14, 10, 7, 0.82);
+  --oh-line: rgba(230, 195, 106, 0.38);
+  --oh-serif: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  color: #f4efe6;
+  background:
+    radial-gradient(ellipse at 28% 62%, rgba(230, 170, 80, 0.2) 0%, transparent 46%),
+    linear-gradient(90deg, rgba(8, 6, 3, 0.25) 0%, rgba(8, 6, 3, 0.62) 55%, rgba(8, 6, 3, 0.86) 100%),
+    linear-gradient(180deg, rgba(8, 6, 3, 0.7) 0%, rgba(8, 6, 3, 0.1) 22%, rgba(8, 6, 3, 0.1) 70%, rgba(8, 6, 3, 0.85) 100%),
+    url("/title/setup-bg.webp") center / cover no-repeat;
+}
+
+/* ---- 上のバー ---- */
+.oh-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  background: linear-gradient(180deg, rgba(10, 7, 4, 0.92), rgba(10, 7, 4, 0.55));
+  border-bottom: 1px solid var(--oh-line);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.oh-top__spacer {
+  flex: 1;
+}
+.oh-top__title {
+  font-family: var(--oh-serif);
+  font-size: 18px;
+  letter-spacing: 0.4em;
+  color: var(--oh-gold);
+}
+.oh-back {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.oh-back:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.oh-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.oh-player__avatar {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--oh-gold);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6), 0 0 12px rgba(230, 195, 106, 0.35);
+  background: #1a130c;
+}
+.oh-player__text {
+  min-width: 0;
+  text-align: left;
+}
+.oh-player__name {
+  font-size: 16px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.oh-player__rank {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+.oh-player__rank-label {
+  font-family: var(--oh-serif);
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--oh-gold);
+  white-space: nowrap;
+}
+.oh-player__rank-bar {
+  width: 110px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+.oh-player__rank-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--oh-gold-deep), #ffe9a8);
+}
+.oh-player__rank-points {
+  font-size: 11px;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.oh-jade {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 5px 6px 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 220, 240, 0.5);
+  background: rgba(6, 20, 26, 0.8);
+  color: #d6f6ff;
+  font-size: 15px;
+  cursor: pointer;
+}
+.oh-jade:disabled {
+  cursor: default;
+  padding-right: 12px;
+}
+.oh-jade__gem {
+  width: 13px;
+  height: 13px;
+  transform: rotate(45deg);
+  border-radius: 2px;
+  background: linear-gradient(135deg, #e8fdff 0%, #5fd3ee 45%, #1b7fa3 100%);
+  box-shadow: 0 0 8px rgba(95, 211, 238, 0.7);
+}
+.oh-jade__amount {
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+.oh-jade__plus {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #7fe3f7, #2b9fc4);
+  color: #04222c;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1;
+}
+.oh-jade:disabled .oh-jade__plus {
+  display: none;
+}
+.oh-top__icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.oh-icon {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.oh-iconbtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 58px;
+  padding: 5px 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #e9dfc9;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.oh-iconbtn:hover:not(:disabled) {
+  background: rgba(230, 195, 106, 0.14);
+  color: #fff;
+}
+.oh-iconbtn:disabled,
+.oh-dock__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.oh-iconbtn .online-lobby__badge {
+  top: 0;
+  right: 6px;
+}
+.oh-iconbtn .online-lobby__badge--dot {
+  top: 3px;
+  right: 14px;
+}
+.oh-menu {
+  position: relative;
+}
+.oh-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+}
+.oh-menu__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--oh-line);
+  background: rgba(16, 12, 8, 0.97);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+}
+.oh-menu__list button {
+  padding: 9px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.oh-menu__list button:hover {
+  background: rgba(230, 195, 106, 0.16);
+}
+
+/* ---- 中央（左: 立ち絵 / 右: 対戦パネル） ---- */
+.oh-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 480px);
+  gap: 18px;
+  min-height: 0;
+  padding: 0 24px 0 0;
+}
+.oh-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+.oh-stage__art {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  height: 104%;
+  max-width: none;
+  transform: translateX(-50%);
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(0 0 28px rgba(0, 0, 0, 0.65));
+  animation: oh-art-in 0.45s ease-out;
+  pointer-events: none;
+  /* 立ち絵は背景つきの四角い絵なので、左右と足元を背景に溶かす。 */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, #000 74%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, #000 74%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+.oh-stage__art--random {
+  filter: grayscale(0.85) brightness(0.55) drop-shadow(0 0 28px rgba(0, 0, 0, 0.65));
+}
+/* 立ち絵がまだ無いキャラ: 顔アイコンを額に入れて出す。 */
+.oh-stage__art--avatar {
+  bottom: 50%;
+  height: min(46%, 300px);
+  aspect-ratio: 1;
+  transform: translate(-50%, 40%);
+  border-radius: 50%;
+  border: 3px solid var(--oh-gold);
+  object-fit: cover;
+  background: #1a130c;
+  animation: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+@keyframes oh-art-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-50% - 24px));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+}
+.oh-plate {
+  position: absolute;
+  left: 24px;
+  bottom: 18px;
+  width: min(430px, calc(100% - 48px));
+  padding: 12px 16px 14px;
+  text-align: left;
+  border-left: 3px solid var(--oh-gold);
+  background: linear-gradient(90deg, rgba(10, 7, 4, 0.92), rgba(10, 7, 4, 0.6));
+  border-radius: 0 10px 10px 0;
+  backdrop-filter: blur(3px);
+}
+.oh-plate__label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--oh-gold);
+}
+.oh-plate__name {
+  margin-top: 2px;
+  font-family: var(--oh-serif);
+  font-size: 21px;
+  font-weight: bold;
+  line-height: 1.3;
+}
+.oh-plate__stars {
+  margin-right: 6px;
+  font-size: 13px;
+  color: #ffd75e;
+  vertical-align: middle;
+}
+.oh-plate__sub {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.oh-plate select {
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--oh-line);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 13px;
+}
+.oh-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 16px 4px 16px 0;
+  overflow-y: auto;
+}
+/* 縦の中央に置く。justify-content:centerだと中身が高さを超えた時に上が切れて
+   届かなくなるので、上下の余白をautoにして寄せる。 */
+.oh-panel > :first-child {
+  margin-top: auto;
+}
+.oh-panel > :last-child {
+  margin-bottom: auto;
+}
+.oh-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px 18px;
+  text-align: left;
+  border: 1px solid var(--oh-line);
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(34, 25, 16, 0.92), var(--oh-ink));
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
+}
+.oh-card--ranked {
+  border-color: rgba(230, 195, 106, 0.7);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(230, 195, 106, 0.22), transparent 55%),
+    linear-gradient(160deg, rgba(48, 33, 16, 0.94), var(--oh-ink));
+}
+.oh-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(230, 195, 106, 0.22);
+}
+.oh-card__title {
+  font-family: var(--oh-serif);
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: #fff3d2;
+}
+.oh-card__en {
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: var(--oh-gold);
+  white-space: nowrap;
+}
+.oh-card__lead,
+.oh-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  opacity: 0.82;
+}
+.oh-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.oh-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.oh-mode {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 14px 12px;
+  overflow: hidden;
+  border: 1px solid #f3d684;
+  border-radius: 10px;
+  background: linear-gradient(170deg, #f0cf78 0%, #c99a34 55%, #9a7220 100%);
+  color: #23170a;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 4px 0 #6d4f14, 0 8px 16px rgba(0, 0, 0, 0.4);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+.oh-mode:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 0 #6d4f14, 0 12px 20px rgba(0, 0, 0, 0.45);
+}
+.oh-mode:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #6d4f14, 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+.oh-mode__kanji {
+  position: absolute;
+  right: -4px;
+  bottom: -22px;
+  font-family: var(--oh-serif);
+  font-size: 84px;
+  font-weight: bold;
+  line-height: 1;
+  color: rgba(60, 38, 8, 0.16);
+  pointer-events: none;
+}
+.oh-mode__name {
+  position: relative;
+  font-family: var(--oh-serif);
+  font-size: 21px;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+}
+.oh-mode__sub {
+  position: relative;
+  font-size: 11px;
+  opacity: 0.8;
+}
+.oh-room-join {
+  display: flex;
+  gap: 10px;
+}
+.oh-room-join input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--oh-line);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 16px;
+}
+.oh-room-join input:focus,
+.oh-plate select:focus,
+.oh-card .online-lobby__field input:focus {
+  outline: none;
+  border-color: var(--oh-gold);
+  box-shadow: 0 0 0 2px rgba(230, 195, 106, 0.25);
+}
+.oh-cta {
+  flex-shrink: 0;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid #f3d684;
+  background: linear-gradient(180deg, #f0cf78, #b98a2a);
+  color: #23170a;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.oh-cta:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.oh-cta:disabled {
+  filter: grayscale(0.7);
+  opacity: 0.5;
+  cursor: default;
+}
+.oh-ghost {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.oh-ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.oh-card .online-lobby__field {
+  align-self: stretch;
+}
+.oh-card .online-lobby__field input {
+  width: 100%;
+  border-color: var(--oh-line);
+}
+
+/* 段位戦の相手を探している間 */
+.oh-queue {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 120px;
+}
+.oh-queue__ring {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 3px solid rgba(230, 195, 106, 0.18);
+  border-top-color: var(--oh-gold);
+  animation: oh-spin 1.1s linear infinite;
+}
+.oh-queue__time {
+  position: absolute;
+  font-family: var(--oh-serif);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  color: #fff3d2;
+}
+@keyframes oh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 友人戦の待合室 */
+.oh-card--room .oh-mode__name {
+  font-size: 18px;
+  white-space: nowrap;
+}
+.oh-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.oh-seat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.4);
+}
+.oh-seat--you {
+  border-color: var(--oh-gold);
+  background: rgba(230, 195, 106, 0.1);
+}
+.oh-seat--cpu {
+  opacity: 0.55;
+  border-style: dashed;
+}
+.oh-seat__avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #1a130c;
+  border: 1px solid var(--oh-line);
+}
+.oh-seat__avatar--none {
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: var(--oh-gold);
+}
+.oh-seat__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.oh-seat__name {
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.oh-seat__loadout {
+  font-size: 10.5px;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- 下のメニュー ---- */
+.oh-dock {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 18px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(0deg, rgba(10, 7, 4, 0.94), rgba(10, 7, 4, 0.6));
+  border-top: 1px solid var(--oh-line);
+}
+.oh-dock__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 1 190px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(230, 195, 106, 0.35);
+  background: linear-gradient(180deg, rgba(52, 38, 22, 0.95), rgba(24, 17, 10, 0.95));
+  color: #f1e6cd;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.oh-dock__btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--oh-gold);
+  color: #fff;
+}
+.oh-dock__btn--gacha {
+  border-color: #f3d684;
+  background: linear-gradient(180deg, #7a2f3c, #401520);
+  color: #ffe9b0;
+}
+
+/* ---- アカウント作成・名前の変更・最初の10連 ---- */
+.oh-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-height: 0;
+  padding: 24px 16px;
+  overflow-y: auto;
+  text-align: center;
+}
+.oh-gate > :first-child {
+  margin-top: auto;
+}
+.oh-gate > :last-child {
+  margin-bottom: auto;
+}
+.oh-card--form {
+  width: min(440px, 100%);
+}
+
+/* ---- 縦長・狭い画面: 立ち絵を上の帯に回してパネルを全幅にする ---- */
+@media (max-width: 860px) and (orientation: portrait), (max-width: 640px) {
+  .oh-top {
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 8px 10px;
+  }
+  .oh-top__spacer {
+    display: none;
+  }
+  .oh-player {
+    flex: 1;
+  }
+  .oh-player__name {
+    max-width: 40vw;
+  }
+  .oh-player__rank-bar {
+    width: 60px;
+  }
+  .oh-top__icons {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .oh-iconbtn {
+    min-width: 0;
+    flex: 1;
+  }
+  .oh-menu {
+    flex: 1;
+    display: flex;
+  }
+  .oh-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    overflow-y: auto;
+  }
+  .oh-stage {
+    flex: 0 0 auto;
+    height: 250px;
+  }
+  .oh-stage__art {
+    left: auto;
+    right: -10px;
+    height: 150%;
+    bottom: auto;
+    top: 0;
+    transform: none;
+    animation: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 35%), linear-gradient(180deg, #000 45%, transparent 66%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 35%), linear-gradient(180deg, #000 45%, transparent 66%);
+  }
+  .oh-stage__art--avatar {
+    top: 20px;
+    right: 20px;
+    height: 150px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .oh-plate {
+    left: 10px;
+    bottom: 10px;
+    width: min(300px, 68%);
+  }
+  .oh-plate__name {
+    font-size: 17px;
+  }
+  .oh-panel {
+    flex: 0 0 auto;
+    overflow: visible;
+    padding: 12px 10px 16px;
+  }
+  .oh-panel > :first-child,
+  .oh-panel > :last-child {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .oh-card__title {
+    font-size: 19px;
+  }
+  .oh-seats {
+    grid-template-columns: 1fr;
+  }
+  .oh-card--room .oh-mode__name {
+    font-size: 15px;
+  }
+  .oh-dock {
+    gap: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .oh-dock__btn {
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 2px;
+    font-size: 10.5px;
+  }
+}
+/* 横長で縦が狭い画面（スマホ横持ち）: 余白と文字を詰める。 */
+@media (max-height: 520px) and (min-width: 641px) and (orientation: landscape) {
+  .oh-main {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    padding-right: 14px;
+  }
+  .oh-plate__label,
+  .oh-plate__sub {
+    display: none;
+  }
+  .oh-top {
+    padding: 5px 14px;
+  }
+  .oh-player__avatar {
+    width: 36px;
+    height: 36px;
+  }
+  .oh-iconbtn > span:not(.online-lobby__badge) {
+    display: none;
+  }
+  .oh-iconbtn {
+    min-width: 40px;
+  }
+  .oh-panel {
+    gap: 8px;
+    padding: 8px 4px 8px 0;
+  }
+  .oh-card {
+    gap: 6px;
+    padding: 10px 14px 12px;
+  }
+  .oh-card__title {
+    font-size: 17px;
+  }
+  .oh-card__lead {
+    display: none;
+  }
+  .oh-mode {
+    padding: 8px 12px;
+  }
+  .oh-mode__name {
+    font-size: 17px;
+  }
+  .oh-dock {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  .oh-dock__btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .oh-plate {
+    bottom: 8px;
+    padding: 8px 12px 10px;
+  }
+  .oh-plate__name {
+    font-size: 16px;
+  }
+  .oh-plate select {
+    margin-top: 6px;
+    padding: 4px 6px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   オンラインのホーム画面から開く画面（ガチャ・手持ち・戦績・お知らせ・ミッション・
+   ショップ・フレンド・引き継ぎ・規約・最初の10連）をホーム画面と同じ見た目にそろえる。
+   どれも .modal-overlay > .gacha-screen の形なので、.online-home の中だけ上書きする
+   （CPU戦の画面の .btn 等には影響させない）。
+   --------------------------------------------------------------------------- */
+.online-home .modal-overlay {
+  background: rgba(5, 3, 2, 0.74);
+  backdrop-filter: blur(5px);
+  animation: oh-fade-in 0.16s ease-out;
+}
+@keyframes oh-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.online-home .gacha-screen {
+  gap: 12px;
+  padding: 0 18px 18px;
+  border: 1px solid rgba(230, 195, 106, 0.6);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(230, 195, 106, 0.1), transparent 45%),
+    linear-gradient(170deg, rgba(36, 26, 16, 0.98), rgba(14, 10, 7, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 195, 106, 0.45) transparent;
+  animation: oh-panel-in 0.2s ease-out;
+}
+@keyframes oh-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+/* 見出しの帯。スクロールしても上に残す。 */
+.online-home .gacha-screen > .setup-picker-modal__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-self: stretch;
+  margin: 0 -18px;
+  padding: 12px 18px 10px;
+  border-bottom: 1px solid var(--oh-line);
+  background: linear-gradient(180deg, rgba(30, 21, 12, 0.99), rgba(24, 17, 10, 0.96));
+}
+.online-home .setup-picker-modal__header > .setup-character-select__label {
+  font-family: var(--oh-serif);
+  font-size: 21px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: #fff3d2;
+  opacity: 1;
+}
+.online-home .setup-picker-modal__close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border-color: var(--oh-line);
+  background: rgba(255, 255, 255, 0.05);
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.online-home .setup-picker-modal__close:hover {
+  background: rgba(230, 195, 106, 0.2);
+  transform: rotate(90deg);
+}
+
+/* ボタン */
+.online-home .btn {
+  border: 1px solid rgba(230, 195, 106, 0.45);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(58, 43, 25, 0.95), rgba(28, 20, 12, 0.95));
+  color: #f4ead2;
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+.online-home .btn:hover:not(:disabled) {
+  filter: brightness(1.18);
+}
+.online-home .btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.online-home .btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.online-home .btn--primary {
+  border-color: #f3d684;
+  background: linear-gradient(180deg, #f0cf78, #b98a2a);
+  color: #23170a;
+  box-shadow: 0 3px 0 #6d4f14;
+}
+.online-home .btn--primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #6d4f14;
+}
+.online-home .btn--secondary {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0f0f0;
+}
+.online-home .btn--large {
+  font-family: var(--oh-serif);
+  letter-spacing: 0.06em;
+  border-radius: 10px;
+}
+
+/* タブ */
+.online-home .inbox-screen__tabs {
+  gap: 6px;
+}
+.online-home .inbox-screen__tab {
+  padding: 7px 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: #e9dfc9;
+  opacity: 0.7;
+  transition: background 0.12s ease, opacity 0.12s ease;
+}
+.online-home .inbox-screen__tab:hover {
+  opacity: 1;
+  background: rgba(230, 195, 106, 0.1);
+}
+.online-home .inbox-screen__tab.is-active {
+  opacity: 1;
+  border-color: var(--oh-gold);
+  background: linear-gradient(180deg, rgba(230, 195, 106, 0.3), rgba(230, 195, 106, 0.12));
+  color: #fff3d2;
+}
+
+/* 見出し・文 */
+.online-home .gacha-screen .online-lobby__section-title {
+  align-self: stretch;
+  margin-top: 8px;
+  padding: 0 0 6px 10px;
+  border-left: 3px solid var(--oh-gold);
+  border-bottom: 1px solid rgba(230, 195, 106, 0.2);
+  font-family: var(--oh-serif);
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  color: #fff3d2;
+  text-align: left;
+}
+.online-home .setup-lead {
+  line-height: 1.7;
+}
+.online-home .first-gacha__title {
+  font-family: var(--oh-serif);
+  font-size: 28px;
+  letter-spacing: 0.12em;
+  color: var(--oh-gold);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}
+.online-home .first-gacha__confirm {
+  padding: 12px 16px;
+  border: 1px solid var(--oh-line);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* 入力欄 */
+.online-home .gacha-screen input:not([type="checkbox"]):not([type="radio"]),
+.online-home .gacha-screen select,
+.online-home .gacha-screen textarea {
+  border: 1px solid var(--oh-line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+.online-home .gacha-screen input:focus,
+.online-home .gacha-screen select:focus,
+.online-home .gacha-screen textarea:focus {
+  outline: none;
+  border-color: var(--oh-gold);
+  box-shadow: 0 0 0 2px rgba(230, 195, 106, 0.25);
+}
+
+/* 一覧の1件（お知らせ・プレゼント・ミッション・フレンド・履歴・戦績） */
+.online-home .inbox-screen__news,
+.online-home .inbox-screen__gift,
+.online-home .history-screen__match {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+}
+.online-home .history-screen__match {
+  border-left-width: 4px;
+}
+.online-home .missions-screen__bar-fill {
+  background: linear-gradient(90deg, var(--oh-gold-deep), #ffe9a8);
+}
+
+/* ガチャのカード・手持ちのキャラ・ショップの商品 */
+.online-home .gacha-card {
+  padding: 10px 4px;
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(40, 34, 28, 0.9), rgba(10, 8, 6, 0.9));
+}
+.online-home .gacha-card--r2 {
+  border-color: #6fb7ff;
+  background: linear-gradient(180deg, rgba(22, 44, 72, 0.92), rgba(8, 10, 16, 0.92));
+}
+.online-home .gacha-card--r3 {
+  border-color: #ffd34d;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 211, 77, 0.35), transparent 65%),
+    linear-gradient(180deg, rgba(92, 62, 6, 0.92), rgba(14, 10, 4, 0.92));
+}
+.online-home .gacha-card__avatar,
+.online-home .units-screen__unit img {
+  border: 1px solid var(--oh-line);
+  background: #1a130c;
+}
+.online-home .gacha-card__name {
+  font-family: var(--oh-serif);
+}
+.online-home .units-screen__unit {
+  padding: 8px 6px;
+  border-color: rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(40, 34, 28, 0.85), rgba(10, 8, 6, 0.85));
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.online-home .units-screen__unit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--oh-gold);
+}
+.online-home .units-screen__unit--selected {
+  border-color: #ffd34d;
+  background: linear-gradient(180deg, rgba(92, 62, 6, 0.6), rgba(14, 10, 4, 0.85));
+}
+.online-home .shop-screen__product {
+  padding: 14px 8px;
+  border-color: var(--oh-line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(14, 40, 50, 0.6), rgba(10, 8, 6, 0.85));
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.online-home .shop-screen__product:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: #7fe3f7;
+}
+.online-home .shop-screen__product.is-selected {
+  border-color: #7fe3f7;
+  background: linear-gradient(180deg, rgba(30, 110, 135, 0.55), rgba(10, 8, 6, 0.85));
+  box-shadow: 0 0 14px rgba(95, 211, 238, 0.35);
+}
+.online-home .online-lobby__notice {
+  border-color: rgba(120, 220, 170, 0.6);
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(20, 78, 54, 0.9), rgba(14, 50, 38, 0.8));
+}
+.online-home .online-lobby__error {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 120, 120, 0.4);
+  border-radius: 8px;
+  background: rgba(90, 20, 20, 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+   CPU戦の選択画面（MatchSetup.tsx）。枠組みはオンラインのホーム画面と同じ
+   .online-home / .oh-* を使い、ここにはこの画面だけの部品を置く。
+   --------------------------------------------------------------------------- */
+.match-setup .setup-gallery-links {
+  gap: 8px;
+}
+.online-home a.oh-ghost {
+  align-self: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.oh-plate__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.oh-plate__buttons .oh-ghost {
+  border-color: var(--oh-line);
+  background: rgba(230, 195, 106, 0.1);
+}
+.oh-plate__buttons .oh-ghost:hover {
+  background: rgba(230, 195, 106, 0.24);
+}
+/* オンラインへの入口。カード全体が1つのボタン。 */
+.oh-card--online {
+  width: 100%;
+  padding-right: 52px;
+  border-color: rgba(140, 220, 240, 0.6);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(95, 211, 238, 0.24), transparent 55%),
+    linear-gradient(160deg, rgba(16, 40, 52, 0.94), var(--oh-ink));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
+}
+.oh-card--online:hover {
+  transform: translateY(-2px);
+  border-color: #7fe3f7;
+  filter: brightness(1.1);
+}
+.oh-card--online .oh-card__head {
+  border-bottom-color: rgba(140, 220, 240, 0.25);
+}
+.oh-card--online .oh-card__en {
+  color: #9be8f8;
+}
+.oh-card__arrow {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 34px;
+  line-height: 1;
+  color: #9be8f8;
+}
+.online-home .setup-cpu-difficulty {
+  align-self: stretch;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.online-home .setup-cpu-difficulty__row {
+  gap: 8px;
+}
+.online-home .setup-cpu-difficulty__name {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--oh-gold);
+  white-space: nowrap;
+}
+.online-home .setup-cpu-difficulty__selects {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+.online-home .setup-cpu-difficulty__row select {
+  min-width: 0;
+  border: 1px solid var(--oh-line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+.online-home .setup-cpu-difficulty__selects select:first-child {
+  flex: 1;
+}
+.online-home .oh-card .setup-debug-toggle {
+  font-size: 12px;
+  text-align: left;
+}
+
+/* キャラ・カードを選ぶ一覧と、キャラの確認 */
+.online-home .setup-picker-modal,
+.online-home .character-confirm {
+  border: 1px solid rgba(230, 195, 106, 0.6);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(230, 195, 106, 0.1), transparent 45%),
+    linear-gradient(170deg, rgba(36, 26, 16, 0.98), rgba(14, 10, 7, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 195, 106, 0.45) transparent;
+  animation: oh-panel-in 0.2s ease-out;
+}
+.online-home .setup-picker-modal {
+  max-width: min(760px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+}
+.online-home .setup-picker-modal > .setup-picker-modal__header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--oh-line);
+}
+.online-home .character-card {
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(40, 34, 28, 0.85), rgba(10, 8, 6, 0.85));
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.online-home .character-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--oh-gold);
+  background: linear-gradient(180deg, rgba(60, 46, 28, 0.9), rgba(10, 8, 6, 0.85));
+}
+.online-home .character-card--selected {
+  border-color: #ffd34d;
+  background: linear-gradient(180deg, rgba(92, 62, 6, 0.6), rgba(14, 10, 4, 0.85));
+  box-shadow: 0 0 12px rgba(255, 211, 77, 0.45);
+}
+.online-home .character-card__avatar {
+  border: 1px solid var(--oh-line);
+  background-color: #1a130c;
+}
+.online-home .character-card__shortname,
+.online-home .character-confirm__name {
+  font-family: var(--oh-serif);
+}
+.online-home .character-confirm__name {
+  color: #fff3d2;
+}
+
+@media (max-width: 860px) and (orientation: portrait), (max-width: 640px) {
+  .match-setup .setup-gallery-links {
+    display: none;
+  }
+  /* キャラを選んでいない時は立ち絵が無いので、名札の分だけの高さにする。 */
+  .match-setup .oh-stage:not(:has(.oh-stage__art)) {
+    height: auto;
+    padding: 12px 10px 0;
+  }
+  .match-setup .oh-stage:not(:has(.oh-stage__art)) .oh-plate {
+    position: static;
+    width: 100%;
+  }
+}
+@media (max-height: 520px) and (min-width: 641px) and (orientation: landscape) {
+  .match-setup .oh-card--ranked .setup-debug-toggle:last-of-type {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   局の結果（ScoreResult.tsx）・対局終了の優勝演出（MatchVictoryOverlay.tsx）・
+   接続が切れた時（OnlineConnectionOverlay.tsx）・自分の必殺技の説明（Table.tsx）。
+   選択画面（.online-home）と同じ金と墨の見た目にそろえる。対局中の操作ボタン
+   （.btn--ron 等のリボン型）には触れない。
+   --------------------------------------------------------------------------- */
+.modal,
+.match-victory-card,
+.online-connection-overlay,
+.skill-info-card {
+  --oh-gold: #e6c36a;
+  --oh-gold-deep: #a9812c;
+  --oh-line: rgba(230, 195, 106, 0.38);
+  --oh-serif: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+}
+.modal {
+  padding: 0 22px 20px;
+  border: 1px solid rgba(230, 195, 106, 0.6);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(230, 195, 106, 0.1), transparent 45%),
+    linear-gradient(170deg, rgba(36, 26, 16, 0.98), rgba(14, 10, 7, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 195, 106, 0.45) transparent;
+  animation: oh-panel-in 0.2s ease-out;
+}
+/* 見出し（和了・流局など）。スクロールしても上に残す。 */
+.modal > h2 {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -22px;
+  padding: 14px 22px 11px;
+  border-bottom: 1px solid var(--oh-line);
+  background: linear-gradient(180deg, rgba(30, 21, 12, 0.99), rgba(24, 17, 10, 0.97));
+  font-family: var(--oh-serif);
+  font-size: 24px;
+  letter-spacing: 0.14em;
+  color: #fff3d2;
+  text-align: center;
+}
+.modal h3 {
+  margin: 4px 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--oh-gold);
+  font-family: var(--oh-serif);
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  color: #fff3d2;
+}
+.modal .win-detail {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+}
+.modal .win-detail__player {
+  font-family: var(--oh-serif);
+  font-size: 16px;
+  color: var(--oh-gold);
+}
+.modal .win-detail__score {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(230, 195, 106, 0.22);
+  font-family: var(--oh-serif);
+  font-size: 18px;
+  color: #ffe9a8;
+}
+.modal .rank-card {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-left-width: 5px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+}
+.modal .rank-card--1 {
+  border-color: rgba(241, 196, 83, 0.55);
+  border-left-color: #f1c453;
+  background: linear-gradient(90deg, rgba(241, 196, 83, 0.24), rgba(241, 196, 83, 0.04));
+}
+.modal .rank-card--2 {
+  border-left-color: #c9d2e0;
+}
+.modal .rank-card--3 {
+  border-left-color: #d08a4d;
+}
+.modal .rank-card__avatar {
+  border: 1px solid var(--oh-line);
+  background: #1a130c;
+}
+.modal .rank-card__rank {
+  font-family: var(--oh-serif);
+  font-size: 16px;
+  color: var(--oh-gold);
+}
+.modal .rank-card__score {
+  font-variant-numeric: tabular-nums;
+}
+.modal .score-rank-result {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--oh-line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* これらの画面の中のふつうのボタン */
+.modal .btn,
+.match-victory-card .btn,
+.online-connection-overlay .btn,
+.skill-info-card .btn {
+  border: 1px solid rgba(230, 195, 106, 0.45);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(58, 43, 25, 0.95), rgba(28, 20, 12, 0.95));
+  color: #f4ead2;
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+.modal .btn--primary,
+.match-victory-card .btn--primary,
+.online-connection-overlay .btn--primary,
+.skill-info-card .btn--primary {
+  border-color: #f3d684;
+  background: linear-gradient(180deg, #f0cf78, #b98a2a);
+  color: #23170a;
+  box-shadow: 0 3px 0 #6d4f14;
+}
+.modal .btn--primary:active:not(:disabled),
+.match-victory-card .btn--primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #6d4f14;
+}
+.modal .btn:disabled {
+  filter: grayscale(0.6);
+  opacity: 0.55;
+  cursor: default;
+}
+.online-connection-overlay .btn--secondary {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0f0f0;
+}
+/* 局の結果の最後のボタン（次の局へ／結果を見る）は幅いっぱいに置く。 */
+.modal > .btn--primary,
+.modal > div > .btn--primary {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  font-family: var(--oh-serif);
+  font-size: 17px;
+  letter-spacing: 0.1em;
+}
+
+/* 対局終了の優勝演出 */
+.match-victory-card {
+  border: 1px solid #f3d684;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(230, 195, 106, 0.2), transparent 60%),
+    linear-gradient(170deg, rgba(36, 26, 16, 0.99), rgba(12, 9, 6, 0.99));
+}
+.match-victory-card__title {
+  font-family: var(--oh-serif);
+  font-size: 18px;
+  letter-spacing: 0.6em;
+  text-indent: 0.6em;
+  color: #ffe9a8;
+}
+.match-victory-card__name {
+  font-family: var(--oh-serif);
+  letter-spacing: 0.06em;
+  color: #fff3d2;
+}
+.match-victory-card__quote {
+  padding: 10px 16px;
+  border-top: 1px solid var(--oh-line);
+  border-bottom: 1px solid var(--oh-line);
+  font-family: var(--oh-serif);
+  font-style: normal;
+}
+.match-victory-card .btn--large {
+  font-family: var(--oh-serif);
+  letter-spacing: 0.1em;
+  border-radius: 10px;
+}
+
+/* 自分の必殺技の説明 */
+.skill-info-card {
+  border: 1px solid rgba(230, 195, 106, 0.6);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(230, 195, 106, 0.12), transparent 50%),
+    linear-gradient(170deg, rgba(36, 26, 16, 0.98), rgba(14, 10, 7, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+}
+
+/* タイトル画面のルール・設定の窓と、接続が切れた時の窓（.title-modal）、
+   牌譜の操作バー・観戦中の帯（.replay-controls）も同じ金と墨にそろえる。 */
+.title-modal,
+.replay-controls {
+  --oh-gold: #e6c36a;
+  --oh-line: rgba(230, 195, 106, 0.38);
+  --oh-serif: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+}
+.title-modal {
+  border: 1px solid rgba(230, 195, 106, 0.6);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(230, 195, 106, 0.1), transparent 45%),
+    linear-gradient(170deg, rgba(36, 26, 16, 0.98), rgba(14, 10, 7, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 195, 106, 0.45) transparent;
+}
+.title-modal h2,
+.title-modal h3 {
+  font-family: var(--oh-serif);
+  letter-spacing: 0.08em;
+  color: #fff3d2;
+}
+.title-modal .setup-picker-modal__header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--oh-line);
+}
+.title-modal .setup-picker-modal__header > .setup-character-select__label {
+  font-family: var(--oh-serif);
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: #fff3d2;
+  opacity: 1;
+}
+.replay-controls {
+  border: 1px solid var(--oh-line);
+}
+.replay-controls .btn {
+  border: 1px solid rgba(230, 195, 106, 0.45);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(58, 43, 25, 0.95), rgba(28, 20, 12, 0.95));
+  color: #f4ead2;
+}
+.replay-controls .btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.replay-controls .btn--primary {
+  border-color: #f3d684;
+  background: linear-gradient(180deg, #f0cf78, #b98a2a);
+  color: #23170a;
+}
+.replay-controls .btn--secondary {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0f0f0;
+}
+.replay-controls select {
+  padding: 3px 6px;
+  border: 1px solid var(--oh-line);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+}

@@ -90,35 +90,124 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
   }
 
   return (
-    <div className="setup-screen">
-      <button type="button" className="setup-back-btn" onClick={onBack}>
-        ← タイトルへ戻る
-      </button>
-      <p className="setup-lead">CPU3人と対局します。対局形式を選んでください。</p>
-      <button type="button" className="btn setup-online-btn" onClick={onOnline}>
-        オンライン（段位戦・ガチャ・友人戦）
-      </button>
+    // 見た目はオンラインのホーム画面（OnlineLobby.tsx）と共通の .online-home / .oh-* を使う。
+    <div className="online-home match-setup">
+      <header className="oh-top">
+        <button type="button" className="oh-back" onClick={onBack}>
+          ← タイトルへ
+        </button>
+        <div className="oh-top__title">PLAY</div>
+        <div className="oh-top__spacer" />
+        {/* 何度も見返す確認用ページ（CutinGallery.tsx / QuoteGallery.tsx）。別タブで
+            開くので、この画面で選んだキャラや設定はそのまま残る。 */}
+        <div className="setup-gallery-links">
+          <a className="oh-ghost" href="?cutin-gallery" target="_blank" rel="noreferrer">
+            カットイン一覧
+          </a>
+          <a className="oh-ghost" href="?quote-gallery" target="_blank" rel="noreferrer">
+            勝利台詞一覧
+          </a>
+        </div>
+      </header>
 
-      <div className="setup-summary-row">
-        <button type="button" className="setup-summary-card" onClick={() => setShowCharacterPicker(true)}>
-          <div className="setup-summary-card__label">自分のキャラクター</div>
-          {selectedCharacter ? (
-            <img className="setup-summary-card__avatar" src={selectedCharacter.avatar} alt="" />
-          ) : (
-            <div className="setup-summary-card__avatar setup-summary-card__avatar--random">？</div>
+      <main className="oh-main">
+        <section className="oh-stage">
+          {selectedCharacter && (
+            <img
+              key={selectedCharacter.id}
+              className={`oh-stage__art${selectedCharacter.cutin ? "" : " oh-stage__art--avatar"}`}
+              src={selectedCharacter.cutin ?? selectedCharacter.avatar}
+              alt=""
+            />
           )}
-          <div className="setup-summary-card__name">{selectedCharacter?.name ?? "おまかせ"}</div>
-          <div className="setup-summary-card__hint">タップして選択</div>
-        </button>
-        <button type="button" className="setup-summary-card" onClick={() => setShowCardPicker(true)}>
-          <div className="setup-summary-card__label">持っていくカード</div>
-          <div className="setup-summary-card__avatar setup-summary-card__avatar--random">
-            {selectedCard ? (selectedCard.kind === "passive" ? "常時" : "消費") : "－"}
+          <div className="oh-plate">
+            <div className="oh-plate__label">自分のキャラクター</div>
+            <div className="oh-plate__name">{selectedCharacter?.name ?? "おまかせ"}</div>
+            <div className="oh-plate__sub">
+              {selectedCharacter ? `必殺技「${selectedCharacter.skill.name}」` : "ランダムに割り当てます"}／カード: {selectedCard?.name ?? "なし"}
+            </div>
+            <div className="oh-plate__buttons">
+              <button type="button" className="oh-ghost" onClick={() => setShowCharacterPicker(true)}>
+                キャラを選ぶ
+              </button>
+              <button type="button" className="oh-ghost" onClick={() => setShowCardPicker(true)}>
+                カードを選ぶ
+              </button>
+            </div>
           </div>
-          <div className="setup-summary-card__name">{selectedCard?.name ?? "なし"}</div>
-          <div className="setup-summary-card__hint">タップして選択</div>
-        </button>
-      </div>
+        </section>
+
+        <section className="oh-panel">
+          <button type="button" className="oh-card oh-card--online setup-online-btn" onClick={onOnline}>
+            <span className="oh-card__head">
+              <span className="oh-card__title">オンライン</span>
+              <span className="oh-card__en">ONLINE</span>
+            </span>
+            <span className="oh-card__lead">段位戦・友人戦・ガチャ。ほかの人と打つならこちら。</span>
+            <span className="oh-card__arrow">›</span>
+          </button>
+
+          <div className="oh-card oh-card--ranked">
+            <div className="oh-card__head">
+              <span className="oh-card__title">CPU戦</span>
+              <span className="oh-card__en">VS CPU</span>
+            </div>
+            <p className="oh-card__lead">CPU3人と対局します。全キャラ・全カードを自由に使えます。</p>
+            <div className="setup-cpu-difficulty">
+              {CPU_SEATS.map(({ player, label }) => (
+                <div key={player} className="setup-cpu-difficulty__row">
+                  <span className="setup-cpu-difficulty__name">{label}</span>
+                  <div className="setup-cpu-difficulty__selects">
+                    <select
+                      value={cpuCharacterIds[player] ?? ""}
+                      onChange={(e) => setSeatCharacter(player, e.target.value || null)}
+                      title="キャラクター"
+                    >
+                      <option value="">おまかせ</option>
+                      {CHARACTER_LIST.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={cpuDifficulty[player]}
+                      onChange={(e) => setSeatDifficulty(player, Number(e.target.value) as AiDifficulty)}
+                      title="難易度"
+                    >
+                      {DIFFICULTY_OPTIONS.map((level) => (
+                        <option key={level} value={level}>
+                          {DIFFICULTY_LABELS[level]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="oh-modes">
+              <button type="button" className="oh-mode" onClick={() => start("tonpuusen")}>
+                <span className="oh-mode__kanji">東</span>
+                <span className="oh-mode__name">東風戦</span>
+                <span className="oh-mode__sub">東場のみ・短め</span>
+              </button>
+              <button type="button" className="oh-mode" onClick={() => start("hanchan")}>
+                <span className="oh-mode__kanji">南</span>
+                <span className="oh-mode__name">半荘戦</span>
+                <span className="oh-mode__sub">東場＋南場・じっくり</span>
+              </button>
+            </div>
+            <label className="setup-debug-toggle">
+              <input type="checkbox" checked={continueBelowZero} onChange={(e) => setContinueBelowZero(e.target.checked)} />
+              箱下続行（オフだと、誰かが0点未満になった時点で終了）
+            </label>
+            <label className="setup-debug-toggle">
+              <input type="checkbox" checked={debugMode} onChange={(e) => setDebugMode(e.target.checked)} />
+              デバッグモード（CPUは和了しない・早送り・巻き戻し可能）
+            </label>
+          </div>
+        </section>
+      </main>
 
       {showCharacterPicker && (
         <div className="modal-overlay" onClick={() => setShowCharacterPicker(false)}>
@@ -244,69 +333,6 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
         </div>
       )}
 
-      <div className="setup-cpu-difficulty">
-        {CPU_SEATS.map(({ player, label }) => (
-          <div key={player} className="setup-cpu-difficulty__row">
-            <span className="setup-cpu-difficulty__name">{label}</span>
-            <div className="setup-cpu-difficulty__selects">
-              <select
-                value={cpuCharacterIds[player] ?? ""}
-                onChange={(e) => setSeatCharacter(player, e.target.value || null)}
-                title="キャラクター"
-              >
-                <option value="">おまかせ</option>
-                {CHARACTER_LIST.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={cpuDifficulty[player]}
-                onChange={(e) => setSeatDifficulty(player, Number(e.target.value) as AiDifficulty)}
-                title="難易度"
-              >
-                {DIFFICULTY_OPTIONS.map((level) => (
-                  <option key={level} value={level}>
-                    {DIFFICULTY_LABELS[level]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="setup-buttons">
-        <button className="btn btn--primary btn--large" onClick={() => start("tonpuusen")}>
-          東風戦
-        </button>
-        <button className="btn btn--primary btn--large" onClick={() => start("hanchan")}>
-          半荘戦
-        </button>
-      </div>
-      <label className="setup-debug-toggle">
-        <input
-          type="checkbox"
-          checked={continueBelowZero}
-          onChange={(e) => setContinueBelowZero(e.target.checked)}
-        />
-        箱下続行（オフの場合、誰かが0点未満になった時点で対局を即終了します）
-      </label>
-      <label className="setup-debug-toggle">
-        <input type="checkbox" checked={debugMode} onChange={(e) => setDebugMode(e.target.checked)} />
-        デバッグモード（CPUは和了しない・CPUの手番を早送り・巻き戻し可能）
-      </label>
-      {/* 何度も見返す確認用ページ（CutinGallery.tsx / QuoteGallery.tsx）。別タブで
-          開くので、この画面で選んだキャラや設定はそのまま残る。 */}
-      <div className="setup-gallery-links">
-        <a className="btn" href="?cutin-gallery" target="_blank" rel="noreferrer">
-          カットイン一覧
-        </a>
-        <a className="btn" href="?quote-gallery" target="_blank" rel="noreferrer">
-          勝利台詞一覧
-        </a>
-      </div>
     </div>
   );
 }
