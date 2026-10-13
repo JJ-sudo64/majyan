@@ -7687,3 +7687,398 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   ガチャを引いた直後の演出（GachaReveal.tsx）。document.body の直下に出すので、
+   色はここで決め直す。tier1=白 / tier2=青 / tier3=金（その時点で分かっているレア度）。
+   --------------------------------------------------------------------------- */
+.gacha-reveal {
+  --gr-color: #e9f1ff;
+  --gr-glow: rgba(210, 228, 255, 0.75);
+  --gr-deep: #1a2233;
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 50%, var(--gr-deep), #05060a 70%);
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  animation: gr-fade-in 0.25s ease-out;
+}
+.gacha-reveal--tier2 {
+  --gr-color: #7cc4ff;
+  --gr-glow: rgba(90, 170, 255, 0.85);
+  --gr-deep: #0d2a52;
+}
+.gacha-reveal--tier3 {
+  --gr-color: #ffd866;
+  --gr-glow: rgba(255, 200, 70, 0.9);
+  --gr-deep: #4a3206;
+}
+.gacha-reveal__stage {
+  position: relative;
+  width: min(70vmin, 520px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.gacha-reveal__stage > * {
+  position: absolute;
+}
+.gacha-reveal__rays {
+  inset: -60%;
+  background: repeating-conic-gradient(from 0deg, var(--gr-glow) 0deg 4deg, transparent 4deg 18deg);
+  mask-image: radial-gradient(circle, transparent 12%, #000 22%, transparent 68%);
+  -webkit-mask-image: radial-gradient(circle, transparent 12%, #000 22%, transparent 68%);
+  opacity: 0.35;
+  animation: gr-spin 9s linear infinite, gr-rays-grow 1.4s ease-out both;
+}
+.gacha-reveal--tier2 .gacha-reveal__rays {
+  opacity: 0.5;
+  animation-duration: 6s, 1.4s;
+}
+.gacha-reveal--tier3 .gacha-reveal__rays {
+  opacity: 0.75;
+  animation-duration: 3.5s, 1.4s;
+}
+.gacha-reveal__ring {
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--gr-color);
+  border-left-color: transparent;
+  border-right-color: transparent;
+  box-shadow: 0 0 18px var(--gr-glow), inset 0 0 18px var(--gr-glow);
+  animation: gr-spin 1.6s linear infinite;
+}
+.gacha-reveal__ring--outer {
+  width: 62%;
+  border-width: 1px;
+  border-color: transparent var(--gr-color);
+  opacity: 0.7;
+  animation: gr-spin 2.6s linear infinite reverse;
+}
+.gacha-reveal__orb {
+  width: 24%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #fff 0%, var(--gr-color) 38%, transparent 72%);
+  box-shadow: 0 0 40px 10px var(--gr-glow), 0 0 120px 40px var(--gr-glow);
+  animation: gr-orb-pulse 0.5s ease-in-out infinite alternate, gr-orb-grow 2.6s ease-in both;
+}
+/* 色が上がった瞬間に輪が広がる */
+.gacha-reveal--tier2 .gacha-reveal__stage::after,
+.gacha-reveal--tier3 .gacha-reveal__stage::before {
+  content: "";
+  position: absolute;
+  width: 24%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid var(--gr-color);
+  animation: gr-shock 0.7s ease-out both;
+}
+/* はじける */
+.gacha-reveal--burst .gacha-reveal__orb {
+  animation: gr-orb-burst 0.52s ease-out both;
+}
+.gacha-reveal--burst .gacha-reveal__ring {
+  animation: gr-shock 0.5s ease-out both;
+}
+.gacha-reveal__spark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 12px 4px var(--gr-glow);
+  transform: rotate(var(--angle)) translateX(0);
+  animation: gr-spark 0.52s ease-out both;
+}
+.gacha-reveal__flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, #fff 0%, var(--gr-color) 45%, transparent 85%);
+  animation: gr-flash 0.52s ease-out both;
+  pointer-events: none;
+}
+/* ★3を1つずつ見せる */
+.gacha-reveal--spot {
+  background: radial-gradient(circle at 50% 40%, #6b4a08, #120b02 75%);
+}
+.gacha-reveal__spot {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.gacha-reveal__spot-rays {
+  position: absolute;
+  width: 200vmax;
+  aspect-ratio: 1;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 214, 102, 0.3) 0deg 6deg, transparent 6deg 20deg);
+  mask-image: radial-gradient(circle, #000 0%, transparent 55%);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 55%);
+  animation: gr-spin 24s linear infinite;
+}
+.gacha-reveal__art {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  /* 下の4割は名札の裏で消すので、その分だけ大きく置く。 */
+  height: 112%;
+  max-width: 96vw;
+  object-fit: contain;
+  object-position: bottom;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 28px rgba(255, 214, 102, 0.75));
+  /* 立ち絵は四角い絵なので左右をぼかし、下は名札の裏で消す（絵の下端には卓や牌が
+     写っていることがあり、そこは見せない）。 */
+  mask-image:
+    linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent),
+    linear-gradient(180deg, transparent, #000 8%, #000 60%, transparent 76%);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent),
+    linear-gradient(180deg, transparent, #000 8%, #000 60%, transparent 76%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+  animation: gr-art-in 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.gacha-reveal__card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(34vmin, 220px);
+  aspect-ratio: 3 / 4;
+  margin-bottom: 18vh;
+  border-radius: 14px;
+  border: 2px solid #ffd866;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 216, 102, 0.5), transparent 65%),
+    linear-gradient(180deg, #5c3e06, #140e04);
+  box-shadow: 0 0 40px rgba(255, 200, 70, 0.8);
+  font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  font-size: min(9vmin, 56px);
+  font-weight: bold;
+  color: #ffe9a8;
+  animation: gr-card-in 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.gacha-reveal__plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9%;
+  padding: 14px 16px 16px;
+  text-align: center;
+  font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  background: linear-gradient(90deg, transparent, rgba(8, 5, 2, 0.88) 22%, rgba(8, 5, 2, 0.88) 78%, transparent);
+  border-top: 1px solid rgba(255, 214, 102, 0.7);
+  border-bottom: 1px solid rgba(255, 214, 102, 0.7);
+  animation: gr-plate-in 0.5s ease-out 0.35s both;
+}
+.gacha-reveal__stars {
+  font-size: clamp(20px, 4vmin, 34px);
+  letter-spacing: 0.3em;
+  color: #ffd866;
+  text-shadow: 0 0 14px rgba(255, 200, 70, 0.9);
+}
+.gacha-reveal__title {
+  font-size: clamp(13px, 2.2vmin, 18px);
+  letter-spacing: 0.2em;
+  color: #e6c36a;
+}
+.gacha-reveal__name {
+  font-size: clamp(30px, 7vmin, 60px);
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  line-height: 1.15;
+  color: #fff6dc;
+  text-shadow: 0 0 20px rgba(255, 200, 70, 0.8), 0 2px 0 #000;
+}
+.gacha-reveal__skill {
+  margin-top: 2px;
+  font-size: clamp(12px, 2vmin, 16px);
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+}
+.gacha-reveal__count {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: #ffe9a8;
+}
+.gacha-reveal__skip {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  padding: 7px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+.gacha-reveal__skip:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+.gacha-reveal__hint {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  opacity: 0.7;
+  animation: gr-blink 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes gr-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes gr-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes gr-rays-grow {
+  from {
+    scale: 0.3;
+  }
+}
+@keyframes gr-orb-pulse {
+  to {
+    filter: brightness(1.35);
+  }
+}
+@keyframes gr-orb-grow {
+  from {
+    scale: 0.35;
+  }
+  to {
+    scale: 1.5;
+  }
+}
+@keyframes gr-orb-burst {
+  from {
+    scale: 1.5;
+    opacity: 1;
+  }
+  to {
+    scale: 9;
+    opacity: 0;
+  }
+}
+@keyframes gr-shock {
+  from {
+    scale: 1;
+    opacity: 1;
+  }
+  to {
+    scale: 6;
+    opacity: 0;
+  }
+}
+@keyframes gr-spark {
+  to {
+    transform: rotate(var(--angle)) translateX(var(--reach));
+    opacity: 0;
+  }
+}
+@keyframes gr-flash {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes gr-art-in {
+  from {
+    opacity: 0;
+    scale: 1.25;
+    filter: brightness(4) drop-shadow(0 0 28px rgba(255, 214, 102, 0.75));
+  }
+}
+@keyframes gr-card-in {
+  from {
+    opacity: 0;
+    transform: rotateY(180deg) scale(0.6);
+    filter: brightness(4);
+  }
+}
+@keyframes gr-plate-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+}
+@keyframes gr-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* 結果の一覧のカードは裏返りながら出て、★2は青く、★3は金色に光り続ける。 */
+.gacha-card {
+  position: relative;
+  overflow: hidden;
+  animation: gacha-card-flip 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.gacha-card--r2 {
+  box-shadow: 0 0 14px rgba(111, 183, 255, 0.55);
+}
+.gacha-card--r3 {
+  animation:
+    gacha-card-flip 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both,
+    gacha-card-glow 1.6s ease-in-out infinite alternate;
+}
+.gacha-card--r3::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: gacha-card-shine 2.4s ease-in-out 0.8s infinite;
+  pointer-events: none;
+}
+@keyframes gacha-card-flip {
+  from {
+    opacity: 0;
+    transform: perspective(600px) rotateY(90deg) scale(0.8);
+    filter: brightness(3);
+  }
+}
+@keyframes gacha-card-glow {
+  from {
+    box-shadow: 0 0 12px rgba(255, 211, 77, 0.6);
+  }
+  to {
+    box-shadow: 0 0 28px 4px rgba(255, 211, 77, 0.95);
+  }
+}
+@keyframes gacha-card-shine {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gacha-card,
+  .gacha-card--r3,
+  .gacha-card--r3::after {
+    animation: none;
+  }
+}

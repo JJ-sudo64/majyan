@@ -17,6 +17,7 @@ import {
 } from "@majyan/core";
 import { exchangeItem, rollGacha, useAccountStore } from "../online/account.js";
 import { GachaCard, RARITY_STARS } from "./GachaCard.js";
+import { GachaReveal } from "./GachaReveal.js";
 import { RecordsScreen } from "./RecordsScreen.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
@@ -43,6 +44,8 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
   const pickup = useAccountStore((s) => s.pickup);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<GachaRollResponse | null>(null);
+  /** 引いた直後の演出（GachaReveal）の最中か。終わるまで結果の一覧は出さない。 */
+  const [revealing, setRevealing] = useState(false);
   const [showRates, setShowRates] = useState(false);
   const [showRecords, setShowRecords] = useState(false);
   const [showExchange, setShowExchange] = useState(false);
@@ -55,13 +58,14 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
     return (cards[item.id] ?? 0) + units.filter((u) => u.cardId === item.id).length;
   }
 
-  async function run(fn: () => Promise<GachaRollResponse | null>, after?: () => void) {
+  async function run(fn: () => Promise<GachaRollResponse | null>, after?: () => void, reveal = false) {
     setBusy(true);
     useAccountStore.setState({ error: null });
     try {
       const res = await fn();
       if (res) {
         setResult(res);
+        setRevealing(reveal);
         after?.();
       }
     } finally {
@@ -113,7 +117,8 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {result && (
+        {result && revealing && <GachaReveal items={result.results} onDone={() => setRevealing(false)} />}
+        {result && !revealing && (
           <div className="first-gacha__grid">
             {result.results.map((item, i) => (
               <GachaCard key={`${i}-${item.kind}-${item.id}-${result.me.jade.free}`} item={item} index={i} isNew={result.isNew[i]} />
@@ -123,14 +128,14 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         {error && <p className="online-lobby__error">{error}</p>}
 
         <div className="setup-buttons">
-          <button type="button" className="btn btn--large" disabled={busy || total < GACHA_PRICE.single} onClick={() => void run(() => rollGacha(1))}>
+          <button type="button" className="btn btn--large" disabled={busy || total < GACHA_PRICE.single} onClick={() => void run(() => rollGacha(1), undefined, true)}>
             1回（雀玉{GACHA_PRICE.single}）
           </button>
           <button
             type="button"
             className="btn btn--primary btn--large"
             disabled={busy || total < GACHA_PRICE.ten}
-            onClick={() => void run(() => rollGacha(10))}
+            onClick={() => void run(() => rollGacha(10), undefined, true)}
           >
             10連（雀玉{GACHA_PRICE.ten.toLocaleString()}）
           </button>

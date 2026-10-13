@@ -184,3 +184,60 @@ export function playUiClickFor(event: { target: EventTarget | null }) {
   if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
   playUiClick(target.matches(".oh-mode, .oh-cta, .btn--primary") ? "confirm" : "tap");
 }
+
+/**
+ * ガチャの演出（GachaReveal.tsx）の音。音源ファイルを使わずWeb Audioで鳴らす。SE音量に従う。
+ * charge=光の玉が溜まる間のせり上がる音（secondsはその長さ）、upgrade=玉の色が上がった時、
+ * burst=はじけた時、rare=★3を見せる時のファンファーレ。
+ */
+export function playGachaSound(kind: "charge" | "upgrade" | "burst" | "rare", seconds = 1.5) {
+  if (typeof window === "undefined" || !window.AudioContext) return;
+  const volume = getSeVolume();
+  if (volume <= 0) return;
+  beepContext ??= new AudioContext();
+  const ctx = beepContext;
+  if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+  const start = ctx.currentTime;
+  // [波形, 開始の遅れ, 始まりの高さ, 終わりの高さ, 長さ, 大きさ, 立ち上がりの長さ]
+  type Note = [OscillatorType, number, number, number, number, number, number];
+  const notes: Note[] =
+    kind === "charge"
+      ? [
+          ["sawtooth", 0, 70, 280, seconds, 0.05, seconds * 0.9],
+          ["sine", 0, 220, 1320, seconds, 0.08, seconds * 0.9],
+        ]
+      : kind === "upgrade"
+        ? [
+            ["triangle", 0, 988, 988, 0.22, 0.14, 0.01],
+            ["triangle", 0.06, 1480, 1480, 0.3, 0.12, 0.01],
+          ]
+        : kind === "burst"
+          ? [
+              ["sine", 0, 160, 40, 0.5, 0.4, 0.01],
+              ["triangle", 0, 523, 523, 0.9, 0.12, 0.01],
+              ["triangle", 0, 784, 784, 0.9, 0.1, 0.01],
+              ["triangle", 0, 1047, 1047, 1.1, 0.1, 0.01],
+              ["sine", 0, 2093, 3136, 0.5, 0.05, 0.01],
+            ]
+          : [
+              ["triangle", 0, 523, 523, 0.3, 0.14, 0.01],
+              ["triangle", 0.1, 659, 659, 0.3, 0.14, 0.01],
+              ["triangle", 0.2, 784, 784, 0.3, 0.14, 0.01],
+              ["triangle", 0.3, 1047, 1047, 0.9, 0.16, 0.01],
+              ["triangle", 0.3, 1319, 1319, 0.9, 0.1, 0.01],
+              ["sine", 0.3, 1568, 1568, 1.2, 0.08, 0.01],
+            ];
+  for (const [type, delay, from, to, length, level, attack] of notes) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(from, start + delay);
+    if (to !== from) osc.frequency.exponentialRampToValueAtTime(to, start + delay + length);
+    gain.gain.setValueAtTime(0.0001, start + delay);
+    gain.gain.exponentialRampToValueAtTime(level * volume, start + delay + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + length);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start + delay);
+    osc.stop(start + delay + length + 0.02);
+  }
+}

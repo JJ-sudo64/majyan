@@ -16,7 +16,7 @@ export function GachaCard({ item, index, isNew }: { item: GachaItem; index: numb
   return (
     <div
       className={`gacha-card gacha-card--r${rarity}${card ? " gacha-card--card" : ""}`}
-      style={{ animationDelay: `${index * 60}ms` }}
+      style={{ animationDelay: `${index * 110}ms` }}
       title={character?.skill.description ?? card?.description}
     >
       {isNew && <div className="gacha-card__new">NEW</div>}
