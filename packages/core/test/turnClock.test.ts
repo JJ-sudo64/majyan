@@ -218,6 +218,7 @@ describe("holding clocks during cut-ins", () => {
     const full = { ...before, players: before.players.map((p, i) => (i === 2 ? { ...p, skillGauge: 3 } : p)) as typeof before.players };
     expect(cutinHoldMs(full, spent)).toBe(1700);
     expect(cutinHoldMs(before, before)).toBe(0);
+    expect(cutinHoldMs(before, { ...before, tomohiroGuardCount: before.tomohiroGuardCount + 1 })).toBe(1700);
   });
 });
 

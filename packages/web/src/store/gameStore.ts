@@ -6,6 +6,8 @@ import {
   autoActionForHuman,
   computeSeatOptions,
   createMatch,
+  cutinHoldMs,
+  dealCutinHoldMs,
   decideCpuCallResponse,
   decideCpuTurnAction,
   pendingDecision,
@@ -187,6 +189,9 @@ interface GameStoreState {
   /** ネット対戦で、自分はもう「次の局へ」を押したか。 */
   roundEndAcknowledged: boolean;
   roundEndDeadline: number | null;
+  /** 必殺技・リーチのカットインを見せている間true。この間は自分の操作も受け付けない
+      （自動和了・自動ツモ切りはこれがfalseに戻ってから動く）。 */
+  cutinHold: boolean;
   applyOnlineView: (view: OnlineSeatView) => void;
   /** 牌譜の再生中ならその状態（再生中は操作を受け付けず、局面はreplay*で動かす）。 */
   replay: ReplayState | null;
@@ -241,8 +246,45 @@ function pushHistory(state: GameStoreState): MatchState[] {
     ScoreAdjustmentOverlay.tsx側の検知条件のため、単調増加すれば方式は何でもよい。 */
 let scoreAdjustmentKeySeq = 0;
 
+/**
+ * 必殺技・リーチのカットインを見せ終わる時刻（performance.now()基準）。それまでは
+ * ツモ・CPUの手・自動の打牌を進めない（演出の裏で局面が進んでしまうため）。
+ * 自分の操作もこの間は受け付けない（dispatch。画面にはcutinHoldで知らせる）。
+ * ネット対戦ではサーバーが進行を止め、画面側は届いた局面から同じ長さを求めて操作を止める。
+ */
+let cutinHoldUntil = 0;
+let cutinHoldTickPending = false;
+
+function holdForCutin(get: Get, set: Set, ms: number) {
+  const state = get();
+  if (ms <= 0 || (state.debugMode && state.debugSpeed === "fast")) return;
+  cutinHoldUntil = Math.max(cutinHoldUntil, performance.now() + ms);
+  set({ cutinHold: true });
+  releaseCutinHoldLater(set);
+}
+
+function releaseCutinHoldLater(set: Set) {
+  setTimeout(() => {
+    // 待っている間に次のカットインで延びていたら、その終わりまで待ち直す。
+    if (cutinHoldUntil > performance.now()) releaseCutinHoldLater(set);
+    else set({ cutinHold: false });
+  }, Math.max(0, cutinHoldUntil - performance.now()));
+}
+
+/** 対局を始め直す・抜ける時に、前の対局のカットイン待ちを持ち越さない。 */
+function resetCutinHold() {
+  cutinHoldUntil = 0;
+}
+
+/** カットインが終わるまでの残り時間（デバッグの早送り中は待たない）。 */
+function cutinHoldRemainingMs(state: GameStoreState): number {
+  if (state.debugMode && state.debugSpeed === "fast") return 0;
+  return Math.max(0, cutinHoldUntil - performance.now());
+}
+
 function commit(get: Get, set: Set, result: MatchActionResult) {
   const state = get();
+  if (state.fullMatch) holdForCutin(get, set, cutinHoldMs(state.fullMatch.round, result.match.round));
   let lastScoreAdjustment = state.lastScoreAdjustment;
   if (result.scoreAdjustment) {
     scoreAdjustmentKeySeq += 1;
@@ -267,6 +309,8 @@ function scheduleTick(get: Get, set: Set, delay = 0) {
  * その操作だけ静かに無視し、ゲーム全体をクラッシュさせないようにする。
  */
 function dispatch(get: Get, set: Set, action: GameAction) {
+  // カットイン中は誰の操作も通さない（CPU・自動の手はtick/dispatchLaterが明けるまで待っている）。
+  if (cutinHoldRemainingMs(get()) > 0) return;
   // ネット対戦では判定も適用もサーバーが行う（不正な操作はサーバーが弾く）。
   if (get().online) {
     onlineLink.send({ t: "action", action });
@@ -304,6 +348,11 @@ function dispatchLater(
     const s2 = get();
     if (!s2.fullMatch) return;
     if (s2.debugMode && s2.debugPaused) return;
+    // 待っている間にカットインが始まっていたら、終わってから考え直す（tickが待つ）。
+    if (cutinHoldRemainingMs(s2) > 0) {
+      tick(get, set);
+      return;
+    }
     const r2 = s2.fullMatch.round;
     if (!sameDecision(pendingDecision(r2), decision)) return;
     const action = build(s2, r2);
@@ -320,6 +369,16 @@ function tick(get: Get, set: Set) {
   // 巻き戻した直後にまた元の局面へ戻ってしまう（＝巻き戻りが効かないように
   // 見える）不具合になる。
   if (state.debugMode && state.debugPaused) return;
+  const holdMs = cutinHoldRemainingMs(state);
+  if (holdMs > 0) {
+    if (cutinHoldTickPending) return;
+    cutinHoldTickPending = true;
+    setTimeout(() => {
+      cutinHoldTickPending = false;
+      tick(get, set);
+    }, holdMs);
+    return;
+  }
   const round = state.fullMatch.round;
   const fast = state.debugMode && state.debugSpeed === "fast";
   const thinkDelay = fast ? DEBUG_CPU_THINK_DELAY_MS : CPU_THINK_DELAY_MS;
@@ -394,6 +453,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   clock: null,
   roundEndAcknowledged: false,
   roundEndDeadline: null,
+  cutinHold: false,
   replay: null,
 
   openReplay: (data) => {
@@ -444,6 +504,14 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // 無関係な牌まで再生し直してしまう（上家・下家の河の牌が何度も飛び直す不具合）。
     const match = shareUnchanged(state.online ? state.match : null, view.match);
     const humanOptions = shareUnchanged(state.online ? state.humanOptions : null, view.options);
+    // サーバーはカットインの間進行を止めている。画面側も同じ長さだけ自分の操作を止める。
+    const prevRound = state.online ? state.match?.round : null;
+    const nextRound = match.round;
+    if (prevRound && prevRound !== nextRound) {
+      const sameRound =
+        prevRound.roundWind === nextRound.roundWind && prevRound.roundNumber === nextRound.roundNumber && prevRound.honba === nextRound.honba;
+      holdForCutin(get, set, sameRound ? cutinHoldMs(prevRound, nextRound) : dealCutinHoldMs(nextRound));
+    }
     set({
       online: true,
       spectating: !!view.spectating,
@@ -499,8 +567,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       randomCardId(),
     ];
     const match = createMatch(format, Math.random, characterIds, continueBelowZero, cardIds);
+    resetCutinHold();
     set({
       ...viewStateFor(match),
+      cutinHold: false,
       pendingRoundEnd: false,
       lastRoundOutcome: null,
       debugMode,
@@ -565,13 +635,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return;
     }
     set({ ...viewStateFor(match), pendingRoundEnd: false, lastRoundOutcome: null });
+    holdForCutin(get, set, dealCutinHoldMs(match.round));
     scheduleTick(get, set);
   },
 
   backToTitle: () => {
     if (get().online) onlineLink.close();
+    resetCutinHold();
     set({
       replay: null,
+      cutinHold: false,
       online: false,
       spectating: false,
       onlineSeats: null,

@@ -273,19 +273,21 @@ export function Hand({ round }: { round: RoundState }) {
   const autoWin = useSettingsStore((s) => s.autoWin);
 
   // 自動和了: ツモ和了できる瞬間、ボタンを押さず即座に和了する。
+  // カットイン中は操作が通らないので、明けてから(cutinHold)動かす。自動ツモ切りも同じ。
+  const cutinHold = useGameStore((s) => s.cutinHold);
   useEffect(() => {
-    if (autoWin && tsumoAnalysis) humanTsumo();
-  }, [autoWin, tsumoAnalysis, humanTsumo]);
+    if (autoWin && tsumoAnalysis && !cutinHold) humanTsumo();
+  }, [autoWin, tsumoAnalysis, humanTsumo, cutinHold]);
 
   // 自動ツモ切り: 和了できる場合は自動和了に判断を譲るためここでは切らない
   // （勝手に捨てて和了を逃さないため）。配牌交換モード中は牌クリックの
   // 意味が変わるため対象外。それ以外は一呼吸置いてから自動でツモった牌を
   // 切る（即切りだとリーチ・カン等に気付いて手を止める余地が無くなるため）。
   useEffect(() => {
-    if (!autoTsumogiri || !isMyTurn || !drawnTile || tsumoAnalysis || swapMode) return;
+    if (!autoTsumogiri || !isMyTurn || !drawnTile || tsumoAnalysis || swapMode || cutinHold) return;
     const timer = setTimeout(() => humanDiscard(drawnTile.id), AUTO_TSUMOGIRI_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [autoTsumogiri, isMyTurn, drawnTile, tsumoAnalysis, swapMode, humanDiscard]);
+  }, [autoTsumogiri, isMyTurn, drawnTile, tsumoAnalysis, swapMode, humanDiscard, cutinHold]);
 
   // ナギの「積み込み」等、ツモ牌をすり替える必殺技を使った瞬間だけ、
   // その場でカードがひっくり返るような演出を挟む。「牌がいきなり変わって

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CHARACTERS, CUTIN_DISPLAY_MS, type Character, type RoundState } from "@majyan/core";
 import { DeclarationCutinView, skillCutin } from "./DeclarationCutinOverlay.js";
 
-/** ネット対戦ではこの間サーバーが制限時間を止める（turnClock.tsのcutinHoldMs）。 */
+/** この間はツモ・CPUの手を進めず、ネット対戦では制限時間も止める（turnClock.tsのcutinHoldMs）。 */
 const DISPLAY_MS = CUTIN_DISPLAY_MS.skill;
 
 interface ActiveAnnounce {

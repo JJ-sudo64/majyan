@@ -178,10 +178,13 @@ export const CUTIN_DISPLAY_MS = {
 /**
  * 操作の前後の局面から、画面でカットインが流れる長さを求める（流れなければ0）。
  * 画面側の検知と同じ条件: 必殺技ゲージが満タン(>0)から0になった＝発動、
- * リーチしていなかった座席がリーチした＝リーチ宣言（1枚絵があるキャラだけ）。
+ * リーチしていなかった座席がリーチした＝リーチ宣言（1枚絵があるキャラだけ）、
+ * tomohiroGuardCountが増えた＝トモヒロのパッシブ発動。
+ * この長さの間は時計だけでなく、ツモ・CPUの手・自動の打牌も進めない（サーバーは
+ * matchSession.tsのstep、ローカル対戦はgameStore.tsのtick）。
  */
 export function cutinHoldMs(before: RoundState, after: RoundState): number {
-  let ms = 0;
+  let ms = after.tomohiroGuardCount > before.tomohiroGuardCount ? CUTIN_DISPLAY_MS.skill : 0;
   for (let i = 0; i < after.players.length; i++) {
     const was = before.players[i];
     const now = after.players[i];

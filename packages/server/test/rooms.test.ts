@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_TIME_LIMIT_RULES, STAMP_COOLDOWN_MS, hasAnyCallOption, type ServerMessage, type OnlineSeatView } from "@majyan/core";
+import { DEFAULT_TIME_LIMIT_RULES, STAMP_COOLDOWN_MS, cutinHoldMs, hasAnyCallOption, type ServerMessage, type OnlineSeatView } from "@majyan/core";
 import { RoomManager, type Client, type RoomManagerOptions } from "../src/rooms.js";
 import { AccountService } from "../src/accounts.js";
 import { openDatabase } from "../src/db.js";
@@ -298,6 +298,40 @@ describe("clock visibility", () => {
       }
     }
     expect(ownCallClocks).toBeGreaterThan(0);
+  });
+});
+
+describe("cut-ins", () => {
+  it("holds draws and CPU moves until a skill or riichi cut-in has finished", () => {
+    const rooms = makeRooms({ rng: makeRng(21), timing: FAST });
+    const a = new TestClient("a");
+    join(rooms, a, "A");
+    rooms.handleMessage(a, { t: "start", format: "tonpuusen", continueBelowZero: false });
+    const STEP_MS = 10;
+    let seen = a.received.length;
+    let round = a.view.match.round;
+    /** カットインが流れ始めた時刻とその長さ（流れていなければnull）。 */
+    let holding: { since: number; ms: number } | null = null;
+    let cutins = 0;
+    for (let i = 0; i < 200000 && !a.view.match.finished; i++) {
+      vi.advanceTimersByTime(STEP_MS);
+      for (; seen < a.received.length; seen++) {
+        const m = a.received[seen]!;
+        if (m.t !== "state") continue;
+        const next = m.view.match.round;
+        if (JSON.stringify(next) === JSON.stringify(round)) continue;
+        const sameRound = next.roundWind === round.roundWind && next.roundNumber === round.roundNumber && next.honba === round.honba;
+        // 局が終わる時（その操作で和了・流局した）は待たずに結果へ進んでよい。
+        if (holding && sameRound && !next.result) {
+          expect(Date.now() - holding.since).toBeGreaterThanOrEqual(holding.ms - STEP_MS);
+        }
+        const ms = sameRound ? cutinHoldMs(round, next) : 0;
+        holding = ms > 0 ? { since: Date.now(), ms } : null;
+        if (ms > 0) cutins++;
+        round = next;
+      }
+    }
+    expect(cutins).toBeGreaterThan(0);
   });
 });
 

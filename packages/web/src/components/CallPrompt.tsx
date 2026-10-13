@@ -32,9 +32,11 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
   // 自動和了: ロンできる瞬間、ボタンを押さず即座にロンする（じゃんたま等の
   // 「自動和了」相当）。showがfalseになる条件分岐より前にHooksを呼ぶ必要が
   // あるため、早期returnの手前でこの位置に置く。
+  // カットイン中は操作が通らないので、明けてから(cutinHold)和了する。
+  const cutinHold = useGameStore((s) => s.cutinHold);
   useEffect(() => {
-    if (autoWin && canRon) humanCall({ type: "ron", player: HUMAN });
-  }, [autoWin, canRon, humanCall]);
+    if (autoWin && canRon && !cutinHold) humanCall({ type: "ron", player: HUMAN });
+  }, [autoWin, canRon, humanCall, cutinHold]);
 
   if (!show) return null;
 

@@ -132,7 +132,7 @@ export class MatchSession {
   private readonly now: () => number;
   private readonly timing: SessionTiming;
   private clocks: MatchClocks;
-  /** 画面でカットインを流している間はこの時刻まで時計を止める。 */
+  /** 画面でカットインを流している間はこの時刻まで時計と自動の進行を止める。 */
   private clockHoldUntil = 0;
   /** 張っているタイマー（キーはreconcileTimers参照）。 */
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -397,6 +397,14 @@ export class MatchSession {
       this.reportFinishedOnce();
       this.broadcast();
       this.step();
+      return;
+    }
+    // 必殺技・リーチのカットインを見せている間は、ツモ・CPUの手・自動の打牌を進めない
+    // （演出の裏で局面が進んでしまうため）。人間の操作はこの間も受け付ける。
+    if (now < this.clockHoldUntil) {
+      wanted.set(`cutin:${this.clockHoldUntil}`, { delayMs: this.clockHoldUntil - now, run: () => this.step() });
+      this.reconcileTimers(wanted);
+      this.broadcast();
       return;
     }
     if (decision.kind === "draw") {

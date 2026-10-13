@@ -4,8 +4,8 @@ import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 
 export type Declaration = "riichi" | "tsumo" | "ron";
 
-/** リーチは対局が止まらないので短め、ツモ・ロンは点数画面の前にじっくり見せる。 */
-// リーチの長さはネット対戦でサーバーが制限時間を止める長さと揃える（turnClock.tsのcutinHoldMs）。
+/** リーチは対局の途中なので短め、ツモ・ロンは点数画面の前にじっくり見せる。 */
+// リーチの間はツモ・CPUの手を進めずに待たせる。その長さと揃える（turnClock.tsのcutinHoldMs）。
 const DISPLAY_MS: Record<Declaration, number> = { riichi: CUTIN_DISPLAY_MS.riichi, tsumo: 2200, ron: 2200 };
 
 const WORDS: Record<Declaration, string> = { riichi: "リーチ", tsumo: "ツモ", ron: "ロン" };
