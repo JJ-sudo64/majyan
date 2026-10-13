@@ -154,6 +154,18 @@ export function handSplitMidClass(player: number): string {
   return `hand-split-mid--${player}`;
 }
 
+/**
+ * 上家・下家の公開手牌(2D表示)を、伏せている時の立体牌とほぼ同じ場所・長さに
+ * 収めるための補正（卓のローカルpxと拡大率）。調整値(revealHandOffset)に足す。
+ * 補正なしだと伏せ牌より約3割長く、上家は画面の上端、下家は右下の角まで伸びていた。
+ * 値は牌譜の「全員の手牌」で、伏せ牌と公開牌の外接矩形が重なるよう実測して決めた。
+ */
+const REVEAL_SIDE_FIT: Partial<Record<number, { x: number; y: number; scale: number }>> = {
+  1: { x: -18, y: -52, scale: 0.85 },
+  3: { x: -23, y: 44, scale: 0.85 },
+};
+const REVEAL_NO_FIT = { x: 0, y: 0, scale: 1 };
+
 export function OpponentArea({
   round,
   player,
@@ -528,6 +540,7 @@ export function OpponentArea({
   // 公開手牌の角度・位置編集中で、この座席の手牌が実際に公開表示中なら
   // 卓上で直接ドラッグできるようにする。
   const isEditingReveal = revealEditOpen && revealHand;
+  const revealFit = REVEAL_SIDE_FIT[player] ?? REVEAL_NO_FIT;
   const lastDrawnId = hasPendingDraw ? round.lastDrawnTile?.id : undefined;
   const realDrawnTile = lastDrawnId ? p.hand.concealed.find((t) => t.id === lastDrawnId) : undefined;
   // 上家・下家の副露直後（ツモ無しで打牌待ち）は、ツモ牌の枠が空のまま
@@ -983,7 +996,7 @@ export function OpponentArea({
                   // されているため、その基準角に足し込む。translateを
                   // rotateの左に書き、移動方向が角度に左右されないようにする。
                   {
-                    transform: `translate(${revealHandOffset.x}px, ${revealHandOffset.y}px) rotate(${(player === 1 ? -90 : player === 3 ? 90 : 0) + revealHandRotate}deg)`,
+                    transform: `translate(${revealHandOffset.x + revealFit.x}px, ${revealHandOffset.y + revealFit.y}px) rotate(${(player === 1 ? -90 : player === 3 ? 90 : 0) + revealHandRotate}deg) scale(${revealFit.scale})`,
                   }
                 : undefined
             }
