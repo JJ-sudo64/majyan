@@ -23,6 +23,7 @@ import {
   type JadeBalance,
   type ApiErrorResponse,
   type GuestAccountResponse,
+  type MatchFormat,
   type MeResponse,
   type RankView,
   type RankedHistoryResponse,
@@ -93,6 +94,8 @@ interface AccountState {
   claimableMissions: number;
   /** 自分あてのフレンド申請の数。 */
   incomingFriendRequests: number;
+  /** 途中で抜けたまま続いている段位戦の形式（無ければnull）。 */
+  runningRanked: MatchFormat | null;
   error: string | null;
 }
 
@@ -113,6 +116,7 @@ export const useAccountStore = create<AccountState>(() => ({
   seenAnnouncementId: loadSeenAnnouncementId(),
   claimableMissions: 0,
   incomingFriendRequests: 0,
+  runningRanked: null,
   error: null,
 }));
 
@@ -133,6 +137,7 @@ function applyMe(me: MeResponse) {
     latestAnnouncementId: me.latestAnnouncementId,
     claimableMissions: me.claimableMissions,
     incomingFriendRequests: me.incomingFriendRequests,
+    runningRanked: me.runningRanked,
     ...(me.dailyBonus ? { dailyBonusNotice: me.dailyBonus } : {}),
     error: null,
   });
@@ -448,6 +453,7 @@ function clearLocalAccount(): void {
     latestAnnouncementId: null,
     claimableMissions: 0,
     incomingFriendRequests: 0,
+    runningRanked: null,
     error: null,
   });
 }

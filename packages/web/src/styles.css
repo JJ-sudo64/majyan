@@ -6350,6 +6350,11 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
     radial-gradient(circle at 100% 0%, rgba(230, 195, 106, 0.22), transparent 55%),
     linear-gradient(160deg, rgba(48, 33, 16, 0.94), var(--oh-ink));
 }
+.oh-resume {
+  align-self: flex-start;
+  padding: 10px 28px;
+  font-size: 16px;
+}
 .oh-card__head {
   display: flex;
   align-items: baseline;

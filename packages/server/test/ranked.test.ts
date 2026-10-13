@@ -290,10 +290,14 @@ describe("ranked match", () => {
     ps.forEach((p) => queue(p));
     const room = ps[0]!.client.last("matchFound")!.room;
     rooms.disconnect(ps[0]!.client);
+    // ホームに「対局に戻る」を出すための問い合わせ。座っていない人には出さない。
+    expect(rooms.runningRankedFormatOf(ps[0]!.profile.id)).toBe("tonpuusen");
+    expect(rooms.runningRankedFormatOf(player("Z").profile.id)).toBeNull();
 
     const back = new TestClient("A-again");
-    matchmaker!.handleMessage(back, { t: "queueRanked", authToken: ps[0]!.token, format: "tonpuusen", unitId: null });
-    expect(back.last("matchFound")?.room).toBe(room);
+    // 別の形式で並ぼうとしても、続いている卓の形式で戻る。
+    matchmaker!.handleMessage(back, { t: "queueRanked", authToken: ps[0]!.token, format: "hanchan", unitId: null });
+    expect(back.last("matchFound")).toMatchObject({ room, format: "tonpuusen" });
     rooms.handleMessage(back, { t: "join", room, authToken: ps[0]!.token, unitId: null });
     expect(back.view.seats[0]!.name).toBe("A");
 

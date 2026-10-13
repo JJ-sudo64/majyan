@@ -80,7 +80,7 @@ export class Matchmaker {
     // 段位戦の途中で抜けていた人は、並ぶ代わりにその卓へ戻ってもらう。
     const running = this.options.rooms.runningRankedRoomOf(account.id);
     if (running) {
-      client.send({ t: "matchFound", room: running, format: message.format });
+      client.send({ t: "matchFound", room: running, format: this.options.rooms.runningRankedFormatOf(account.id) ?? message.format });
       return;
     }
     if (this.options.rooms.isInRoom(client)) {

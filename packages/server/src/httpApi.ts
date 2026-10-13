@@ -17,6 +17,7 @@ import {
   type MissionsResponse,
   type InboxResponse,
   type GuestAccountResponse,
+  type MatchFormat,
   type MeResponse,
   type RankedHistoryResponse,
   type RecordsResponse,
@@ -61,6 +62,8 @@ export interface HttpApiOptions {
   moderation?: ModerationService;
   /** 雀玉の販売。無ければその機能のAPIは404。 */
   shop?: ShopService;
+  /** その人が抜けたまま続いている段位戦の形式（rooms.tsのrunningRankedFormatOf）。無ければ常にnull。 */
+  runningRankedOf?: (userId: string) => MatchFormat | null;
   /** Stripeの通知の署名を確かめる鍵（STRIPE_WEBHOOK_SECRET）。無ければ通知は受け付けない。 */
   stripeWebhookSecret?: string;
   /** このゲームを公開しているURL（支払いの後に戻る先）。無ければリクエストのOriginを使う。 */
@@ -137,6 +140,7 @@ export function createApiHandler(options: HttpApiOptions) {
     latestAnnouncementId: inbox?.latestAnnouncementId() ?? null,
     claimableMissions: missions?.claimableCount(profile.id) ?? 0,
     incomingFriendRequests: friends?.incomingCount(profile.id) ?? 0,
+    runningRanked: options.runningRankedOf?.(profile.id) ?? null,
   });
   const now = options.now ?? Date.now;
   const limit = options.guestsPerHourPerIp ?? 20;

@@ -99,6 +99,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const [agreed, setAgreed] = useState(false);
   const termsAccepted = useAccountStore((s) => s.termsAccepted);
   const incomingFriendRequests = useAccountStore((s) => s.incomingFriendRequests);
+  const runningRanked = useAccountStore((s) => s.runningRanked);
   const hasUnreadNews = useAccountStore((s) => s.latestAnnouncementId !== null && s.latestAnnouncementId > s.seenAnnouncementId);
   // 最初の10連を確定するまでは、ネット対戦の代わりにガチャ画面を出す。
   const needsFirstGacha = accountStatus === "ready" && firstGacha !== null && !firstGacha.confirmed;
@@ -143,6 +144,13 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     const id = window.setInterval(() => setNow(performance.now()), 500);
     return () => window.clearInterval(id);
   }, [queued]);
+
+  /** 途中で抜けた段位戦へ戻る。押すまでの間に終わっていたら、新しく並ばずに案内を消すだけにする。 */
+  async function returnToRanked() {
+    await loadAccount();
+    const format = useAccountStore.getState().runningRanked;
+    if (format) onlineLink.queueRanked(format, unitId);
+  }
 
   function join() {
     const trimmedRoom = roomCode.trim();
@@ -482,7 +490,22 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             </div>
           )}
 
-          {!busy && (
+          {!busy && runningRanked && (
+            <div className="oh-card oh-card--ranked oh-card--resume">
+              <div className="oh-card__head">
+                <span className="oh-card__title">対局中の段位戦</span>
+                <span className="oh-card__en">MATCH IN PROGRESS</span>
+              </div>
+              <p className="oh-card__lead">
+                {runningRanked === "hanchan" ? "半荘戦" : "東風戦"}が続いています。抜けている間は自動で打牌されます。終わるまで新しい段位戦は始められません。
+              </p>
+              <button type="button" className="btn btn--primary oh-resume" onClick={() => void returnToRanked()}>
+                対局に戻る
+              </button>
+            </div>
+          )}
+
+          {!busy && !runningRanked && (
             <div className="oh-card oh-card--ranked">
               <div className="oh-card__head">
                 <span className="oh-card__title">段位戦</span>

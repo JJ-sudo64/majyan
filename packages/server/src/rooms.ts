@@ -194,8 +194,17 @@ export class RoomManager {
 
   /** そのアカウントが座っている、まだ終わっていない段位戦の卓の合言葉。 */
   runningRankedRoomOf(userId: string): string | null {
+    return this.runningRankedOf(userId)?.code ?? null;
+  }
+
+  /** その人が座っている、まだ終わっていない段位戦の形式（無ければnull）。 */
+  runningRankedFormatOf(userId: string): MatchFormat | null {
+    return this.runningRankedOf(userId)?.ranked?.format ?? null;
+  }
+
+  private runningRankedOf(userId: string): Room | null {
     for (const room of this.rooms.values()) {
-      if (room.ranked && room.session && !room.session.finished && room.members.some((m) => m.userId === userId)) return room.code;
+      if (room.ranked && room.session && !room.session.finished && room.members.some((m) => m.userId === userId)) return room;
     }
     return null;
   }

@@ -153,6 +153,8 @@ export interface MeResponse {
   claimableMissions: number;
   /** 自分あてのフレンド申請の数（フレンドボタンの印）。 */
   incomingFriendRequests: number;
+  /** 途中で抜けたまま続いている段位戦があれば、その形式（ホームから戻れるようにする）。無ければnull。 */
+  runningRanked: MatchFormat | null;
 }
 
 /** 手持ちのキャラ1体。カードは一度付けたら外せない。 */

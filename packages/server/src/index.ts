@@ -141,6 +141,7 @@ const handleApi = createApiHandler({
   replays,
   shop,
   moderation,
+  runningRankedOf: (userId) => rooms.runningRankedFormatOf(userId),
   stripeWebhookSecret: liveSales ? stripeWebhookSecret : undefined,
   publicUrl: process.env.PUBLIC_URL || undefined,
   admin: {
