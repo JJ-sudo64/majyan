@@ -116,8 +116,8 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
           {selectedCharacter && (
             <img
               key={selectedCharacter.id}
-              className={`oh-stage__art${selectedCharacter.cutin ? "" : " oh-stage__art--avatar"}`}
-              src={selectedCharacter.cutin ?? selectedCharacter.avatar}
+              className={`oh-stage__art${selectedCharacter.topArt ? " oh-stage__art--top" : selectedCharacter.cutin ? "" : " oh-stage__art--avatar"}`}
+              src={selectedCharacter.topArt ?? selectedCharacter.cutin ?? selectedCharacter.avatar}
               alt=""
             />
           )}

@@ -454,8 +454,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {shownCharacter && (
             <img
               key={shownCharacter.id}
-              className={`oh-stage__art${shownCharacter.cutin ? "" : " oh-stage__art--avatar"}${chosen ? "" : " oh-stage__art--random"}`}
-              src={shownCharacter.cutin ?? shownCharacter.avatar}
+              className={`oh-stage__art${shownCharacter.topArt ? " oh-stage__art--top" : shownCharacter.cutin ? "" : " oh-stage__art--avatar"}${chosen ? "" : " oh-stage__art--random"}`}
+              src={shownCharacter.topArt ?? shownCharacter.cutin ?? shownCharacter.avatar}
               alt=""
             />
           )}

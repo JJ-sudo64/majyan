@@ -6288,6 +6288,24 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .oh-stage__art--random {
   filter: grayscale(0.85) brightness(0.55) drop-shadow(0 0 28px rgba(0, 0, 0, 0.65));
 }
+/* トップ絵（卓に座った横長の絵）: 枠いっぱいに敷き、四辺を背景に溶かす。 */
+.oh-stage__art--top {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  object-fit: cover;
+  object-position: center 35%;
+  filter: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%), linear-gradient(180deg, transparent 0%, #000 8%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%), linear-gradient(180deg, transparent 0%, #000 8%, #000 82%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+.oh-stage__art--top.oh-stage__art--random {
+  filter: grayscale(0.85) brightness(0.55);
+}
 /* 立ち絵がまだ無いキャラ: 顔アイコンを額に入れて出す。 */
 .oh-stage__art--avatar {
   bottom: 50%;

@@ -146,6 +146,9 @@ export interface Character {
   avatar: string;
   /** 必殺技発動演出（カットイン）用の縦長立ち絵。未指定ならavatarを代わりに使う。 */
   cutin?: string;
+  /** ホーム画面（CPU戦の選択・オンラインのホーム）の大きな枠に出す、卓に座った横長の絵。
+      未指定ならcutin（無ければavatar）を代わりに使う。 */
+  topArt?: string;
   /** リーチ・ツモ・ロンを宣言した瞬間に画面いっぱいに出す1枚絵（public/配下、
       横長）。用意したキャラ・宣言だけ演出を出し、無ければ何も出さない
       （web側のDeclarationCutinOverlay.tsx参照）。絵に「リーチ」等の文字が

@@ -164,6 +164,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "花は散っても、想いは散りません。だから、また咲かせましょう…！",
     avatar: "/avatars/characters/hiiragi.webp",
     cutin: "/avatars/characters/hiiragi-cutin.webp",
+    topArt: "/avatars/characters/hiiragi-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌は写っていないのでcrop不要。文字が右端ぎりぎりにあるため
     // keepEdge: "right"にする。
@@ -197,6 +198,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "牌の並びなんて、ちょっと手を加えるだけ。運も実力のうち、でしょう？",
     avatar: "/avatars/characters/nagi.webp",
     cutin: "/avatars/characters/nagi-cutin.webp",
+    topArt: "/avatars/characters/nagi-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 卓の牌は裏向きで種類が分からず、実際の牌と食い違って見えないのでcrop
     // 不要。文字が右端ぎりぎりにあるためkeepEdge: "right"にする。
@@ -247,6 +249,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "迷いは捨てろ。考えた瞬間、負けは始まる。オレの一撃は、雷鳴とともにすべてを終わらせる。",
     avatar: "/avatars/characters/raiko.webp",
     cutin: "/avatars/characters/raiko-cutin.webp",
+    topArt: "/avatars/characters/raiko-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 卓の牌は黒地に金の龍の模様で種類が分からず、実際の牌と食い違って見え
     // ないのでcrop不要。文字がツモは左上、リーチ・ロンは右端ぎりぎりにあるため、
@@ -339,6 +342,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "未来は決まっている。ただ、まだ見えないだけだ。",
     avatar: "/avatars/characters/toki.webp",
     cutin: "/avatars/characters/toki-cutin.webp",
+    topArt: "/avatars/characters/toki-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌は写っていないのでcrop不要。文字が右端ぎりぎりにあり帯の斜めの
     // 欠けで削れるためkeepEdge: "right"にする。
@@ -378,6 +382,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "勝負は、派手に勝つより、静かに勝つもの。誰も気づいた時には、もう終わってる。",
     avatar: "/avatars/characters/kagerou.webp",
     cutin: "/avatars/characters/kagerou-cutin.webp",
+    topArt: "/avatars/characters/kagerou-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌が写っていないのでcrop不要。文字が左上に寄っていて帯の斜めの欠けで
     // 削れるためkeepEdge: "top-left"にする。
@@ -414,6 +419,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "配られた運命は変えられなくても、並び替えることはできる。それが、わたしのやり方。",
     avatar: "/avatars/characters/runa.webp",
     cutin: "/avatars/characters/runa-cutin.webp",
+    topArt: "/avatars/characters/runa-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌は写っていないのでcrop不要。文字が左上ぎりぎりにあり、帯の斜めの
     // 欠けで削れるためkeepEdge: "top-left"にする。
@@ -455,6 +461,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "運任せなんて言葉は、数えることを放棄した者の言い訳だ。俺はただ、見えている数を数えただけだよ。",
     avatar: "/avatars/characters/subaru.webp",
     cutin: "/avatars/characters/subaru-cutin.webp",
+    topArt: "/avatars/characters/subaru-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌は写っていないのでcrop不要。文字がリーチ・ロンは左上、ツモは右端
     // ぎりぎりにあり帯の斜めの欠けで削れるため、それぞれkeepEdgeを付ける。
@@ -492,6 +499,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "一歩ずつでいい。だが、その一歩を疎かにする者に、大成は無い。",
     avatar: "/avatars/characters/kaede.webp",
     cutin: "/avatars/characters/kaede-cutin.webp",
+    topArt: "/avatars/characters/kaede-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌は写っていないのでcrop不要。文字が右端ぎりぎりにあり、帯の斜めの欠け
     // (どちら向きでも)で削れるためkeepEdge: "right"にする。
@@ -650,6 +658,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "見せてやるよ、俺の手は。逃げも隠れもしない、それが漢の勝負ってもんだ。",
     avatar: "/avatars/characters/jin.webp",
     cutin: "/avatars/characters/jin-cutin.webp",
+    topArt: "/avatars/characters/jin-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // リーチの絵は左下の牌(筒子)が「チ」の払いと同じ高さにあり上下では外せない
     // ので、左側を切って外す。文字が右端ぎりぎりにあるためkeepEdge: "right"にする。
@@ -689,6 +698,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "運は掴むものじゃない。捲るものだ。ほら、見えただろ？",
     avatar: "/avatars/characters/ren.webp",
     cutin: "/avatars/characters/ren-cutin.webp",
+    topArt: "/avatars/characters/ren-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // リーチは左下、ツモは下端に卓の牌が写っているのでcropで外す。文字が
     // リーチは左端、ツモ・ロンは右端ぎりぎりにあるため、それぞれkeepEdgeを付ける。
@@ -730,6 +740,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "三色以外いらない。三色こそ至高。",
     avatar: "/avatars/characters/masato.webp",
     cutin: "/avatars/characters/masato-cutin.webp",
+    topArt: "/avatars/characters/masato-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // リーチの絵の卓の牌は裏向き・ぼやけで種類が分からず、実際の牌と食い違って
     // 見えないのでcrop不要（切ると「チ」の払いも切れる）。文字が右端ぎりぎりに
@@ -855,6 +866,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "見えていたもの、そのまま。……たまには外れてくれても面白いのにね。",
     avatar: "/avatars/characters/mirai.webp",
     cutin: "/avatars/characters/mirai-cutin.webp",
+    topArt: "/avatars/characters/mirai-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // リーチの絵は左下と中央下に表向きの牌が写っているので、左と下を切って
     // 外す（「チ」の払いは残る）。文字が右端ぎりぎりにあるためkeepEdge: "right"にする。
@@ -896,6 +908,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "運も実力のうち？　いいえ、これは実力よ。持ってる女に、外れなんて無いの。",
     avatar: "/avatars/characters/saki.webp",
     cutin: "/avatars/characters/saki-cutin.webp",
+    topArt: "/avatars/characters/saki-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // リーチ・ロンは卓の手牌が下に、ツモは手に持った牌が左に写っているので
     // cropで外す。文字が右端ぎりぎりにあるためkeepEdge: "right"にする。
@@ -1041,6 +1054,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "誰の卓だ？　俺の卓だ。親が続く限り、この場はずっと俺のものだ。",
     avatar: "/avatars/characters/naoki.webp",
     cutin: "/avatars/characters/naoki-cutin.webp",
+    topArt: "/avatars/characters/naoki-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // リーチの絵は下に卓の牌(手牌・つまんだ牌)が写っているのでcropで外す
     // (「チ」の払いの先端も少し切れる)。文字が右端ぎりぎりにあるため
@@ -1096,6 +1110,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "たった1枚で待つ男に、隙なんて見せられるわけないだろ？",
     avatar: "/avatars/characters/tomohiro.webp",
     cutin: "/avatars/characters/tomohiro-cutin.webp",
+    topArt: "/avatars/characters/tomohiro-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // ツモの絵は左下の端に牌の頭が少し写っているのでcropで外す。リーチは文字が
     // 左上、ツモ・ロンは右端ぎりぎりにあるため、それぞれkeepEdgeを付ける。
@@ -1154,6 +1169,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "ケチケチしても始まらない。パーッと捨てて、パーッと拾おうぜ。",
     avatar: "/avatars/characters/koki.webp",
     cutin: "/avatars/characters/koki-cutin.webp",
+    topArt: "/avatars/characters/koki-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌は写っていない(お札・グラス・葉巻のみ)のでcrop不要。文字が右端
     // ぎりぎりにあるためkeepEdge: "right"にする。
@@ -1233,6 +1249,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "最速も最強も、生き残ってこそだろ？降りる時はきっちり降りる、それだけの話だ。",
     avatar: "/avatars/characters/takaharu.webp",
     cutin: "/avatars/characters/takaharu-cutin.webp",
+    topArt: "/avatars/characters/takaharu-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌は写っていないのでcrop不要。文字が右端ぎりぎりにあるため
     // keepEdge: "right"にする。
@@ -1284,6 +1301,7 @@ export const CHARACTERS: Record<string, Character> = {
     description: "必殺技「アトミックリーチ」: ゲージが満タンの状態でリーチすると、自動的にアトミックリーチになる。発動した局は、他の3人がリーチできなくなる。",
     winQuote: "鳴くのはオレだけでいい。お前らの声は、もう聞こえなくなる。",
     avatar: "/avatars/characters/nyanjiro.webp",
+    topArt: "/avatars/characters/nyanjiro-top.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
     // `character.cutin ?? character.avatar`参照）に委ねる。
@@ -1329,6 +1347,7 @@ export const CHARACTERS: Record<string, Character> = {
     description: "必殺技「陰陽配牌」: パッシブスキル。親番でない局は配牌に面子（刻子や順子）が必ず1つ以上揃っている。その代わり、親番の局は逆に配牌が必ず面子0個のバラバラな形になる。",
     winQuote: "表があれば、裏がある。今のわたしは、ちゃんと表側。",
     avatar: "/avatars/characters/mebius.webp",
+    topArt: "/avatars/characters/mebius-top.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
     // `character.cutin ?? character.avatar`参照）に委ねる。
@@ -1382,6 +1401,7 @@ export const CHARACTERS: Record<string, Character> = {
     avatar: "/avatars/characters/koji.webp",
     // アイコンと縦長カットインは、リーチの絵から顔まわりを切り出したもの。
     cutin: "/avatars/characters/koji-cutin.webp",
+    topArt: "/avatars/characters/koji-top.webp",
     // 3枚とも「リーチ」「ロン」「ツモ」の金文字が右側に描き込まれている。
     // 牌は写っていないのでcrop不要。文字が右端寄りなのでkeepEdge: "right"にする。
     declarationArt: {
@@ -1422,6 +1442,7 @@ export const CHARACTERS: Record<string, Character> = {
     avatar: "/avatars/characters/nannan.webp",
     // アイコンと縦長カットインは、リーチの絵から顔まわりを切り出したもの。
     cutin: "/avatars/characters/nannan-cutin.webp",
+    topArt: "/avatars/characters/nannan-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の金文字が右側に描き込まれている。
     // 牌は写っていないのでcrop不要。文字が右端寄りなのでkeepEdge: "right"にする。
     declarationArt: {
@@ -1461,6 +1482,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "ツモなんて要らない。お前の切った一枚で、全部決める。",
     // 専用の立ち絵・カットイン・宣言の絵は未用意。差し替えるまで仮の座席アイコンを使う。
     avatar: "/avatars/seat3.svg",
+    topArt: "/avatars/characters/deagari-top.webp",
     gaugeMax: 100,
     gaugePerTurn: 10,
     gaugePerDealIn: 20,
@@ -1489,6 +1511,7 @@ export const CHARACTERS: Record<string, Character> = {
     description: "必殺技「時間停止」: 発動すると時間が止まり、自分だけが2巡連続で行動できる（他の3人は一切反応できない）。",
     winQuote: "止まった刻の中で足掻いたところで、何も変わりはしないさ。",
     avatar: "/avatars/characters/zeno.webp",
+    topArt: "/avatars/characters/zeno-top.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
     // `character.cutin ?? character.avatar`参照）に委ねる。
@@ -1535,6 +1558,7 @@ export const CHARACTERS: Record<string, Character> = {
     description: "必殺技「写し身」: 発動すると、直前に他の誰かが使った必殺技を自分に対してそのまま再現する（自分自身が直前に使った場合や、まだ誰も使っていない場合は不発）。",
     winQuote: "見せてもらった技はもう私のもの。真似ることだって立派な才能でしょう？",
     avatar: "/avatars/characters/kagami.webp",
+    topArt: "/avatars/characters/kagami-top.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
     // `character.cutin ?? character.avatar`参照）に委ねる。
@@ -1673,6 +1697,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "困った時はお互い様でしょ？ ちょっとその技、借りてくね！",
     avatar: "/avatars/characters/karin.webp",
     cutin: "/avatars/characters/karin-cutin.webp",
+    topArt: "/avatars/characters/karin-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // リーチの絵は下端に表向きの牌の列が写っているのでcropで外す（ツモの右下は
     // 伏せた牌で種類が分からないのでそのまま）。文字がリーチ・ツモは左端、ロンは
@@ -1709,6 +1734,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "危ない橋は渡らない。それだけで、案外生き残れるものでしょう？",
     avatar: "/avatars/characters/sena.webp",
     cutin: "/avatars/characters/sena-cutin.webp",
+    topArt: "/avatars/characters/sena-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // ロンの絵は手でつまんだ表向きの牌が下に写っているのでcropで外す（左の
     // 牌の山は伏せていて種類が分からないので残る）。文字がリーチ・ロンは左端、
@@ -1767,6 +1793,7 @@ export const CHARACTERS: Record<string, Character> = {
     winQuote: "やり直しなんて、いくらでも利くのよ。過去の一手くらい、今から書き換えてあげる。",
     avatar: "/avatars/characters/mio.webp",
     cutin: "/avatars/characters/mio-cutin.webp",
+    topArt: "/avatars/characters/mio-top.webp",
     // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
     // 牌は写っていないのでcrop不要。文字が右端ぎりぎりにあるため
     // keepEdge: "right"にする。
