@@ -48,10 +48,8 @@ button {
 }
 /* メニュー（CPU戦の選択・オンラインのホーム）も卓と同じキャンバスに描く。中では
    画面の幅・高さ(vw/vh)の代わりにキャンバスの大きさを使う（--app-vw/--app-vh。
-   Stage.tsxのSTAGE_WIDTH/STAGE_HEIGHTの1/100）。PCでも横向きスマホでも同じ配置になる。 */
+   Stage.tsxがキャンバスの1/100を入れる）。PCでも横向きスマホでも同じ配置になる。 */
 .stage--menu .stage__canvas {
-  --app-vw: 13.92px;
-  --app-vh: 7.48px;
   overflow: hidden;
 }
 

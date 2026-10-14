@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useFitScale } from "../hooks/useFitScale.js";
 
 /**
@@ -31,12 +31,31 @@ export const STAGE_HEIGHT = 748;
  * zoomはレイアウト計算そのものを縮尺後のサイズで行う（＝実際にその解像度で
  * 描き直す）ため、この種のぼやけがそもそも起こらない。
  */
+/**
+ * メニューは卓より小さいキャンバスに描いて、そのぶん大きく拡大して見せる（比率は卓と同じ）。
+ * 卓と同じ大きさのままだと、横向きスマホで文字が半分ほどになって読みにくいため。
+ * 値を大きくするほどメニュー全体が大きくなる（そのぶん1画面に入る量は減る）。
+ */
+export const MENU_MAGNIFY = 1.25;
+const MENU_WIDTH = Math.round(STAGE_WIDTH / MENU_MAGNIFY);
+const MENU_HEIGHT = Math.round(STAGE_HEIGHT / MENU_MAGNIFY);
+
 export function Stage({ children, menu = false }: { children: ReactNode; /** メニュー画面を描く（卓と同じ大きさのキャンバスに、同じ縮め方で出す）。 */ menu?: boolean }) {
-  const { containerRef, scale } = useFitScale(STAGE_WIDTH, STAGE_HEIGHT);
+  const width = menu ? MENU_WIDTH : STAGE_WIDTH;
+  const height = menu ? MENU_HEIGHT : STAGE_HEIGHT;
+  const { containerRef, scale } = useFitScale(width, height);
 
   return (
     <div className={`stage${menu ? " stage--menu" : ""}`} ref={containerRef}>
-      <div className="stage__canvas" style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT, zoom: scale }}>
+      <div className="stage__canvas" style={
+          {
+            width,
+            height,
+            zoom: scale,
+            // メニューの中では、画面の幅・高さの代わりにキャンバスの大きさを使う（styles.cssの--app-vw/--app-vh）。
+            ...(menu ? { "--app-vw": `${width / 100}px`, "--app-vh": `${height / 100}px` } : null),
+          } as CSSProperties
+        }>
         {children}
       </div>
     </div>
