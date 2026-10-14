@@ -2,9 +2,11 @@ import { useState } from "react";
 import { CARDS, CHARACTERS, cardRarity, characterRarity, type CharacterUnit } from "@majyan/core";
 import { equipCard, useAccountStore } from "../online/account.js";
 import { RARITY_STARS } from "./GachaCard.js";
+import { UnitDetail } from "./UnitDetail.js";
 
 /**
- * 手持ちのキャラとカード。カードを付けていないキャラに、手持ちのカードを1枚付けられる。
+ * 手持ちのキャラとカード。キャラを押すと必殺技と付けたカードの説明が出る。
+ * カードを付けていないキャラには、手持ちのカードを1枚付けられる。
  * 一度付けたカードは外せないので、付ける前に必ず確認を挟む。
  */
 export function UnitsScreen({ onClose }: { onClose: () => void }) {
@@ -15,6 +17,11 @@ export function UnitsScreen({ onClose }: { onClose: () => void }) {
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cardIds = Object.keys(cards).sort((a, b) => cardRarity(b) - cardRarity(a));
+
+  function closeDetail() {
+    setSelectedUnit(null);
+    setSelectedCard(null);
+  }
 
   async function confirmEquip() {
     if (!selectedUnit || !selectedCard) return;
@@ -31,83 +38,96 @@ export function UnitsScreen({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="gacha-screen" onClick={(e) => e.stopPropagation()}>
-        <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">手持ち（{units.length}体）</div>
-          <button type="button" className="setup-picker-modal__close" onClick={onClose}>
-            ×
-          </button>
-        </div>
-        <p className="setup-lead">カードはキャラ1体に1枚だけ付けられます。一度付けたカードは外せません。</p>
-        {error && <p className="online-lobby__error">{error}</p>}
+    <>
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="gacha-screen" onClick={(e) => e.stopPropagation()}>
+          <div className="setup-picker-modal__header">
+            <div className="setup-character-select__label">手持ち（{units.length}体）</div>
+            <button type="button" className="setup-picker-modal__close" onClick={onClose}>
+              ×
+            </button>
+          </div>
+          <p className="setup-lead">カードはキャラ1体に1枚だけ付けられます。一度付けたカードは外せません。</p>
+          {error && <p className="online-lobby__error">{error}</p>}
 
-        <div className="units-screen__grid">
-          {units.map((u) => {
-            const character = CHARACTERS[u.characterId];
-            const card = u.cardId ? CARDS[u.cardId] : undefined;
-            const selectable = !u.cardId && cardIds.length > 0;
-            return (
-              <button
-                key={u.unitId}
-                type="button"
-                className={`units-screen__unit${selectedUnit?.unitId === u.unitId ? " units-screen__unit--selected" : ""}`}
-                disabled={!selectable}
-                onClick={() => {
-                  setSelectedUnit(u);
-                  setSelectedCard(null);
-                }}
-              >
-                {character && <img src={character.avatar} alt="" />}
-                <span className="units-screen__stars">{RARITY_STARS[characterRarity(u.characterId)]}</span>
-                <span className="units-screen__name">{character?.name.split("・").at(-1) ?? u.characterId}</span>
-                <span className={`units-screen__card${card ? "" : " units-screen__card--none"}`}>
-                  {card ? `${RARITY_STARS[cardRarity(u.cardId!)]} ${card.name}` : "カードなし"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {selectedUnit && (
-          <div className="units-screen__equip">
-            <div className="online-lobby__section-title">
-              {CHARACTERS[selectedUnit.characterId]?.name} に付けるカード
-            </div>
-            <div className="units-screen__cards">
-              {cardIds.map((id) => (
+          <div className="units-screen__grid">
+            {units.map((u) => {
+              const character = CHARACTERS[u.characterId];
+              const card = u.cardId ? CARDS[u.cardId] : undefined;
+              return (
                 <button
-                  key={id}
+                  key={u.unitId}
                   type="button"
-                  className={`units-screen__card-choice${selectedCard === id ? " units-screen__card-choice--selected" : ""}`}
-                  title={CARDS[id]?.description}
-                  onClick={() => setSelectedCard(id)}
+                  className={`units-screen__unit${selectedUnit?.unitId === u.unitId ? " units-screen__unit--selected" : ""}`}
+                  onClick={() => {
+                    setSelectedUnit(u);
+                    setSelectedCard(null);
+                  }}
                 >
-                  {RARITY_STARS[cardRarity(id)]} {CARDS[id]?.name ?? id}（{cards[id]}枚）
-                  <span className="units-screen__card-desc">{CARDS[id]?.description}</span>
+                  {character && <img src={character.avatar} alt="" />}
+                  <span className="units-screen__stars">{RARITY_STARS[characterRarity(u.characterId)]}</span>
+                  <span className="units-screen__name">{character?.name.split("・").at(-1) ?? u.characterId}</span>
+                  <span className={`units-screen__card${card ? "" : " units-screen__card--none"}`}>
+                    {card ? `${RARITY_STARS[cardRarity(u.cardId!)]} ${card.name}` : "カードなし"}
+                  </span>
                 </button>
-              ))}
+              );
+            })}
+          </div>
+
+          {cardIds.length === 0 && <p className="setup-lead">付けられるカードを持っていません（カードはガチャで手に入ります）。</p>}
+        </div>
+      </div>
+      {selectedUnit && (
+        <div className="modal-overlay" onClick={closeDetail}>
+          <div className="gacha-screen units-screen__detail" onClick={(e) => e.stopPropagation()}>
+            <div className="setup-picker-modal__header">
+              <div className="setup-character-select__label">キャラの詳細</div>
+              <button type="button" className="setup-picker-modal__close" onClick={closeDetail}>
+                ×
+              </button>
             </div>
-            {selectedCard && (
-              <div className="first-gacha__confirm">
-                <p>
-                  {CHARACTERS[selectedUnit.characterId]?.name} に「{CARDS[selectedCard]?.name}」を付けますか？
-                  <strong>一度付けると外せません。</strong>
-                </p>
-                <div className="setup-buttons">
-                  <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void confirmEquip()}>
-                    付ける
-                  </button>
-                  <button type="button" className="btn btn--secondary" onClick={() => setSelectedCard(null)}>
-                    やめる
-                  </button>
+            {error && <p className="online-lobby__error">{error}</p>}
+            <UnitDetail characterId={selectedUnit.characterId} cardId={selectedUnit.cardId} />
+            {selectedUnit && !selectedUnit.cardId && cardIds.length > 0 && (
+              <div className="units-screen__equip">
+                <div className="online-lobby__section-title">{CHARACTERS[selectedUnit.characterId]?.name} に付けるカード</div>
+                <div className="units-screen__cards">
+                  {cardIds.map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`units-screen__card-choice${selectedCard === id ? " units-screen__card-choice--selected" : ""}`}
+                      title={CARDS[id]?.description}
+                      onClick={() => setSelectedCard(id)}
+                    >
+                      {RARITY_STARS[cardRarity(id)]} {CARDS[id]?.name ?? id}（{cards[id]}枚）
+                      <span className="units-screen__card-desc">{CARDS[id]?.description}</span>
+                    </button>
+                  ))}
                 </div>
+                {selectedCard && (
+                  <div className="first-gacha__confirm">
+                    <p>
+                      {CHARACTERS[selectedUnit.characterId]?.name} に「
+                      {CARDS[selectedCard]?.name}」を付けますか？
+                      <strong>一度付けると外せません。</strong>
+                    </p>
+                    <div className="setup-buttons">
+                      <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void confirmEquip()}>
+                        付ける
+                      </button>
+                      <button type="button" className="btn btn--secondary" onClick={() => setSelectedCard(null)}>
+                        やめる
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-        {cardIds.length === 0 && <p className="setup-lead">付けられるカードを持っていません（カードはガチャで手に入ります）。</p>}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }

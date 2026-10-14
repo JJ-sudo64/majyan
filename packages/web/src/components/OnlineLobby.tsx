@@ -5,6 +5,7 @@ import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from 
 import { FirstGacha } from "./FirstGacha.js";
 import { GachaScreen } from "./GachaScreen.js";
 import { UnitsScreen } from "./UnitsScreen.js";
+import { UnitDetail } from "./UnitDetail.js";
 import { TransferScreen } from "./TransferScreen.js";
 import { HistoryScreen } from "./HistoryScreen.js";
 import { InboxScreen, type InboxTab } from "./InboxScreen.js";
@@ -115,6 +116,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   /** 対局に出す手持ちのキャラ（付いているカードごと出る）。null=おまかせ。 */
   const [unitId, setUnitId] = useState<string | null>(() => loadSaved(UNIT_KEY) || null);
   const [showUnitPicker, setShowUnitPicker] = useState(false);
+  const [showUnitDetail, setShowUnitDetail] = useState(false);
   const [continueBelowZero, setContinueBelowZero] = useState(false);
   /** 上のバーの「その他」（名前の変更・引き継ぎ・規約）を開いているか。 */
   const [showMenu, setShowMenu] = useState(false);
@@ -207,6 +209,19 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {showLegal && <LegalScreen onClose={() => setShowLegal(false)} />}
       {profile && !termsAccepted && <TermsConsent />}
       {showShop && profile && !needsFirstGacha && <ShopScreen returned={shopReturn} onClose={() => setShowShop(false)} />}
+      {showUnitDetail && chosen && (
+        <div className="modal-overlay" onClick={() => setShowUnitDetail(false)}>
+          <div className="gacha-screen units-screen__detail" onClick={(e) => e.stopPropagation()}>
+            <div className="setup-picker-modal__header">
+              <div className="setup-character-select__label">対局に出すキャラ</div>
+              <button type="button" className="setup-picker-modal__close" onClick={() => setShowUnitDetail(false)}>
+                ×
+              </button>
+            </div>
+            <UnitDetail characterId={chosen.unit.characterId} cardId={chosen.unit.cardId} />
+          </div>
+        </div>
+      )}
       {showUnitPicker && (
         <div className="modal-overlay" onClick={() => setShowUnitPicker(false)}>
           <div className="gacha-screen" onClick={(e) => e.stopPropagation()}>
@@ -480,6 +495,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               <button type="button" className="oh-ghost oh-plate__change" disabled={status === "connecting" || queued} onClick={() => setShowUnitPicker(true)}>
                 キャラを変える
               </button>
+              {chosen && (
+                <button type="button" className="oh-ghost" onClick={() => setShowUnitDetail(true)}>
+                  詳しく見る
+                </button>
+              )}
             </div>
           </div>
         </section>

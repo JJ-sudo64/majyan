@@ -5014,6 +5014,70 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   font-size: 11px;
   opacity: 0.75;
 }
+.units-screen__detail {
+  width: min(720px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
+}
+
+/* キャラ1体の詳細（UnitDetail.tsx）: 左に立ち絵、右に必殺技とカードの説明。 */
+.unit-detail {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  align-items: flex-start;
+}
+.unit-detail__art {
+  flex: none;
+  width: 180px;
+  height: 300px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 10px;
+  border: 1px solid rgba(230, 195, 106, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+.unit-detail__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.unit-detail__name {
+  font-size: 20px;
+  font-weight: 700;
+}
+.unit-detail__stars {
+  color: #ffd34d;
+  margin-right: 6px;
+  font-size: 0.8em;
+}
+.unit-detail__box {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(230, 195, 106, 0.35);
+  background: rgba(0, 0, 0, 0.45);
+}
+.unit-detail__box--card {
+  border-color: rgba(201, 184, 255, 0.4);
+}
+.unit-detail__label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe4a3;
+}
+.unit-detail__box--card .unit-detail__label {
+  color: #c9b8ff;
+}
+.unit-detail__label--none {
+  color: #999;
+  font-weight: normal;
+}
+.unit-detail__text {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
 
 /* 引き継ぎ（TransferScreen） */
 .transfer-screen {
