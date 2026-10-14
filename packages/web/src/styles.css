@@ -46,6 +46,14 @@ button {
   position: relative;
   flex-shrink: 0;
 }
+/* メニュー（CPU戦の選択・オンラインのホーム）も卓と同じキャンバスに描く。中では
+   画面の幅・高さ(vw/vh)の代わりにキャンバスの大きさを使う（--app-vw/--app-vh。
+   Stage.tsxのSTAGE_WIDTH/STAGE_HEIGHTの1/100）。PCでも横向きスマホでも同じ配置になる。 */
+.stage--menu .stage__canvas {
+  --app-vw: 13.92px;
+  --app-vh: 7.48px;
+  overflow: hidden;
+}
 
 /* ============ タイトル画面 ============
    AI生成の一枚絵（ボタンの見た目込み）を背景として敷き、その上に絵の
@@ -4100,7 +4108,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   padding: 10px 14px;
   font-size: 12.5px;
   width: 300px;
-  max-height: calc(100vh - 32px);
+  max-height: calc(calc(var(--app-vh, 1vh) * 100) - 32px);
   overflow-y: auto;
 }
 .tile3d-debug-panel__header {
@@ -4252,7 +4260,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   padding: 8px 12px;
   font-size: 12.5px;
   color: #f4f1e8;
-  width: min(90vw, 460px);
+  width: min(calc(var(--app-vw, 1vw) * 90), 460px);
 }
 /* 手牌配置編集は副露配置編集と同時に開くこともあり得るため、上下で
    重ならないようにこちらは下部に置く（.meld-edit-toolbarと併用する
@@ -4447,7 +4455,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 
 /* ===== カットイン一覧（?cutin-gallery、CutinGallery.tsx） ===== */
 .cutin-gallery {
-  height: 100vh;
+  height: calc(var(--app-vh, 1vh) * 100);
   box-sizing: border-box;
   padding: 16px;
   background: #120a1e;
@@ -4517,7 +4525,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 
 /* ===== 勝利台詞一覧（?quote-gallery、QuoteGallery.tsx） ===== */
 .quote-gallery {
-  height: 100vh;
+  height: calc(var(--app-vh, 1vh) * 100);
   box-sizing: border-box;
   padding: 16px 24px 40px;
   background: #120a1e;
@@ -4724,11 +4732,6 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   gap: 8px;
   width: 100%;
 }
-@media (max-width: 640px) {
-  .first-gacha__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 .gacha-card {
   display: flex;
   flex-direction: column;
@@ -4807,8 +4810,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: min(900px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
+  width: min(900px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
+  max-height: calc(calc(var(--app-vh, 1vh) * 100) - 32px);
   overflow-y: auto;
   padding: 14px 16px;
   border-radius: 12px;
@@ -5016,7 +5019,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 
 /* 引き継ぎ（TransferScreen） */
 .transfer-screen {
-  width: min(560px, calc(100vw - 32px));
+  width: min(560px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
   align-items: stretch;
 }
 .transfer-screen__section {
@@ -5079,7 +5082,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 
 /* 戦績（HistoryScreen） */
 .history-screen {
-  width: min(720px, calc(100vw - 32px));
+  width: min(720px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
   align-items: stretch;
 }
 .history-screen__stats {
@@ -5218,15 +5221,6 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   border-radius: 6px;
   font-size: 14px;
 }
-@media (max-width: 560px) {
-  .history-screen__seats {
-    grid-template-columns: 1fr;
-  }
-  .history-screen__stats thead th:last-child,
-  .history-screen__stats td:last-child {
-    display: none;
-  }
-}
 
 /* お知らせ・プレゼント（InboxScreen） */
 .online-lobby__gacha-btn {
@@ -5256,7 +5250,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   right: -3px;
 }
 .inbox-screen {
-  width: min(640px, calc(100vw - 32px));
+  width: min(640px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
   align-items: stretch;
 }
 .inbox-screen__tabs {
@@ -5483,7 +5477,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   align-items: center;
   justify-content: center;
   gap: 8px 16px;
-  max-width: calc(100vw - 24px);
+  max-width: calc(calc(var(--app-vw, 1vw) * 100) - 24px);
   padding: 8px 14px;
   border-radius: 12px;
   background: rgba(16, 12, 8, 0.92);
@@ -5529,14 +5523,14 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 
 /* 運営用の管理画面（AdminPage, /?admin）。ゲームの見た目とは切り離した、読みやすさ優先の画面。 */
 .admin-page {
-  min-height: 100vh;
+  min-height: calc(var(--app-vh, 1vh) * 100);
   box-sizing: border-box;
-  padding: 16px clamp(16px, 4vw, 40px) 48px;
+  padding: 16px clamp(16px, calc(var(--app-vw, 1vw) * 4), 40px) 48px;
   background: #f6f4ef;
   color: #222;
   font-size: 14px;
   overflow-y: auto;
-  height: 100vh;
+  height: calc(var(--app-vh, 1vh) * 100);
 }
 .admin-page h1 {
   font-size: 20px;
@@ -5914,7 +5908,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   cursor: pointer;
 }
 .legal-screen__body {
-  max-height: min(56vh, 520px);
+  max-height: min(calc(var(--app-vh, 1vh) * 56), 520px);
   overflow-y: auto;
   padding-right: 6px;
   text-align: left;
@@ -5995,8 +5989,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   --oh-line: rgba(230, 195, 106, 0.38);
   --oh-serif: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
   position: relative;
-  height: 100vh;
-  height: 100dvh;
+  height: calc(var(--app-vh, 1vh) * 100);
+  height: calc(var(--app-vh, 1dvh) * 100);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
@@ -6695,168 +6689,6 @@ button.oh-player__rank:hover .oh-player__rank-help {
   width: min(440px, 100%);
 }
 
-/* ---- 縦長・狭い画面: 立ち絵を上の帯に回してパネルを全幅にする ---- */
-@media (max-width: 860px) and (orientation: portrait), (max-width: 640px) {
-  .oh-top {
-    flex-wrap: wrap;
-    gap: 8px 10px;
-    padding: 8px 10px;
-  }
-  .oh-top__spacer {
-    display: none;
-  }
-  .oh-player {
-    flex: 1;
-  }
-  .oh-player__name {
-    max-width: 40vw;
-  }
-  .oh-player__rank-bar {
-    width: 60px;
-  }
-  .oh-player {
-    min-width: 0;
-  }
-  .oh-top__icons {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .oh-iconbtn {
-    min-width: 0;
-    flex: 1;
-  }
-  .oh-menu {
-    flex: 1;
-    display: flex;
-  }
-  .oh-main {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    padding: 0;
-    overflow-y: auto;
-  }
-  .oh-stage {
-    flex: 0 0 auto;
-    height: 250px;
-  }
-  .oh-stage__art {
-    left: auto;
-    right: -10px;
-    height: 150%;
-    bottom: auto;
-    top: 0;
-    transform: none;
-    animation: none;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 35%), linear-gradient(180deg, #000 45%, transparent 66%);
-    mask-image: linear-gradient(90deg, transparent 0%, #000 35%), linear-gradient(180deg, #000 45%, transparent 66%);
-  }
-  .oh-stage__art--avatar {
-    top: 20px;
-    right: 20px;
-    height: 150px;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .oh-plate {
-    left: 10px;
-    bottom: 10px;
-    width: min(300px, 68%);
-  }
-  .oh-plate__name {
-    font-size: 17px;
-  }
-  .oh-panel {
-    flex: 0 0 auto;
-    overflow: visible;
-    padding: 12px 10px 16px;
-  }
-  .oh-panel > :first-child,
-  .oh-panel > :last-child {
-    margin-top: 0;
-    margin-bottom: 0;
-  }
-  .oh-card__title {
-    font-size: 19px;
-  }
-  .oh-seats {
-    grid-template-columns: 1fr;
-  }
-  .oh-card--room .oh-mode__name {
-    font-size: 15px;
-  }
-  .oh-dock {
-    gap: 6px;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-  .oh-dock__btn {
-    flex: 1 1 0;
-    flex-direction: column;
-    gap: 3px;
-    padding: 7px 2px;
-    font-size: 10.5px;
-  }
-}
-/* 横長で縦が狭い画面（スマホ横持ち）: 余白と文字を詰める。 */
-@media (max-height: 520px) and (min-width: 641px) and (orientation: landscape) {
-  .oh-main {
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-    padding-right: 14px;
-  }
-  .oh-plate__label,
-  .oh-plate__sub {
-    display: none;
-  }
-  .oh-top {
-    padding: 5px 14px;
-  }
-  .oh-player__avatar {
-    width: 36px;
-    height: 36px;
-  }
-  .oh-iconbtn > span:not(.online-lobby__badge) {
-    display: none;
-  }
-  .oh-iconbtn {
-    min-width: 40px;
-  }
-  .oh-panel {
-    gap: 8px;
-    padding: 8px 4px 8px 0;
-  }
-  .oh-card {
-    gap: 6px;
-    padding: 10px 14px 12px;
-  }
-  .oh-card__title {
-    font-size: 17px;
-  }
-  .oh-card__lead {
-    display: none;
-  }
-  .oh-mode {
-    padding: 8px 12px;
-  }
-  .oh-mode__name {
-    font-size: 17px;
-  }
-  .oh-dock {
-    padding-top: 5px;
-    padding-bottom: 5px;
-  }
-  .oh-dock__btn {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-  .oh-plate {
-    bottom: 8px;
-    padding: 8px 12px 10px;
-  }
-  .oh-plate__name {
-    font-size: 16px;
-  }
-}
 
 /* ---------------------------------------------------------------------------
    オンラインのホーム画面から開く画面（ガチャ・手持ち・戦績・お知らせ・ミッション・
@@ -7228,8 +7060,8 @@ button.oh-player__rank:hover .oh-player__rank-help {
   animation: oh-panel-in 0.2s ease-out;
 }
 .online-home .setup-picker-modal {
-  max-width: min(760px, calc(100vw - 24px));
-  max-height: calc(100dvh - 32px);
+  max-width: min(760px, calc(calc(var(--app-vw, 1vw) * 100) - 24px));
+  max-height: calc(calc(var(--app-vh, 1dvh) * 100) - 32px);
 }
 .online-home .setup-picker-modal > .setup-picker-modal__header {
   padding-bottom: 10px;
@@ -7263,36 +7095,6 @@ button.oh-player__rank:hover .oh-player__rank-help {
   color: #fff3d2;
 }
 
-@media (max-width: 860px) and (orientation: portrait), (max-width: 640px) {
-  /* 上のバーに収まらないので、確認用ページへのリンクは2段目に小さく出す。 */
-  .match-setup .oh-top {
-    flex-wrap: wrap;
-    height: auto;
-    row-gap: 6px;
-  }
-  .match-setup .setup-gallery-links {
-    flex: 1 1 100%;
-    justify-content: flex-end;
-  }
-  .match-setup .setup-gallery-links a.oh-ghost {
-    padding: 4px 10px;
-    font-size: 11px;
-  }
-  /* キャラを選んでいない時は立ち絵が無いので、名札の分だけの高さにする。 */
-  .match-setup .oh-stage:not(:has(.oh-stage__art)) {
-    height: auto;
-    padding: 12px 10px 0;
-  }
-  .match-setup .oh-stage:not(:has(.oh-stage__art)) .oh-plate {
-    position: static;
-    width: 100%;
-  }
-}
-@media (max-height: 520px) and (min-width: 641px) and (orientation: landscape) {
-  .match-setup .oh-card--ranked .setup-debug-toggle:last-of-type {
-    display: none;
-  }
-}
 
 /* ---------------------------------------------------------------------------
    局の結果（ScoreResult.tsx）・対局終了の優勝演出（MatchVictoryOverlay.tsx）・
@@ -7876,7 +7678,7 @@ button.oh-player__rank:hover .oh-player__rank-help {
   left: 50%;
   /* 下の4割は名札の裏で消すので、その分だけ大きく置く。 */
   height: 112%;
-  max-width: 96vw;
+  max-width: calc(var(--app-vw, 1vw) * 96);
   object-fit: contain;
   object-position: bottom;
   transform: translateX(-50%);
@@ -7899,7 +7701,7 @@ button.oh-player__rank:hover .oh-player__rank-help {
   place-items: center;
   width: min(34vmin, 220px);
   aspect-ratio: 3 / 4;
-  margin-bottom: 18vh;
+  margin-bottom: calc(var(--app-vh, 1vh) * 18);
   border-radius: 14px;
   border: 2px solid #ffd866;
   background:
@@ -8135,7 +7937,7 @@ button.oh-player__rank:hover .oh-player__rank-help {
    段位のしくみ（RankGuideScreen.tsx）
    --------------------------------------------------------------------------- */
 .rank-guide {
-  width: min(720px, calc(100vw - 32px));
+  width: min(720px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
   font-size: 13.5px;
   line-height: 1.7;
   text-align: left;
@@ -8339,65 +8141,70 @@ button.oh-player__rank:hover .oh-player__rank-help {
   font-size: 12px;
   opacity: 0.8;
 }
-@media (max-width: 520px) {
-  .rank-guide {
-    font-size: 12.5px;
-  }
-  .rank-guide__tabs {
-    flex-wrap: wrap;
-  }
-  .rank-guide__tabs-label {
-    flex-basis: 100%;
-  }
-  .rank-guide__ladder {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-  }
-  .rank-guide__step {
-    flex: 1 1 26%;
-  }
-  .rank-guide__arrow {
-    display: none;
-  }
-  .rank-guide__table th,
-  .rank-guide__table td {
-    padding: 5px 4px;
-  }
-  .rank-guide__table tbody th {
-    font-size: 13.5px;
-  }
-  .rank-guide__here,
-  .rank-guide__safe {
-    display: block;
-    width: fit-content;
-    margin: 1px 0 0;
-  }
-}
 
-/* 幅の狭いスマホでは、上のバーの段位の棒を出さない（雀玉の表示と重なる）。 */
-@media (max-width: 400px) {
-  .oh-player__rank-bar {
-    display: none;
+
+/* ---------------------------------------------------------------------------
+   縦に持っている時の「横にしてください」（RotateNotice.tsx）
+   --------------------------------------------------------------------------- */
+.rotate-notice {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  color: #f4efe6;
+  background: radial-gradient(ellipse at 50% 40%, #2a1d10 0%, #120c08 60%, #070403 100%);
+}
+.rotate-notice__phone {
+  width: 54px;
+  height: 92px;
+  margin-bottom: 18px;
+  border: 3px solid #e6c36a;
+  border-radius: 10px;
+  animation: rotate-notice-turn 2.4s ease-in-out infinite;
+}
+@keyframes rotate-notice-turn {
+  0%,
+  25% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(-90deg);
   }
 }
-@media (max-width: 340px) {
-  .oh-player__rank-help {
-    display: none;
-  }
+.rotate-notice__title {
+  margin: 0;
+  font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  font-size: 22px;
+  font-weight: bold;
+  color: #e6c36a;
 }
-/* ガチャの「1回」「10連」: 狭い画面では2つを同じ幅にし、値段を下の行に小さく出す。 */
-@media (max-width: 420px) {
-  .gacha-screen__pulls {
-    align-self: stretch;
-    gap: 10px;
-  }
-  .gacha-screen__pulls .btn--large {
-    flex: 1;
-    min-width: 0;
-    padding: 12px 6px;
-  }
-  .gacha-screen__price {
-    display: block;
-    font-size: 14px;
-  }
+.rotate-notice__text {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.85;
+}
+.rotate-notice__skip {
+  margin-top: 16px;
+  padding: 8px 18px;
+  border: 1px solid rgba(230, 195, 106, 0.5);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  opacity: 0.8;
+  cursor: pointer;
+}
+/* メニューの左右（または上下）にできる余白は、同じ背景を暗くして敷き、継ぎ目を目立たなくする。 */
+.stage--menu {
+  background:
+    linear-gradient(rgba(8, 6, 3, 0.86), rgba(8, 6, 3, 0.86)),
+    url("/title/setup-bg.webp") center / cover no-repeat;
 }

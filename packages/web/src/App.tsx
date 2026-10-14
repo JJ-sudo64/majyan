@@ -12,6 +12,7 @@ import { SpectatorBanner } from "./components/SpectatorBanner.js";
 import { Table } from "./components/Table.js";
 import { Stage } from "./components/Stage.js";
 import { useTitleBgm } from "./hooks/useTitleBgm.js";
+import { RotateNotice } from "./components/RotateNotice.js";
 
 type Screen = "title" | "setup" | "online";
 
@@ -29,6 +30,7 @@ export default function App() {
   if (match) {
     return (
       <>
+        <RotateNotice />
         <Stage>
           <Table />
           {online && <OnlineStampBubbles />}
@@ -41,7 +43,25 @@ export default function App() {
       </>
     );
   }
-  if (screen === "title") return <TitleScreen onPlay={() => setScreen("setup")} />;
-  if (screen === "online") return <OnlineLobby onBack={() => setScreen("setup")} />;
-  return <MatchSetup onBack={() => setScreen("title")} onOnline={() => setScreen("online")} />;
+  if (screen === "title") {
+    return (
+      <>
+        <RotateNotice />
+        <TitleScreen onPlay={() => setScreen("setup")} />
+      </>
+    );
+  }
+  // メニューも卓と同じ比率のキャンバスに描く（PCでも横向きスマホでも同じ配置になる）。
+  return (
+    <>
+      <RotateNotice />
+      <Stage menu>
+        {screen === "online" ? (
+          <OnlineLobby onBack={() => setScreen("setup")} />
+        ) : (
+          <MatchSetup onBack={() => setScreen("title")} onOnline={() => setScreen("online")} />
+        )}
+      </Stage>
+    </>
+  );
 }

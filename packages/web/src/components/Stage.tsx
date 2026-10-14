@@ -31,11 +31,11 @@ export const STAGE_HEIGHT = 748;
  * zoomはレイアウト計算そのものを縮尺後のサイズで行う（＝実際にその解像度で
  * 描き直す）ため、この種のぼやけがそもそも起こらない。
  */
-export function Stage({ children }: { children: ReactNode }) {
+export function Stage({ children, menu = false }: { children: ReactNode; /** メニュー画面を描く（卓と同じ大きさのキャンバスに、同じ縮め方で出す）。 */ menu?: boolean }) {
   const { containerRef, scale } = useFitScale(STAGE_WIDTH, STAGE_HEIGHT);
 
   return (
-    <div className="stage" ref={containerRef}>
+    <div className={`stage${menu ? " stage--menu" : ""}`} ref={containerRef}>
       <div className="stage__canvas" style={{ width: STAGE_WIDTH, height: STAGE_HEIGHT, zoom: scale }}>
         {children}
       </div>
