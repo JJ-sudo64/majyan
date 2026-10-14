@@ -6304,7 +6304,8 @@ button.oh-player__rank:hover .oh-player__rank-help {
   background: rgba(16, 12, 8, 0.97);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
 }
-.oh-menu__list button {
+.oh-menu__list button,
+.oh-menu__list a {
   padding: 9px 12px;
   border: none;
   border-radius: 6px;
@@ -6313,8 +6314,10 @@ button.oh-player__rank:hover .oh-player__rank-help {
   font-size: 14px;
   text-align: left;
   cursor: pointer;
+  text-decoration: none;
 }
-.oh-menu__list button:hover {
+.oh-menu__list button:hover,
+.oh-menu__list a:hover {
   background: rgba(230, 195, 106, 0.16);
 }
 

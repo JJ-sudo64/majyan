@@ -457,6 +457,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                   >
                     規約
                   </button>
+                  <a href="/about/" target="_blank" rel="noreferrer" onClick={() => setShowMenu(false)}>
+                    公式サイト
+                  </a>
                 </div>
               </>
             )}

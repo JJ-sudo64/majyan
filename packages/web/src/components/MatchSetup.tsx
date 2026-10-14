@@ -108,6 +108,9 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
           <a className="oh-ghost" href="?quote-gallery" target="_blank" rel="noreferrer">
             勝利台詞一覧
           </a>
+          <a className="oh-ghost" href="/about/" target="_blank" rel="noreferrer">
+            公式サイト
+          </a>
         </div>
       </header>
 

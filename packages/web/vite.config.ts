@@ -1,11 +1,25 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { tuningFilePlugin } from "./tuningFilePlugin";
 
 const serverPort = process.env.MAJYAN_SERVER_PORT || "8787";
 
+/** 紹介ページ（public/about/index.html）を /about/ で開けるようにする。開発中のViteは
+    フォルダのURLにゲーム本体を返してしまうため（本番はサーバーのstaticFiles.tsが対応）。 */
+function aboutPagePlugin(): Plugin {
+  return {
+    name: "about-page",
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url === "/about" || req.url?.startsWith("/about/?") || req.url === "/about/") req.url = "/about/index.html";
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tuningFilePlugin()],
+  plugins: [aboutPagePlugin(), react(), tuningFilePlugin()],
   server: {
     port: 5173,
     // ポート5173が塞がっている時に黙って別ポートへ逃げると、その別
