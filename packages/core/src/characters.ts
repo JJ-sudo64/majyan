@@ -1482,10 +1482,19 @@ export const CHARACTERS: Record<string, Character> = {
     name: "一撃の狩人・シグレ",
     description: "必殺技「狙い撃ち」: ゲージが満タンの状態でリーチすると自動的に発動する。そのリーチ中は和了牌をツモってこなくなる（ツモ和了できない）が、ロン和了なら4翻アップする。",
     winQuote: "ツモなんて要らない。お前の切った一枚で、全部決める。",
-    // 宣言（リーチ・ツモ・ロン）の絵は未用意。
     avatar: "/avatars/characters/deagari.webp",
     cutin: "/avatars/characters/deagari-cutin.webp",
     topArt: "/avatars/characters/deagari-top.webp",
+    // 3枚とも文字が右側。ツモの絵には牌が写っているが、ぼけていて牌の種類は読めないので
+    // そのまま出してよい（ユーザー確認済み）。
+    declarationArt: {
+      riichi: { src: "/declarations/deagari-riichi.webp", keepEdge: "right" },
+      tsumo: { src: "/declarations/deagari-tsumo.webp", keepEdge: "right" },
+      ron: { src: "/declarations/deagari-ron.webp", keepEdge: "right" },
+    },
+    // 「狙い撃ち」の文字が右下。
+    skillArt: { src: "/declarations/deagari-skill.webp", keepEdge: "right" },
+    declarationAccent: "#7fc4ff",
     gaugeMax: 100,
     gaugePerTurn: 10,
     gaugePerDealIn: 20,
