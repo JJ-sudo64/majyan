@@ -72,6 +72,12 @@ export function createStaticHandler(rootDir: string): ((req: IncomingMessage, re
       send(res, filePath);
       return;
     }
+    // フォルダに index.html があればそれを返す（紹介ページ /about/ など）。
+    const dirIndex = join(filePath, "index.html");
+    if (filePath !== root && existsSync(dirIndex)) {
+      send(res, dirIndex);
+      return;
+    }
     // 拡張子の無いパス（?cutin-gallery等の画面切り替えはクエリなので通常は来ない）は
     // 画面本体を返す。拡張子付きで見つからないものは素直に404にする。
     if (!extname(pathname)) {

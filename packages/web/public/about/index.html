@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>雀神 公式サイト｜必殺技で卓が動く、対戦型麻雀</title>
+<meta name="description" content="雀神（じゃんしん）は、27人の雀士がそれぞれ持つ必殺技と、運命を変えるカードで戦う対戦型麻雀。ブラウザですぐ遊べて、段位戦・友人戦・CPU戦に対応。" />
+<meta name="theme-color" content="#0b0806" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="雀神｜必殺技で卓が動く、対戦型麻雀" />
+<meta property="og:description" content="27人の雀士と、運命を変えるカード。ブラウザですぐ遊べる対戦型麻雀。" />
+<meta property="og:image" content="/about/img/og.webp" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+<link rel="apple-touch-icon" href="/icons/icon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #0b0806;
+  --bg-2: #120d0a;
+  --panel: rgba(24, 17, 12, 0.78);
+  --ink: #f4ead6;
+  --ink-2: #c9bba0;
+  --ink-3: #8c7f68;
+  --gold: #e6c36a;
+  --gold-2: #f7dc8f;
+  --gold-deep: #9b7426;
+  --line: rgba(230, 195, 106, 0.28);
+  --violet: #9b7bff;
+  --jade: #1f6f5c;
+  --red: #c8423a;
+  --serif: "Shippori Mincho B1", "Yu Mincho", serif;
+  --sans: "Noto Sans JP", system-ui, sans-serif;
+  --latin: "Cinzel", "Shippori Mincho B1", serif;
+  --w: 1180px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; }
+.wrap { width: min(var(--w), 100% - 32px); margin-inline: auto; }
+
+/* ---------- 共通の見出し ---------- */
+.sec { position: relative; padding: 120px 0; }
+.sec-head { text-align: center; margin-bottom: 56px; }
+.sec-en {
+  font-family: var(--latin);
+  letter-spacing: 0.42em;
+  font-size: 13px;
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.sec-en::before, .sec-en::after { content: ""; width: 36px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
+.sec-en::after { transform: scaleX(-1); }
+.sec-title {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: clamp(30px, 4.4vw, 48px);
+  line-height: 1.35;
+  margin: 10px 0 14px;
+  letter-spacing: 0.06em;
+}
+.sec-lead { color: var(--ink-2); max-width: 680px; margin: 0 auto; font-size: 15px; }
+.gold-text {
+  background: linear-gradient(180deg, #fff4cf 0%, var(--gold-2) 30%, var(--gold) 60%, var(--gold-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- ボタン ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 34px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%);
+}
+.btn--gold {
+  color: #2a1c06;
+  background: linear-gradient(180deg, #fff1c4 0%, #f2cf74 45%, #c99a3c 100%);
+  box-shadow: 0 10px 30px rgba(230, 195, 106, 0.25);
+}
+.btn--gold:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(230, 195, 106, 0.4); }
+.btn--ghost { color: var(--gold-2); background: rgba(230, 195, 106, 0.08); box-shadow: inset 0 0 0 1px var(--line); }
+.btn--ghost:hover { background: rgba(230, 195, 106, 0.18); }
+.btn svg { width: 18px; height: 18px; }
+
+/* ---------- ヘッダー ---------- */
+.header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.header.is-solid { background: rgba(11, 8, 6, 0.88); backdrop-filter: blur(12px); box-shadow: 0 1px 0 var(--line); }
+.header .wrap { display: flex; align-items: center; gap: 28px; }
+.header__logo { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 800; font-size: 22px; letter-spacing: 0.1em; }
+.header__logo img { width: 46px; height: auto; }
+.nav { display: flex; gap: 26px; margin-left: auto; font-size: 13px; letter-spacing: 0.12em; }
+.nav a { position: relative; color: var(--ink-2); padding: 6px 0; transition: color 0.2s; }
+.nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--gold); transform: scaleX(0); transition: transform 0.25s; }
+.nav a:hover { color: var(--gold-2); }
+.nav a:hover::after { transform: scaleX(1); }
+.header__cta { min-height: 40px; padding: 0 22px; font-size: 13px; }
+.burger { display: none; margin-left: auto; width: 44px; height: 44px; background: none; border: 0; cursor: pointer; }
+.burger span { display: block; width: 22px; height: 2px; margin: 5px auto; background: var(--gold-2); transition: transform 0.25s, opacity 0.25s; }
+
+/* ---------- ヒーロー ---------- */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  isolation: isolate;
+}
+.hero__slides { position: absolute; inset: 0; z-index: -2; }
+.hero__slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transform: scale(1.08);
+  transition: opacity 1.6s ease, transform 7s linear;
+}
+.hero__slide.is-on { opacity: 1; transform: scale(1); }
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(11, 8, 6, 0.95) 0%, rgba(11, 8, 6, 0.8) 32%, rgba(11, 8, 6, 0.1) 62%, transparent 100%),
+    linear-gradient(180deg, rgba(11, 8, 6, 0.6) 0%, transparent 18%, transparent 70%, var(--bg) 100%);
+}
+.hero__inner { padding: 120px 0 140px; max-width: 600px; }
+.hero__logo { width: min(440px, 80vw); filter: drop-shadow(0 12px 40px rgba(0, 0, 0, 0.8)); margin: 0 0 8px -18px; animation: rise 1.2s 0.1s both; }
+.hero__copy {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  margin: 0 0 18px;
+  animation: rise 1.2s 0.3s both;
+}
+.hero__lead { color: var(--ink-2); font-size: 15px; margin: 0 0 34px; animation: rise 1.2s 0.45s both; }
+.hero__ctas { display: flex; flex-wrap: wrap; gap: 14px; animation: rise 1.2s 0.6s both; }
+.hero__tags { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 30px; font-size: 12px; color: var(--ink-2); letter-spacing: 0.08em; animation: rise 1.2s 0.75s both; }
+.hero__tags span { display: inline-flex; align-items: center; gap: 8px; }
+.hero__tags span::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: var(--gold); }
+.hero__dots { position: absolute; right: 32px; bottom: 40px; display: flex; gap: 10px; }
+.hero__dots button { width: 28px; height: 3px; padding: 0; border: 0; background: rgba(255, 255, 255, 0.25); cursor: pointer; transition: background 0.3s, width 0.3s; }
+.hero__dots button.is-on { width: 48px; background: var(--gold); }
+.hero__scroll {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  font-family: var(--latin);
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: var(--ink-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.hero__scroll::after { content: ""; width: 1px; height: 46px; background: linear-gradient(var(--gold), transparent); animation: drip 2s infinite; }
+@keyframes drip { 0% { transform: scaleY(0); transform-origin: top; } 50% { transform: scaleY(1); transform-origin: top; } 51% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+/* ---------- 飾り ---------- */
+.ornament { height: 1px; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+.bg-wash { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+
+/* ---------- ABOUT ---------- */
+.about { background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(155, 123, 255, 0.1), transparent 70%); }
+.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.pillar {
+  position: relative;
+  padding: 0 0 30px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  transition: transform 0.35s, border-color 0.35s;
+}
+.pillar:hover { transform: translateY(-6px); border-color: rgba(230, 195, 106, 0.6); }
+.pillar__img { aspect-ratio: 16 / 10; overflow: hidden; }
+.pillar__img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s; }
+.pillar:hover .pillar__img img { transform: scale(1.06); }
+.pillar__num { position: absolute; top: 0; left: 0; padding: 8px 14px; background: linear-gradient(90deg, rgba(0, 0, 0, 0.75), transparent); font-family: var(--latin); font-size: 13px; letter-spacing: 0.2em; color: var(--gold-2); text-shadow: 0 2px 8px #000; }
+.pillar h3 { font-family: var(--serif); font-size: 22px; margin: 22px 26px 8px; letter-spacing: 0.06em; }
+.pillar p { margin: 0 26px; color: var(--ink-2); font-size: 14px; }
+
+/* ---------- CHARACTER ---------- */
+.chara { background: linear-gradient(180deg, var(--bg) 0%, #0f0a14 50%, var(--bg) 100%); overflow: hidden; }
+.chara__stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  min-height: 560px;
+  border: 1px solid var(--line);
+  background: #07050a;
+  overflow: hidden;
+}
+.chara__art { position: relative; overflow: hidden; }
+.chara__art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  -webkit-mask-image: linear-gradient(90deg, #000 70%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 70%, transparent 100%);
+}
+.chara__art img.is-in { animation: art-in 0.7s ease both; }
+@keyframes art-in { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: none; } }
+.chara__info { position: relative; padding: 46px 44px 40px 20px; display: flex; flex-direction: column; justify-content: center; }
+.chara__info.is-in > * { animation: rise 0.6s both; }
+.chara__info.is-in > *:nth-child(2) { animation-delay: 0.06s; }
+.chara__info.is-in > *:nth-child(3) { animation-delay: 0.12s; }
+.chara__info.is-in > *:nth-child(4) { animation-delay: 0.18s; }
+.chara__info.is-in > *:nth-child(5) { animation-delay: 0.24s; }
+.chara__stars { color: var(--gold); letter-spacing: 0.2em; font-size: 15px; }
+.chara__title { color: var(--ink-2); font-size: 14px; letter-spacing: 0.2em; margin-top: 6px; }
+.chara__name { font-family: var(--serif); font-weight: 800; font-size: clamp(36px, 4.6vw, 54px); line-height: 1.2; margin: 2px 0 22px; letter-spacing: 0.08em; }
+.chara__skill { border-left: 2px solid var(--gold); padding: 4px 0 4px 18px; margin-bottom: 22px; }
+.chara__skill-label { font-family: var(--latin); font-size: 11px; letter-spacing: 0.3em; color: var(--gold); }
+.chara__skill-name { font-family: var(--serif); font-size: 24px; font-weight: 800; margin: 2px 0 6px; }
+.chara__skill-desc { font-size: 13.5px; color: var(--ink-2); margin: 0; }
+.chara__quote { font-family: var(--serif); font-size: 15px; color: var(--ink); opacity: 0.9; margin: 0; position: relative; padding-left: 30px; }
+.chara__quote::before { content: "“"; position: absolute; left: 0; top: -14px; font-size: 46px; color: var(--gold); opacity: 0.6; font-family: var(--latin); }
+.chara__nav { position: absolute; right: 22px; bottom: 20px; display: flex; gap: 8px; }
+.chara__nav button { width: 44px; height: 44px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.5); cursor: pointer; display: grid; place-items: center; transition: background 0.2s; }
+.chara__nav button:hover { background: rgba(230, 195, 106, 0.18); }
+.chara__nav svg { width: 18px; height: 18px; stroke: var(--gold-2); }
+.chara__filters { display: flex; justify-content: center; gap: 8px; margin: 34px 0 18px; flex-wrap: wrap; }
+.chip { min-height: 36px; padding: 0 18px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 13px; letter-spacing: 0.1em; color: var(--ink-2); transition: all 0.2s; }
+.chip:hover { color: var(--gold-2); }
+.chip.is-on { background: var(--gold); color: #2a1c06; border-color: var(--gold); font-weight: 700; }
+.chara__thumbs { display: grid; grid-template-columns: repeat(9, 1fr); gap: 14px 12px; max-width: 900px; margin: 0 auto; }
+.thumb { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0; background: none; cursor: pointer; }
+.thumb img { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(230, 195, 106, 0.25); transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; filter: saturate(0.8) brightness(0.85); }
+.thumb span { font-size: 11px; color: var(--ink-3); letter-spacing: 0.05em; }
+.thumb:hover img { transform: translateY(-3px); filter: none; }
+.thumb.is-on img { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(230, 195, 106, 0.25), 0 0 24px rgba(230, 195, 106, 0.45); filter: none; }
+.thumb.is-on span { color: var(--gold-2); }
+
+/* ---------- CUT-IN ---------- */
+.cutin { background: #07050a; }
+.cutin__grid { display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: 160px; gap: 10px; }
+.cutin__item { position: relative; overflow: hidden; cursor: zoom-in; border: 1px solid rgba(230, 195, 106, 0.15); padding: 0; background: #000; }
+.cutin__item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s, filter 0.4s; filter: brightness(0.82); }
+.cutin__item:hover img { transform: scale(1.07); filter: brightness(1); }
+.cutin__item figcaption { position: absolute; left: 12px; bottom: 8px; font-size: 12px; letter-spacing: 0.1em; text-shadow: 0 2px 6px #000; }
+.cutin__item:nth-child(1) { grid-column: span 4; grid-row: span 2; }
+.cutin__item:nth-child(2), .cutin__item:nth-child(3) { grid-column: span 2; }
+.cutin__item:nth-child(n + 4) { grid-column: span 2; }
+.cutin__note { text-align: center; color: var(--ink-3); font-size: 12px; margin-top: 18px; }
+
+/* ---------- MODE ---------- */
+.mode__list { display: grid; gap: 80px; }
+.mode__row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 56px; align-items: center; }
+.mode__row:nth-child(even) .mode__shot { order: 2; }
+.mode__shot { position: relative; }
+.mode__shot img { border: 1px solid var(--line); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6); }
+.mode__shot::before { content: ""; position: absolute; inset: -14px 14px 14px -14px; border: 1px solid var(--line); z-index: -1; }
+.mode__row:nth-child(even) .mode__shot::before { inset: -14px -14px 14px 14px; }
+.mode__en { font-family: var(--latin); font-size: 12px; letter-spacing: 0.35em; color: var(--gold); }
+.mode__title { font-family: var(--serif); font-weight: 800; font-size: 32px; margin: 6px 0 16px; letter-spacing: 0.06em; }
+.mode__text { color: var(--ink-2); font-size: 14.5px; margin: 0 0 18px; }
+.mode__points { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 14px; }
+.mode__points li { display: flex; gap: 12px; }
+.mode__points li::before { content: ""; flex: none; width: 7px; height: 7px; margin-top: 10px; transform: rotate(45deg); border: 1px solid var(--gold); }
+
+/* ---------- RANK ---------- */
+.rank { background: radial-gradient(ellipse 60% 70% at 50% 100%, rgba(230, 195, 106, 0.1), transparent 70%); }
+.rank__ladder { display: grid; grid-template-columns: repeat(6, 1fr); align-items: end; gap: 12px; }
+.rank__step {
+  position: relative;
+  text-align: center;
+  padding: 26px 10px 22px;
+  background: linear-gradient(180deg, rgba(230, 195, 106, 0.04), rgba(230, 195, 106, 0.12));
+  border: 1px solid var(--line);
+  border-bottom: 3px solid var(--gold-deep);
+}
+.rank__step:nth-child(1) { height: 190px; }
+.rank__step:nth-child(2) { height: 220px; }
+.rank__step:nth-child(3) { height: 250px; }
+.rank__step:nth-child(4) { height: 280px; }
+.rank__step:nth-child(5) { height: 310px; }
+.rank__step:nth-child(6) {
+  height: 360px;
+  border-color: rgba(230, 195, 106, 0.7);
+  background: linear-gradient(180deg, rgba(230, 195, 106, 0.1), rgba(230, 195, 106, 0.3));
+  box-shadow: 0 0 60px rgba(230, 195, 106, 0.2);
+}
+.rank__lv { font-family: var(--latin); font-size: 11px; letter-spacing: 0.2em; color: var(--ink-3); }
+.rank__name { font-family: var(--serif); font-weight: 800; font-size: 30px; letter-spacing: 0.1em; margin: 6px 0 4px; }
+.rank__step:nth-child(6) .rank__name { font-size: 40px; }
+.rank__sub { font-size: 12px; color: var(--ink-2); }
+.rank__notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
+.note { padding: 22px 24px; border: 1px solid var(--line); background: var(--panel); }
+.note h4 { margin: 0 0 6px; font-family: var(--serif); font-size: 17px; color: var(--gold-2); }
+.note p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+
+/* ---------- CARD ---------- */
+.card__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.tcard {
+  position: relative;
+  padding: 20px 20px 18px;
+  border: 1px solid rgba(155, 123, 255, 0.28);
+  background: linear-gradient(160deg, rgba(40, 26, 70, 0.55), rgba(16, 11, 26, 0.8));
+  transition: transform 0.25s, border-color 0.25s;
+}
+.tcard:hover { transform: translateY(-3px); border-color: rgba(155, 123, 255, 0.7); }
+.tcard[data-r="3"] { border-color: rgba(230, 195, 106, 0.45); background: linear-gradient(160deg, rgba(70, 50, 18, 0.55), rgba(20, 14, 8, 0.85)); }
+.tcard__top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.tcard__name { font-family: var(--serif); font-weight: 800; font-size: 18px; }
+.tcard__stars { color: var(--gold); font-size: 12px; letter-spacing: 0.15em; flex: none; }
+.tcard__type { display: inline-block; font-size: 11px; padding: 1px 8px; margin: 6px 0 8px; border: 1px solid rgba(201, 184, 255, 0.4); color: #c9b8ff; }
+.tcard__desc { font-size: 12.5px; color: var(--ink-2); margin: 0; line-height: 1.7; }
+.card__more { display: flex; justify-content: center; margin-top: 28px; }
+.card__grid.is-collapsed .tcard:nth-child(n + 9) { display: none; }
+
+/* ---------- SYSTEM ---------- */
+.sys__grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; }
+.sys__box { padding: 34px 36px; border: 1px solid var(--line); background: var(--panel); }
+.sys__box h3 { font-family: var(--serif); font-size: 22px; margin: 0 0 18px; letter-spacing: 0.06em; }
+.rates { display: grid; gap: 12px; margin-bottom: 22px; }
+.rate { display: grid; grid-template-columns: 54px 1fr 48px; align-items: center; gap: 14px; font-size: 14px; }
+.rate b { color: var(--gold); letter-spacing: 0.1em; font-weight: 500; }
+.rate__bar { height: 8px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+.rate__bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-deep), var(--gold-2)); width: 0; transition: width 1.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.is-visible .rate__bar i { width: var(--v); }
+.rate span { text-align: right; font-family: var(--latin); }
+.facts { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; font-size: 14px; color: var(--ink-2); }
+.facts li { display: flex; gap: 12px; }
+.facts li::before { content: ""; flex: none; width: 7px; height: 7px; margin-top: 10px; transform: rotate(45deg); background: var(--gold); }
+.facts b { color: var(--ink); font-weight: 500; }
+.feat { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.feat div { padding: 16px 18px; border: 1px solid rgba(230, 195, 106, 0.16); background: rgba(0, 0, 0, 0.25); }
+.feat h4 { margin: 0 0 4px; font-size: 14px; color: var(--gold-2); letter-spacing: 0.06em; }
+.feat p { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.7; }
+
+/* ---------- START ---------- */
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; counter-reset: s; }
+.step { position: relative; padding: 0 24px; text-align: center; }
+.step + .step::before { content: ""; position: absolute; left: -10px; top: 38px; width: 20px; height: 20px; border-top: 1px solid var(--gold); border-right: 1px solid var(--gold); transform: rotate(45deg); opacity: 0.6; }
+.step__num {
+  width: 92px; height: 92px; margin: 0 auto 20px;
+  display: grid; place-items: center;
+  font-family: var(--latin); font-size: 30px; color: var(--gold-2);
+  border: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+.step__num span { transform: rotate(-45deg); }
+.step h3 { font-family: var(--serif); font-size: 19px; margin: 0 0 8px; }
+.step p { font-size: 13.5px; color: var(--ink-2); margin: 0; }
+
+/* ---------- FAQ ---------- */
+.faq__list { max-width: 860px; margin: 0 auto; display: grid; gap: 10px; }
+.faq details { border: 1px solid var(--line); background: var(--panel); }
+.faq summary { list-style: none; cursor: pointer; padding: 20px 56px 20px 24px; position: relative; font-weight: 500; display: flex; gap: 14px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::before { content: "Q"; font-family: var(--latin); color: var(--gold); font-weight: 700; }
+.faq summary::after { content: ""; position: absolute; right: 24px; top: 50%; width: 10px; height: 10px; border-right: 1.5px solid var(--gold); border-bottom: 1.5px solid var(--gold); transform: translateY(-70%) rotate(45deg); transition: transform 0.25s; }
+.faq details[open] summary::after { transform: translateY(-30%) rotate(-135deg); }
+.faq .ans { padding: 0 24px 22px 52px; color: var(--ink-2); font-size: 14px; }
+
+/* ---------- 最後の誘い ---------- */
+.final { position: relative; padding: 150px 0; text-align: center; overflow: hidden; isolation: isolate; }
+.final__bg { position: absolute; inset: 0; z-index: -1; background: url("/title/setup-bg.webp") center / cover; }
+.final__bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, var(--bg) 0%, rgba(11, 8, 6, 0.55) 35%, rgba(11, 8, 6, 0.55) 65%, var(--bg) 100%); }
+.final__logo { width: min(360px, 70vw); margin: 0 auto 26px; filter: drop-shadow(0 12px 40px rgba(0, 0, 0, 0.8)); }
+.final p { font-family: var(--serif); font-size: 22px; letter-spacing: 0.2em; color: var(--ink); margin: 0 0 30px; }
+
+/* ---------- フッター ---------- */
+.footer { padding: 46px 0 40px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
+.footer .wrap { display: flex; flex-wrap: wrap; gap: 18px 32px; align-items: center; justify-content: space-between; }
+.footer nav { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.footer a:hover { color: var(--gold-2); }
+
+/* ---------- 拡大表示 ---------- */
+.lightbox { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(0, 0, 0, 0.92); opacity: 0; pointer-events: none; transition: opacity 0.3s; padding: 24px; }
+.lightbox.is-open { opacity: 1; pointer-events: auto; }
+.lightbox img { max-height: 86vh; width: auto; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8); }
+.lightbox button { position: absolute; top: 18px; right: 22px; width: 48px; height: 48px; border: 1px solid var(--line); background: none; cursor: pointer; font-size: 22px; color: var(--gold-2); }
+
+/* ---------- スクロールで出す ---------- */
+.reveal { opacity: 0; transform: translateY(36px); transition: opacity 0.9s ease, transform 0.9s ease; }
+.reveal.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* ---------- 狭い画面 ---------- */
+@media (max-width: 960px) {
+  .nav, .header__cta { display: none; }
+  .burger { display: block; }
+  .header.is-menu .nav {
+    display: flex; flex-direction: column; gap: 0;
+    position: fixed; top: 68px; left: 0; right: 0;
+    background: rgba(11, 8, 6, 0.97); border-bottom: 1px solid var(--line); padding: 8px 24px 20px;
+  }
+  .header.is-menu .nav a { padding: 14px 0; border-bottom: 1px solid rgba(230, 195, 106, 0.1); font-size: 15px; }
+  .header.is-menu .burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .header.is-menu .burger span:nth-child(2) { opacity: 0; }
+  .header.is-menu .burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .sec { padding: 84px 0; }
+  .pillars { grid-template-columns: 1fr; }
+  .chara__stage { grid-template-columns: 1fr; }
+  .chara__art { aspect-ratio: 16 / 10; }
+  .chara__thumbs { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .chara__art img { -webkit-mask-image: linear-gradient(180deg, #000 72%, transparent 100%); mask-image: linear-gradient(180deg, #000 72%, transparent 100%); }
+  .chara__info { padding: 8px 22px 84px; }
+  .cutin__grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 120px; }
+  .cutin__item:nth-child(n) { grid-column: span 1; grid-row: span 1; }
+  .cutin__item:nth-child(1) { grid-column: span 2; grid-row: span 2; }
+  .mode__row { grid-template-columns: 1fr; gap: 30px; }
+  .mode__row:nth-child(even) .mode__shot { order: 0; }
+  .rank__ladder { grid-template-columns: repeat(3, 1fr); }
+  .rank__step:nth-child(n) { height: auto; }
+  .rank__notes, .sys__grid, .feat { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr 1fr; row-gap: 44px; }
+  .step + .step::before { display: none; }
+  .hero__dots { right: 16px; }
+}
+@media (max-width: 560px) {
+  .hero__inner { padding-top: 110px; }
+  .btn { width: 100%; }
+  .sec-title { font-size: 26px; }
+  .hero__copy { font-size: 28px; }
+  .steps { grid-template-columns: 1fr; }
+  .rank__ladder { grid-template-columns: repeat(2, 1fr); }
+  .sys__box { padding: 26px 22px; }
+}
+</style>
+</head>
+<body>
+<header class="header" id="header">
+  <div class="wrap">
+    <a class="header__logo" href="#top" aria-label="雀神 トップへ"><img src="/about/img/logo.webp" alt="" />雀神</a>
+    <nav class="nav" id="nav">
+      <a href="#about">ゲーム紹介</a>
+      <a href="#character">キャラクター</a>
+      <a href="#mode">モード</a>
+      <a href="#rank">段位戦</a>
+      <a href="#card">カード</a>
+      <a href="#system">システム</a>
+      <a href="#faq">よくある質問</a>
+    </nav>
+    <a class="btn btn--gold header__cta" href="/">今すぐプレイ</a>
+    <button class="burger" id="burger" aria-label="メニュー" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- ヒーロー -->
+  <section class="hero">
+    <div class="hero__slides" id="heroSlides"></div>
+    <div class="wrap">
+      <div class="hero__inner">
+        <h1 style="margin:0"><img class="hero__logo" src="/about/img/logo.webp" alt="雀神" /></h1>
+        <p class="hero__copy">その一打に、<br /><span class="gold-text">神業</span>を宿せ。</p>
+        <p class="hero__lead">27人の雀士が、それぞれひとつの必殺技を持つ。<br />本格リーチ麻雀に「技」と「カード」が加わった、新しい対戦型麻雀。</p>
+        <div class="hero__ctas">
+          <a class="btn btn--gold" href="/"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>ブラウザで今すぐプレイ</a>
+          <a class="btn btn--ghost" href="#character">キャラクターを見る</a>
+        </div>
+        <div class="hero__tags"><span>ダウンロード不要</span><span>スマホ・PC対応</span><span>ゲストですぐ始められる</span></div>
+      </div>
+    </div>
+    <div class="hero__dots" id="heroDots"></div>
+    <div class="hero__scroll">SCROLL</div>
+  </section>
+
+  <!-- ゲーム紹介 -->
+  <section class="sec about" id="about">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">ABOUT</div>
+        <h2 class="sec-title">麻雀の読み合いに、<br />一発逆転の<span class="gold-text">必殺技</span>を。</h2>
+        <p class="sec-lead">ルールは本格的な4人打ちリーチ麻雀。そこに、局面を一変させるキャラクターの必殺技と、持っておくだけで効くカードが加わります。牌効率だけでは読み切れない、駆け引きの深さを味わってください。</p>
+      </div>
+      <div class="pillars">
+        <article class="pillar reveal">
+          <div class="pillar__img"><img src="/declarations/zeno-skill.webp" alt="ゼノの必殺技「時間停止」" loading="lazy" /></div>
+          <div class="pillar__num">01 — SKILL</div>
+          <h3>キャラごとの必殺技</h3>
+          <p>打つたびにゲージが溜まり、満タンで発動。牌を引き直す、ドラを増やす、相手の手牌を透視する——技の数だけ戦い方があります。</p>
+        </article>
+        <article class="pillar reveal">
+          <div class="pillar__img"><img src="/declarations/koki-skill.webp" alt="コウキの必殺技「太っ腹」" loading="lazy" /></div>
+          <div class="pillar__num">02 — CARD</div>
+          <h3>運命を変えるカード</h3>
+          <p>キャラ1体に1枚、カードを付けて対局へ。持っているだけで効くもの、ここぞで切るもの。22種のカードで、自分だけの組み合わせを。</p>
+        </article>
+        <article class="pillar reveal">
+          <div class="pillar__img"><img src="/about/img/play-table.webp" alt="対局画面" loading="lazy" /></div>
+          <div class="pillar__num">03 — MAHJONG</div>
+          <h3>本格リーチ麻雀</h3>
+          <p>4人打ち・赤ドラ入りの東風戦／半荘戦。和了の瞬間には、キャラごとに描き下ろしたリーチ・ツモ・ロンの宣言演出が卓を染めます。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <div class="ornament"></div>
+
+  <!-- キャラクター -->
+  <section class="sec chara" id="character">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">CHARACTER</div>
+        <h2 class="sec-title">卓を囲む、27人の雀士</h2>
+        <p class="sec-lead">巫女、忍、賭け師、そしてパンダ。誰と組むかで、あなたの麻雀は変わります。</p>
+      </div>
+      <div class="chara__stage reveal">
+        <div class="chara__art"><img id="charaArt" alt="" /></div>
+        <div class="chara__info" id="charaInfo">
+          <div><span class="chara__stars" id="charaStars"></span><div class="chara__title" id="charaTitle"></div></div>
+          <h3 class="chara__name" id="charaName"></h3>
+          <div class="chara__skill">
+            <div class="chara__skill-label">SKILL</div>
+            <div class="chara__skill-name" id="charaSkill"></div>
+            <p class="chara__skill-desc" id="charaDesc"></p>
+          </div>
+          <p class="chara__quote" id="charaQuote"></p>
+        </div>
+        <div class="chara__nav">
+          <button id="charaPrev" aria-label="前のキャラ"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button id="charaNext" aria-label="次のキャラ"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+      <div class="chara__filters" id="charaFilters">
+        <button class="chip is-on" data-f="0">すべて</button>
+        <button class="chip" data-f="3">★★★</button>
+        <button class="chip" data-f="2">★★</button>
+        <button class="chip" data-f="1">★</button>
+      </div>
+      <div class="chara__thumbs" id="charaThumbs"></div>
+    </div>
+  </section>
+
+  <!-- 宣言演出 -->
+  <section class="sec cutin" id="cutin">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">CUT-IN</div>
+        <h2 class="sec-title">勝負の一瞬を、一枚絵で。</h2>
+        <p class="sec-lead">リーチ、ツモ、ロン、そして必殺技。キャラクターごとに用意した宣言演出が、決着の瞬間を彩ります。</p>
+      </div>
+      <div class="cutin__grid reveal" id="cutinGrid"></div>
+      <p class="cutin__note">画像をクリックすると拡大します</p>
+    </div>
+  </section>
+
+  <!-- モード -->
+  <section class="sec" id="mode">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">GAME MODE</div>
+        <h2 class="sec-title">ひとりでも、みんなとでも。</h2>
+      </div>
+      <div class="mode__list">
+        <div class="mode__row reveal">
+          <div class="mode__shot"><img src="/about/img/play-home.webp" alt="オンラインのホーム画面" loading="lazy" /></div>
+          <div>
+            <div class="mode__en">ONLINE</div>
+            <h3 class="mode__title">段位戦・友人戦</h3>
+            <p class="mode__text">全国のプレイヤーと腕を競う段位戦。合言葉を決めれば、友だち同士で同じ卓にも座れます。</p>
+            <ul class="mode__points">
+              <li>段位の近い相手と自動で卓を組む段位戦（東風戦・半荘戦）</li>
+              <li>同じ合言葉を入れた人どうしで遊べる友人戦</li>
+              <li>フレンドの対局を観戦、自分の対局は牌譜で振り返り</li>
+              <li>対局中に気持ちを伝えるスタンプ</li>
+            </ul>
+          </div>
+        </div>
+        <div class="mode__row reveal">
+          <div class="mode__shot"><img src="/about/img/play-setup.webp" alt="CPU戦の準備画面" loading="lazy" /></div>
+          <div>
+            <div class="mode__en">VS CPU</div>
+            <h3 class="mode__title">CPU戦</h3>
+            <p class="mode__text">CPU3人と、いつでも気軽に。全キャラ・全カードを自由に選べるので、技の研究や組み合わせ探しにも最適です。</p>
+            <ul class="mode__points">
+              <li>全キャラ・全カードが最初から使い放題</li>
+              <li>相手のキャラと強さを1人ずつ選べる</li>
+              <li>東風戦・半荘戦、箱下続行のあり・なしを選択</li>
+            </ul>
+          </div>
+        </div>
+        <div class="mode__row reveal">
+          <div class="mode__shot"><img src="/about/img/play-table.webp" alt="対局画面" loading="lazy" /></div>
+          <div>
+            <div class="mode__en">PLAY</div>
+            <h3 class="mode__title">迫力の3D卓</h3>
+            <p class="mode__text">立体的に描いた卓で、牌を打つ手応えをそのままに。スマホでもPCでも同じ横長の画面で遊べます。</p>
+            <ul class="mode__points">
+              <li>必殺技ゲージは対局中いつでも確認できる</li>
+              <li>ツモ切り・和了の自動操作でテンポよく</li>
+              <li>縦持ちのスマホでも自動で横向き表示に</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ornament"></div>
+
+  <!-- 段位 -->
+  <section class="sec rank" id="rank">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">RANKED MATCH</div>
+        <h2 class="sec-title">目指すは、頂点「<span class="gold-text">雀神</span>」</h2>
+        <p class="sec-lead">段位戦の順位でポイントが増減し、たまれば昇段。下雀から始まり、5つの段位をそれぞれ3段ずつ駆け上がった先に、雀神の座が待っています。</p>
+      </div>
+      <div class="rank__ladder reveal" id="rankLadder"></div>
+      <div class="rank__notes">
+        <div class="note reveal"><h4>東風戦・半荘戦</h4><p>短く遊べる東風戦と、じっくり戦う半荘戦。半荘戦のほうがポイントの増減が大きくなります。</p></div>
+        <div class="note reveal"><h4>上雀からは降段も</h4><p>下雀・中雀は降段なし。上雀からはポイントが0を下回ると降段します。4位で失うポイントは、段位が上がるほど大きくなります。</p></div>
+        <div class="note reveal"><h4>雀神は青天井</h4><p>雀神に段はなく、ポイントを積み上げ続けるだけ。どこまで高みへ行けるかは、あなた次第。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- カード -->
+  <section class="sec" id="card">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">CARD</div>
+        <h2 class="sec-title">22種のカードで、戦い方は無限大</h2>
+        <p class="sec-lead">カードはキャラ1体に1枚。持っているだけで効く「常時効果」と、好きな時に使う「使って発動」があります。一度付けたカードは外せないので、組み合わせは慎重に。</p>
+      </div>
+      <div class="card__grid is-collapsed" id="cardGrid"></div>
+      <div class="card__more"><button class="btn btn--ghost" id="cardMore">すべてのカードを見る</button></div>
+    </div>
+  </section>
+
+  <div class="ornament"></div>
+
+  <!-- システム -->
+  <section class="sec" id="system">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">SYSTEM</div>
+        <h2 class="sec-title">仲間を増やして、もっと強く。</h2>
+      </div>
+      <div class="sys__grid">
+        <div class="sys__box reveal" id="rateBox">
+          <h3>ガチャ</h3>
+          <div class="rates">
+            <div class="rate"><b>★★★</b><div class="rate__bar"><i style="--v:3%"></i></div><span>3%</span></div>
+            <div class="rate"><b>★★</b><div class="rate__bar"><i style="--v:18%"></i></div><span>18%</span></div>
+            <div class="rate"><b>★</b><div class="rate__bar"><i style="--v:79%"></i></div><span>79%</span></div>
+          </div>
+          <ul class="facts">
+            <li><span>キャラとカードが出る。<b>10連は★★以上が1枠確定</b>。</span></li>
+            <li><span>1回引くごとに交換ポイントが1たまり、<b>200ポイントで好きな★★★を1つ</b>もらえる。</span></li>
+            <li><span>同じキャラが出たら、別の個体として手持ちが増える。カードを付け分けて使い分けよう。</span></li>
+            <li><span>雀玉は段位戦の報酬やログインボーナスでも手に入る。</span></li>
+            <li><span>はじめての10連は、<b>納得いくまで何度でも引き直し</b>できる。</span></li>
+          </ul>
+        </div>
+        <div class="sys__box reveal">
+          <h3>遊びやすさ</h3>
+          <div class="feat">
+            <div><h4>ダウンロード不要</h4><p>ブラウザで開けばすぐ遊べる。ホーム画面に追加すればアプリのように起動。</p></div>
+            <div><h4>スマホ・PC対応</h4><p>どの端末でも同じ横長の画面。縦持ちでも自動で横向きに。</p></div>
+            <div><h4>引き継ぎコード</h4><p>機種変更しても、コードひとつで手持ちをそのまま移せる。</p></div>
+            <div><h4>ミッション</h4><p>目標をこなして、雀玉などの報酬を受け取ろう。</p></div>
+            <div><h4>戦績・ランキング</h4><p>これまでの成績を振り返り、上位プレイヤーと比べられる。</p></div>
+            <div><h4>フレンド</h4><p>フレンドになれば観戦や友人戦の誘いがかんたんに。</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- はじめかた -->
+  <section class="sec" id="start" style="padding-top:40px">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">HOW TO START</div>
+        <h2 class="sec-title">はじめかた</h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><div class="step__num"><span>1</span></div><h3>ブラウザで開く</h3><p>このページの「今すぐプレイ」から。インストールは要りません。</p></div>
+        <div class="step reveal"><div class="step__num"><span>2</span></div><h3>名前を決める</h3><p>オンラインに入って名前を決めるだけ。メールアドレスなどの登録は不要です。</p></div>
+        <div class="step reveal"><div class="step__num"><span>3</span></div><h3>最初の10連</h3><p>最初の仲間を迎えるガチャ。気に入る結果が出るまで引き直せます。</p></div>
+        <div class="step reveal"><div class="step__num"><span>4</span></div><h3>卓につく</h3><p>まずはCPU戦で技を試すもよし、いきなり段位戦に挑むもよし。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ornament"></div>
+
+  <!-- よくある質問 -->
+  <section class="sec faq" id="faq">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="sec-en">FAQ</div>
+        <h2 class="sec-title">よくある質問</h2>
+      </div>
+      <div class="faq__list reveal">
+        <details><summary>麻雀のルールを知らなくても遊べますか？</summary><div class="ans">ゲーム内の「ルール」から基本を確認できます。CPU戦なら自分のペースで練習でき、ツモ切りや和了を自動にする機能もあります。</div></details>
+        <details><summary>どの端末で遊べますか？</summary><div class="ans">パソコン・スマートフォン・タブレットのブラウザで遊べます。画面は横長で、スマホを縦に持っていても自動で横向きに表示します。ホーム画面に追加すると、アプリのように全画面で起動できます。</div></details>
+        <details><summary>アカウント登録は必要ですか？</summary><div class="ans">不要です。名前を決めるだけで始められます。端末を変える時は、ゲーム内で発行する引き継ぎコードで手持ちを移せます。</div></details>
+        <details><summary>必殺技はいつ使えますか？</summary><div class="ans">対局中に必殺技ゲージが溜まり、満タンになると使えます。自分で好きな時に発動する技のほか、リーチと同時に自動で発動する技、条件を満たすと常に効くパッシブの技もあります。</div></details>
+        <details><summary>カードは付け替えられますか？</summary><div class="ans">カードはキャラ1体に1枚だけ付けられ、一度付けると外せません。同じキャラを複数持っていれば、それぞれに別のカードを付けて使い分けられます。</div></details>
+        <details><summary>CPU戦でもガチャで出したキャラしか使えませんか？</summary><div class="ans">CPU戦では全キャラ・全カードを自由に使えます。オンライン（段位戦・友人戦）では、手持ちのキャラとカードで対局します。</div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 最後の誘い -->
+  <section class="final">
+    <div class="final__bg"></div>
+    <div class="wrap reveal">
+      <img class="final__logo" src="/about/img/logo.webp" alt="雀神" />
+      <p>さあ、卓につこう。</p>
+      <a class="btn btn--gold" href="/"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>ブラウザで今すぐプレイ</a>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <nav>
+      <a href="#about">ゲーム紹介</a>
+      <a href="#character">キャラクター</a>
+      <a href="#rank">段位戦</a>
+      <a href="#faq">よくある質問</a>
+      <a href="/">ゲームを始める</a>
+    </nav>
+    <div>© 2026 雀神</div>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" aria-hidden="true"><img alt="" /><button aria-label="閉じる">×</button></div>
+
+<script>
+const CHARACTERS = [{"id": "hiiragi", "name": "開花の巫女・ヒイラギ", "title": "開花の巫女", "short": "ヒイラギ", "rarity": 1, "skill": "開花", "desc": "ドラ表示牌をもう1枚めくって、ドラを増やす。", "quote": "花は散っても、想いは散りません。だから、また咲かせましょう…！", "avatar": "/avatars/characters/hiiragi.webp", "top": "/avatars/characters/hiiragi-top.webp"}, {"id": "nagi", "name": "積み込み師・ナギ", "title": "積み込み師", "short": "ナギ", "rarity": 1, "skill": "積み込み", "desc": "今引いた牌を山に戻し、代わりに新しい牌を引き直す。", "quote": "牌の並びなんて、ちょっと手を加えるだけ。運も実力のうち、でしょう？", "avatar": "/avatars/characters/nagi.webp", "top": "/avatars/characters/nagi-top.webp"}, {"id": "raiko", "name": "一閃の雷神・ライコ", "title": "一閃の雷神", "short": "ライコ", "rarity": 3, "skill": "一閃", "desc": "リーチ後の一発中にのみ発動できる。ゲージが満タンなら、自分がツモった瞬間に自動で発動し、山に残っている自分の待ち牌を1枚引き寄せる（山に残っていなければ不発）。", "quote": "迷いは捨てろ。考えた瞬間、負けは始まる。オレの一撃は、雷鳴とともにすべてを終わらせる。", "avatar": "/avatars/characters/raiko.webp", "top": "/avatars/characters/raiko-top.webp"}, {"id": "toki", "name": "嶺上の予言者・トキ", "title": "嶺上の予言者", "short": "トキ", "rarity": 2, "skill": "嶺上顕現", "desc": "発動後、次にテンパイ中にカンをした瞬間、そのカンで引く嶺上牌が自分の待ち牌にすり替わり、嶺上開花で必ず和了できる（待ち牌が山に残っていなければ不発）。テンパイでない時にカンをしても、権利はそのまま持ち越される。", "quote": "未来は決まっている。ただ、まだ見えないだけだ。", "avatar": "/avatars/characters/toki.webp", "top": "/avatars/characters/toki-top.webp"}, {"id": "kagerou", "name": "千里眼の忍・カゲロウ", "title": "千里眼の忍", "short": "カゲロウ", "rarity": 3, "skill": "透視の術", "desc": "発動すると、次に自分がツモるまでの1巡の間、他の3人の手牌がすべて見えるようになる。", "quote": "勝負は、派手に勝つより、静かに勝つもの。誰も気づいた時には、もう終わってる。", "avatar": "/avatars/characters/kagerou.webp", "top": "/avatars/characters/kagerou-top.webp"}, {"id": "runa", "name": "運命の配師・ルナ", "title": "運命の配師", "short": "ルナ", "rarity": 2, "skill": "運命の采配", "desc": "発動すると、次の局の配牌直後から、自分が最初の1枚を切ったり鳴いたりするまでの間だけ、手牌の好きな3枚を山の新しい牌と交換できる。", "quote": "配られた運命は変えられなくても、並び替えることはできる。それが、わたしのやり方。", "avatar": "/avatars/characters/runa.webp", "top": "/avatars/characters/runa-top.webp"}, {"id": "subaru", "name": "山読みの軍師・スバル", "title": "山読みの軍師", "short": "スバル", "rarity": 1, "skill": "山読み", "desc": "発動すると、その局が終わるまで、待ち牌の残り枚数が推測ではなく、実際に山に残っている正確な枚数で表示されるようになる。", "quote": "運任せなんて言葉は、数えることを放棄した者の言い訳だ。俺はただ、見えている数を数えただけだよ。", "avatar": "/avatars/characters/subaru.webp", "top": "/avatars/characters/subaru-top.webp"}, {"id": "kaede", "name": "百戦の学匠・カエデ", "title": "百戦の学匠", "short": "カエデ", "rarity": 3, "skill": "手ほどき", "desc": "発動すると、今引いた牌を山に戻し、手が必ず良くなる牌を山から引き直す（該当する牌が山に残っていなければ不発）。テンパイ中（あと1枚で和了の状態）は発動できない。", "quote": "一歩ずつでいい。だが、その一歩を疎かにする者に、大成は無い。", "avatar": "/avatars/characters/kaede.webp", "top": "/avatars/characters/kaede-top.webp"}, {"id": "jin", "name": "捨て身の伊達者・ジン", "title": "捨て身の伊達者", "short": "ジン", "rarity": 2, "skill": "大明立直", "desc": "必殺技ゲージが満タンの状態でリーチを宣言すると、自動的にオープンリーチ（手牌が全員に公開されるリーチ）になる。その代わり、そのまま和了できれば「オープンリーチ」役として翻数が3翻アップする。", "quote": "見せてやるよ、俺の手は。逃げも隠れもしない、それが漢の勝負ってもんだ。", "avatar": "/avatars/characters/jin.webp", "top": "/avatars/characters/jin-top.webp"}, {"id": "ren", "name": "強運の賭け師・レン", "title": "強運の賭け師", "short": "レン", "rarity": 2, "skill": "捲る運命", "desc": "必殺技ゲージが満タンの状態でリーチを宣言すると自動的に発動する。以後その局でリーチ中に和了できれば、手牌の中で一番多い牌が裏ドラとして必ず1枚以上乗る。", "quote": "運は掴むものじゃない。捲るものだ。ほら、見えただろ？", "avatar": "/avatars/characters/ren.webp", "top": "/avatars/characters/ren-top.webp"}, {"id": "masato", "name": "卓上のてんこしゃんこ・マサト", "title": "卓上のてんこしゃんこ", "short": "マサト", "rarity": 1, "skill": "三色の煌めき", "desc": "発動すると、三色同順（萬子・筒子・索子で同じ数字の順子を1組ずつ揃える役）に近づいている牌が5秒間光る。見た目だけの演出で、局面や点数には影響しない。", "quote": "三色以外いらない。三色こそ至高。", "avatar": "/avatars/characters/masato.webp", "top": "/avatars/characters/masato-top.webp"}, {"id": "mirai", "name": "先読みの巫女・ミライ", "title": "先読みの巫女", "short": "ミライ", "rarity": 2, "skill": "未来視", "desc": "発動すると、誰も鳴かない前提で、この先3回分の自分のツモ牌をあらかじめ見ることができる。途中で誰かが鳴いて順番がズレると、それ以降の予知は外れてしまう。", "quote": "見えていたもの、そのまま。……たまには外れてくれても面白いのにね。", "avatar": "/avatars/characters/mirai.webp", "top": "/avatars/characters/mirai-top.webp"}, {"id": "saki", "name": "強気のヴィーナス・サキ", "title": "強気のヴィーナス", "short": "サキ", "rarity": 2, "skill": "特技ドラ引き", "desc": "必殺技ゲージが満タンになると、次に自分がツモる瞬間に自動的に発動する。今数えられるドラ（表ドラと赤ドラ5m/5p/5sのいずれか）のうち山に残っている1枚を、実際にツモる前にすり替える。複数種類残っていてもどれが引けるかはランダムで、1枚も残っていなければ不発（ゲージは消費される）。", "quote": "運も実力のうち？　いいえ、これは実力よ。持ってる女に、外れなんて無いの。", "avatar": "/avatars/characters/saki.webp", "top": "/avatars/characters/saki-top.webp"}, {"id": "naoki", "name": "卓上の暴君・ナオキ", "title": "卓上の暴君", "short": "ナオキ", "rarity": 2, "skill": "クマクマタイム", "desc": "パッシブスキル。自分が和了して親のまま連荘し、次の局を迎えると自動的に発動し、その局の配牌がある程度強化される（できるだけ良い手からスタートできる）。和了以外の理由での連荘（流局によるものなど）では発動しない。親が変わると効果は元に戻る。", "quote": "誰の卓だ？　俺の卓だ。親が続く限り、この場はずっと俺のものだ。", "avatar": "/avatars/characters/naoki.webp", "top": "/avatars/characters/naoki-top.webp"}, {"id": "tomohiro", "name": "ヤンチャな貴公子・トモヒロ", "title": "ヤンチャな貴公子", "short": "トモヒロ", "rarity": 1, "skill": "手牌が一枚しかない人", "desc": "パッシブスキル。手牌が4面子すべて鳴き終わって残り1枚（単騎待ち）の間、常に効果を発揮する。他の誰かがテンパイしている時、その人が次に引くはずの牌が当たり牌であれば、山に残る別の安全な牌とすり替えて引かせない（山に安全な牌が残っていなければ不発）。自分自身のツモには影響しない。", "quote": "たった1枚で待つ男に、隙なんて見せられるわけないだろ？", "avatar": "/avatars/characters/tomohiro.webp", "top": "/avatars/characters/tomohiro-top.webp"}, {"id": "koki", "name": "気前の良い散財家・コウキ", "title": "気前の良い散財家", "short": "コウキ", "rarity": 3, "skill": "太っ腹", "desc": "発動すると、その局が終わるまで効果が続く。ドラ（表ドラ・赤ドラいずれも）を切るたびに、次の自分のツモが必ず手の良くなる牌（テンパイ中なら和了牌そのもの）になる（該当する牌が山に残っていなければ不発）。この効果は何度でも繰り返し使えるが、次の局には持ち越されない。", "quote": "ケチケチしても始まらない。パーッと捨てて、パーッと拾おうぜ。", "avatar": "/avatars/characters/koki.webp", "top": "/avatars/characters/koki-top.webp"}, {"id": "takaharu", "name": "最速最強・タカハル", "title": "最速最強", "short": "タカハル", "rarity": 2, "skill": "アトミックベタ降り", "desc": "発動すると、その局が終わるまで効果が続く。手牌の完成した面子（同じ牌3枚の刻子、または連続する3つの数牌の順子）を1枚切って崩すたびに盾が1つ立つ。盾がある間は、本来ロンされてしまう牌を切っても見逃してもらえる。盾はロンを実際に防いだ時だけ消費され、また別の面子を崩せば何度でも張り直せる。", "quote": "最速も最強も、生き残ってこそだろ？降りる時はきっちり降りる、それだけの話だ。", "avatar": "/avatars/characters/takaharu.webp", "top": "/avatars/characters/takaharu-top.webp"}, {"id": "nyanjiro", "name": "怪鳥・にゃん次郎", "title": "怪鳥", "short": "にゃん次郎", "rarity": 2, "skill": "アトミックリーチ", "desc": "必殺技ゲージが満タンの状態でリーチを宣言すると、自動的にアトミックリーチになる。成立した局は、以後その局が終わるまで他の3人が誰もリーチを宣言できなくなる。", "quote": "鳴くのはオレだけでいい。お前らの声は、もう聞こえなくなる。", "avatar": "/avatars/characters/nyanjiro.webp", "top": "/avatars/characters/nyanjiro-top.webp"}, {"id": "mebius", "name": "表裏の配牌師・メビウス", "title": "表裏の配牌師", "short": "メビウス", "rarity": 2, "skill": "陰陽配牌", "desc": "パッシブスキル。配牌のたびに自動で発動する。親番でない局は、配牌に完成した面子（同じ牌3枚の刻子、または連続する3つの数牌の順子）が1つも無ければ、山の牌と入れ替えて必ず1つ以上揃える。逆に親番の局は、配牌に完成した面子があれば、無くなるまで山の牌と入れ替え、必ず面子0個のバラバラな配牌にする。", "quote": "表があれば、裏がある。今のわたしは、ちゃんと表側。", "avatar": "/avatars/characters/mebius.webp", "top": "/avatars/characters/mebius-top.webp"}, {"id": "koji", "name": "対子使い・コウジ", "title": "対子使い", "short": "コウジ", "rarity": 2, "skill": "対子の約束", "desc": "発動すると、次の局の配牌でトイツ（同じ牌2枚。3枚以上そろった牌も1組と数える）が必ず4組以上になる。足りない分は山の牌と入れ替えてそろえる。効果が出るまでの間はゲージが溜まらない。", "quote": "二枚ずつ、きっちり揃えておいた。約束は守る主義なんでね。", "avatar": "/avatars/characters/koji.webp", "top": "/avatars/characters/koji-top.webp"}, {"id": "nannan", "name": "中国からの刺客・南南", "title": "中国からの刺客", "short": "南南", "rarity": 2, "skill": "ルール変更", "desc": "発動すると、その局が終わるまで自分の和了だけルールが変わる。混一色・清一色・純全帯幺九・混全帯幺九・三色同順・一気通貫は鳴いていても門前と同じ翻数になり、平和・一盃口・二盃口も鳴いたまま成立する（門前清自摸和は門前のみ。符は通常どおり）。次の局には持ち越さない。", "quote": "ここのルールは、わたしが決める。鳴いても安くならない、それが本場の麻雀ネ。", "avatar": "/avatars/characters/nannan.webp", "top": "/avatars/characters/nannan-top.webp"}, {"id": "deagari", "name": "一撃の狩人・シグレ", "title": "一撃の狩人", "short": "シグレ", "rarity": 2, "skill": "狙い撃ち", "desc": "必殺技ゲージが満タンの状態でリーチを宣言すると、自動的に発動する。そのリーチ中は、自分のツモ（嶺上牌を含む）で和了牌が来なくなり、山の別の牌にすり替わる（ツモ和了はできない。和了はロンのみ）。その代わり、ロン和了すると「狙い撃ち」として4翻加算される。", "quote": "ツモなんて要らない。お前の切った一枚で、全部決める。", "avatar": "/avatars/characters/deagari.webp", "top": "/avatars/characters/deagari-top.webp"}, {"id": "zeno", "name": "刻を止める者・ゼノ", "title": "刻を止める者", "short": "ゼノ", "rarity": 3, "skill": "時間停止", "desc": "発動すると、自分が2回打牌するまで時間が止まる。この間、他の3人はロン・チー・ポン・カンなどで一切反応できない。1回目の打牌の後もそのまま自分の番が続き、2回連続でツモ・打牌ができる。", "quote": "止まった刻の中で足掻いたところで、何も変わりはしないさ。", "avatar": "/avatars/characters/zeno.webp", "top": "/avatars/characters/zeno-top.webp"}, {"id": "kagami", "name": "百面の写し身・カガミ", "title": "百面の写し身", "short": "カガミ", "rarity": 2, "skill": "写し身", "desc": "発動すると、直前に他の誰かが使った必殺技を、自分に対してそのまま再現する。直前の発動が自分自身によるものだった場合や、まだ誰も必殺技を使っていない場合、コピー元の技に必要な条件（一発中のみ、など）を自分が満たしていない場合は発動できない。", "quote": "見せてもらった技はもう私のもの。真似ることだって立派な才能でしょう？", "avatar": "/avatars/characters/kagami.webp", "top": "/avatars/characters/kagami-top.webp"}, {"id": "karin", "name": "何でも屋・カリン", "title": "何でも屋", "short": "カリン", "rarity": 2, "skill": "借り物競争", "desc": "発動時、他の3人のうち1人を選び、その人の必殺技をそのまま自分に対して発動する。相手の技に必要な条件を満たしていない場合は選べない。パッシブ専用の技は借りられない。", "quote": "困った時はお互い様でしょ？ ちょっとその技、借りてくね！", "avatar": "/avatars/characters/karin.webp", "top": "/avatars/characters/karin-top.webp"}, {"id": "sena", "name": "石橋の番人・セナ", "title": "石橋の番人", "short": "セナ", "rarity": 1, "skill": "様子見", "desc": "発動すると、今引いた牌を山に戻し、打牌をせずにそのまま次の人へ手番を渡す。ロンされる心配も鳴かれる心配もない、安全に1巡やり過ごすための技。敵のリーチ等で安全牌が無い時に使うとよい。", "quote": "危ない橋は渡らない。それだけで、案外生き残れるものでしょう？", "avatar": "/avatars/characters/sena.webp", "top": "/avatars/characters/sena-top.webp"}, {"id": "mio", "name": "やり直し請負人・ミオ", "title": "やり直し請負人", "short": "ミオ", "rarity": 2, "skill": "取り返し", "desc": "ツモの後に発動できる。自分の河（まだ誰にも鳴かれていない牌）から1枚選んで手牌に戻し、代わりに手牌から選んだ別の1枚を河の同じ場所へ置き直す（過去の打牌のやり直しのため、置き直した牌は鳴き・ロンの対象にならない）。その後は通常どおり1枚切る。リーチ中は発動できない。", "quote": "やり直しなんて、いくらでも利くのよ。過去の一手くらい、今から書き換えてあげる。", "avatar": "/avatars/characters/mio.webp", "top": "/avatars/characters/mio-top.webp"}];
+const CARDS = [{"name": "ドラ確約", "rarity": 3, "type": "常時効果", "desc": "配牌時、手牌にドラ（表ドラ、および赤ドラの5m/5p/5s）が1枚も無ければ、山から該当する1枚を見つけて手牌の適当な1枚と入れ替え、必ず1枚以上入った状態にする（山にも見つからなければ不発）。"}, {"name": "無効化", "rarity": 3, "type": "使って発動", "desc": "使用すると、次に敵が必殺技を使った瞬間、その効果を1度だけ無効化する（発動自体は取り消せないため、相手はゲージだけ失って空撃ちになる）。使用すると無くなる。"}, {"name": "会心の二翻", "rarity": 3, "type": "使って発動", "desc": "使用すると、この局で次に自分が和了した時、翻数が2翻アップする（他に役が無い手には乗らない。役満には影響しない）。この局中に和了できなければ不発。使用すると無くなる。"}, {"name": "点棒吸収", "rarity": 3, "type": "使って発動", "desc": "使用すると、他の3人から1000点ずつ（合計3000点）を即座に奪い取る。和了や流局を待たない即時効果。使用すると無くなる。"}, {"name": "大逆転の目", "rarity": 3, "type": "使って発動", "desc": "使用すると、この局で次に自分が和了した時の最終得点（本場込み・供託は除く）が2倍になる（役満は対象外）。この局中に和了できなければ不発。使用すると無くなる。"}, {"name": "面子確約", "rarity": 2, "type": "常時効果", "desc": "配牌時、手牌に完成した面子（同じ牌3枚の刻子、または連続する3つの数牌の順子）が1つも無ければ、山から調達できる面子を1つ見つけて手牌の適当な3枚と入れ替え、必ず1つ以上揃える（山にも該当する3枚が無ければ不発）。"}, {"name": "未来視", "rarity": 2, "type": "使って発動", "desc": "使用すると、通常のローテーション（誰も鳴かない前提）で次に自分が自摸ってくるはずの牌1枚だけを、あらかじめ見ることができる。対局を通して3回まで使用でき（使うたびに1回消費、使い切ると無くなる）、誰かが鳴いて手番の巡りがズレると、以降の予知は外れる。"}, {"name": "小手先の一翻", "rarity": 2, "type": "使って発動", "desc": "使用すると、この局で次に自分が和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。この局中に和了できなければ不発。使用すると無くなる。"}, {"name": "一閃の盾", "rarity": 2, "type": "常時効果", "desc": "当たり牌（本来なら他家にロンされてしまう牌）を切っても1度だけロンされなくなる（フリテンとは別枠の無効化）。実際にロンを防いだ瞬間に消費されて無くなる（安全な牌を切っている間は温存される）。"}, {"name": "起死回生", "rarity": 2, "type": "常時効果", "desc": "対局（半荘/東風戦）が終了した瞬間、自分が最下位（4位。同点最下位も含む）だった場合に限り、最終点数に5000点が加算される。"}, {"name": "裏ドラ倍加", "rarity": 2, "type": "使って発動", "desc": "使用すると、この局で立直中に和了した時、裏ドラ表示牌をもう1枚追加でめくる（通常の裏ドラに加えて数える）。この局中に立直和了できなければ不発。使用すると無くなる。"}, {"name": "偵察", "rarity": 2, "type": "使って発動", "desc": "使用すると、次に自分がツモるまでの1巡の間、他家3人の手牌がすべて見える（カゲロウの必殺技「透視の術」と同じ効果）。使用すると無くなる。"}, {"name": "一発延長", "rarity": 2, "type": "常時効果", "desc": "自分の一発中に他家が鳴いても、その一発の権利を1度だけ消えずに継続させる。実際に発動した瞬間に消費されて無くなる。"}, {"name": "最後の粘り", "rarity": 2, "type": "常時効果", "desc": "オーラス（この対局形式の最終局）に限り、自分の必殺技ゲージの増加量が2倍になる。使っても無くならない（何度でも発動する）。"}, {"name": "供託回収", "rarity": 2, "type": "常時効果", "desc": "対局終了時、場にまだ残っている供託（リーチ棒）があれば、通常は総合トップのプレイヤーが受け取るところを自分がまとめて受け取る。"}, {"name": "聴牌保険", "rarity": 1, "type": "常時効果", "desc": "荒牌流局した時、自分がテンパイしていなくても1度だけテンパイ扱いにしてもらえる（ノーテン罰符を回避できる）。実際に発動した瞬間に消費されて無くなる（自力でテンパイしていた場合は消費されない）。"}, {"name": "箱割れ防止", "rarity": 1, "type": "常時効果", "desc": "自分の持ち点が0点未満に落ちる瞬間、1度だけ0点で踏みとどまる（箱割れによる即終了を防げる）。実際に発動した瞬間に消費されて無くなる。"}, {"name": "牌読み", "rarity": 1, "type": "使って発動", "desc": "使用すると、この局が終わるまで、待ち牌表示の残り枚数が「見えている牌からの推測」ではなく「実際に山に残っている正確な枚数」になる（スバルの必殺技「山読み」と同じ効果）。使用すると無くなる。"}, {"name": "フリテン解除", "rarity": 1, "type": "常時効果", "desc": "自分の見逃しによるフリテンでも1度だけロンできるようになる。実際にロンが成立した瞬間に消費されて無くなる（フリテンでない普通のロンでは消費しない）。"}, {"name": "鳴かれず", "rarity": 1, "type": "常時効果", "desc": "対局中1度だけ、自分が切った役牌（白發中）を他家にポン/カンされない。実際にブロックした瞬間に消費されて無くなる。"}, {"name": "ノーコストリーチ", "rarity": 1, "type": "常時効果", "desc": "次に自分がリーチする時だけ、1000点の供託を払わずに立直できる。実際にリーチが成立した瞬間に消費されて無くなる。"}, {"name": "親孝行", "rarity": 1, "type": "常時効果", "desc": "自分が親として和了した時に受け取る本場ボーナスが2倍になる。"}];
+const RANKS = [{"name": "下雀", "levels": 3, "canDemote": false}, {"name": "中雀", "levels": 3, "canDemote": false}, {"name": "上雀", "levels": 3, "canDemote": true}, {"name": "雀王", "levels": 3, "canDemote": true}, {"name": "雀帝", "levels": 3, "canDemote": true}, {"name": "雀神", "levels": 0, "canDemote": true}];
+const HERO = ["zeno-skill", "kaede-skill", "koki-skill", "kagami-skill", "mebius-skill"];
+const CUTINS = [
+  ["raiko-skill", "ライコ「一閃」"], ["kagerou-skill", "カゲロウ「透視の術」"], ["luna-skill", "ルナ「運命の采配」"],
+  ["kaede-tsumo", "カエデ　ツモ"], ["zeno-ron", "ゼノ　ロン"], ["nannan-riichi", "南南　リーチ"],
+  ["jin-skill", "ジン「大明立直」"], ["koki-ron", "コウキ　ロン"], ["kagami-skill", "カガミ「写し身」"],
+];
+const stars = (n) => "★".repeat(n);
+
+// ヘッダー: スクロールで背景を付ける、狭い画面ではメニューを開閉。
+const header = document.getElementById("header");
+const onScroll = () => header.classList.toggle("is-solid", scrollY > 40);
+addEventListener("scroll", onScroll, { passive: true });
+onScroll();
+const burger = document.getElementById("burger");
+burger.addEventListener("click", () => {
+  const open = header.classList.toggle("is-menu");
+  burger.setAttribute("aria-expanded", String(open));
+});
+document.querySelectorAll("#nav a").forEach((a) => a.addEventListener("click", () => header.classList.remove("is-menu")));
+
+// ヒーロー: 必殺技のカットインを順に切り替える。
+const slides = document.getElementById("heroSlides");
+const dots = document.getElementById("heroDots");
+let hero = 0;
+let heroTimer;
+HERO.forEach((id, i) => {
+  const s = document.createElement("div");
+  s.className = "hero__slide" + (i === 0 ? " is-on" : "");
+  s.style.backgroundImage = `url(/declarations/${id}.webp)`;
+  slides.append(s);
+  const d = document.createElement("button");
+  d.setAttribute("aria-label", `${i + 1}枚目`);
+  if (i === 0) d.className = "is-on";
+  d.addEventListener("click", () => { showHero(i); restartHero(); });
+  dots.append(d);
+});
+function showHero(i) {
+  hero = i;
+  [...slides.children].forEach((s, k) => s.classList.toggle("is-on", k === i));
+  [...dots.children].forEach((d, k) => d.classList.toggle("is-on", k === i));
+}
+function restartHero() { clearInterval(heroTimer); heroTimer = setInterval(() => showHero((hero + 1) % HERO.length), 6000); }
+restartHero();
+
+// キャラクター: 大きな絵と説明、下に全員のアイコン。
+const thumbs = document.getElementById("charaThumbs");
+let filter = 0;
+let current = 0;
+function visibleList() { return CHARACTERS.filter((c) => !filter || c.rarity === filter); }
+function renderThumbs() {
+  thumbs.innerHTML = "";
+  visibleList().forEach((c) => {
+    const b = document.createElement("button");
+    b.className = "thumb" + (CHARACTERS[current] === c ? " is-on" : "");
+    b.innerHTML = `<img src="${c.avatar}" alt="" loading="lazy" /><span>${c.short}</span>`;
+    b.addEventListener("click", () => showChara(CHARACTERS.indexOf(c)));
+    thumbs.append(b);
+  });
+}
+function showChara(i) {
+  current = i;
+  const c = CHARACTERS[i];
+  const art = document.getElementById("charaArt");
+  art.classList.remove("is-in");
+  void art.offsetWidth;
+  art.src = c.top;
+  art.alt = c.name;
+  art.classList.add("is-in");
+  const info = document.getElementById("charaInfo");
+  info.classList.remove("is-in");
+  void info.offsetWidth;
+  info.classList.add("is-in");
+  document.getElementById("charaStars").textContent = stars(c.rarity);
+  document.getElementById("charaTitle").textContent = c.title;
+  document.getElementById("charaName").textContent = c.short;
+  document.getElementById("charaSkill").textContent = `「${c.skill}」`;
+  document.getElementById("charaDesc").textContent = c.desc;
+  document.getElementById("charaQuote").textContent = c.quote;
+  renderThumbs();
+}
+function step(d) {
+  const list = visibleList();
+  const k = list.indexOf(CHARACTERS[current]);
+  showChara(CHARACTERS.indexOf(list[(k + d + list.length) % list.length]));
+}
+document.getElementById("charaPrev").addEventListener("click", () => step(-1));
+document.getElementById("charaNext").addEventListener("click", () => step(1));
+document.querySelectorAll("#charaFilters .chip").forEach((b) =>
+  b.addEventListener("click", () => {
+    filter = Number(b.dataset.f);
+    document.querySelectorAll("#charaFilters .chip").forEach((x) => x.classList.toggle("is-on", x === b));
+    const list = visibleList();
+    showChara(CHARACTERS.indexOf(list.includes(CHARACTERS[current]) ? CHARACTERS[current] : list[0]));
+  }),
+);
+showChara(CHARACTERS.findIndex((c) => c.rarity === 3));
+// 先に絵を読み込んでおき、切り替えた時に一瞬空にならないようにする。
+addEventListener("load", () => CHARACTERS.forEach((c) => { const im = new Image(); im.src = c.top; }));
+
+// 宣言演出
+const grid = document.getElementById("cutinGrid");
+const lightbox = document.getElementById("lightbox");
+CUTINS.forEach(([id, label]) => {
+  const f = document.createElement("figure");
+  f.className = "cutin__item";
+  f.style.margin = "0";
+  f.innerHTML = `<img src="/declarations/${id}.webp" alt="${label}" loading="lazy" /><figcaption>${label}</figcaption>`;
+  f.addEventListener("click", () => {
+    lightbox.querySelector("img").src = `/declarations/${id}.webp`;
+    lightbox.classList.add("is-open");
+  });
+  grid.append(f);
+});
+lightbox.addEventListener("click", () => lightbox.classList.remove("is-open"));
+addEventListener("keydown", (e) => { if (e.key === "Escape") lightbox.classList.remove("is-open"); });
+
+// 段位
+const ladder = document.getElementById("rankLadder");
+RANKS.forEach((r, i) => {
+  const d = document.createElement("div");
+  d.className = "rank__step reveal";
+  d.style.transitionDelay = `${i * 0.08}s`;
+  const sub = r.levels ? `1段〜${r.levels}段${r.canDemote ? "" : "・降段なし"}` : "段なし・青天井";
+  d.innerHTML = `<div class="rank__lv">RANK ${i + 1}</div><div class="rank__name ${i === RANKS.length - 1 ? "gold-text" : ""}">${r.name}</div><div class="rank__sub">${sub}</div>`;
+  ladder.append(d);
+});
+
+// カード
+const cardGrid = document.getElementById("cardGrid");
+CARDS.forEach((c) => {
+  const d = document.createElement("article");
+  d.className = "tcard";
+  d.dataset.r = c.rarity;
+  d.innerHTML = `<div class="tcard__top"><div class="tcard__name">${c.name}</div><div class="tcard__stars">${stars(c.rarity)}</div></div><span class="tcard__type">${c.type}</span><p class="tcard__desc">${c.desc}</p>`;
+  cardGrid.append(d);
+});
+document.getElementById("cardMore").addEventListener("click", (e) => {
+  const collapsed = cardGrid.classList.toggle("is-collapsed");
+  e.currentTarget.textContent = collapsed ? "すべてのカードを見る" : "閉じる";
+  if (collapsed) document.getElementById("card").scrollIntoView();
+});
+
+// スクロールで順に出す
+const io = new IntersectionObserver((entries) => entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("is-visible"); io.unobserve(en.target); } }), { threshold: 0.12 });
+document.querySelectorAll(".reveal, #rateBox").forEach((el) => io.observe(el));
+</script>
+</body>
+</html>
