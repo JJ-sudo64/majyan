@@ -7,6 +7,7 @@ import { Tile3D } from "./Tile3D.js";
 import { HAND_GROUP_SLOT_COUNT, MELD_SLOT_COUNT, useTile3DDebugStore, usePlayerTile3DParam } from "../store/tile3dDebugStore.js";
 import { useSettingsStore } from "../store/settingsStore.js";
 import type { MeldSlotConfig } from "../store/tile3dDebugStore.js";
+import { viewRect } from "../orientation.js";
 
 /** 副露どうしの「自然な(手で動かす前の)」間隔(px)。実際の副露の実寸
     (種類によって3〜4枚で幅が変わる)には依存しない固定値——固定値にする
@@ -46,7 +47,7 @@ function makeMockMeld(index: number, type: "pon" | "ankan" = "pon"): Meld {
     正しく変換するために必要。 */
 export function getTableZoomRatio(el: HTMLElement): number {
   const tableEl = el.closest(".table") as HTMLElement | null;
-  return tableEl && tableEl.offsetWidth > 0 ? tableEl.getBoundingClientRect().width / tableEl.offsetWidth : 1;
+  return tableEl && tableEl.offsetWidth > 0 ? viewRect(tableEl).width / tableEl.offsetWidth : 1;
 }
 
 /** 要素のローカルな平行移動(CSSのtranslateプロパティ＝transformより外側、
@@ -57,7 +58,7 @@ export function getTableZoomRatio(el: HTMLElement): number {
 function measureScreenToLocal(el: HTMLElement): [number, number, number, number] | null {
   const prev = el.style.translate;
   const center = (): [number, number] => {
-    const r = el.getBoundingClientRect();
+    const r = viewRect(el);
     return [r.left + r.width / 2, r.top + r.height / 2];
   };
   try {
@@ -845,7 +846,7 @@ export function OpponentArea({
     if (!anchor) return undefined;
 
     const sync = () => {
-      const anchorRect = anchor.getBoundingClientRect();
+      const anchorRect = viewRect(anchor);
       // .tableはrotateX等の3D回転を持たないため、その
       // getBoundingClientRect().width / offsetWidth の比が、.tableの
       // zoom:1.46とStageのレターボックスscaleを合成した「実際の画面
@@ -854,7 +855,7 @@ export function OpponentArea({
       // 同じ倍率を掛けないと、他の卓上の要素と比べてTile3Dだけ
       // サイズ感が食い違って見える。
       const tableEl = anchor.closest(".table") as HTMLElement | null;
-      const zoomRatio = tableEl && tableEl.offsetWidth > 0 ? tableEl.getBoundingClientRect().width / tableEl.offsetWidth : 1;
+      const zoomRatio = tableEl && tableEl.offsetWidth > 0 ? viewRect(tableEl).width / tableEl.offsetWidth : 1;
       const cx = anchorRect.left + anchorRect.width / 2;
       const cy = anchorRect.top + anchorRect.height / 2;
       // CSSのtranslate(-50%,-50%)では、layer自身のtransform:scale(zoom)と
@@ -864,7 +865,7 @@ export function OpponentArea({
       // 描画サイズ」(scale適用後)を使って左上位置をpx単位で直接計算する。
       // layer側はtransform-origin:0 0 + scale(zoom)のみなので、
       // style.left/topはそのまま「拡大後の左上が来る位置」として機能する。
-      const layerRect = layer.getBoundingClientRect();
+      const layerRect = viewRect(layer);
       layer.style.left = `${cx - layerRect.width / 2}px`;
       // 上家だけ「副露で手牌が短くなる時、どちら側の端から縮んでいくか」を
       // 指定できるようにするため、中心合わせ(cy - height/2、両端が対称に

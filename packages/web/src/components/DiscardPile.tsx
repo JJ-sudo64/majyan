@@ -3,6 +3,7 @@ import type { DiscardedTile } from "@majyan/core";
 import { TileView } from "./TileView.js";
 import { STAGE_WIDTH } from "./Stage.js";
 import { handDrawnSlotClass, handSplitMidClass } from "./OpponentArea.js";
+import { viewRect } from "../orientation.js";
 
 // 川の表示枠は横6枚×3段(18枚)分しか確保していないため、CSSのoverflowでの
 // クリップに頼らずここで頭打ちにする。それ以上は溢れて隣と被ってしまうため。
@@ -98,7 +99,7 @@ function toLocalDelta(direction: RiverDirection, screenDx: number, screenDy: num
 }
 
 function rectCenter(el: Element): [number, number] | null {
-  const r = el.getBoundingClientRect();
+  const r = viewRect(el);
   if (r.width === 0 && r.height === 0) return null;
   return [r.left + r.width / 2, r.top + r.height / 2];
 }
@@ -234,10 +235,10 @@ export function DiscardPile({
     const handEl = document.querySelector<HTMLElement>(`[data-hand-anchor="${DIRECTION_TO_PLAYER[direction]}"]`);
     const stageEl = document.querySelector<HTMLElement>(".stage__canvas");
     if (!handEl || !stageEl) return;
-    const scale = stageEl.getBoundingClientRect().width / STAGE_WIDTH || 1;
+    const scale = viewRect(stageEl).width / STAGE_WIDTH || 1;
 
-    const tileRect = tileEl.getBoundingClientRect();
-    const handRect = handEl.getBoundingClientRect();
+    const tileRect = viewRect(tileEl);
+    const handRect = viewRect(handEl);
     const tileCenterX = tileRect.left + tileRect.width / 2;
     const tileCenterY = tileRect.top + tileRect.height / 2;
     // 「手牌の端（ツモった牌がある側＝OpponentArea/Handでtile--drawnを

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { CARDS, CHARACTERS, rarityOf, type GachaItem, type Rarity } from "@majyan/core";
 import { playGachaSound } from "../sound.js";
 import { RARITY_STARS } from "./GachaCard.js";
+import { portalRoot } from "../orientation.js";
 
 /** 光の玉が溜まる時間（その回で一番高いレア度ごと）。高いほど長く引っ張る。 */
 const CHARGE_MS: Record<Rarity, number> = { 1: 1300, 2: 1800, 3: 2600 };
@@ -142,6 +143,6 @@ export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () 
       </button>
       <div className="gacha-reveal__hint">{phase === "spot" ? "タップで次へ" : ""}</div>
     </div>,
-    document.body,
+    portalRoot(),
   );
 }

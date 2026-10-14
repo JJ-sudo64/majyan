@@ -28,8 +28,8 @@ button {
 
 /* ============ 卓の縦横比を一定に保つレターボックス土台 ============ */
 .stage {
-  width: 100vw;
-  height: 100vh;
+  width: calc(var(--app-vw, 1vw) * 100);
+  height: calc(var(--app-vh, 1vh) * 100);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,8 +60,8 @@ button {
    「固定解像度キャンバスをレターボックスで一律縮小」方式にして、
    画面サイズが変わっても絵とボタン位置がずれないようにしている。 */
 .title-screen {
-  width: 100vw;
-  height: 100vh;
+  width: calc(var(--app-vw, 1vw) * 100);
+  height: calc(var(--app-vh, 1vh) * 100);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -154,8 +154,8 @@ button {
   border: 1px solid #52b788;
   border-radius: 12px;
   padding: 20px;
-  width: min(560px, 90vw);
-  max-height: 80vh;
+  width: min(560px, calc(var(--app-vw, 1vw) * 90));
+  max-height: calc(var(--app-vh, 1vh) * 80);
   overflow-y: auto;
   text-align: left;
 }
@@ -261,7 +261,7 @@ button {
   border-radius: 12px;
   padding: 20px;
   max-width: 720px;
-  max-height: 80vh;
+  max-height: calc(var(--app-vh, 1vh) * 80);
   overflow-y: auto;
 }
 .setup-picker-modal__header {
@@ -324,7 +324,7 @@ button {
 }
 .character-confirm__art {
   max-width: 100%;
-  max-height: 45vh;
+  max-height: calc(var(--app-vh, 1vh) * 45);
   border-radius: 10px;
   object-fit: contain;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -1478,7 +1478,7 @@ button {
   /* 項目が増えて画面の下にはみ出すと、下の方の調整ボタンに届かなく
      なっていた（指摘により）。歯車の下(top:8px+42px)から画面下端までに
      高さを収め、はみ出した分は縦スクロールさせる。 */
-  max-height: calc(100vh - 58px);
+  max-height: calc(calc(var(--app-vh, 1vh) * 100) - 58px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2247,7 +2247,7 @@ button {
   /* 絵の端ぎりぎりに「リーチ」等の文字が描き込まれた絵があるので、どんな
      画面比でも画面幅を超えないようにする（超えると文字が画面外に出る）。
      --band-aspectはcropした範囲の縦横比（DeclarationCutinOverlay.tsxが指定）。 */
-  width: min(100vw, calc(92vh * var(--band-aspect, 16 / 9)));
+  width: min(calc(var(--app-vw, 1vw) * 100), calc(calc(var(--app-vh, 1vh) * 92) * var(--band-aspect, 16 / 9)));
   aspect-ratio: var(--band-aspect, 16 / 9);
   overflow: hidden;
   clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%);
@@ -2324,7 +2324,7 @@ button {
   /* 絵の右寄りにある顔に被らないよう、光の筋しかない左上に置く。 */
   top: 27%;
   left: 9%;
-  font-size: min(16vw, 22vh);
+  font-size: min(calc(var(--app-vw, 1vw) * 16), calc(var(--app-vh, 1vh) * 22));
   font-weight: 900;
   font-style: italic;
   letter-spacing: 0.04em;
@@ -3606,7 +3606,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
      副露込み最大ケース（14枚＋副露の枠の余白）はそれでも折り返して構わ
      ないが、素の13〜14枚は1段に収まるよう広げる。 */
   max-width: 560px;
-  max-height: 80vh;
+  max-height: calc(var(--app-vh, 1vh) * 80);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -3681,7 +3681,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: min(90vw, 640px);
+  width: min(calc(var(--app-vw, 1vw) * 90), 640px);
   padding: 28px 32px 24px;
   border-radius: 16px;
   overflow: hidden;
@@ -3709,7 +3709,7 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 .match-victory-card__art {
   position: relative;
   max-width: 100%;
-  max-height: 55vh;
+  max-height: calc(var(--app-vh, 1vh) * 55);
   border-radius: 12px;
   object-fit: contain;
   filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.7));
@@ -8141,65 +8141,6 @@ button.oh-player__rank:hover .oh-player__rank-help {
 }
 
 
-/* ---------------------------------------------------------------------------
-   縦に持っている時の「横にしてください」（RotateNotice.tsx）
-   --------------------------------------------------------------------------- */
-.rotate-notice {
-  position: fixed;
-  inset: 0;
-  z-index: 9000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 24px;
-  text-align: center;
-  color: #f4efe6;
-  background: radial-gradient(ellipse at 50% 40%, #2a1d10 0%, #120c08 60%, #070403 100%);
-}
-.rotate-notice__phone {
-  width: 54px;
-  height: 92px;
-  margin-bottom: 18px;
-  border: 3px solid #e6c36a;
-  border-radius: 10px;
-  animation: rotate-notice-turn 2.4s ease-in-out infinite;
-}
-@keyframes rotate-notice-turn {
-  0%,
-  25% {
-    transform: rotate(0deg);
-  }
-  60%,
-  100% {
-    transform: rotate(-90deg);
-  }
-}
-.rotate-notice__title {
-  margin: 0;
-  font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
-  font-size: 22px;
-  font-weight: bold;
-  color: #e6c36a;
-}
-.rotate-notice__text {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.85;
-}
-.rotate-notice__skip {
-  margin-top: 16px;
-  padding: 8px 18px;
-  border: 1px solid rgba(230, 195, 106, 0.5);
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 13px;
-  opacity: 0.8;
-  cursor: pointer;
-}
 /* メニューの左右（または上下）にできる余白は、同じ背景を暗くして敷き、継ぎ目を目立たなくする。 */
 .stage--menu {
   background:

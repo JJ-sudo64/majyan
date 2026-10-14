@@ -31,6 +31,7 @@ import { RevealHandEditToolbar } from "./RevealHandEditToolbar.js";
 import { SkillActivationOverlay } from "./SkillActivationOverlay.js";
 import { DeclarationCutinOverlay } from "./DeclarationCutinOverlay.js";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
+import { viewRect, portalRoot } from "../orientation.js";
 
 /**
  * 画面全体のレイヤー構造（View再設計）:
@@ -150,7 +151,7 @@ export function Table() {
     // .tableを持たないためgetTableZoomRatioは使えず、DiscardPile.tsxと
     // 同じ.stage__canvas基準の比率をここで直接測る。
     const stageEl = document.querySelector<HTMLElement>(".stage__canvas");
-    const zoom = stageEl && stageEl.offsetWidth > 0 ? stageEl.getBoundingClientRect().width / stageEl.offsetWidth : 1;
+    const zoom = stageEl && stageEl.offsetWidth > 0 ? viewRect(stageEl).width / stageEl.offsetWidth : 1;
     const dx = (e.clientX - drag.startX) / zoom;
     const dy = (e.clientY - drag.startY) / zoom;
     setNameplateSlotStore(drag.player, { offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
@@ -362,7 +363,7 @@ export function Table() {
             SettingsPanelの歯車メニューから開くモーダルに変更した
             （styles.cssの.tile3d-debug-overlay参照、画面中央付近に
             オーバーレイ表示、卓の内容を覆わない位置に配置）。
-            document.body直下へPortalしているのは、.tile3d-hand-layer
+            portalRoot()直下へPortalしているのは、.tile3d-hand-layer
             (z-index:20、同じくbody直下)より確実に手前に表示するため
             ——.game-screen内のスタッキングコンテキストに留めたままだと、
             z-indexをどれだけ上げてもbody直下にある.tile3d-hand-layerの
@@ -373,26 +374,26 @@ export function Table() {
               player={activePanel === "kamicha" ? (3 as PlayerIndex) : (1 as PlayerIndex)}
               onClose={() => setActivePanel(null)}
             />,
-            document.body,
+            portalRoot(),
           )}
         {/* 卓面背景画像（.table-surface）のサイズ・位置調整パネル。
-            Tile3DDebugPanelと同じ理由でdocument.body直下へPortalし、
+            Tile3DDebugPanelと同じ理由でportalRoot()直下へPortalし、
             同じモーダルスタイル(.tile3d-debug-overlay)を共有する。 */}
-        {isBgPanelOpen && createPortal(<BackgroundDebugPanel onClose={() => setIsBgPanelOpen(false)} />, document.body)}
+        {isBgPanelOpen && createPortal(<BackgroundDebugPanel onClose={() => setIsBgPanelOpen(false)} />, portalRoot())}
         {/* 副露配置編集モードのツールバー。Tile3DDebugPanel等と違い卓を
             暗転させない小さなバーで、卓を見ながら操作できる（.meld--
             editableのハイライトは.tile3d-hand-layerと同じ問題を持たない
             ——.meldは.opponent-area内、.tile3d-hand-layerとは別の要素）。
-            document.body直下へPortalする理由はTile3DDebugPanelと同じ
+            portalRoot()直下へPortalする理由はTile3DDebugPanelと同じ
             （.tile3d-hand-layerより手前に表示する必要があるため）。 */}
-        {meldEditSeat && createPortal(<MeldEditToolbar />, document.body)}
-        {handEditSeat && createPortal(<HandEditToolbar />, document.body)}
-        {ankanPreviewPanelOpen && createPortal(<AnkanPreviewPanel />, document.body)}
-        {riverEditOpen && createPortal(<RiverEditToolbar />, document.body)}
-        {nameplateEditOpen && createPortal(<NameplateEditToolbar />, document.body)}
-        {riichiStickEditOpen && createPortal(<RiichiStickEditToolbar />, document.body)}
-        {toimenEditTarget && createPortal(<ToimenEditToolbar />, document.body)}
-        {revealEditOpen && createPortal(<RevealHandEditToolbar />, document.body)}
+        {meldEditSeat && createPortal(<MeldEditToolbar />, portalRoot())}
+        {handEditSeat && createPortal(<HandEditToolbar />, portalRoot())}
+        {ankanPreviewPanelOpen && createPortal(<AnkanPreviewPanel />, portalRoot())}
+        {riverEditOpen && createPortal(<RiverEditToolbar />, portalRoot())}
+        {nameplateEditOpen && createPortal(<NameplateEditToolbar />, portalRoot())}
+        {riichiStickEditOpen && createPortal(<RiichiStickEditToolbar />, portalRoot())}
+        {toimenEditTarget && createPortal(<ToimenEditToolbar />, portalRoot())}
+        {revealEditOpen && createPortal(<RevealHandEditToolbar />, portalRoot())}
 
         <div className="table">
           {/* Step3/Phase C-2: 卓面（フェルト+木枠）と「ゲーム内容」を
@@ -503,17 +504,17 @@ export function Table() {
         {/* 下家・上家のTile3D立体牌のPortal先。position:fixedで実際の画面
             座標に追従させる（OpponentArea.tsx側で各OpponentAreaの
             .opponent-hand-backの実際の画面位置を継続的に実測して反映する）
-            ため、document.body直下へさらにPortalする——CSSのzoom
+            ため、portalRoot()直下へさらにPortalする——CSSのzoom
             （.stage__canvasが持つ、Stage.tsxのレターボックス用の拡大率）は、
             Chromiumではposition:fixedの子要素にとって新しいcontaining
             blockを形成してしまい、fixedがviewportではなくその祖先基準に
             なってしまう（実測で確認済み: 設定したtop/leftと実際の描画
-            位置が大きく食い違っていた）。document.bodyにはzoom等の
+            位置が大きく食い違っていた）。portalRoot()にはzoom等の
             containing-block化要素が一切ないため、ここに置けば
             position:fixedが素直にviewport基準になる（styles.cssの
             .tile3d-hand-layerコメント参照）。 */}
-        {createPortal(<div className="tile3d-hand-layer" ref={setTile3dLayer1} />, document.body)}
-        {createPortal(<div className="tile3d-hand-layer" ref={setTile3dLayer3} />, document.body)}
+        {createPortal(<div className="tile3d-hand-layer" ref={setTile3dLayer1} />, portalRoot())}
+        {createPortal(<div className="tile3d-hand-layer" ref={setTile3dLayer3} />, portalRoot())}
 
         {/* キャラクターレイヤー: 卓の外に独立した4枚のパネル。河・手牌の
             伸縮とは一切連動しない固定位置のため、以前のようなクリック
@@ -535,13 +536,13 @@ export function Table() {
             （斜め視点化を含め）このレイヤーは独立して流用できる。
             以前は.game-screen直下にそのまま置いていたが、これは.table等と
             同じスタッキングコンテキストに留まるため、CSS側でz-index:20を
-            指定していても、document.body直下に別途Portalされている
+            指定していても、portalRoot()直下に別途Portalされている
             .tile3d-hand-layer（同じくz-index:20、Tile3D手牌）とは
             そもそも比較対象にならず、常に手牌の下に隠れてしまっていた
             （指摘により発覚。Tile3DDebugPanel等と同じ理由でPortal化して
             解決する）。 */}
-        {createPortal(<SkillActivationOverlay round={round} />, document.body)}
-        {createPortal(<DeclarationCutinOverlay round={round} />, document.body)}
+        {createPortal(<SkillActivationOverlay round={round} />, portalRoot())}
+        {createPortal(<DeclarationCutinOverlay round={round} />, portalRoot())}
 
         {showOwnSkillInfo && selfCharacter && (
           <div className="modal-overlay" onClick={() => setShowOwnSkillInfo(false)}>

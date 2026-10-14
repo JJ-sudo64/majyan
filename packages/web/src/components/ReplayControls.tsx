@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { PlayerIndex } from "@majyan/core";
 import { replayLastStep, useGameStore } from "../store/gameStore.js";
+import { viewportHeight } from "../orientation.js";
 
 const WIND = ["", "東", "南", "西", "北"];
 /** 自動再生で1手進める間隔（等速）。 */
@@ -21,7 +22,7 @@ export function ReplayControls() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
   // 横向きのスマホのように背の低い画面では、開いたバーが卓の大半を隠すので、たたんだ状態から始める。
-  const [folded, setFolded] = useState(() => window.innerHeight < 520);
+  const [folded, setFolded] = useState(() => viewportHeight() < 520);
 
   const atEnd = !!replay && replay.step >= replayLastStep(replay);
   useEffect(() => {

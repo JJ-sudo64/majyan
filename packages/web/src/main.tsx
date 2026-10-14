@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { loadSharedTuning } from "./store/sharedTuningStorage.js";
+import { initOrientation } from "./orientation.js";
 import "./styles.css";
 
 // カットイン一覧（?cutin-gallery）とその1コマ（?cutin-frame=…）、勝利台詞一覧
@@ -34,6 +35,7 @@ if (params.has("admin")) {
 } else {
   // 調整値ファイルを先に読み込んでから、ストアを含むAppを読み込む
   // （ストアは読み込まれた瞬間に保存値を読むため。sharedTuningStorage.ts参照）。
+  initOrientation();
   loadSharedTuning()
     .then(() => import("./App.js"))
     .then(({ default: App }) => {

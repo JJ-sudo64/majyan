@@ -5,6 +5,7 @@ import { useGameStore } from "../store/gameStore.js";
 import { useTile3DDebugStore } from "../store/tile3dDebugStore.js";
 import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
 import { TABLE_BACKGROUND_OPTIONS, useTableBackgroundStore } from "../store/tableBackgroundStore.js";
+import { portalRoot } from "../orientation.js";
 
 /** 自動ツモ切り/自動和了トグルを、対局情報(Hud.tsx)とは切り離して画面左下に
     常設する設定パネル。以前はHudパネル(左上)に同居していたが、対局情報と
@@ -328,7 +329,7 @@ export function SettingsPanel() {
           </div>
           )}
         </div>,
-        document.body,
+        portalRoot(),
       )}
     </>
   );
