@@ -5102,6 +5102,12 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 .history-screen__stats tbody th {
   color: #ffe08a;
   text-align: left;
+  white-space: nowrap;
+}
+/* 値段は途中で折らない（狭い画面では「1回」の下の行にまとめて落ちる）。 */
+.gacha-screen__price {
+  display: inline-block;
+  white-space: nowrap;
 }
 .history-screen__places {
   opacity: 0.8;
@@ -6707,6 +6713,9 @@ button.oh-player__rank:hover .oh-player__rank-help {
   }
   .oh-player__rank-bar {
     width: 60px;
+  }
+  .oh-player {
+    min-width: 0;
   }
   .oh-top__icons {
     width: 100%;
@@ -8362,5 +8371,33 @@ button.oh-player__rank:hover .oh-player__rank-help {
     display: block;
     width: fit-content;
     margin: 1px 0 0;
+  }
+}
+
+/* 幅の狭いスマホでは、上のバーの段位の棒を出さない（雀玉の表示と重なる）。 */
+@media (max-width: 400px) {
+  .oh-player__rank-bar {
+    display: none;
+  }
+}
+@media (max-width: 340px) {
+  .oh-player__rank-help {
+    display: none;
+  }
+}
+/* ガチャの「1回」「10連」: 狭い画面では2つを同じ幅にし、値段を下の行に小さく出す。 */
+@media (max-width: 420px) {
+  .gacha-screen__pulls {
+    align-self: stretch;
+    gap: 10px;
+  }
+  .gacha-screen__pulls .btn--large {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 6px;
+  }
+  .gacha-screen__price {
+    display: block;
+    font-size: 14px;
   }
 }

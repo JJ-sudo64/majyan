@@ -127,9 +127,9 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         )}
         {error && <p className="online-lobby__error">{error}</p>}
 
-        <div className="setup-buttons">
+        <div className="setup-buttons gacha-screen__pulls">
           <button type="button" className="btn btn--large" disabled={busy || total < GACHA_PRICE.single} onClick={() => void run(() => rollGacha(1), undefined, true)}>
-            1回（雀玉{GACHA_PRICE.single}）
+            1回<span className="gacha-screen__price">（雀玉{GACHA_PRICE.single}）</span>
           </button>
           <button
             type="button"
@@ -137,7 +137,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
             disabled={busy || total < GACHA_PRICE.ten}
             onClick={() => void run(() => rollGacha(10), undefined, true)}
           >
-            10連（雀玉{GACHA_PRICE.ten.toLocaleString()}）
+            10連<span className="gacha-screen__price">（雀玉{GACHA_PRICE.ten.toLocaleString()}）</span>
           </button>
         </div>
         <p className="setup-lead">
