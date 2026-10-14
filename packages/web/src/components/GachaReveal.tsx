@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { CARDS, CHARACTERS, rarityOf, type GachaItem, type Rarity } from "@majyan/core";
-import { playGachaSound } from "../sound.js";
+import { playGachaSound, type SampleHandle } from "../sound.js";
 import { RARITY_STARS } from "./GachaCard.js";
 import { portalRoot } from "../orientation.js";
 
@@ -34,6 +34,8 @@ export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () 
   doneRef.current = onDone;
   // 開発時のStrictModeはeffectを2回走らせるので、同じ場面の音を重ねて鳴らさないようにする。
   const soundedRef = useRef("");
+  // 溜めの音は、はじけた時（タップで飛ばした時も）と「スキップ」した時に止める。
+  const chargeSoundRef = useRef<SampleHandle | null>(null);
   const soundOnce = (key: string, play: () => void) => {
     if (soundedRef.current === key) return;
     soundedRef.current = key;
@@ -48,14 +50,16 @@ export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () 
 
   useEffect(() => {
     if (phase === "charge") {
-      soundOnce("charge", () => playGachaSound("charge", CHARGE_MS[top] / 1000));
+      soundOnce("charge", () => {
+        chargeSoundRef.current = playGachaSound("charge", top);
+      });
       const timers = [window.setTimeout(() => setPhase("burst"), CHARGE_MS[top])];
       for (const r of [2, 3] as const) {
         if (top < r) continue;
         timers.push(
           window.setTimeout(() => {
             setTier(r);
-            playGachaSound("upgrade");
+            playGachaSound("upgrade", r);
           }, UPGRADE_AT_MS[r]),
         );
       }
@@ -64,7 +68,8 @@ export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () 
     if (phase === "burst") {
       // 溜めを飛ばして来た時も、はじける色はその回の一番高いレア度にする。
       setTier(top);
-      soundOnce("burst", () => playGachaSound("burst"));
+      chargeSoundRef.current?.stop(0.04);
+      soundOnce("burst", () => playGachaSound("burst", top));
       const id = window.setTimeout(afterBurst, BURST_MS);
       return () => window.clearTimeout(id);
     }
@@ -136,6 +141,7 @@ export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () 
         className="gacha-reveal__skip"
         onClick={(e) => {
           e.stopPropagation();
+          chargeSoundRef.current?.stop();
           doneRef.current();
         }}
       >

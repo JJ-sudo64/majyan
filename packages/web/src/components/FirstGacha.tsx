@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CHARACTERS, FIRST_GACHA } from "@majyan/core";
 import { confirmFirstGacha, rollFirstGacha, useAccountStore } from "../online/account.js";
 import { GachaCard } from "./GachaCard.js";
 import { GachaReveal } from "./GachaReveal.js";
+import { preloadGachaSounds } from "../sound.js";
 
 /**
  * 最初の10連。何度でも引き直せて、「これで決定」を押すとその結果のキャラが
@@ -10,6 +11,8 @@ import { GachaReveal } from "./GachaReveal.js";
  * 確定するまではネット対戦の画面の代わりにこれを出す。
  */
 export function FirstGacha() {
+  // 引いた直後の演出の音が最初の1回から遅れず鳴るよう、画面を開いた時に読み込んでおく。
+  useEffect(preloadGachaSounds, []);
   const firstGacha = useAccountStore((s) => s.firstGacha);
   const error = useAccountStore((s) => s.error);
   const [busy, setBusy] = useState(false);

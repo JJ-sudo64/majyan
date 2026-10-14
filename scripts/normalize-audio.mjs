@@ -31,6 +31,8 @@ const TOLERANCE = 0.7;
 /** そろえ方の決まり（上から順に最初に当てはまったもの）。targetがnullならそろえない。 */
 const RULES = [
   { match: /^sfx\/(deal|discard|draw)\./, target: null },
+  // ガチャ演出・メニューのボタンの音は scripts/synth-sfx.py が音ごとに大きさを決めて書き出す。
+  { match: /^sfx\/(gacha|ui)-/, target: null },
   { match: /^sfx\//, target: -18 },
   { match: /^voices\//, target: -18 },
   { match: /^bgm\//, target: -20 },

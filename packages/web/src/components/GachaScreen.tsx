@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CARDS,
   CHARACTERS,
@@ -19,6 +19,7 @@ import { exchangeItem, rollGacha, useAccountStore } from "../online/account.js";
 import { GachaCard, RARITY_STARS } from "./GachaCard.js";
 import { GachaReveal } from "./GachaReveal.js";
 import { RecordsScreen } from "./RecordsScreen.js";
+import { preloadGachaSounds } from "../sound.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
 
@@ -36,6 +37,8 @@ const sameItem = (a: GachaItem | null, b: GachaItem) => !!a && a.kind === b.kind
  * 必ず見られるようにする（ガチャの確率表示は業界の自主規制・各ストアの規約で求められている）。
  */
 export function GachaScreen({ onClose }: { onClose: () => void }) {
+  // 引いた直後の演出の音が最初の1回から遅れず鳴るよう、画面を開いた時に読み込んでおく。
+  useEffect(preloadGachaSounds, []);
   const jade = useAccountStore((s) => s.jade);
   const error = useAccountStore((s) => s.error);
   const exchangePoints = useAccountStore((s) => s.exchangePoints);

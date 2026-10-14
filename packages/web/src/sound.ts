@@ -114,6 +114,80 @@ export function playVoiceQueue(urls: string[]) {
 
 let beepContext: AudioContext | null = null;
 
+function audioContext(): AudioContext | null {
+  if (typeof window === "undefined" || !window.AudioContext) return null;
+  beepContext ??= new AudioContext();
+  if (beepContext.state === "suspended") void beepContext.resume().catch(() => {});
+  return beepContext;
+}
+
+const UI_TAP_SFX = "/sfx/ui-tap.mp3";
+const UI_CONFIRM_SFX = "/sfx/ui-confirm.mp3";
+const sampleCache = new Map<string, Promise<AudioBuffer | null>>();
+
+/** 音源を読み込んで解読しておく（同じURLは1回だけ）。 */
+function loadSample(url: string): Promise<AudioBuffer | null> {
+  let p = sampleCache.get(url);
+  if (!p) {
+    const ctx = audioContext();
+    p = ctx
+      ? fetch(url)
+          .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+          .then((data) => ctx.decodeAudioData(data))
+          .catch(() => {
+            sampleCache.delete(url);
+            return null;
+          })
+      : Promise.resolve(null);
+    sampleCache.set(url, p);
+  }
+  return p;
+}
+
+export interface SampleHandle {
+  /** fadeSec 秒かけて消して止める。 */
+  stop(fadeSec?: number): void;
+}
+
+/**
+ * 音源をWeb Audioで1回鳴らす（同じ音を重ねて鳴らせる）。SE音量に従う。
+ * まだ読み込めていなければ読み込み次第鳴らすが、遅れた分は頭を飛ばして演出とずれないようにし、
+ * 0.4秒以上遅れたら鳴らさない。
+ */
+function playSample(url: string): SampleHandle {
+  const volume = getSeVolume();
+  const ctx = audioContext();
+  let stopped = false;
+  let source: AudioBufferSourceNode | null = null;
+  let gain: GainNode | null = null;
+  if (!ctx || volume <= 0) return { stop() {} };
+  const requested = performance.now();
+  void loadSample(url).then((buffer) => {
+    const late = (performance.now() - requested) / 1000;
+    if (!buffer || stopped || late > 0.4) return;
+    source = ctx.createBufferSource();
+    source.buffer = buffer;
+    gain = ctx.createGain();
+    gain.gain.value = volume;
+    source.connect(gain).connect(ctx.destination);
+    source.start(0, late > 0.03 ? late : 0);
+  });
+  return {
+    stop(fadeSec = 0.06) {
+      stopped = true;
+      if (!source || !gain) return;
+      const now = ctx.currentTime;
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.linearRampToValueAtTime(0, now + fadeSec);
+      source.stop(now + fadeSec + 0.02);
+    },
+  };
+}
+
+// メニューのボタン音は小さいので、最初の1回から鳴るよう先に読み込んでおく。
+void loadSample(UI_TAP_SFX);
+void loadSample(UI_CONFIRM_SFX);
+
 /**
  * 制限時間の残り数秒を知らせる短い電子音（音源ファイルを使わずWeb Audioで鳴らす）。
  * lastなら最後の1秒用に高く長めの音にする。SE音量に従う。
@@ -140,39 +214,11 @@ export function playCountdownBeep(last = false) {
 }
 
 /**
- * メニュー画面（選択画面・オンラインのホーム）のボタンを押した時の短い音。
- * 音源ファイルを使わずWeb Audioで鳴らす。SE音量に従う。
- * tap=ふつうのボタン、confirm=対局を始める・決定するなどの金色のボタン。
+ * メニュー画面（選択画面・オンラインのホーム）のボタンを押した時の短い音（public/sfx/ui-*.mp3、scripts/synth-sfx.py）。
+ * tap=ふつうのボタン（木を軽く打つ音）、confirm=対局を始める・決定するなどの金色のボタン（琴の2音）。
  */
 export function playUiClick(kind: "tap" | "confirm" = "tap") {
-  if (typeof window === "undefined" || !window.AudioContext) return;
-  const volume = getSeVolume();
-  if (volume <= 0) return;
-  beepContext ??= new AudioContext();
-  const ctx = beepContext;
-  if (ctx.state === "suspended") void ctx.resume().catch(() => {});
-  const start = ctx.currentTime;
-  // [開始の遅れ, 始まりの高さ, 終わりの高さ, 長さ, 大きさ]
-  const notes: [number, number, number, number, number][] =
-    kind === "confirm"
-      ? [
-          [0, 784, 784, 0.16, 0.16],
-          [0.07, 1175, 1175, 0.26, 0.14],
-        ]
-      : [[0, 660, 440, 0.07, 0.12]];
-  for (const [delay, from, to, length, level] of notes) {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(from, start + delay);
-    if (to !== from) osc.frequency.exponentialRampToValueAtTime(to, start + delay + length);
-    gain.gain.setValueAtTime(0.0001, start + delay);
-    gain.gain.exponentialRampToValueAtTime(level * volume, start + delay + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + length);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(start + delay);
-    osc.stop(start + delay + length + 0.02);
-  }
+  playSample(kind === "confirm" ? UI_CONFIRM_SFX : UI_TAP_SFX);
 }
 
 /**
@@ -186,58 +232,23 @@ export function playUiClickFor(event: { target: EventTarget | null }) {
 }
 
 /**
- * ガチャの演出（GachaReveal.tsx）の音。音源ファイルを使わずWeb Audioで鳴らす。SE音量に従う。
- * charge=光の玉が溜まる間のせり上がる音（secondsはその長さ）、upgrade=玉の色が上がった時、
- * burst=はじけた時、rare=★3を見せる時のファンファーレ。
+ * ガチャの演出（GachaReveal.tsx）の音（public/sfx/gacha-*.mp3、scripts/synth-sfx.py で合成した音源）。
+ * charge=光の玉が溜まる間のせり上がる音（tierはその回の一番高いレア度で、溜めの長さも違う。
+ * はじける時に止めるので、止め方を返す）、upgrade=玉の色が青・金に上がった時、
+ * burst=はじけた時（tierで規模が違う）、rare=★3を見せる時のファンファーレ。
  */
-export function playGachaSound(kind: "charge" | "upgrade" | "burst" | "rare", seconds = 1.5) {
-  if (typeof window === "undefined" || !window.AudioContext) return;
-  const volume = getSeVolume();
-  if (volume <= 0) return;
-  beepContext ??= new AudioContext();
-  const ctx = beepContext;
-  if (ctx.state === "suspended") void ctx.resume().catch(() => {});
-  const start = ctx.currentTime;
-  // [波形, 開始の遅れ, 始まりの高さ, 終わりの高さ, 長さ, 大きさ, 立ち上がりの長さ]
-  type Note = [OscillatorType, number, number, number, number, number, number];
-  const notes: Note[] =
-    kind === "charge"
-      ? [
-          ["sawtooth", 0, 70, 280, seconds, 0.05, seconds * 0.9],
-          ["sine", 0, 220, 1320, seconds, 0.08, seconds * 0.9],
-        ]
-      : kind === "upgrade"
-        ? [
-            ["triangle", 0, 988, 988, 0.22, 0.14, 0.01],
-            ["triangle", 0.06, 1480, 1480, 0.3, 0.12, 0.01],
-          ]
-        : kind === "burst"
-          ? [
-              ["sine", 0, 160, 40, 0.5, 0.4, 0.01],
-              ["triangle", 0, 523, 523, 0.9, 0.12, 0.01],
-              ["triangle", 0, 784, 784, 0.9, 0.1, 0.01],
-              ["triangle", 0, 1047, 1047, 1.1, 0.1, 0.01],
-              ["sine", 0, 2093, 3136, 0.5, 0.05, 0.01],
-            ]
-          : [
-              ["triangle", 0, 523, 523, 0.3, 0.14, 0.01],
-              ["triangle", 0.1, 659, 659, 0.3, 0.14, 0.01],
-              ["triangle", 0.2, 784, 784, 0.3, 0.14, 0.01],
-              ["triangle", 0.3, 1047, 1047, 0.9, 0.16, 0.01],
-              ["triangle", 0.3, 1319, 1319, 0.9, 0.1, 0.01],
-              ["sine", 0.3, 1568, 1568, 1.2, 0.08, 0.01],
-            ];
-  for (const [type, delay, from, to, length, level, attack] of notes) {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(from, start + delay);
-    if (to !== from) osc.frequency.exponentialRampToValueAtTime(to, start + delay + length);
-    gain.gain.setValueAtTime(0.0001, start + delay);
-    gain.gain.exponentialRampToValueAtTime(level * volume, start + delay + attack);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + length);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(start + delay);
-    osc.stop(start + delay + length + 0.02);
+export function playGachaSound(kind: "charge" | "upgrade" | "burst", tier: 1 | 2 | 3): SampleHandle;
+export function playGachaSound(kind: "rare"): SampleHandle;
+export function playGachaSound(kind: "charge" | "upgrade" | "burst" | "rare", tier: 1 | 2 | 3 = 3): SampleHandle {
+  return playSample(kind === "rare" ? "/sfx/gacha-rare.mp3" : `/sfx/gacha-${kind}-${tier}.mp3`);
+}
+
+/** ガチャの音を先に読み込んでおく（ガチャ画面を開いた時に呼ぶ。最初の1回が遅れて鳴らないように）。 */
+export function preloadGachaSounds() {
+  for (const tier of [1, 2, 3]) {
+    void loadSample(`/sfx/gacha-charge-${tier}.mp3`);
+    void loadSample(`/sfx/gacha-burst-${tier}.mp3`);
+    if (tier > 1) void loadSample(`/sfx/gacha-upgrade-${tier}.mp3`);
   }
+  void loadSample("/sfx/gacha-rare.mp3");
 }
