@@ -1301,6 +1301,7 @@ export const CHARACTERS: Record<string, Character> = {
     description: "必殺技「アトミックリーチ」: ゲージが満タンの状態でリーチすると、自動的にアトミックリーチになる。発動した局は、他の3人がリーチできなくなる。",
     winQuote: "鳴くのはオレだけでいい。お前らの声は、もう聞こえなくなる。",
     avatar: "/avatars/characters/nyanjiro.webp",
+    cutin: "/avatars/characters/nyanjiro-cutin.webp",
     topArt: "/avatars/characters/nyanjiro-top.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
@@ -1347,6 +1348,7 @@ export const CHARACTERS: Record<string, Character> = {
     description: "必殺技「陰陽配牌」: パッシブスキル。親番でない局は配牌に面子（刻子や順子）が必ず1つ以上揃っている。その代わり、親番の局は逆に配牌が必ず面子0個のバラバラな形になる。",
     winQuote: "表があれば、裏がある。今のわたしは、ちゃんと表側。",
     avatar: "/avatars/characters/mebius.webp",
+    cutin: "/avatars/characters/mebius-cutin.webp",
     topArt: "/avatars/characters/mebius-top.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
@@ -1480,8 +1482,9 @@ export const CHARACTERS: Record<string, Character> = {
     name: "一撃の狩人・シグレ",
     description: "必殺技「狙い撃ち」: ゲージが満タンの状態でリーチすると自動的に発動する。そのリーチ中は和了牌をツモってこなくなる（ツモ和了できない）が、ロン和了なら4翻アップする。",
     winQuote: "ツモなんて要らない。お前の切った一枚で、全部決める。",
-    // 専用の立ち絵・カットイン・宣言の絵は未用意。差し替えるまで仮の座席アイコンを使う。
-    avatar: "/avatars/seat3.svg",
+    // 宣言（リーチ・ツモ・ロン）の絵は未用意。
+    avatar: "/avatars/characters/deagari.webp",
+    cutin: "/avatars/characters/deagari-cutin.webp",
     topArt: "/avatars/characters/deagari-top.webp",
     gaugeMax: 100,
     gaugePerTurn: 10,
@@ -1511,6 +1514,7 @@ export const CHARACTERS: Record<string, Character> = {
     description: "必殺技「時間停止」: 発動すると時間が止まり、自分だけが2巡連続で行動できる（他の3人は一切反応できない）。",
     winQuote: "止まった刻の中で足掻いたところで、何も変わりはしないさ。",
     avatar: "/avatars/characters/zeno.webp",
+    cutin: "/avatars/characters/zeno-cutin.webp",
     topArt: "/avatars/characters/zeno-top.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
@@ -1558,6 +1562,7 @@ export const CHARACTERS: Record<string, Character> = {
     description: "必殺技「写し身」: 発動すると、直前に他の誰かが使った必殺技を自分に対してそのまま再現する（自分自身が直前に使った場合や、まだ誰も使っていない場合は不発）。",
     winQuote: "見せてもらった技はもう私のもの。真似ることだって立派な才能でしょう？",
     avatar: "/avatars/characters/kagami.webp",
+    cutin: "/avatars/characters/kagami-cutin.webp",
     topArt: "/avatars/characters/kagami-top.webp",
     // 専用の縦長カットイン素材は未用意。cutin未指定時はavatarにフォールバックする
     // 仕様（MatchSetup.tsx/MatchVictoryOverlay.tsx/SkillActivationOverlay.tsxの
