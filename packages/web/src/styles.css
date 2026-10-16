@@ -8834,3 +8834,112 @@ button.oh-player__rank:hover .oh-player__rank-help {
   display: flex;
   flex-direction: column;
 }
+
+/* チュートリアル（TutorialOverlay）。案内は手牌の少し上に出し、触ってほしい牌・ボタンは脈打つように光らせる。 */
+.tutorial-panel {
+  position: absolute;
+  left: 50%;
+  /* 手牌の上のボタン（リーチ・ポン・ロン等）に重ならない高さにする。 */
+  bottom: 175px;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: min(720px, 92%);
+  padding: 10px 16px 12px;
+  border: 1px solid #e9c46a;
+  border-radius: 12px;
+  background: rgba(16, 12, 8, 0.93);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  color: #fff;
+  text-align: left;
+}
+/* 結果の画面は中央に大きく出るので、その上の空きに出す。 */
+.tutorial-panel--top {
+  bottom: auto;
+  top: 34px;
+}
+.tutorial-panel--nudge {
+  animation: tutorial-nudge 0.35s ease-out;
+}
+.tutorial-panel__head {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #e9c46a;
+}
+.tutorial-panel__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.tutorial-panel__next {
+  align-self: flex-end;
+}
+.tutorial-panel__wait {
+  align-self: flex-end;
+  font-size: 12px;
+  opacity: 0.7;
+}
+.tutorial-quit {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 81;
+  padding: 3px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+@keyframes tutorial-pulse {
+  0%,
+  100% {
+    filter: none;
+    box-shadow: 0 0 0 0 rgba(255, 221, 120, 0);
+  }
+  50% {
+    filter: brightness(1.25);
+    box-shadow: 0 0 14px 4px rgba(255, 221, 120, 0.95);
+  }
+}
+@keyframes tutorial-nudge {
+  0%,
+  100% {
+    transform: translateX(-50%);
+  }
+  25% {
+    transform: translateX(calc(-50% - 8px));
+  }
+  75% {
+    transform: translateX(calc(-50% + 8px));
+  }
+}
+.setup-tutorial-btn {
+  border-color: #e9c46a;
+  color: #ffe9a8;
+}
+
+/* 結果の画面（ScoreResult）。左に和了・流局の内容、右に順位と次へのボタンを並べて、スクロールなしに収める。 */
+.modal.modal--result {
+  width: min(960px, 96%);
+  max-width: 960px;
+}
+.result-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.result-cols__left,
+.result-cols__right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}

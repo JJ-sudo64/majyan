@@ -50,6 +50,7 @@ const CPU_SEATS: { player: 1 | 2 | 3; label: string }[] = [
 
 export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline: () => void }) {
   const startMatch = useGameStore((s) => s.startMatch);
+  const startTutorial = useGameStore((s) => s.startTutorial);
   const [debugMode, setDebugMode] = useState(false);
   // デフォルトは箱割れ（誰かが0点未満になった時点で）即終了。チェックを入れると
   // 箱下続行（それを無視して最終局まで続ける）ルールになる。
@@ -129,6 +130,9 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
         {/* 何度も見返す確認用ページ（CutinGallery.tsx / QuoteGallery.tsx）。別タブで
             開くので、この画面で選んだキャラや設定はそのまま残る。 */}
         <div className="setup-gallery-links">
+          <button type="button" className="oh-ghost setup-tutorial-btn" onClick={startTutorial}>
+            チュートリアル
+          </button>
           <a className="oh-ghost" href="?cutin-gallery" target="_blank" rel="noreferrer">
             カットイン一覧
           </a>

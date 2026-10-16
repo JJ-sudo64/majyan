@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CHARACTERS, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
+import { CHARACTERS, TUTORIAL_SCENARIOS, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useOnlineStore } from "../online/onlineLink.js";
 import { playVoiceQueue } from "../sound.js";
@@ -118,6 +118,7 @@ function resultTitle(round: RoundState): string {
 export function ScoreResult({ round, outcome }: { round: RoundState; outcome: RoundScoreOutcome }) {
   const acknowledgeRoundEnd = useGameStore((s) => s.acknowledgeRoundEnd);
   const backToTitle = useGameStore((s) => s.backToTitle);
+  const tutorial = useGameStore((s) => s.tutorial);
   const match = useGameStore((s) => s.match);
   const online = useGameStore((s) => s.online);
   const roundEndAcknowledged = useGameStore((s) => s.roundEndAcknowledged);
@@ -170,8 +171,11 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
 
   return (
     <div className="modal-overlay">
-      <div className="modal">
+      <div className="modal modal--result">
         <h2>{resultTitle(round)}</h2>
+        {/* 画面の高さに収まるよう、左に和了・流局の内容、右に順位と次へのボタンを並べる。 */}
+        <div className="result-cols">
+          <div className="result-cols__left">
 
         {winnerEntries.map(([playerStr, { analysis, score }]) => {
           const player = Number(playerStr) as PlayerIndex;
@@ -250,6 +254,8 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
           </div>
         )}
 
+          </div>
+          <div className="result-cols__right">
         <div className="rank-cards">
           {match &&
             rankSeats(match.scores, match.startingDealer)
@@ -321,9 +327,17 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
           </div>
         ) : (
           <button className="btn btn--primary" onClick={acknowledgeRoundEnd} disabled={online && roundEndAcknowledged}>
-            {online && roundEndAcknowledged ? "他のプレイヤーを待っています…" : "次の局へ"}
+            {online && roundEndAcknowledged
+              ? "他のプレイヤーを待っています…"
+              : tutorial
+                ? tutorial.scenarioIndex >= TUTORIAL_SCENARIOS.length - 1
+                  ? "チュートリアルを終わる"
+                  : "次へ"
+                : "次の局へ"}
           </button>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

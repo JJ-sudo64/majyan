@@ -112,6 +112,7 @@ export const TileView = forwardRef<HTMLButtonElement, TileViewProps>(function Ti
       ref={ref}
       type="button"
       className={classes.join(" ")}
+      data-tile-code={faceDown ? undefined : code}
       style={style}
       onClick={onClick}
       // 元はdisabled={!onClick}で非操作牌をクリック不可にしていたが、

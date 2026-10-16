@@ -16,6 +16,7 @@ import { ScoreResult } from "./ScoreResult.js";
 import { CenterBoard } from "./CenterBoard.js";
 import { CharacterPanel } from "./CharacterPanel.js";
 import { Hud } from "./Hud.js";
+import { TutorialOverlay } from "./TutorialOverlay.js";
 import { SettingsPanel } from "./SettingsPanel.js";
 import { DebugPanel } from "./DebugPanel.js";
 import { Tile3DDebugPanel } from "./Tile3DDebugPanel.js";
@@ -352,6 +353,7 @@ export function Table() {
             いた。.game-screen直下（拡大・オフセットされていない実座標）に
             移すことで、常に画面の実際の左上付近に表示されるようにする。 */}
         <Hud round={round} format={match.format} />
+        <TutorialOverlay />
         <SettingsPanel />
         {/* DebugPanelもHud等と同じ理由（.tableはzoom:1.46+top:52.9%で
             拡大・中央配置されており、game-screenの実表示領域を縦に大きく

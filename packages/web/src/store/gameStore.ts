@@ -37,6 +37,10 @@ import {
   type SeatInfo,
   type SeatOptions,
   type TileCode,
+  type TutorialStep,
+  TUTORIAL_SCENARIOS,
+  tutorialAllows,
+  tutorialCpuAction,
 } from "@majyan/core";
 
 const HUMAN: PlayerIndex = 0;
@@ -63,6 +67,20 @@ const MAX_HISTORY = 50;
     のdurationにそのまま使うことで、演出が一巡し終わるのと実際にツモが
     実行されるタイミングを一致させる。 */
 export const TIME_STOP_FAKE_TURN_STEP_MS = 650;
+
+/** チュートリアルの進み具合（core/src/tutorial.tsの台本のどこまで来たか）。 */
+export interface TutorialRuntime {
+  scenarioIndex: number;
+  stepIndex: number;
+  /** 今の台本の案内を出しているか（その局面になるまで出さない）。 */
+  visible: boolean;
+  /** 台本が許さない操作をされた回数（案内を揺らして知らせるのに使う）。 */
+  nudge: number;
+}
+
+function tutorialStep(tutorial: TutorialRuntime | null): TutorialStep | undefined {
+  return tutorial ? TUTORIAL_SCENARIOS[tutorial.scenarioIndex]?.steps[tutorial.stepIndex] : undefined;
+}
 
 export type HumanCallOptions = NonNullable<SeatOptions["call"]>;
 export type HumanTurnOptions = NonNullable<SeatOptions["turn"]>;
@@ -195,6 +213,10 @@ interface GameStoreState {
   applyOnlineView: (view: OnlineSeatView) => void;
   /** 牌譜の再生中ならその状態（再生中は操作を受け付けず、局面はreplay*で動かす）。 */
   replay: ReplayState | null;
+  /** チュートリアル中なら、その進み具合。 */
+  tutorial: TutorialRuntime | null;
+  startTutorial: () => void;
+  tutorialNext: () => void;
   openReplay: (data: ReplayResponse) => void;
   /** 1手進める/戻す。局の端では隣の局へ移る。 */
   replayStep: (delta: 1 | -1) => void;
@@ -297,7 +319,16 @@ function commit(get: Get, set: Set, result: MatchActionResult) {
     ...viewStateFor(result.match),
     lastScoreAdjustment,
   });
+  syncTutorial(get, set);
   scheduleTick(get, set);
+}
+
+/** チュートリアル中、今の局面が台本の次の案内を出す局面なら、案内を出す。 */
+function syncTutorial(get: Get, set: Set) {
+  const { tutorial, fullMatch } = get();
+  if (!tutorial || !fullMatch || tutorial.visible) return;
+  const step = tutorialStep(tutorial);
+  if (step && step.when(fullMatch.round)) set({ tutorial: { ...tutorial, visible: true } });
 }
 
 function scheduleTick(get: Get, set: Set, delay = 0) {
@@ -320,6 +351,19 @@ function dispatch(get: Get, set: Set, action: GameAction) {
   }
   const match = get().fullMatch;
   if (!match) return;
+  // チュートリアル中は、案内が出ている間、台本が許した操作だけを通す（案内の無い間の自動の見送り等は通す）。
+  const tutorial = get().tutorial;
+  let tutorialStepDone = false;
+  if (tutorial && "player" in action && action.player === HUMAN) {
+    const step = tutorialStep(tutorial);
+    if (tutorial.visible && step) {
+      if (step.advance !== "action" || !tutorialAllows(step.allow, action, match.round)) {
+        set({ tutorial: { ...tutorial, nudge: tutorial.nudge + 1 } });
+        return;
+      }
+      tutorialStepDone = true;
+    }
+  }
   let result: MatchActionResult;
   try {
     result = applyMatchAction(match, action);
@@ -327,6 +371,7 @@ function dispatch(get: Get, set: Set, action: GameAction) {
     console.error("[majyan] 操作を無視しました（状態が既に進行していた可能性があります）:", err);
     return;
   }
+  if (tutorialStepDone && tutorial) set({ tutorial: { ...tutorial, stepIndex: tutorial.stepIndex + 1, visible: false } });
   commit(get, set, result);
 }
 
@@ -364,7 +409,14 @@ function dispatchLater(
 
 function tick(get: Get, set: Set) {
   const state = get();
-  if (!state.fullMatch || state.pendingRoundEnd) return;
+  if (!state.fullMatch) return;
+  // チュートリアル: 案内を出す局面なら出し、「次へ」待ちの案内の間は対局を進めない。
+  if (state.tutorial) {
+    syncTutorial(get, set);
+    const tutorial = get().tutorial;
+    if (tutorial?.visible && tutorialStep(tutorial)?.advance === "next") return;
+  }
+  if (state.pendingRoundEnd) return;
   // 一時停止中は（人間の手番かどうかによらず）一切自動進行させない。
   // これがないと、巻き戻した先がちょうど「これから誰かがツモる直前」の
   // 局面だった場合にツモ処理だけは一時停止を無視して即座に進んでしまい、
@@ -414,7 +466,7 @@ function tick(get: Get, set: Set) {
       }
       const seat = decision.seat;
       dispatchLater(get, set, thinkDelay, decision, (s2, r2) =>
-        decideCpuTurnAction(r2, seat, s2.cpuDifficulty[seat], { noWin: s2.debugMode }),
+        s2.tutorial ? tutorialCpuAction(r2, seat) : decideCpuTurnAction(r2, seat, s2.cpuDifficulty[seat], { noWin: s2.debugMode }),
       );
       return;
     }
@@ -427,7 +479,7 @@ function tick(get: Get, set: Set) {
       }
       const seat = decision.seat;
       dispatchLater(get, set, thinkDelay, decision, (s2, r2) =>
-        decideCpuCallResponse(r2, seat, s2.cpuDifficulty[seat], { noWin: s2.debugMode }),
+        s2.tutorial ? tutorialCpuAction(r2, seat) : decideCpuCallResponse(r2, seat, s2.cpuDifficulty[seat], { noWin: s2.debugMode }),
       );
       return;
     }
@@ -457,6 +509,33 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   roundEndDeadline: null,
   cutinHold: false,
   replay: null,
+  tutorial: null,
+
+  startTutorial: () => {
+    resetCutinHold();
+    set({
+      ...viewStateFor(TUTORIAL_SCENARIOS[0]!.build()),
+      cutinHold: false,
+      pendingRoundEnd: false,
+      lastRoundOutcome: null,
+      debugMode: false,
+      debugSpeed: "fast",
+      debugPaused: false,
+      history: [],
+      cpuDifficulty: DEFAULT_CPU_DIFFICULTY,
+      tutorial: { scenarioIndex: 0, stepIndex: 0, visible: false, nudge: 0 },
+    });
+    syncTutorial(get, set);
+    scheduleTick(get, set);
+  },
+
+  tutorialNext: () => {
+    const tutorial = get().tutorial;
+    if (!tutorial || !tutorial.visible || tutorialStep(tutorial)?.advance !== "next") return;
+    set({ tutorial: { ...tutorial, stepIndex: tutorial.stepIndex + 1, visible: false } });
+    syncTutorial(get, set);
+    scheduleTick(get, set);
+  },
 
   openReplay: (data) => {
     if (data.rounds.length === 0) return;
@@ -630,6 +709,24 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       get().replayGotoRound(state.replay.roundIndex + 1);
       return;
     }
+    // チュートリアルは、次の台本の局へ進む（最後なら終わってタイトルへ戻る）。
+    if (state.tutorial) {
+      const next = state.tutorial.scenarioIndex + 1;
+      if (next >= TUTORIAL_SCENARIOS.length) {
+        get().backToTitle();
+        return;
+      }
+      resetCutinHold();
+      set({
+        ...viewStateFor(TUTORIAL_SCENARIOS[next]!.build()),
+        pendingRoundEnd: false,
+        lastRoundOutcome: null,
+        tutorial: { scenarioIndex: next, stepIndex: 0, visible: false, nudge: 0 },
+      });
+      syncTutorial(get, set);
+      scheduleTick(get, set);
+      return;
+    }
     if (state.online) {
       onlineLink.send({ t: "nextRound" });
       set({ roundEndAcknowledged: true });
@@ -653,6 +750,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     resetCutinHold();
     set({
       replay: null,
+      tutorial: null,
       cutinHold: false,
       online: false,
       spectating: false,
