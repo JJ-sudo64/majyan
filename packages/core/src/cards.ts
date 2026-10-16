@@ -8,7 +8,7 @@
 import type { PlayerIndex } from "./actions.js";
 import type { RoundState } from "./gameState.js";
 import type { TileCode } from "./tiles.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -69,6 +69,9 @@ function setAt<T>(tuple: [T, T, T, T], index: PlayerIndex, value: T): [T, T, T, 
   return next;
 }
 
+/** カード「対子確約」で保証するトイツの組数（コウジの必殺技は4組）。 */
+const PAIR_GUARANTEE_MIN_PAIRS = 3;
+
 export const CARDS: Record<string, Card> = {
   "meld-guarantee": {
     id: "meld-guarantee",
@@ -94,6 +97,34 @@ export const CARDS: Record<string, Card> = {
         const { round, owner } = ctx;
         const p = round.players[owner]!;
         const { hand, wall } = ensureAtLeastOneDora(p.hand, round.wall);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "pair-guarantee": {
+    id: "pair-guarantee",
+    name: "対子確約",
+    description: "持っているだけの常時効果。配牌時、手牌のトイツ（同じ牌2枚の組）が3組に満たなければ、山から同じ牌を調達して入れ替え、必ず3組以上にする（山に該当する牌が無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const p = round.players[owner]!;
+        const { hand, wall } = ensureAtLeastPairs(p.hand, round.wall, PAIR_GUARANTEE_MIN_PAIRS);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "red-guarantee": {
+    id: "red-guarantee",
+    name: "赤ドラ確約",
+    description: "持っているだけの常時効果。配牌時、手牌に赤ドラ（赤5）が1枚も無ければ、山から赤ドラを1枚見つけて手牌の適当な1枚と入れ替え、必ず1枚以上入った状態にする（山にも見つからなければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const p = round.players[owner]!;
+        const { hand, wall } = ensureAtLeastOneRedTile(p.hand, round.wall);
         return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
       },
     },

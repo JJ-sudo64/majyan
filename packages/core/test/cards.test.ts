@@ -1177,3 +1177,47 @@ describe("gauge-boost card (ゲージ加速)", () => {
     expect(round.players[0]!.skillGauge).toBe(15); // 通常10のところ1.5倍
   });
 });
+
+describe("pair-guarantee card (対子確約)", () => {
+  const pairsOf = (hand: Hand) => {
+    const counts = new Map<string, number>();
+    for (const t of hand.concealed) counts.set(t.code, (counts.get(t.code) ?? 0) + 1);
+    return [...counts.values()].filter((c) => c >= 2).length;
+  };
+
+  it("brings the opening hand up to at least 3 pairs, keeping 13 tiles", () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const baseline = dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""]);
+      if (pairsOf(baseline.players[0]!.hand) >= 3) continue;
+      const withCard = dealNewRound(
+        1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false,
+        ["pair-guarantee", null, null, null],
+      );
+      expect(pairsOf(withCard.players[0]!.hand)).toBeGreaterThanOrEqual(3);
+      expect(withCard.players[0]!.hand.concealed.length).toBe(13);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});
+
+describe("red-guarantee card (赤ドラ確約)", () => {
+  it("forces at least one red five into the opening hand when the raw deal has none", () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const baseline = dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""]);
+      if (baseline.players[0]!.hand.concealed.some((t) => t.isRed)) continue;
+      // 赤が山（引ける範囲）に無い配牌は不発になるので、この検証の対象外。
+      if (!baseline.wall.liveTiles.some((t) => t.isRed)) continue;
+      const withCard = dealNewRound(
+        1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false,
+        ["red-guarantee", null, null, null],
+      );
+      expect(withCard.players[0]!.hand.concealed.some((t) => t.isRed)).toBe(true);
+      expect(withCard.players[0]!.hand.concealed.length).toBe(13);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});

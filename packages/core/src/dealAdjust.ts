@@ -136,3 +136,12 @@ export function ensureAtLeastPairs(hand: Hand, wall: WallState, minPairs: number
   }
   return current;
 }
+
+/** 手牌に赤ドラ（赤5）が1枚も無ければ、山から赤ドラを1枚見つけて手牌の適当な1枚と
+    入れ替える。山にも見つからなければ何もしない（極めて稀な不発）。 */
+export function ensureAtLeastOneRedTile(hand: Hand, wall: WallState): { hand: Hand; wall: WallState } {
+  if (hand.concealed.some((t) => t.isRed === true)) return { hand, wall };
+  const target = wall.liveTiles.find((t) => t.isRed === true);
+  if (!target) return { hand, wall };
+  return swapHandTilesWithWall(hand, wall, [hand.concealed[0]!.id], [target.id]);
+}
