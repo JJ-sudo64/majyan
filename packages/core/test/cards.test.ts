@@ -1582,3 +1582,61 @@ describe("a seventh batch of weak ★1 cards", () => {
     expect(notDealer.pendingScoreAdjustment).toEqual(makeRound(base).pendingScoreAdjustment);
   });
 });
+
+describe("stronger cards (★2/★3)", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+  const useOnce = (card: string, extra: Partial<RoundState> = {}) =>
+    applyAction(
+      makeRound({ players: blank(), cardIds: [card, null, null, null], currentTurn: 0, phase: "awaiting-discard", ...extra }),
+      { type: "useCard", player: 0 },
+    );
+
+  it("insight-3 reveals everyone's hands and can be used three times", () => {
+    expect(CARDS["insight-3"]!.maxUses).toBe(3);
+    let round = makeRound({ players: blank(), cardIds: ["insight-3", null, null, null], currentTurn: 0, phase: "awaiting-discard" });
+    round = { ...round, cardUsesRemaining: [3, 0, 0, 0] };
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.handsRevealedTo).toBe(0);
+    expect(next.cardUsesRemaining[0]).toBe(2);
+  });
+
+  it("future-sight-double shows the next two draws", () => {
+    expect(CARDS["future-sight-double"]!.maxUses).toBe(2);
+    const next = useOnce("future-sight-double", { wall: makeWall(["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m"]) });
+    const live = next.wall.liveTiles;
+    expect(next.players[0]!.revealedFutureDraws).toEqual([live[3]!.code, live[7]!.code]);
+  });
+
+  it("nullify-double arms the negation and keeps one use in reserve", () => {
+    let round = makeRound({ players: blank(), cardIds: ["nullify-double", null, null, null], currentTurn: 0, phase: "awaiting-discard" });
+    round = { ...round, cardUsesRemaining: [2, 0, 0, 0] };
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.cardNegateArmed[0]).toBe(true);
+    expect(next.cardUsesRemaining[0]).toBe(1);
+  });
+
+  it("dealer-big-collection takes 1500 from each seat only while the holder is the dealer", () => {
+    expect(useOnce("dealer-big-collection", { dealerSeat: 0 }).pendingScoreAdjustment).toEqual([4500, -1500, -1500, -1500]);
+    expect(useOnce("dealer-big-collection", { dealerSeat: 2 }).pendingScoreAdjustment).toEqual(useOnce("han-up-1", { dealerSeat: 2 }).pendingScoreAdjustment);
+  });
+
+  it("dora-guarantee-2 brings at least two dora tiles into the opening hand and keeps 13 tiles", () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const deal = (cards?: [string | null, null, null, null]) =>
+        dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false, cards);
+      const base = deal();
+      const doraCodes = new Set(doraIndicators(base.wall).map(nextTileForDora));
+      const countDora = (hand: Hand) => hand.concealed.filter((t) => doraCodes.has(t.code) || t.isRed).length;
+      const inHand = countDora(base.players[0]!.hand);
+      if (inHand >= 2) continue;
+      // 山に足りるだけドラが残っていない配牌は不発になるので、この検証の対象外。
+      if (base.wall.liveTiles.filter((t) => doraCodes.has(t.code) || t.isRed).length < 2 - inHand) continue;
+      const withCard = deal(["dora-guarantee-2", null, null, null]);
+      expect(countDora(withCard.players[0]!.hand)).toBeGreaterThanOrEqual(2);
+      expect(withCard.players[0]!.hand.concealed).toHaveLength(13);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});

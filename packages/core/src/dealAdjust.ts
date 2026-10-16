@@ -224,3 +224,20 @@ export function ensureAtLeastOneTileNearDora(hand: Hand, wall: WallState): { han
   if (!target) return { hand, wall };
   return swapHandTilesWithWall(hand, wall, [hand.concealed[0]!.id], [target.id]);
 }
+
+/** 手牌のドラ（表ドラ、および赤ドラ）がminCount枚に満たなければ、山から該当する牌を持ってきて、
+    手牌のドラでない牌と入れ替えることを繰り返す。山のドラが尽きたらそこで止まる（不発）。 */
+export function ensureAtLeastDoraTiles(hand: Hand, wall: WallState, minCount: number): { hand: Hand; wall: WallState } {
+  const doraCodes = new Set(doraIndicators(wall).map(nextTileForDora));
+  const isDoraTile = (t: Tile) => doraCodes.has(t.code) || t.isRed === true;
+  let current = { hand, wall };
+  for (let i = 0; i < minCount; i++) {
+    const inHand = current.hand.concealed.filter(isDoraTile).length;
+    if (inHand >= minCount) break;
+    const target = current.wall.liveTiles.find(isDoraTile);
+    const removable = [...current.hand.concealed].reverse().find((t) => !isDoraTile(t));
+    if (!target || !removable) break;
+    current = swapHandTilesWithWall(current.hand, current.wall, [removable.id], [target.id]);
+  }
+  return current;
+}

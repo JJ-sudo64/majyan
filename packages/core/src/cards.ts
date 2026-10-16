@@ -10,7 +10,7 @@ import { seatWindOf, type RoundState } from "./gameState.js";
 import { isHonor, isTerminal, type TileCode } from "./tiles.js";
 import { revealNextDora } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, countPairs, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, countPairs, ensureAtLeastDoraTiles, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -88,6 +88,8 @@ const PARTICIPATION_BONUS = 500;
 const GAUGE_FILL_TINY_RATIO = 0.2;
 /** カード「勝ち逃げ」で1位に足す点数。 */
 const TOP_PLACE_TRIM_BONUS = 500;
+/** カード「ドラ二枚確約」で保証するドラの枚数。 */
+const DORA_GUARANTEE_2_COUNT = 2;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
 
@@ -635,6 +637,68 @@ export const CARDS: Record<string, Card> = {
     kind: "consumable",
     hooks: {
       onUse: (ctx) => (ctx.round.dealerSeat === ctx.owner ? drainPointsEach(ctx, 400) : ctx.round),
+    },
+  },
+  "insight-3": {
+    id: "insight-3",
+    name: "偵察・三度",
+    description: "使用すると、次に自分がツモるまでの1巡の間、他家3人の手牌がすべて見える（偵察と同じ効果）。対局を通して3回まで使用できる（使うたびに1回消費、使い切ると無くなる）。",
+    kind: "consumable",
+    maxUses: 3,
+    hooks: {
+      onUse: (ctx) => ({ ...ctx.round, handsRevealedTo: ctx.owner }),
+    },
+  },
+  "future-sight-double": {
+    id: "future-sight-double",
+    name: "未来視・二連",
+    description: "使用すると、通常のローテーション（誰も鳴かない前提）で次に自分が自摸ってくるはずの牌と、その次の1枚の計2枚を、あらかじめ見ることができる。対局を通して2回まで使用でき、誰かが鳴いて手番の巡りがズレると、以降の予知は外れる。",
+    kind: "consumable",
+    maxUses: 2,
+    hooks: {
+      onUse: (ctx) => {
+        const live = ctx.round.wall.liveTiles;
+        const revealedFutureDraws: TileCode[] = [live[3], live[7]].filter((t): t is NonNullable<typeof t> => !!t).map((t) => t.code);
+        return {
+          ...ctx.round,
+          players: updatePlayer(ctx.round, ctx.owner, (pl) => ({ ...pl, revealedFutureDraws })),
+        };
+      },
+    },
+  },
+  "nullify-double": {
+    id: "nullify-double",
+    name: "二重無効化",
+    description: "使用すると、次に敵が必殺技を使った瞬間、その効果を1度だけ無効化する（無効化の効果は無効化と同じ）。対局を通して2回まで使用できる（使うたびに1回消費、使い切ると無くなる）。",
+    kind: "consumable",
+    maxUses: 2,
+    hooks: {
+      onUse: (ctx) => ({
+        ...ctx.round,
+        cardNegateArmed: setAt(ctx.round.cardNegateArmed, ctx.owner, true),
+      }),
+    },
+  },
+  "dealer-big-collection": {
+    id: "dealer-big-collection",
+    name: "親の大集金",
+    description: "使用すると、自分が親の時に限り、他の3人から1500点ずつ（合計4500点）を即座に奪い取る（自分が親でなければ何も起きない）。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => (ctx.round.dealerSeat === ctx.owner ? drainPointsEach(ctx, 1500) : ctx.round),
+    },
+  },
+  "dora-guarantee-2": {
+    id: "dora-guarantee-2",
+    name: "ドラ二枚確約",
+    description: "持っているだけの常時効果。配牌時、手牌のドラ（表ドラ、および赤ドラ）が2枚に満たなければ、山から該当する牌を調達して手牌の別の牌と入れ替え、必ず2枚以上入った状態にする（山のドラが尽きれば不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = ensureAtLeastDoraTiles(round.players[owner]!.hand, round.wall, DORA_GUARANTEE_2_COUNT);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
     },
   },
   nullify: {
