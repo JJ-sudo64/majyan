@@ -1262,3 +1262,42 @@ describe("gauge-fill card (気合充填)", () => {
     expect(next.players[0]!.skillGauge).toBe(0);
   });
 });
+
+describe("yakuhai-guarantee card (役牌確約)", () => {
+  // 東1局・親は座席0。座席0の自風・場風はどちらも東(1z)。
+  const yakuhai = ["1z", "5z", "6z", "7z"];
+  const hasYakuhaiPair = (hand: Hand) => yakuhai.some((c) => hand.concealed.filter((t) => t.code === c).length >= 2);
+
+  it("gives the opening hand a yakuhai pair when the raw deal has none, keeping 13 tiles", () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const baseline = dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""]);
+      if (hasYakuhaiPair(baseline.players[0]!.hand)) continue;
+      const withCard = dealNewRound(
+        1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false,
+        ["yakuhai-guarantee", null, null, null],
+      );
+      expect(hasYakuhaiPair(withCard.players[0]!.hand)).toBe(true);
+      expect(withCard.players[0]!.hand.concealed.length).toBe(13);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});
+
+describe("tanyao-guarantee card (断么確約)", () => {
+  const yaochuCount = (hand: Hand) => hand.concealed.filter((t) => !isNumbered(t.code) || numberOf(t.code) === 1 || numberOf(t.code) === 9).length;
+
+  it("replaces up to 4 terminals and honors with simples, keeping 13 tiles", () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const baseline = dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""]);
+      const withCard = dealNewRound(
+        1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false,
+        ["tanyao-guarantee", null, null, null],
+      );
+      const before = yaochuCount(baseline.players[0]!.hand);
+      expect(yaochuCount(withCard.players[0]!.hand)).toBe(Math.max(0, before - 4));
+      expect(withCard.players[0]!.hand.concealed.length).toBe(13);
+    }
+  });
+});

@@ -6,7 +6,7 @@
  */
 import type { Hand } from "./hand.js";
 import { doraIndicators, type WallState } from "./wall.js";
-import { isNumbered, numberOf, suitOf, nextTileForDora, sortTiles, allTileCodes, type Tile, type TileCode } from "./tiles.js";
+import { isNumbered, isTerminalOrHonor, numberOf, suitOf, nextTileForDora, sortTiles, allTileCodes, type Tile, type TileCode } from "./tiles.js";
 
 /** 与えられた牌集合（手牌の濃厚 or 山の残り）の中に完成した面子
     （刻子＝同じ牌3枚、または順子＝連続する3つの数牌）が存在すれば、
@@ -144,4 +144,37 @@ export function ensureAtLeastOneRedTile(hand: Hand, wall: WallState): { hand: Ha
   const target = wall.liveTiles.find((t) => t.isRed === true);
   if (!target) return { hand, wall };
   return swapHandTilesWithWall(hand, wall, [hand.concealed[0]!.id], [target.id]);
+}
+
+/** 手牌に役牌（yakuhaiCodes）のトイツ以上が無ければ、山から役牌を調達して作る。
+    手牌に1枚だけある役牌があればそれと同じ牌を山から1枚、無ければ山に2枚以上ある
+    役牌を2枚持ってくる（外すのは役牌以外の牌）。山に材料が無ければ何もしない
+    （極めて稀な不発）。 */
+export function ensureYakuhaiPair(hand: Hand, wall: WallState, yakuhaiCodes: TileCode[]): { hand: Hand; wall: WallState } {
+  const countIn = (tiles: Tile[], code: TileCode) => tiles.filter((t) => t.code === code).length;
+  if (yakuhaiCodes.some((code) => countIn(hand.concealed, code) >= 2)) return { hand, wall };
+  const isYakuhai = (t: Tile) => yakuhaiCodes.includes(t.code);
+  const spare = hand.concealed.filter((t) => !isYakuhai(t));
+  for (const code of yakuhaiCodes) {
+    if (countIn(hand.concealed, code) !== 1) continue;
+    const target = wall.liveTiles.find((t) => t.code === code);
+    const removable = spare[spare.length - 1];
+    if (target && removable) return swapHandTilesWithWall(hand, wall, [removable.id], [target.id]);
+  }
+  for (const code of yakuhaiCodes) {
+    const targets = wall.liveTiles.filter((t) => t.code === code).slice(0, 2);
+    if (targets.length < 2 || countIn(hand.concealed, code) !== 0 || spare.length < 2) continue;
+    return swapHandTilesWithWall(hand, wall, spare.slice(-2).map((t) => t.id), targets.map((t) => t.id));
+  }
+  return { hand, wall };
+}
+
+/** 手牌の么九牌（1・9・字牌）を、最大maxSwaps枚まで山の中張牌（2〜8の数牌）と入れ替える。
+    山に中張牌が足りなければ、入れ替えられた分だけで止まる。 */
+export function swapTerminalsForSimples(hand: Hand, wall: WallState, maxSwaps: number): { hand: Hand; wall: WallState } {
+  const outgoing = hand.concealed.filter((t) => isTerminalOrHonor(t.code)).slice(0, maxSwaps);
+  const incoming = wall.liveTiles.filter((t) => !isTerminalOrHonor(t.code)).slice(0, outgoing.length);
+  const n = Math.min(outgoing.length, incoming.length);
+  if (n === 0) return { hand, wall };
+  return swapHandTilesWithWall(hand, wall, outgoing.slice(0, n).map((t) => t.id), incoming.slice(0, n).map((t) => t.id));
 }

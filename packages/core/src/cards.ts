@@ -6,11 +6,11 @@
  * 呼び出す。
  */
 import type { PlayerIndex } from "./actions.js";
-import type { RoundState } from "./gameState.js";
+import { seatWindOf, type RoundState } from "./gameState.js";
 import type { TileCode } from "./tiles.js";
 import { revealNextDora } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, swapTerminalsForSimples } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -73,6 +73,8 @@ function setAt<T>(tuple: [T, T, T, T], index: PlayerIndex, value: T): [T, T, T, 
 
 /** カード「対子確約」で保証するトイツの組数（コウジの必殺技は4組）。 */
 const PAIR_GUARANTEE_MIN_PAIRS = 3;
+/** カード「断么確約」で入れ替える么九牌の最大枚数。 */
+const TANYAO_GUARANTEE_MAX_SWAPS = 4;
 
 export const CARDS: Record<string, Card> = {
   "meld-guarantee": {
@@ -153,6 +155,35 @@ export const CARDS: Record<string, Card> = {
           ...ctx.round,
           players: updatePlayer(ctx.round, ctx.owner, (pl) => ({ ...pl, skillGauge: Math.max(pl.skillGauge, character.gaugeMax) })),
         };
+      },
+    },
+  },
+  "yakuhai-guarantee": {
+    id: "yakuhai-guarantee",
+    name: "役牌確約",
+    description: "持っているだけの常時効果。配牌時、手牌に役牌（白發中、自風、場風）のトイツが無ければ、山から役牌を調達して必ず1組以上のトイツにする（山に材料が無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const p = round.players[owner]!;
+        const yakuhai = [`${seatWindOf(round.dealerSeat, owner)}z`, `${round.roundWind}z`, "5z", "6z", "7z"] as TileCode[];
+        const { hand, wall } = ensureYakuhaiPair(p.hand, round.wall, [...new Set(yakuhai)]);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "tanyao-guarantee": {
+    id: "tanyao-guarantee",
+    name: "断么確約",
+    description: "持っているだけの常時効果。配牌時、手牌の么九牌（1・9・字牌）を最大4枚まで山の中張牌（2〜8）と入れ替え、断么九を狙いやすい手にする。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const p = round.players[owner]!;
+        const { hand, wall } = swapTerminalsForSimples(p.hand, round.wall, TANYAO_GUARANTEE_MAX_SWAPS);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
       },
     },
   },
