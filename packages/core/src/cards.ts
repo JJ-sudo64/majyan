@@ -10,7 +10,7 @@ import { seatWindOf, type RoundState } from "./gameState.js";
 import { isHonor, isTerminal, type TileCode } from "./tiles.js";
 import { revealNextDora } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, countPairs, ensureAtLeastDoraTiles, ensureAtLeastOneTriplet, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, countPairs, ensureAtLeastDoraTiles, ensureAtLeastOneTriplet, lowerShanten, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -92,6 +92,10 @@ const TOP_PLACE_TRIM_BONUS = 500;
 const DORA_GUARANTEE_2_COUNT = 2;
 /** カード「気合半充填」で増えるゲージの割合（ゲージ最大値に対して）。 */
 const GAUGE_FILL_HALF_RATIO = 0.6;
+/** カード「配牌の底上げ」「配牌の大底上げ」: 目標のシャンテン数と、入れ替える最大枚数。 */
+const HAND_LIFT_TARGET = 3;
+const HAND_LIFT_BIG_TARGET = 2;
+const HAND_LIFT_MAX_SWAPS = 4;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
 
@@ -753,6 +757,84 @@ export const CARDS: Record<string, Card> = {
         const character = CHARACTERS[ctx.round.characterIds[ctx.owner]];
         if (!character || character.gaugeMax <= 0) return ctx.round;
         return addGauge(ctx.round, ctx.owner, Math.ceil(character.gaugeMax * GAUGE_FILL_HALF_RATIO));
+      },
+    },
+  },
+  "ron-boon": {
+    id: "ron-boon",
+    name: "ロンの加護",
+    description: "持っているだけの常時効果。自分がロン和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    kind: "passive",
+    hooks: {
+      // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
+    },
+  },
+  "menzen-boon": {
+    id: "menzen-boon",
+    name: "門前の加護",
+    description: "持っているだけの常時効果。副露していない（暗槓のみ可）手で和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    kind: "passive",
+    hooks: {
+      // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
+    },
+  },
+  "dealer-extort": {
+    id: "dealer-extort",
+    name: "親への強請",
+    description: "使用すると、親から2000点を即座に奪い取る（自分が親の時は何も起きない）。和了や流局を待たない即時効果。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => {
+        const { round, owner } = ctx;
+        if (round.dealerSeat === owner) return round;
+        const delta: [number, number, number, number] = [0, 0, 0, 0];
+        delta[round.dealerSeat] -= 2000;
+        delta[owner] += 2000;
+        return { ...round, pendingScoreAdjustment: delta };
+      },
+    },
+  },
+  "second-place-pride": {
+    id: "second-place-pride",
+    name: "連対の矜持",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分がちょうど2位（同点の場合は上の順位）だった場合に限り、最終点数に2000点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores.filter((s) => s > scores[owner]!).length === 1, 2000),
+    },
+  },
+  "third-place-grit": {
+    id: "third-place-grit",
+    name: "三位の底力",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分がちょうど3位（同点の場合は上の順位）だった場合に限り、最終点数に3000点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores.filter((s) => s > scores[owner]!).length === 2, 3000),
+    },
+  },
+  "hand-lift": {
+    id: "hand-lift",
+    name: "配牌の底上げ",
+    description: "持っているだけの常時効果。配牌時、手牌が3シャンテンより遠ければ、山の牌と最大4枚まで入れ替えて、和了に一番近づく形にする（3シャンテン以内になるか、これ以上近づけなくなるまで）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = lowerShanten(round.players[owner]!.hand, round.wall, HAND_LIFT_TARGET, HAND_LIFT_MAX_SWAPS);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "hand-lift-big": {
+    id: "hand-lift-big",
+    name: "配牌の大底上げ",
+    description: "持っているだけの常時効果。配牌時、手牌が2シャンテンより遠ければ、山の牌と最大4枚まで入れ替えて、和了に一番近づく形にする（2シャンテン以内になるか、これ以上近づけなくなるまで）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = lowerShanten(round.players[owner]!.hand, round.wall, HAND_LIFT_BIG_TARGET, HAND_LIFT_MAX_SWAPS);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
       },
     },
   },

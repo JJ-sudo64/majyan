@@ -5,6 +5,7 @@
  * 山・手牌の合計牌数、各牌の総数は常に保たれる。
  */
 import type { Hand } from "./hand.js";
+import { calcShanten } from "./shanten.js";
 import { doraIndicators, type WallState } from "./wall.js";
 import { isNumbered, isTerminalOrHonor, numberOf, suitOf, nextTileForDora, sortTiles, allTileCodes, type Tile, type TileCode } from "./tiles.js";
 
@@ -255,4 +256,31 @@ export function ensureAtLeastOneTriplet(hand: Hand, wall: WallState): { hand: Ha
     if (target && removable) return swapHandTilesWithWall(hand, wall, [removable.id], [target.id]);
   }
   return { hand, wall };
+}
+
+/** 手牌のシャンテン数がtarget以下になるまで、手牌の1枚を山の1枚と入れ替える操作を、最大maxSwaps回
+    繰り返す。毎回、入れ替えて一番シャンテン数が下がる組み合わせを選び、どう入れ替えても下がらなく
+    なったらそこで止まる（不発）。 */
+export function lowerShanten(hand: Hand, wall: WallState, target: number, maxSwaps: number): { hand: Hand; wall: WallState } {
+  let current = { hand, wall };
+  for (let i = 0; i < maxSwaps; i++) {
+    const now = calcShanten(current.hand);
+    if (now <= target) break;
+    let best: { removeId: string; addId: string; shanten: number } | null = null;
+    const seenWall = new Set<TileCode>();
+    const wallCandidates = current.wall.liveTiles.filter((t) => !seenWall.has(t.code) && !!seenWall.add(t.code));
+    const seenHand = new Set<TileCode>();
+    for (const out of current.hand.concealed) {
+      if (seenHand.has(out.code)) continue;
+      seenHand.add(out.code);
+      const rest = current.hand.concealed.filter((t) => t.id !== out.id);
+      for (const incoming of wallCandidates) {
+        const shanten = calcShanten({ concealed: [...rest, incoming], melds: current.hand.melds });
+        if (shanten < now && (!best || shanten < best.shanten)) best = { removeId: out.id, addId: incoming.id, shanten };
+      }
+    }
+    if (!best) break;
+    current = swapHandTilesWithWall(current.hand, current.wall, [best.removeId], [best.addId]);
+  }
+  return current;
 }

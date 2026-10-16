@@ -226,8 +226,8 @@ export function isFuriten(player: PlayerRoundState): boolean {
 
 /** 持っているだけで和了に乗る翻（加護系カード）。条件を満たした和了にだけ1翻足す。
     いずれも消費されず、他に役が無い手には乗らない（小手先の一翻などと同じ扱い）。
-      親の加護: 自分が親の時／立直の加護: 立直中の和了／ツモの加護: ツモ和了
-      */
+      親の加護: 自分が親の時／立直の加護: 立直中の和了／ツモの加護: ツモ和了／ロンの加護: ロン和了／
+      門前の加護: 副露していない（暗槓のみ可）手の和了 */
 function passiveBonusHan(round: RoundState, player: PlayerIndex, isTsumo: boolean): number {
   const p = round.players[player];
   switch (round.cardIds[player]) {
@@ -237,6 +237,10 @@ function passiveBonusHan(round: RoundState, player: PlayerIndex, isTsumo: boolea
       return p.riichi ? 1 : 0;
     case "tsumo-boon":
       return isTsumo ? 1 : 0;
+    case "ron-boon":
+      return isTsumo ? 0 : 1;
+    case "menzen-boon":
+      return p.hand.melds.every((m) => m.type === "ankan") ? 1 : 0;
     default:
       return 0;
   }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TileCode } from "../src/tiles.js";
-import type { Hand } from "../src/hand.js";
+import type { Hand, Meld } from "../src/hand.js";
+import { calcShanten } from "../src/shanten.js";
 import type { RoundState } from "../src/gameState.js";
 import { applyAction, canDeclareRon, canDeclareTsumo, canUseCard, computeRoundScoreOutcome } from "../src/gameEngine.js";
 import {
@@ -1696,5 +1697,81 @@ describe("stronger ★2 cards (加護・暗刻の種・気合半充填)", () => 
     expect(applyAction(round, { type: "useCard", player: 0 }).players[0]!.skillGauge).toBe(Math.ceil(max * 0.6));
     const nearlyFull = { ...round, players: round.players.map((p, i) => (i === 0 ? { ...p, skillGauge: max - 1 } : p)) as RoundState["players"] };
     expect(applyAction(nearlyFull, { type: "useCard", player: 0 }).players[0]!.skillGauge).toBe(max);
+  });
+});
+
+describe("a tenth batch of cards (ロン・門前の加護, 強請, 順位ボーナス, 配牌の底上げ)", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+  const holding = (card: string, seat: 0 | 1 | 2 | 3 = 0) => {
+    const cardIds: RoundState["cardIds"] = [null, null, null, null];
+    cardIds[seat] = card;
+    return { ...makeRound({ players: blank() }), cardIds };
+  };
+  // 2m3m4m + 5p6p7p + 7s8s9s + 1z1z1z + 9m9mの門前手（役満ではない）。
+  const winHand = ["2m", "3m", "4m", "5p", "6p", "7p", "7s", "8s", "9s", "1z", "1z", "1z", "9m", "9m"] as TileCode[];
+  const tsumoDelta = (card: string | null, openMeld = false) => {
+    const player0 = emptyPlayer(winHand);
+    const hand: Hand = openMeld
+      ? { concealed: player0.hand.concealed.slice(3), melds: [{ type: "chi", tiles: player0.hand.concealed.slice(0, 3) } as Meld] }
+      : player0.hand;
+    const withMeld = { ...player0, hand };
+    const round = makeRound({
+      players: [withMeld, emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: [card, null, null, null],
+      dealerSeat: 1,
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      lastDrawnTile: hand.concealed[hand.concealed.length - 1]!,
+      result: { type: "tsumo", winners: [0], dealerContinues: true },
+      anyCallOrRiichiMade: true,
+    });
+    return computeRoundScoreOutcome(round).scoreDeltas[0]!;
+  };
+
+  it("menzen-boon adds a han only to a closed hand", () => {
+    expect(tsumoDelta("menzen-boon")).toBeGreaterThan(tsumoDelta(null));
+    expect(tsumoDelta("menzen-boon", true)).toBe(tsumoDelta(null, true));
+  });
+
+  it("ron-boon does not apply to a tsumo win", () => {
+    expect(tsumoDelta("ron-boon")).toBe(tsumoDelta(null));
+  });
+
+  it("dealer-extort takes 2000 from the dealer and does nothing for the dealer", () => {
+    const base = { players: blank(), cardIds: [null, "dealer-extort", null, null] as RoundState["cardIds"], currentTurn: 1 as const, phase: "awaiting-discard" as const };
+    expect(applyAction(makeRound({ ...base, dealerSeat: 3 }), { type: "useCard", player: 1 }).pendingScoreAdjustment).toEqual([0, 2000, 0, -2000]);
+    expect(applyAction(makeRound({ ...base, dealerSeat: 1 }), { type: "useCard", player: 1 }).pendingScoreAdjustment).toEqual(makeRound(base).pendingScoreAdjustment);
+  });
+
+  it("second-place-pride and third-place-grit pay only at their own rank", () => {
+    expect(applyCardMatchEndBonuses(holding("second-place-pride", 3), [40000, 20000, 15000, 25000])).toEqual([40000, 20000, 15000, 27000]);
+    expect(applyCardMatchEndBonuses(holding("second-place-pride", 3), [40000, 30000, 15000, 10000])).toEqual([40000, 30000, 15000, 10000]);
+    expect(applyCardMatchEndBonuses(holding("third-place-grit"), [20000, 40000, 30000, 10000])).toEqual([23000, 40000, 30000, 10000]);
+    expect(applyCardMatchEndBonuses(holding("third-place-grit"), [10000, 40000, 30000, 20000])).toEqual([10000, 40000, 30000, 20000]);
+  });
+
+  it("hand-lift and hand-lift-big lower the opening shanten without changing the tile count", () => {
+    let lifted = 0;
+    let liftedBig = 0;
+    for (let seed = 1; seed <= 25; seed++) {
+      const deal = (card?: string) =>
+        dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false, card ? [card, null, null, null] : undefined);
+      const base = calcShanten(deal().players[0]!.hand);
+      const lift = deal("hand-lift");
+      const big = deal("hand-lift-big");
+      expect(lift.players[0]!.hand.concealed).toHaveLength(13);
+      expect(big.players[0]!.hand.concealed).toHaveLength(13);
+      const liftShanten = calcShanten(lift.players[0]!.hand);
+      const bigShanten = calcShanten(big.players[0]!.hand);
+      expect(liftShanten).toBeLessThanOrEqual(base);
+      expect(bigShanten).toBeLessThanOrEqual(liftShanten);
+      if (base > 3) {
+        expect(liftShanten).toBeLessThanOrEqual(Math.max(3, base - 4));
+        lifted++;
+      }
+      if (base > 2) liftedBig++;
+    }
+    expect(lifted).toBeGreaterThan(0);
+    expect(liftedBig).toBeGreaterThan(0);
   });
 });
