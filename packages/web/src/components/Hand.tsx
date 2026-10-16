@@ -522,7 +522,12 @@ export function Hand({ round }: { round: RoundState }) {
               >
                 {heldCard.name}
                 {heldCard.kind === "passive"
-                  ? "（常時発動中）"
+                  ? heldCard.maxUses === undefined
+                    ? "（常時発動中）"
+                    : // 回数制限つきの常時効果（加護・配牌の底上げ等）は、残り回数を見せる。
+                      round.cardUsesRemaining[HUMAN] > 0
+                      ? `（常時発動中・残り${round.cardUsesRemaining[HUMAN]}回）`
+                      : "（使い切り）"
                   : heldCard.hooks.onUse
                     ? round.cardUsesRemaining[HUMAN] > 0
                       ? `（残り${round.cardUsesRemaining[HUMAN]}回）`
