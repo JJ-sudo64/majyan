@@ -206,3 +206,21 @@ export function leanTowardMainSuit(hand: Hand, wall: WallState, maxSwaps: number
   if (n === 0) return { hand, wall };
   return swapHandTilesWithWall(hand, wall, outgoing.slice(0, n).map((t) => t.id), incoming.slice(0, n).map((t) => t.id));
 }
+
+/** 手牌にドラ（表示牌から求まるドラ）か、その隣の数牌（ドラ±1の同じ色）が1枚も無ければ、
+    山からそのような牌を1枚持ってきて手牌の適当な1枚と入れ替える。山にも無ければ何もしない。 */
+export function ensureAtLeastOneTileNearDora(hand: Hand, wall: WallState): { hand: Hand; wall: WallState } {
+  const near = new Set<TileCode>();
+  for (const dora of doraIndicators(wall).map(nextTileForDora)) {
+    near.add(dora);
+    if (!isNumbered(dora)) continue;
+    const n = numberOf(dora);
+    const suit = suitOf(dora);
+    if (n > 1) near.add(`${n - 1}${suit}` as TileCode);
+    if (n < 9) near.add(`${n + 1}${suit}` as TileCode);
+  }
+  if (hand.concealed.some((t) => near.has(t.code))) return { hand, wall };
+  const target = wall.liveTiles.find((t) => near.has(t.code));
+  if (!target) return { hand, wall };
+  return swapHandTilesWithWall(hand, wall, [hand.concealed[0]!.id], [target.id]);
+}

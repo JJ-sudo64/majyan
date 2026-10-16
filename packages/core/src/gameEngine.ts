@@ -155,16 +155,21 @@ function gainGauge(round: RoundState, player: PlayerIndex, players: RoundState["
   if (players[player].pendingTileSwapNextRound || players[player].pendingPairDealNextRound) return players;
   // カード「最後の粘り」: 持っているだけの常時効果。オーラスの間だけゲージ
   // 増加量が2倍になる（消費はされない）。
-  // カード「ゲージ加速」「ゲージ微加速」: 常に1.5倍／1.2倍（切り上げ）。「最後の粘り」とは別のカードなので重ならない。
+  // ゲージを増やすカード（常時効果）。いずれも別のカードなので重ならない。
+  //   最後の粘り: オーラスだけ2倍／終盤の粘り: オーラスだけ1.5倍
+  //   ゲージ加速: 常に1.5倍／ゲージ微加速: 常に1.2倍（端数は切り上げ）
   const cardId = round.cardIds[player];
+  const finalHand = isFinalHand(round);
   const boosted =
-    cardId === "last-stand" && isFinalHand(round)
+    cardId === "last-stand" && finalHand
       ? amount * 2
-      : cardId === "gauge-boost"
+      : cardId === "last-stand-small" && finalHand
         ? Math.ceil(amount * 1.5)
-        : cardId === "gauge-boost-small"
-          ? Math.ceil(amount * 1.2)
-          : amount;
+        : cardId === "gauge-boost"
+          ? Math.ceil(amount * 1.5)
+          : cardId === "gauge-boost-small"
+            ? Math.ceil(amount * 1.2)
+            : amount;
   return updatePlayer(players, player, (pl) => ({ ...pl, skillGauge: Math.min(character.gaugeMax, pl.skillGauge + boosted) }));
 }
 

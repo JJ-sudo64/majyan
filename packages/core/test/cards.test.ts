@@ -1435,3 +1435,68 @@ describe("more weak ★1 cards", () => {
     expect(sawDragon).toBeGreaterThan(0);
   });
 });
+
+describe("even more weak ★1 cards", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+  const dealHook = (card: string, round: RoundState, owner: 0 | 1 | 2 | 3 = 0) => CARDS[card]!.hooks.onDealHand!({ round, owner });
+  const gaugeOf = (r: RoundState) => r.players[0]!.skillGauge;
+
+  it("participation-prize adds 500 to the holder regardless of rank", () => {
+    const round = { ...makeRound({ players: blank() }), cardIds: [null, "participation-prize", null, null] as RoundState["cardIds"] };
+    expect(applyCardMatchEndBonuses(round, [40000, 20000, 15000, 25000])).toEqual([40000, 20500, 15000, 25000]);
+    expect(applyCardMatchEndBonuses(round, [10000, 40000, 15000, 25000])).toEqual([10000, 40500, 15000, 25000]);
+  });
+
+  it("opening-gauge only works on the first hand of the match", () => {
+    const first = makeRound({ players: blank(), characterIds: ["hiiragi", "", "", ""], roundWind: 1, roundNumber: 1, honba: 0 });
+    expect(gaugeOf(dealHook("opening-gauge", first))).toBe(15);
+    expect(gaugeOf(dealHook("opening-gauge", { ...first, roundNumber: 2 }))).toBe(0);
+    expect(gaugeOf(dealHook("opening-gauge", { ...first, honba: 1 }))).toBe(0);
+  });
+
+  it("dealer-gauge only works while the holder is the dealer", () => {
+    const round = makeRound({ players: blank(), characterIds: ["hiiragi", "", "", ""], dealerSeat: 0 });
+    expect(gaugeOf(dealHook("dealer-gauge", round))).toBe(5);
+    expect(gaugeOf(dealHook("dealer-gauge", { ...round, dealerSeat: 2 }))).toBe(0);
+  });
+
+  it("dora-neighbor puts a dora-adjacent tile in the opening hand and keeps 13 tiles", () => {
+    let checked = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const deal = (cards?: [string | null, null, null, null]) =>
+        dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false, cards);
+      const base = deal();
+      const doraCodes = doraIndicators(base.wall).map(nextTileForDora);
+      const near = new Set<string>(doraCodes);
+      for (const d of doraCodes) if (isNumbered(d)) for (const n of [numberOf(d) - 1, numberOf(d) + 1]) if (n >= 1 && n <= 9) near.add(`${n}${suitOf(d)}`);
+      if (base.players[0]!.hand.concealed.some((t) => near.has(t.code))) continue;
+      const withCard = deal(["dora-neighbor", null, null, null]);
+      expect(withCard.players[0]!.hand.concealed.some((t) => near.has(t.code))).toBe(true);
+      expect(withCard.players[0]!.hand.concealed).toHaveLength(13);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it("last-stand-small raises gauge gain by 1.5x only on the final hand", () => {
+    const hand = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"] as TileCode[];
+    const gain = (roundNumber: number) => {
+      let round = makeRound({
+        players: [emptyPlayer(hand), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+        characterIds: ["hiiragi", "", "", ""],
+        cardIds: ["last-stand-small", null, null, null],
+        format: "tonpuusen",
+        roundWind: 1,
+        roundNumber,
+        currentTurn: 0,
+        phase: "awaiting-draw",
+        wall: makeWall(["9m", "9p", "9p", "9p"]),
+      });
+      round = applyAction(round, { type: "draw", player: 0 });
+      round = applyAction(round, { type: "discard", player: 0, tileId: round.lastDrawnTile!.id, tsumogiri: true });
+      return round.players[0]!.skillGauge;
+    };
+    expect(gain(4)).toBe(15);
+    expect(gain(1)).toBe(10);
+  });
+});

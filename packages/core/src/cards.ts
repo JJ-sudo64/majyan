@@ -10,7 +10,7 @@ import { seatWindOf, type RoundState } from "./gameState.js";
 import { isHonor, type TileCode } from "./tiles.js";
 import { revealNextDora } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, ensureAtLeastOneYakuhaiTile, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -79,6 +79,11 @@ const PAIR_GUARANTEE_LITE_MIN_PAIRS = 2;
 const GAUGE_FILL_SMALL_RATIO = 0.4;
 /** カード「ゲージ貯金」が局の開始ごとに足すゲージの量。 */
 const GAUGE_SAVINGS_PER_ROUND = 3;
+/** カード「初期ゲージ」「親のゲージ」で足すゲージの量。 */
+const OPENING_GAUGE = 15;
+const DEALER_GAUGE = 5;
+/** カード「参加賞」で対局終了時に足す点数。 */
+const PARTICIPATION_BONUS = 500;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
 
@@ -97,6 +102,16 @@ function drainPointsEach(ctx: CardContext, amount: number): RoundState {
 function yakuhaiCodesFor(round: RoundState, owner: PlayerIndex): TileCode[] {
   const codes = [`${seatWindOf(round.dealerSeat, owner)}z`, `${round.roundWind}z`, "5z", "6z", "7z"] as TileCode[];
   return [...new Set(codes)];
+}
+
+/** 持ち主のゲージをamountだけ増やす（最大値まで。ゲージを持たないキャラなら何もしない）。 */
+function addGauge(round: RoundState, owner: PlayerIndex, amount: number): RoundState {
+  const character = CHARACTERS[round.characterIds[owner]];
+  if (!character || character.gaugeMax <= 0) return round;
+  return {
+    ...round,
+    players: updatePlayer(round, owner, (pl) => ({ ...pl, skillGauge: Math.min(character.gaugeMax, pl.skillGauge + amount) })),
+  };
 }
 
 /** onMatchEndで、条件に合う持ち主へ点数を足す。 */
@@ -431,6 +446,59 @@ export const CARDS: Record<string, Card> = {
           players: updatePlayer(round, owner, (pl) => ({ ...pl, skillGauge: Math.min(character.gaugeMax, pl.skillGauge + GAUGE_SAVINGS_PER_ROUND) })),
         };
       },
+    },
+  },
+  "participation-prize": {
+    id: "participation-prize",
+    name: "参加賞",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、順位に関係なく最終点数に500点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, () => true, PARTICIPATION_BONUS),
+    },
+  },
+  "opening-gauge": {
+    id: "opening-gauge",
+    name: "初期ゲージ",
+    description: "持っているだけの常時効果。対局の最初の局（東1局・0本場）の配牌時に、自分の必殺技ゲージが少しだけ（15）増える。ゲージを持たないキャラでは何も起きない。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        if (round.roundWind !== 1 || round.roundNumber !== 1 || round.honba !== 0) return round;
+        return addGauge(round, owner, OPENING_GAUGE);
+      },
+    },
+  },
+  "dealer-gauge": {
+    id: "dealer-gauge",
+    name: "親のゲージ",
+    description: "持っているだけの常時効果。自分が親の局の配牌時に、必殺技ゲージが少しだけ（5）増える。ゲージを持たないキャラでは何も起きない。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => (ctx.round.dealerSeat === ctx.owner ? addGauge(ctx.round, ctx.owner, DEALER_GAUGE) : ctx.round),
+    },
+  },
+  "dora-neighbor": {
+    id: "dora-neighbor",
+    name: "ドラ隣の贈り物",
+    description: "持っているだけの常時効果。配牌時、手牌にドラか、その隣の数牌（ドラの1つ上・1つ下の同じ色）が1枚も無ければ、山からそのような牌を1枚持ってきて手牌の適当な1枚と入れ替える（山に無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = ensureAtLeastOneTileNearDora(round.players[owner]!.hand, round.wall);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "last-stand-small": {
+    id: "last-stand-small",
+    name: "終盤の粘り",
+    description: "持っているだけの常時効果。オーラス（この対局形式の最終局）に限り、自分の必殺技ゲージの増加量が1.5倍（端数は切り上げ）になる。使っても無くならない（何度でも発動する）。",
+    kind: "passive",
+    hooks: {
+      // 実際の判定はgameEngine.tsのgainGauge（isFinalHand）が行う。
     },
   },
   nullify: {
