@@ -14,6 +14,7 @@ import { RankGuideScreen } from "./RankGuideScreen.js";
 import { ShopScreen } from "./ShopScreen.js";
 import { LegalScreen, TermsConsent } from "./LegalScreen.js";
 import { FriendsScreen } from "./FriendsScreen.js";
+import { RulesGuide } from "./RulesGuide.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 import { playUiClickFor } from "../sound.js";
 
@@ -93,6 +94,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const claimableMissions = useAccountStore((s) => s.claimableMissions);
   const [showMissions, setShowMissions] = useState(false);
   const [showRankGuide, setShowRankGuide] = useState(false);
+  const [showRulesGuide, setShowRulesGuide] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
   /** 支払いのページから戻ってきた時の印（?shop=done / cancel）。読んだらURLからは消す。 */
   const [shopReturn] = useState(() => new URLSearchParams(window.location.search).get(SHOP_RETURN_PARAM));
@@ -206,6 +208,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       {inboxTab && <InboxScreen initialTab={inboxTab} onClose={() => setInboxTab(null)} />}
       {showMissions && <MissionsScreen onClose={() => setShowMissions(false)} />}
       {showRankGuide && <RankGuideScreen rank={rank} onClose={() => setShowRankGuide(false)} />}
+      {showRulesGuide && <RulesGuide onClose={() => setShowRulesGuide(false)} />}
       {showLegal && <LegalScreen onClose={() => setShowLegal(false)} />}
       {profile && !termsAccepted && <TermsConsent />}
       {showShop && profile && !needsFirstGacha && <ShopScreen returned={shopReturn} onClose={() => setShowShop(false)} />}
@@ -429,6 +432,15 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               <>
                 <div className="oh-menu__backdrop" onClick={() => setShowMenu(false)} />
                 <div className="oh-menu__list">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowRulesGuide(true);
+                    }}
+                  >
+                    遊び方・役一覧
+                  </button>
                   <button
                     type="button"
                     onClick={() => {

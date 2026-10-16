@@ -8723,3 +8723,114 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .history-stats__footnote {
   margin: 0;
 }
+
+/* ルール＆ガイド（RulesGuide）。遊び方はページ送り、役一覧は種類ごと、点数表は親子・ロンツモの切り替えで、スクロールなしに収める。 */
+.gacha-screen.rules-guide {
+  width: min(980px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
+  text-align: left;
+}
+.rules-guide__guide {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-height: 300px;
+}
+.rules-guide__page-title {
+  margin: 4px 0 0;
+  padding-left: 10px;
+  border-left: 3px solid #e9c46a;
+  font-size: 18px;
+}
+.rules-guide__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 6px 0 0;
+  padding-left: 22px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.rules-guide__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: auto;
+  font-size: 13px;
+}
+.rules-guide__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.rules-guide__chips-gap {
+  width: 12px;
+}
+.rules-guide__chip {
+  padding: 3px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.rules-guide__chip.is-active {
+  border-color: #e9c46a;
+  background: rgba(233, 196, 106, 0.25);
+}
+.rules-guide__yaku,
+.rules-guide__points {
+  width: 100%;
+}
+.rules-guide__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.rules-guide__table th,
+.rules-guide__table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  line-height: 1.35;
+}
+.rules-guide__table thead th {
+  color: #e9c46a;
+  font-weight: normal;
+  font-size: 12px;
+  background: rgba(233, 196, 106, 0.1);
+}
+.rules-guide__table tbody th {
+  text-align: left;
+  white-space: nowrap;
+}
+.rules-guide__table td.rules-guide__desc {
+  text-align: left;
+  font-size: 12px;
+  opacity: 0.9;
+}
+.rules-guide__note {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+.rules-guide__points-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.rules-guide__table--points tbody th {
+  text-align: center;
+}
+.rules-guide__limits {
+  display: flex;
+  flex-direction: column;
+}
