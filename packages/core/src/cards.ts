@@ -8,6 +8,8 @@
 import type { PlayerIndex } from "./actions.js";
 import type { RoundState } from "./gameState.js";
 import type { TileCode } from "./tiles.js";
+import { revealNextDora } from "./wall.js";
+import { CHARACTERS } from "./characters.js";
 import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs } from "./dealAdjust.js";
 
 export interface CardContext {
@@ -126,6 +128,31 @@ export const CARDS: Record<string, Card> = {
         const p = round.players[owner]!;
         const { hand, wall } = ensureAtLeastOneRedTile(p.hand, round.wall);
         return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "extra-dora": {
+    id: "extra-dora",
+    name: "新ドラ",
+    description: "使用すると、ドラ表示牌がもう1枚めくられ、新しいドラが1種類増える（全員に見え、全員に効く）。ドラ表示牌が既に5枚（上限）なら何も起きない。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => ({ ...ctx.round, wall: revealNextDora(ctx.round.wall) }),
+    },
+  },
+  "gauge-fill": {
+    id: "gauge-fill",
+    name: "気合充填",
+    description: "使用すると、自分の必殺技ゲージが一気に満タンになる。ゲージを持たないキャラでは何も起きない。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => {
+        const character = CHARACTERS[ctx.round.characterIds[ctx.owner]];
+        if (!character || character.gaugeMax <= 0) return ctx.round;
+        return {
+          ...ctx.round,
+          players: updatePlayer(ctx.round, ctx.owner, (pl) => ({ ...pl, skillGauge: Math.max(pl.skillGauge, character.gaugeMax) })),
+        };
       },
     },
   },

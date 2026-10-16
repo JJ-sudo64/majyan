@@ -1221,3 +1221,44 @@ describe("red-guarantee card (赤ドラ確約)", () => {
     expect(checked).toBeGreaterThan(0);
   });
 });
+
+describe("extra-dora card (新ドラ)", () => {
+  it("reveals one more dora indicator and is consumed", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: ["extra-dora", null, null, null],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const before = round.wall.revealedDoraCount;
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.wall.revealedDoraCount).toBe(before + 1);
+    expect(next.cardUsesRemaining[0]).toBe(0);
+  });
+});
+
+describe("gauge-fill card (気合充填)", () => {
+  it("fills the holder's skill gauge to the character's maximum", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "", "", ""],
+      cardIds: ["gauge-fill", null, null, null],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.players[0]!.skillGauge).toBe(CHARACTERS["hiiragi"]!.gaugeMax);
+    expect(next.cardUsesRemaining[0]).toBe(0);
+  });
+
+  it("does nothing for a seat without a character", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: ["gauge-fill", null, null, null],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.players[0]!.skillGauge).toBe(0);
+  });
+});

@@ -78,6 +78,8 @@ export const CARD_RARITY: Record<string, Rarity> = {
   "last-stand": 2,
   "ippatsu-extend": 2,
   "catch-up": 2,
+  "extra-dora": 2,
+  "gauge-fill": 2,
   "pair-guarantee": 2,
   "red-guarantee": 2,
   "gauge-boost": 2,
