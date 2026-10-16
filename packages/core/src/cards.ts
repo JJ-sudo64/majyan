@@ -7,10 +7,10 @@
  */
 import type { PlayerIndex } from "./actions.js";
 import { seatWindOf, type RoundState } from "./gameState.js";
-import type { TileCode } from "./tiles.js";
+import { isHonor, type TileCode } from "./tiles.js";
 import { revealNextDora } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, ensureAtLeastOneYakuhaiTile, swapTerminalsForSimples } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, ensureAtLeastOneYakuhaiTile, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -77,6 +77,8 @@ const PAIR_GUARANTEE_MIN_PAIRS = 3;
 const PAIR_GUARANTEE_LITE_MIN_PAIRS = 2;
 /** カード「ちょい充填」で増えるゲージの割合（ゲージ最大値に対して）。 */
 const GAUGE_FILL_SMALL_RATIO = 0.4;
+/** カード「ゲージ貯金」が局の開始ごとに足すゲージの量。 */
+const GAUGE_SAVINGS_PER_ROUND = 3;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
 
@@ -326,6 +328,109 @@ export const CARDS: Record<string, Card> = {
     kind: "passive",
     hooks: {
       // 実際の判定はgameEngine.tsのgainGaugeが行う。
+    },
+  },
+  "dealer-tithe": {
+    id: "dealer-tithe",
+    name: "親からいただき",
+    description: "使用すると、親から1000点を即座に奪い取る（自分が親の時は何も起きない）。和了や流局を待たない即時効果。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => {
+        const { round, owner } = ctx;
+        if (round.dealerSeat === owner) return round;
+        const delta: [number, number, number, number] = [0, 0, 0, 0];
+        delta[round.dealerSeat] -= 1000;
+        delta[owner] += 1000;
+        return { ...round, pendingScoreAdjustment: delta };
+      },
+    },
+  },
+  "second-place-small": {
+    id: "second-place-small",
+    name: "連対の意地",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分がちょうど2位（同点の場合は上の順位）だった場合に限り、最終点数に1000点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores.filter((s) => s > scores[owner]!).length === 1, 1000),
+    },
+  },
+  "third-place-small": {
+    id: "third-place-small",
+    name: "三着の粘り",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分がちょうど3位（同点の場合は上の順位）だった場合に限り、最終点数に1500点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores.filter((s) => s > scores[owner]!).length === 2, 1500),
+    },
+  },
+  "suit-lean": {
+    id: "suit-lean",
+    name: "染め寄せの一歩",
+    description: "持っているだけの常時効果。配牌時、手牌で一番多い色（数牌）以外の数牌を最大2枚まで、山にある同じ色の牌と入れ替える。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = leanTowardMainSuit(round.players[owner]!.hand, round.wall, 2);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "seat-wind-pair": {
+    id: "seat-wind-pair",
+    name: "自風の約束",
+    description: "持っているだけの常時効果。配牌時、手牌に自風牌のトイツが無ければ、山から自風牌を調達して作る（山に材料が無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = ensureYakuhaiPair(round.players[owner]!.hand, round.wall, [`${seatWindOf(round.dealerSeat, owner)}z` as TileCode]);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "dragon-pair": {
+    id: "dragon-pair",
+    name: "三元の約束",
+    description: "持っているだけの常時効果。配牌時、手牌に三元牌（白發中）のトイツが無ければ、山から三元牌を調達して作る（山に材料が無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = ensureYakuhaiPair(round.players[owner]!.hand, round.wall, ["5z", "6z", "7z"]);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "honor-sweep": {
+    id: "honor-sweep",
+    name: "字牌掃除",
+    description: "持っているだけの常時効果。配牌時、手牌の字牌を最大2枚まで山の中張牌（2〜8）と入れ替える。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = swapTerminalsForSimples(round.players[owner]!.hand, round.wall, 2, isHonor);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "gauge-savings": {
+    id: "gauge-savings",
+    name: "ゲージ貯金",
+    description: "持っているだけの常時効果。毎局の配牌時に、自分の必殺技ゲージが少しだけ（3）増える。ゲージを持たないキャラでは何も起きない。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const character = CHARACTERS[round.characterIds[owner]];
+        if (!character || character.gaugeMax <= 0) return round;
+        return {
+          ...round,
+          players: updatePlayer(round, owner, (pl) => ({ ...pl, skillGauge: Math.min(character.gaugeMax, pl.skillGauge + GAUGE_SAVINGS_PER_ROUND) })),
+        };
+      },
     },
   },
   nullify: {

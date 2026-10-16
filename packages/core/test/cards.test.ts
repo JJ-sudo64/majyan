@@ -1375,3 +1375,63 @@ describe("weak ★1 cards", () => {
     }
   });
 });
+
+describe("more weak ★1 cards", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+
+  it("dealer-tithe takes 1000 from the dealer, and does nothing when the holder is the dealer", () => {
+    const base = { players: blank(), cardIds: [null, "dealer-tithe", null, null] as RoundState["cardIds"], currentTurn: 1 as const, phase: "awaiting-discard" as const };
+    const fromDealer = applyAction(makeRound({ ...base, dealerSeat: 3 }), { type: "useCard", player: 1 });
+    expect(fromDealer.pendingScoreAdjustment).toEqual([0, 1000, 0, -1000]);
+    const asDealer = applyAction(makeRound({ ...base, dealerSeat: 1 }), { type: "useCard", player: 1 });
+    expect(asDealer.pendingScoreAdjustment).toEqual(makeRound(base).pendingScoreAdjustment);
+  });
+
+  it("second-place-small and third-place-small only pay out at their own rank", () => {
+    const round = makeRound({ players: blank() });
+    const second = { ...round, cardIds: [null, null, null, "second-place-small"] as RoundState["cardIds"] };
+    expect(applyCardMatchEndBonuses(second, [40000, 20000, 15000, 25000])).toEqual([40000, 20000, 15000, 26000]);
+    expect(applyCardMatchEndBonuses(second, [40000, 30000, 15000, 10000])).toEqual([40000, 30000, 15000, 10000]);
+    const third = { ...round, cardIds: ["third-place-small", null, null, null] as RoundState["cardIds"] };
+    expect(applyCardMatchEndBonuses(third, [20000, 40000, 30000, 10000])).toEqual([21500, 40000, 30000, 10000]);
+    expect(applyCardMatchEndBonuses(third, [10000, 40000, 30000, 20000])).toEqual([10000, 40000, 30000, 20000]);
+  });
+
+  it("gauge-savings adds a little gauge at every deal, capped at the maximum", () => {
+    const deal = (gauge: number) => {
+      const round = makeRound({ players: blank(), characterIds: ["hiiragi", "", "", ""], cardIds: ["gauge-savings", null, null, null] });
+      const withGauge = { ...round, players: round.players.map((p, i) => (i === 0 ? { ...p, skillGauge: gauge } : p)) as RoundState["players"] };
+      return CARDS["gauge-savings"]!.hooks.onDealHand!({ round: withGauge, owner: 0 }).players[0]!.skillGauge;
+    };
+    expect(deal(0)).toBe(3);
+    expect(deal(CHARACTERS["hiiragi"]!.gaugeMax)).toBe(CHARACTERS["hiiragi"]!.gaugeMax);
+  });
+
+  it("the deal-time cards keep 13 tiles and do what they say", () => {
+    const codeCount = (hand: Hand, codes: string[]) => hand.concealed.filter((t) => codes.includes(t.code)).length;
+    const hasPair = (hand: Hand, codes: string[]) => codes.some((c) => hand.concealed.filter((t) => t.code === c).length >= 2);
+    const honors = (hand: Hand) => hand.concealed.filter((t) => !isNumbered(t.code)).length;
+    const suitCount = (hand: Hand) => {
+      const counts = new Map<string, number>();
+      for (const t of hand.concealed) if (isNumbered(t.code)) counts.set(suitOf(t.code), (counts.get(suitOf(t.code)) ?? 0) + 1);
+      return Math.max(0, ...counts.values());
+    };
+    let sawWind = 0;
+    let sawDragon = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const deal = (card: string) =>
+        dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false, [card, null, null, null]).players[0]!.hand;
+      const base = dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""]).players[0]!.hand;
+      for (const card of ["suit-lean", "seat-wind-pair", "dragon-pair", "honor-sweep"]) expect(deal(card).concealed).toHaveLength(13);
+      expect(honors(deal("honor-sweep"))).toBe(Math.max(0, honors(base) - 2));
+      expect(suitCount(deal("suit-lean"))).toBeGreaterThanOrEqual(suitCount(base));
+      if (!hasPair(base, ["1z"])) {
+        if (hasPair(deal("seat-wind-pair"), ["1z"])) sawWind++;
+      }
+      if (!hasPair(base, ["5z", "6z", "7z"]) && hasPair(deal("dragon-pair"), ["5z", "6z", "7z"])) sawDragon++;
+      expect(codeCount(deal("seat-wind-pair"), ["1z"])).toBeGreaterThanOrEqual(codeCount(base, ["1z"]));
+    }
+    expect(sawWind).toBeGreaterThan(0);
+    expect(sawDragon).toBeGreaterThan(0);
+  });
+});

@@ -171,8 +171,13 @@ export function ensureYakuhaiPair(hand: Hand, wall: WallState, yakuhaiCodes: Til
 
 /** 手牌の么九牌（1・9・字牌）を、最大maxSwaps枚まで山の中張牌（2〜8の数牌）と入れ替える。
     山に中張牌が足りなければ、入れ替えられた分だけで止まる。 */
-export function swapTerminalsForSimples(hand: Hand, wall: WallState, maxSwaps: number): { hand: Hand; wall: WallState } {
-  const outgoing = hand.concealed.filter((t) => isTerminalOrHonor(t.code)).slice(0, maxSwaps);
+export function swapTerminalsForSimples(
+  hand: Hand,
+  wall: WallState,
+  maxSwaps: number,
+  outgoingFilter: (code: TileCode) => boolean = isTerminalOrHonor,
+): { hand: Hand; wall: WallState } {
+  const outgoing = hand.concealed.filter((t) => outgoingFilter(t.code)).slice(0, maxSwaps);
   const incoming = wall.liveTiles.filter((t) => !isTerminalOrHonor(t.code)).slice(0, outgoing.length);
   const n = Math.min(outgoing.length, incoming.length);
   if (n === 0) return { hand, wall };
@@ -186,4 +191,18 @@ export function ensureAtLeastOneYakuhaiTile(hand: Hand, wall: WallState, yakuhai
   const target = wall.liveTiles.find((t) => yakuhaiCodes.includes(t.code));
   if (!target) return { hand, wall };
   return swapHandTilesWithWall(hand, wall, [hand.concealed[0]!.id], [target.id]);
+}
+
+/** 手牌で一番多い色（数牌）を主色とし、それ以外の色の数牌を最大maxSwaps枚まで、山にある
+    主色の牌と入れ替える。数牌が無い・山に主色の牌が無ければ、できた分だけで止まる。 */
+export function leanTowardMainSuit(hand: Hand, wall: WallState, maxSwaps: number): { hand: Hand; wall: WallState } {
+  const counts = new Map<string, number>();
+  for (const t of hand.concealed) if (isNumbered(t.code)) counts.set(suitOf(t.code), (counts.get(suitOf(t.code)) ?? 0) + 1);
+  const mainSuit = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!mainSuit) return { hand, wall };
+  const outgoing = hand.concealed.filter((t) => isNumbered(t.code) && suitOf(t.code) !== mainSuit).slice(0, maxSwaps);
+  const incoming = wall.liveTiles.filter((t) => isNumbered(t.code) && suitOf(t.code) === mainSuit).slice(0, outgoing.length);
+  const n = Math.min(outgoing.length, incoming.length);
+  if (n === 0) return { hand, wall };
+  return swapHandTilesWithWall(hand, wall, outgoing.slice(0, n).map((t) => t.id), incoming.slice(0, n).map((t) => t.id));
 }
