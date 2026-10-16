@@ -8288,3 +8288,187 @@ button.oh-player__rank:hover .oh-player__rank-help {
     linear-gradient(rgba(8, 6, 3, 0.86), rgba(8, 6, 3, 0.86)),
     url("/title/setup-bg.webp") center / cover no-repeat;
 }
+
+/* 画面の高さに収めるため、左（自分の段位・段の並び・ルール・注意）と右（ポイントの表・持ち点の説明）の
+   2列に並べる。スマホ（横向き）でもスクロールなしで全部見える。 */
+.gacha-screen.rank-guide {
+  width: min(1180px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
+  font-size: 12.5px;
+  line-height: 1.45;
+  gap: 8px;
+}
+.rank-guide__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 16px;
+  width: 100%;
+  align-items: start;
+}
+.rank-guide__left,
+.rank-guide__right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.gacha-screen.rank-guide .rank-guide__mine {
+  padding: 6px 12px;
+}
+.gacha-screen.rank-guide .rank-guide__mine-rank {
+  font-size: 19px;
+}
+.gacha-screen.rank-guide .rank-guide__step {
+  padding: 4px 2px;
+}
+.gacha-screen.rank-guide .rank-guide__step-name {
+  font-size: 14px;
+}
+.gacha-screen.rank-guide .rank-guide__rules {
+  padding-left: 18px;
+}
+.gacha-screen.rank-guide .rank-guide__tabs-label {
+  font-size: 14px;
+}
+.gacha-screen.rank-guide .rank-guide__tab {
+  padding: 2px 12px;
+}
+.gacha-screen.rank-guide .rank-guide__table th,
+.gacha-screen.rank-guide .rank-guide__table td {
+  padding: 1px 6px;
+  line-height: 1.2;
+  font-size: 12px;
+}
+.gacha-screen.rank-guide .rank-guide__table tbody th {
+  font-size: 13px;
+}
+.gacha-screen.rank-guide .rank-guide__score,
+.gacha-screen.rank-guide .rank-guide__notes {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.gacha-screen.rank-guide .rank-guide__score p,
+.gacha-screen.rank-guide .rank-guide__notes {
+  margin: 2px 0;
+}
+
+/* 提供割合は別の窓に出し、★3・★2・★1を横に3つ並べて、スクロールなしで全部見えるようにする。 */
+.gacha-screen.gacha-rates-modal {
+  width: min(1240px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
+}
+.gacha-rates-modal .gacha-screen__rates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1.6fr);
+  gap: 10px 16px;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.gacha-rates-modal .gacha-screen__rate-note {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+/* カード選択はページ分けのコンパクトな一覧＋下の説明欄にして、スクロールなしで収める。 */
+.card-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+.card-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 62px;
+  padding: 4px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(40, 34, 28, 0.85), rgba(10, 8, 6, 0.85));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.card-tile.is-focused {
+  border-color: #e9c46a;
+  box-shadow: 0 0 0 1px #e9c46a inset;
+}
+.card-tile.is-selected .card-tile__name::before {
+  content: "✔ ";
+  color: #e9c46a;
+}
+.card-tile__top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+}
+.card-tile__stars {
+  color: #e9c46a;
+  letter-spacing: 1px;
+}
+.card-tile__kind {
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  font-size: 10px;
+  opacity: 0.8;
+}
+.card-tile__name {
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: center;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.card-picker-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.card-picker-pager button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.card-picker-detail {
+  min-height: 84px;
+  padding: 8px 12px;
+  border: 1px solid rgba(233, 196, 106, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.card-picker-detail__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-picker-detail__name {
+  font-size: 16px;
+  font-weight: bold;
+}
+.card-picker-detail__pick {
+  margin-left: auto;
+}
+.card-picker-detail__desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+/* キャラ選択はカードを小さくして、26人＋「おまかせ」が1画面に収まるようにする。 */
+.setup-picker-modal__grid .character-card:not(.card-card) {
+  width: 88px;
+  padding: 6px 3px;
+  gap: 2px;
+}
+.setup-picker-modal__grid .character-card:not(.card-card) .character-card__avatar {
+  width: 40px;
+  height: 40px;
+}
+.setup-picker-modal__grid .character-card:not(.card-card) .character-card__desc {
+  font-size: 10px;
+}
+.setup-picker-modal__grid {
+  gap: 6px;
+}

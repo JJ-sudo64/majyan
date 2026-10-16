@@ -16,6 +16,8 @@ const CARD_LIST = Object.values(CARDS)
   )
   .map(({ card }) => card);
 type CardKindFilter = "all" | "passive" | "consumable";
+/** カード選択の1ページに並べる枚数（8列×3行）。 */
+const CARD_PAGE_SIZE = 24;
 
 /** 各CPU席のキャラクター指定。null = おまかせ（ランダム）。 */
 type CpuCharacterSettings = [string | null, string | null, string | null, string | null];
@@ -76,6 +78,14 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
   const visibleCards = CARD_LIST.filter(
     (c) => (cardRarityFilter === 0 || cardRarity(c.id) === cardRarityFilter) && (cardKindFilter === "all" || c.kind === cardKindFilter),
   );
+  // 一覧は1画面に収まるぶんずつページで区切り、スクロールが要らないようにする。
+  // タイルを押すと下に説明が出て（スマホでも同じ）、「このカードにする」で決定する。
+  const [cardPage, setCardPage] = useState(0);
+  const [cardFocusId, setCardFocusId] = useState<string | null>(null);
+  const cardPageCount = Math.max(1, Math.ceil(visibleCards.length / CARD_PAGE_SIZE));
+  const cardPageIndex = Math.min(cardPage, cardPageCount - 1);
+  const pageCards = visibleCards.slice(cardPageIndex * CARD_PAGE_SIZE, (cardPageIndex + 1) * CARD_PAGE_SIZE);
+  const focusedCard = cardFocusId ? CARDS[cardFocusId] : undefined;
   const selectedCharacter = selectedCharacterId ? CHARACTERS[selectedCharacterId] : undefined;
   const selectedCard = selectedCardId ? CARDS[selectedCardId] : undefined;
 
@@ -321,7 +331,10 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
                   key={r}
                   type="button"
                   className={`card-picker-filters__chip${cardRarityFilter === r ? " is-active" : ""}`}
-                  onClick={() => setCardRarityFilter(r)}
+                  onClick={() => {
+                    setCardRarityFilter(r);
+                    setCardPage(0);
+                  }}
                 >
                   {r === 0 ? "すべて" : RARITY_STARS[r]}
                 </button>
@@ -338,48 +351,82 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
                   key={k}
                   type="button"
                   className={`card-picker-filters__chip${cardKindFilter === k ? " is-active" : ""}`}
-                  onClick={() => setCardKindFilter(k)}
+                  onClick={() => {
+                    setCardKindFilter(k);
+                    setCardPage(0);
+                  }}
                 >
                   {label}
                 </button>
               ))}
               <span className="card-picker-filters__count">{visibleCards.length}枚</span>
             </div>
-            <div className="setup-character-select__grid setup-picker-modal__grid">
+            <div className="card-picker-grid">
+              {pageCards.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`card-tile${cardFocusId === c.id ? " is-focused" : ""}${selectedCardId === c.id ? " is-selected" : ""}`}
+                  onClick={() => setCardFocusId(c.id)}
+                >
+                  <span className="card-tile__top">
+                    <span className="card-tile__stars">{RARITY_STARS[cardRarity(c.id)]}</span>
+                    <span className="card-tile__kind">{c.kind === "passive" ? "常時" : "消費"}</span>
+                  </span>
+                  <span className="card-tile__name">{c.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="card-picker-pager">
+              <button type="button" className="card-picker-filters__chip" disabled={cardPageIndex === 0} onClick={() => setCardPage(cardPageIndex - 1)}>
+                ‹ 前へ
+              </button>
+              <span>
+                {cardPageIndex + 1} / {cardPageCount}
+              </span>
               <button
                 type="button"
-                className={`character-card card-card${selectedCardId === null ? " character-card--selected" : ""}`}
+                className="card-picker-filters__chip"
+                disabled={cardPageIndex >= cardPageCount - 1}
+                onClick={() => setCardPage(cardPageIndex + 1)}
+              >
+                次へ ›
+              </button>
+              <span className="card-picker-filters__gap" />
+              <button
+                type="button"
+                className={`card-picker-filters__chip${selectedCardId === null ? " is-active" : ""}`}
                 onClick={() => {
                   setSelectedCardId(null);
                   setShowCardPicker(false);
                 }}
               >
-                <div className="character-card__avatar character-card__avatar--random">－</div>
-                <div className="character-card__name">
-                  <div className="character-card__shortname">なし</div>
-                </div>
+                カードなしにする
               </button>
-              {visibleCards.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`character-card card-card${selectedCardId === c.id ? " character-card--selected" : ""}`}
-                  onClick={() => {
-                    setSelectedCardId(c.id);
-                    setShowCardPicker(false);
-                  }}
-                  title={c.description}
-                >
-                  <div className="character-card__avatar character-card__avatar--random card-card__kind">
-                    {c.kind === "passive" ? "常時" : "消費"}
+            </div>
+            <div className="card-picker-detail">
+              {focusedCard ? (
+                <>
+                  <div className="card-picker-detail__head">
+                    <span className="card-picker-detail__name">{focusedCard.name}</span>
+                    <span className="card-tile__stars">{RARITY_STARS[cardRarity(focusedCard.id)]}</span>
+                    <span className="card-tile__kind">{focusedCard.kind === "passive" ? "常時" : "消費"}</span>
+                    <button
+                      type="button"
+                      className="oh-ghost card-picker-detail__pick"
+                      onClick={() => {
+                        setSelectedCardId(focusedCard.id);
+                        setShowCardPicker(false);
+                      }}
+                    >
+                      このカードにする
+                    </button>
                   </div>
-                  <div className="character-card__name">
-                    <div className="character-card__shortname">{c.name}</div>
-                  </div>
-                  <div className="card-card__stars">{RARITY_STARS[cardRarity(c.id)]}</div>
-                  <div className="card-card__desc">{c.description}</div>
-                </button>
-              ))}
+                  <p className="card-picker-detail__desc">{focusedCard.description}</p>
+                </>
+              ) : (
+                <p className="card-picker-detail__desc">カードを押すと、ここに効果が出ます。</p>
+              )}
             </div>
           </div>
         </div>

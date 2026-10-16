@@ -216,31 +216,41 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         </div>
         {showRecords && <RecordsScreen onClose={() => setShowRecords(false)} />}
         {showRates && (
-          <div className="gacha-screen__rates">
-            {RARITIES.map((r) => {
-              const pool = gachaPool(r);
-              const chars = pool.filter((i) => i.kind === "character");
-              const cardItems = pool.filter((i) => i.kind === "card");
-              const featured = pickupItemsOf(pickup, r);
-              const others = pool.filter((i) => !featured.some((f) => sameItem(f, i)));
-              return (
-                <div key={r} className="gacha-screen__rate-block">
-                  <div className="gacha-screen__rate-head">
-                    {RARITY_STARS[r]}　{percent(GACHA_RARITY_RATES[r])}（キャラ{chars.length}人・カード{cardItems.length}枚、
-                    {featured.length > 0
-                      ? `ピックアップは1つあたり${percent(itemRate(featured[0]!, pickup))}、その他は1つあたり${others[0] ? percent(itemRate(others[0], pickup)) : "-"}`
-                      : `1つあたり${percent(GACHA_RARITY_RATES[r] / pool.length)}`}
-                    ）
-                  </div>
-                  {featured.length > 0 && <div className="gacha-screen__rate-names">ピックアップ：{featured.map(fullName).join("、")}</div>}
-                  <div className="gacha-screen__rate-names">キャラ：{chars.map(fullName).join("、")}</div>
-                  <div className="gacha-screen__rate-names">カード：{cardItems.map(fullName).join("、")}</div>
-                </div>
-              );
-            })}
-            <p className="gacha-screen__rate-note">
-              10連で★{TEN_PULL_GUARANTEE.rarity}以上が1つも出なかった場合、10枠目を★{TEN_PULL_GUARANTEE.rarity}のキャラ・カードの中から引き直します。
-            </p>
+          <div className="modal-overlay" onClick={() => setShowRates(false)}>
+            <div className="gacha-screen gacha-rates-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="setup-picker-modal__header">
+                <div className="setup-character-select__label">提供割合</div>
+                <button type="button" className="setup-picker-modal__close" onClick={() => setShowRates(false)}>
+                  ×
+                </button>
+              </div>
+              <div className="gacha-screen__rates">
+                {RARITIES.map((r) => {
+                  const pool = gachaPool(r);
+                  const chars = pool.filter((i) => i.kind === "character");
+                  const cardItems = pool.filter((i) => i.kind === "card");
+                  const featured = pickupItemsOf(pickup, r);
+                  const others = pool.filter((i) => !featured.some((f) => sameItem(f, i)));
+                  return (
+                    <div key={r} className="gacha-screen__rate-block">
+                      <div className="gacha-screen__rate-head">
+                        {RARITY_STARS[r]}　{percent(GACHA_RARITY_RATES[r])}（キャラ{chars.length}人・カード{cardItems.length}枚、
+                        {featured.length > 0
+                          ? `ピックアップは1つあたり${percent(itemRate(featured[0]!, pickup))}、その他は1つあたり${others[0] ? percent(itemRate(others[0], pickup)) : "-"}`
+                          : `1つあたり${percent(GACHA_RARITY_RATES[r] / pool.length)}`}
+                        ）
+                      </div>
+                      {featured.length > 0 && <div className="gacha-screen__rate-names">ピックアップ：{featured.map(fullName).join("、")}</div>}
+                      <div className="gacha-screen__rate-names">キャラ：{chars.map(fullName).join("、")}</div>
+                      <div className="gacha-screen__rate-names">カード：{cardItems.map(fullName).join("、")}</div>
+                    </div>
+                  );
+                })}
+                <p className="gacha-screen__rate-note">
+                  10連で★{TEN_PULL_GUARANTEE.rarity}以上が1つも出なかった場合、10枠目を★{TEN_PULL_GUARANTEE.rarity}のキャラ・カードの中から引き直します。
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
