@@ -149,6 +149,7 @@ const handleApi = createApiHandler({
     inbox,
     ranks,
     wallet,
+    collections,
     accounts,
     moderation,
     token: process.env.ADMIN_TOKEN || undefined,

@@ -15,6 +15,7 @@ import {
   type GachaItem,
 } from "@majyan/core";
 import type { Database } from "./db.js";
+import { GachaError, type CollectionService } from "./collection.js";
 import { GiftError, type InboxService } from "./inbox.js";
 import type { RankService } from "./ranks.js";
 import type { WalletService } from "./wallet.js";
@@ -27,12 +28,16 @@ const DAY_MS = 24 * 60 * 60_000;
 const MAX_FAILURES_PER_HOUR = 10;
 /** 管理画面からのプレゼントの受け取り期限の既定（日）。 */
 const DEFAULT_GIFT_DAYS = 30;
+/** 管理画面からのピックアップの既定の長さ（日）。 */
+const DEFAULT_PICKUP_DAYS = 14;
 
 export interface AdminApiOptions {
   db: Database;
   inbox: InboxService;
   ranks: RankService;
   wallet: WalletService;
+  /** ガチャのピックアップ。無ければその機能は404。 */
+  collections?: CollectionService;
   /** 通報の確認と名前の変更。無ければその機能は404。 */
   accounts?: AccountService;
   moderation?: ModerationService;
@@ -218,6 +223,38 @@ export function createAdminHandler(options: AdminApiOptions) {
           sendJson(res, 200, inbox.allGifts());
           return true;
         }
+        case "GET /pickups":
+          if (!options.collections) return fail(res, 404, "見つかりません"), true;
+          sendJson(res, 200, options.collections.allPickups());
+          return true;
+        case "POST /pickups": {
+          if (!options.collections) return fail(res, 404, "見つかりません"), true;
+          const body = (await options.readJson(req)) as { title?: unknown; characters?: unknown; cards?: unknown; start?: unknown; days?: unknown };
+          const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+          const days = body.days === undefined || body.days === "" ? DEFAULT_PICKUP_DAYS : nonNegInt(body.days, "日数");
+          if (days < 1) throw new AdminInputError("日数は1以上にしてください");
+          // endOfJstDayは「その日が終わる時刻」なので、1日戻してその日の0時にする。
+          const start = str(body.start);
+          const startsAt = start ? endOfJstDay(start) - DAY_MS : now();
+          options.collections.addPickup({
+            title: str(body.title),
+            items: [
+              ...ids(body.characters).map((id) => ({ kind: "character" as const, id })),
+              ...ids(body.cards).map((id) => ({ kind: "card" as const, id })),
+            ],
+            startsAt,
+            endsAt: startsAt + days * DAY_MS,
+          });
+          sendJson(res, 200, options.collections.allPickups());
+          return true;
+        }
+        case "POST /pickups/end": {
+          if (!options.collections) return fail(res, 404, "見つかりません"), true;
+          const body = (await options.readJson(req)) as { id?: unknown };
+          options.collections.endPickup(nonNegInt(body.id, "番号"));
+          sendJson(res, 200, options.collections.allPickups());
+          return true;
+        }
         case "POST /users/rename": {
           if (!options.accounts) return fail(res, 404, "見つかりません"), true;
           const body = (await options.readJson(req)) as { id?: unknown; name?: unknown };
@@ -264,7 +301,7 @@ export function createAdminHandler(options: AdminApiOptions) {
           return fail(res, 404, "見つかりません"), true;
       }
     } catch (err) {
-      if (err instanceof GiftError || err instanceof AdminInputError) return fail(res, 400, err.message), true;
+      if (err instanceof GiftError || err instanceof GachaError || err instanceof AdminInputError) return fail(res, 400, err.message), true;
       if ((err as Error).message?.startsWith("日付")) return fail(res, 400, (err as Error).message), true;
       throw err;
     }

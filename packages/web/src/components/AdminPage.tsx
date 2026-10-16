@@ -11,6 +11,7 @@ import {
   type AdminGift,
   type AdminStats,
   type AdminUser,
+  type GachaPickup,
 } from "@majyan/core";
 
 /**
@@ -18,7 +19,7 @@ import {
  * 閉じるまでだけ覚える（sessionStorage）。ゲーム本体とは別のページで、本体の状態には触らない。
  */
 const TOKEN_KEY = "majyan.admin.token";
-type Tab = "stats" | "news" | "gifts" | "users" | "reports";
+type Tab = "stats" | "news" | "gifts" | "pickups" | "users" | "reports";
 
 function loadToken(): string {
   try {
@@ -133,6 +134,7 @@ export function AdminPage() {
             ["stats", "概要"],
             ["news", "お知らせ"],
             ["gifts", "プレゼント"],
+            ["pickups", "ピックアップ"],
             ["users", "アカウント検索"],
             ["reports", "通報"],
           ] as [Tab, string][]
@@ -147,6 +149,7 @@ export function AdminPage() {
       {tab === "stats" && <StatsTab token={token} run={run} />}
       {tab === "news" && <NewsTab token={token} run={run} />}
       {tab === "gifts" && <GiftsTab token={token} run={run} />}
+      {tab === "pickups" && <PickupsTab token={token} run={run} />}
       {tab === "users" && <UsersTab token={token} run={run} />}
       {tab === "reports" && <ReportsTab token={token} run={run} />}
     </div>
@@ -402,6 +405,104 @@ function GiftsTab({ token, run }: { token: string; run: Run }) {
                       onClick={() => void run(() => adminApi<AdminGift[]>(token, "/gifts/cancel", { id: g.id }), "取り消しました").then((l) => l && setList(l))}
                     >
                       取り消す
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+function PickupsTab({ token, run }: { token: string; run: Run }) {
+  const [list, setList] = useState<GachaPickup[]>([]);
+  const [form, setForm] = useState({ title: "", characters: [] as string[], cards: [] as string[], start: "", days: "14" });
+  useEffect(() => void run(() => adminApi<GachaPickup[]>(token, "/pickups")).then((l) => l && setList(l)), []);
+  const now = Date.now();
+  const toggle = (key: "characters" | "cards", id: string) =>
+    setForm((f) => ({ ...f, [key]: f[key].includes(id) ? f[key].filter((x) => x !== id) : [...f[key], id] }));
+  const itemName = (i: GachaPickup["items"][number]) => (i.kind === "character" ? (CHARACTERS[i.id]?.name ?? i.id) : `カード「${CARDS[i.id]?.name ?? i.id}」`);
+
+  async function add() {
+    const l = await run(() => adminApi<GachaPickup[]>(token, "/pickups", form), "ピックアップを入れました");
+    if (!l) return;
+    setList(l);
+    setForm({ title: "", characters: [], cards: [], start: "", days: "14" });
+  }
+
+  return (
+    <>
+      <section className="admin-form">
+        <h2>ピックアップを入れる</h2>
+        <label>
+          題
+          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        </label>
+        <details>
+          <summary>キャラ（{form.characters.length}）</summary>
+          <div className="admin-checks">
+            {Object.entries(CHARACTERS).map(([id, c]) => (
+              <label key={id}>
+                <input type="checkbox" checked={form.characters.includes(id)} onChange={() => toggle("characters", id)} />
+                {"★".repeat(characterRarity(id))} {c.name}
+              </label>
+            ))}
+          </div>
+        </details>
+        <details>
+          <summary>カード（{form.cards.length}）</summary>
+          <div className="admin-checks">
+            {Object.entries(CARDS).map(([id, c]) => (
+              <label key={id}>
+                <input type="checkbox" checked={form.cards.includes(id)} onChange={() => toggle("cards", id)} />
+                {c.name}
+              </label>
+            ))}
+          </div>
+        </details>
+        <label>
+          始まる日（日本時間の0時から。空なら今すぐ）
+          <input type="date" value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} />
+        </label>
+        <label>
+          続ける日数
+          <input inputMode="numeric" value={form.days} onChange={(e) => setForm({ ...form, days: e.target.value })} />
+        </label>
+        <button type="button" disabled={!form.title.trim() || form.characters.length + form.cards.length === 0} onClick={() => void add()}>
+          入れる
+        </button>
+      </section>
+      <h2>ピックアップの一覧</h2>
+      <p className="admin-note">同時に重なった時は、あとから始まったものが使われます。</p>
+      <table className="admin-table">
+        <tbody>
+          {list.map((p) => {
+            const state = p.endsAt <= now ? "終了" : p.startsAt > now ? "予定" : "開催中";
+            return (
+              <tr key={p.id} className={state === "終了" ? "admin-deleted" : undefined}>
+                <td>#{p.id}</td>
+                <td>{state}</td>
+                <td>
+                  <strong>{p.title}</strong>
+                  <div>{p.items.map(itemName).join("・")}</div>
+                </td>
+                <td>
+                  {fmt(p.startsAt)}〜{fmt(p.endsAt)}
+                </td>
+                <td>
+                  {state !== "終了" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void run(() => adminApi<GachaPickup[]>(token, "/pickups/end", { id: p.id }), state === "予定" ? "取り消しました" : "終わらせました").then(
+                          (l) => l && setList(l),
+                        )
+                      }
+                    >
+                      {state === "予定" ? "取り消す" : "今すぐ終わらせる"}
                     </button>
                   )}
                 </td>

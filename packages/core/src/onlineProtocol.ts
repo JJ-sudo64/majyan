@@ -404,6 +404,9 @@ export interface ReplayResponse {
 //   GET  /api/admin/gifts                       → AdminGift[]
 //   POST /api/admin/gifts {title, message?, jade?, items?, to?, includeNewAccounts?, days?} → AdminGift[]
 //   POST /api/admin/gifts/cancel {id}           → AdminGift[]
+//   GET  /api/admin/pickups                     → GachaPickup[] ガチャのピックアップ（新しい順。終わったものも）
+//   POST /api/admin/pickups {title, characters?, cards?, start?, days?} → GachaPickup[]
+//   POST /api/admin/pickups/end {id}            → GachaPickup[]
 //   GET  /api/admin/users?q=名前かID             → AdminUser[]
 //   POST /api/admin/users/rename {id, name?}    → AdminUser[]   名前を変える（name無しなら当たり障りのない名前にする）
 //   POST /api/admin/users/suspend {id, days}    → AdminUser[]   利用停止（daysは日数。0で解除、-1で無期限）
