@@ -6,9 +6,10 @@
  * 呼び出す。
  */
 import type { PlayerIndex } from "./actions.js";
+import type { Hand } from "./hand.js";
 import { seatWindOf, type RoundState } from "./gameState.js";
 import { isHonor, isTerminal, type TileCode } from "./tiles.js";
-import { revealNextDora } from "./wall.js";
+import { revealNextDora, type WallState } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
 import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, countPairs, ensureAtLeastDoraTiles, ensureAtLeastOneTriplet, lowerShanten, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
 
@@ -96,8 +97,51 @@ const GAUGE_FILL_HALF_RATIO = 0.6;
 const HAND_LIFT_TARGET = 3;
 const HAND_LIFT_BIG_TARGET = 2;
 const HAND_LIFT_MAX_SWAPS = 4;
+/** 加護系カードが効く和了の回数、配牌の底上げ系が効く局の回数（対局を通して）。 */
+const BOON_USES = 2;
+const HAND_LIFT_USES = 3;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
+
+/** 配牌を書き換える強めのカードの共通処理。残り回数が無ければ何もせず、実際に牌を入れ替えた局だけ1回消費する。 */
+function limitedDealAdjust(ctx: CardContext, adjust: (hand: Hand, wall: WallState) => { hand: Hand; wall: WallState }): RoundState {
+  const { round, owner } = ctx;
+  if (round.cardUsesRemaining[owner] <= 0) return round;
+  const before = round.players[owner]!.hand;
+  const { hand, wall } = adjust(before, round.wall);
+  const beforeIds = new Set(before.concealed.map((t) => t.id));
+  if (hand.concealed.every((t) => beforeIds.has(t.id))) return round;
+  const cardUsesRemaining = [...round.cardUsesRemaining] as RoundState["cardUsesRemaining"];
+  cardUsesRemaining[owner] -= 1;
+  return { ...round, wall, cardUsesRemaining, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+}
+
+/** 配牌の底上げ系カードの本体（回数制限つき）。 */
+function liftHand(ctx: CardContext, target: number): RoundState {
+  return limitedDealAdjust(ctx, (hand, wall) => lowerShanten(hand, wall, target, HAND_LIFT_MAX_SWAPS));
+}
+
+/** 加護系カード（親・立直・ツモ・ロン・門前の加護）の使用回数を、終わった局の和了ぶん減らした
+    cardUsesRemainingを返す。次局へ進む時（matchController.advanceToNextRound）に呼ぶ。
+    和了していない・条件を満たしていない・残りが無い座席は変えない。 */
+export function consumeBoonUses(round: RoundState): RoundState["cardUsesRemaining"] {
+  const next = [...round.cardUsesRemaining] as RoundState["cardUsesRemaining"];
+  const result = round.result;
+  if (!result || (result.type !== "tsumo" && result.type !== "ron")) return next;
+  const isTsumo = result.type === "tsumo";
+  for (const seat of result.winners) {
+    if (next[seat] <= 0) continue;
+    const p = round.players[seat]!;
+    const applies =
+      (round.cardIds[seat] === "dealer-boon" && seat === round.dealerSeat) ||
+      (round.cardIds[seat] === "riichi-boon" && p.riichi) ||
+      (round.cardIds[seat] === "tsumo-boon" && isTsumo) ||
+      (round.cardIds[seat] === "ron-boon" && !isTsumo) ||
+      (round.cardIds[seat] === "menzen-boon" && p.hand.melds.every((m) => m.type === "ankan"));
+    if (applies) next[seat] -= 1;
+  }
+  return next;
+}
 
 /** 他家から1人あたりamount点を奪う、点棒吸収系カードのonUse。 */
 function drainPointsEach(ctx: CardContext, amount: number): RoundState {
@@ -688,30 +732,28 @@ export const CARDS: Record<string, Card> = {
   "dealer-big-collection": {
     id: "dealer-big-collection",
     name: "親の大集金",
-    description: "使用すると、自分が親の時に限り、他の3人から1500点ずつ（合計4500点）を即座に奪い取る（自分が親でなければ何も起きない）。使用すると無くなる。",
+    description: "使用すると、自分が親の時に限り、他の3人から800点ずつ（合計2400点）を即座に奪い取る（自分が親でなければ何も起きない）。使用すると無くなる。",
     kind: "consumable",
     hooks: {
-      onUse: (ctx) => (ctx.round.dealerSeat === ctx.owner ? drainPointsEach(ctx, 1500) : ctx.round),
+      onUse: (ctx) => (ctx.round.dealerSeat === ctx.owner ? drainPointsEach(ctx, 800) : ctx.round),
     },
   },
   "dora-guarantee-2": {
     id: "dora-guarantee-2",
     name: "ドラ二枚確約",
-    description: "持っているだけの常時効果。配牌時、手牌のドラ（表ドラ、および赤ドラ）が2枚に満たなければ、山から該当する牌を調達して手牌の別の牌と入れ替え、必ず2枚以上入った状態にする（山のドラが尽きれば不発）。",
+    description: "持っているだけの常時効果。配牌時、手牌のドラ（表ドラ、および赤ドラ）が2枚に満たなければ、山から該当する牌を調達して手牌の別の牌と入れ替え、必ず2枚以上入った状態にする（山のドラが尽きれば不発）。実際に入れ替えた局だけ数え、対局を通して3局まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: HAND_LIFT_USES,
     hooks: {
-      onDealHand: (ctx) => {
-        const { round, owner } = ctx;
-        const { hand, wall } = ensureAtLeastDoraTiles(round.players[owner]!.hand, round.wall, DORA_GUARANTEE_2_COUNT);
-        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
-      },
+      onDealHand: (ctx) => limitedDealAdjust(ctx, (hand, wall) => ensureAtLeastDoraTiles(hand, wall, DORA_GUARANTEE_2_COUNT)),
     },
   },
   "dealer-boon": {
     id: "dealer-boon",
     name: "親の加護",
-    description: "持っているだけの常時効果。自分が親の局で和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    description: "持っているだけの常時効果。自分が親の局で和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。対局を通して2回の和了まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: BOON_USES,
     hooks: {
       // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
     },
@@ -719,8 +761,9 @@ export const CARDS: Record<string, Card> = {
   "riichi-boon": {
     id: "riichi-boon",
     name: "立直の加護",
-    description: "持っているだけの常時効果。自分が立直して和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    description: "持っているだけの常時効果。自分が立直して和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。対局を通して2回の和了まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: BOON_USES,
     hooks: {
       // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
     },
@@ -728,8 +771,9 @@ export const CARDS: Record<string, Card> = {
   "tsumo-boon": {
     id: "tsumo-boon",
     name: "ツモの加護",
-    description: "持っているだけの常時効果。自分がツモ和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    description: "持っているだけの常時効果。自分がツモ和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。対局を通して2回の和了まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: BOON_USES,
     hooks: {
       // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
     },
@@ -763,8 +807,9 @@ export const CARDS: Record<string, Card> = {
   "ron-boon": {
     id: "ron-boon",
     name: "ロンの加護",
-    description: "持っているだけの常時効果。自分がロン和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    description: "持っているだけの常時効果。自分がロン和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。対局を通して2回の和了まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: BOON_USES,
     hooks: {
       // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
     },
@@ -772,8 +817,9 @@ export const CARDS: Record<string, Card> = {
   "menzen-boon": {
     id: "menzen-boon",
     name: "門前の加護",
-    description: "持っているだけの常時効果。副露していない（暗槓のみ可）手で和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    description: "持っているだけの常時効果。副露していない（暗槓のみ可）手で和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。対局を通して2回の和了まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: BOON_USES,
     hooks: {
       // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
     },
@@ -815,27 +861,21 @@ export const CARDS: Record<string, Card> = {
   "hand-lift": {
     id: "hand-lift",
     name: "配牌の底上げ",
-    description: "持っているだけの常時効果。配牌時、手牌が3シャンテンより遠ければ、山の牌と最大4枚まで入れ替えて、和了に一番近づく形にする（3シャンテン以内になるか、これ以上近づけなくなるまで）。",
+    description: "持っているだけの常時効果。配牌時、手牌が3シャンテンより遠ければ、山の牌と最大4枚まで入れ替えて、和了に一番近づく形にする（3シャンテン以内になるか、これ以上近づけなくなるまで）。実際に入れ替えた局だけ数え、対局を通して3局まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: HAND_LIFT_USES,
     hooks: {
-      onDealHand: (ctx) => {
-        const { round, owner } = ctx;
-        const { hand, wall } = lowerShanten(round.players[owner]!.hand, round.wall, HAND_LIFT_TARGET, HAND_LIFT_MAX_SWAPS);
-        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
-      },
+      onDealHand: (ctx) => liftHand(ctx, HAND_LIFT_TARGET),
     },
   },
   "hand-lift-big": {
     id: "hand-lift-big",
     name: "配牌の大底上げ",
-    description: "持っているだけの常時効果。配牌時、手牌が2シャンテンより遠ければ、山の牌と最大4枚まで入れ替えて、和了に一番近づく形にする（2シャンテン以内になるか、これ以上近づけなくなるまで）。",
+    description: "持っているだけの常時効果。配牌時、手牌が2シャンテンより遠ければ、山の牌と最大4枚まで入れ替えて、和了に一番近づく形にする（2シャンテン以内になるか、これ以上近づけなくなるまで）。実際に入れ替えた局だけ数え、対局を通して3局まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: HAND_LIFT_USES,
     hooks: {
-      onDealHand: (ctx) => {
-        const { round, owner } = ctx;
-        const { hand, wall } = lowerShanten(round.players[owner]!.hand, round.wall, HAND_LIFT_BIG_TARGET, HAND_LIFT_MAX_SWAPS);
-        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
-      },
+      onDealHand: (ctx) => liftHand(ctx, HAND_LIFT_BIG_TARGET),
     },
   },
   nullify: {

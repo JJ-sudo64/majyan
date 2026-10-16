@@ -225,11 +225,14 @@ export function isFuriten(player: PlayerRoundState): boolean {
 }
 
 /** 持っているだけで和了に乗る翻（加護系カード）。条件を満たした和了にだけ1翻足す。
-    いずれも消費されず、他に役が無い手には乗らない（小手先の一翻などと同じ扱い）。
+    対局を通して決まった回数（cardUsesRemaining）の和了まで効き、使い切ると効かなくなる
+    （消費は次局へ進む時にcards.tsのconsumeBoonUsesが行う）。他に役が無い手には乗らない
+    （小手先の一翻などと同じ扱い）。
       親の加護: 自分が親の時／立直の加護: 立直中の和了／ツモの加護: ツモ和了／ロンの加護: ロン和了／
       門前の加護: 副露していない（暗槓のみ可）手の和了 */
 function passiveBonusHan(round: RoundState, player: PlayerIndex, isTsumo: boolean): number {
   const p = round.players[player];
+  if (round.cardUsesRemaining[player] <= 0) return 0;
   switch (round.cardIds[player]) {
     case "dealer-boon":
       return player === round.dealerSeat ? 1 : 0;

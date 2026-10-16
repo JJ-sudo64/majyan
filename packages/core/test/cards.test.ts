@@ -9,6 +9,7 @@ import {
   applyCardMatchEndBonuses,
   CARDS,
   CARD_IDS,
+  consumeBoonUses,
   randomCardId,
   resolveKyotakuWithCard,
 } from "../src/cards.js";
@@ -1616,8 +1617,8 @@ describe("stronger cards (★2/★3)", () => {
     expect(next.cardUsesRemaining[0]).toBe(1);
   });
 
-  it("dealer-big-collection takes 1500 from each seat only while the holder is the dealer", () => {
-    expect(useOnce("dealer-big-collection", { dealerSeat: 0 }).pendingScoreAdjustment).toEqual([4500, -1500, -1500, -1500]);
+  it("dealer-big-collection takes 800 from each seat only while the holder is the dealer", () => {
+    expect(useOnce("dealer-big-collection", { dealerSeat: 0 }).pendingScoreAdjustment).toEqual([2400, -800, -800, -800]);
     expect(useOnce("dealer-big-collection", { dealerSeat: 2 }).pendingScoreAdjustment).toEqual(useOnce("han-up-1", { dealerSeat: 2 }).pendingScoreAdjustment);
   });
 
@@ -1773,5 +1774,62 @@ describe("a tenth batch of cards (ロン・門前の加護, 強請, 順位ボー
     }
     expect(lifted).toBeGreaterThan(0);
     expect(liftedBig).toBeGreaterThan(0);
+  });
+});
+
+describe("use limits on the boon and hand-lift cards", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+  const winHand = ["2m", "3m", "4m", "5p", "6p", "7p", "7s", "8s", "9s", "1z", "1z", "1z", "9m", "9m"] as TileCode[];
+  const wonRound = (card: string, uses: number, extra: Partial<RoundState> = {}) => {
+    const player0 = { ...emptyPlayer(winHand), riichi: true };
+    return makeRound({
+      players: [player0, emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: [card, null, null, null],
+      cardUsesRemaining: [uses, 0, 0, 0],
+      dealerSeat: 1,
+      currentTurn: 0,
+      phase: "round-over",
+      lastDrawnTile: player0.hand.concealed[player0.hand.concealed.length - 1]!,
+      result: { type: "tsumo", winners: [0], dealerContinues: false },
+      anyCallOrRiichiMade: true,
+      ...extra,
+    });
+  };
+
+  it("the boon cards have two uses and stop adding han once they run out", () => {
+    for (const id of ["dealer-boon", "riichi-boon", "tsumo-boon", "ron-boon", "menzen-boon"]) expect(CARDS[id]!.maxUses).toBe(2);
+    const withUses = computeRoundScoreOutcome(wonRound("riichi-boon", 1)).scoreDeltas[0]!;
+    const exhausted = computeRoundScoreOutcome(wonRound("riichi-boon", 0)).scoreDeltas[0]!;
+    const noCard = computeRoundScoreOutcome({ ...wonRound("riichi-boon", 1), cardIds: [null, null, null, null] }).scoreDeltas[0]!;
+    expect(withUses).toBeGreaterThan(noCard);
+    expect(exhausted).toBe(noCard);
+  });
+
+  it("consumeBoonUses spends one use only for a winner whose boon condition held", () => {
+    expect(consumeBoonUses(wonRound("riichi-boon", 2))).toEqual([1, 0, 0, 0]);
+    expect(consumeBoonUses(wonRound("tsumo-boon", 2))).toEqual([1, 0, 0, 0]);
+    expect(consumeBoonUses(wonRound("ron-boon", 2))).toEqual([2, 0, 0, 0]); // ツモ和了なのでロンの加護は条件外
+    expect(consumeBoonUses(wonRound("dealer-boon", 2))).toEqual([2, 0, 0, 0]); // 親は座席1
+    expect(consumeBoonUses(wonRound("riichi-boon", 0))).toEqual([0, 0, 0, 0]);
+    expect(consumeBoonUses({ ...wonRound("riichi-boon", 2), result: { type: "draw-exhaustive", dealerContinues: false } as RoundState["result"] })).toEqual([2, 0, 0, 0]);
+  });
+
+  it("hand-lift cards work for three hands, and only a hand that was actually changed counts", () => {
+    expect(CARDS["hand-lift"]!.maxUses).toBe(3);
+    expect(CARDS["hand-lift-big"]!.maxUses).toBe(3);
+    const hook = CARDS["hand-lift-big"]!.hooks.onDealHand!;
+    let changedHands = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const base = dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""]);
+      const withUses = { ...base, cardIds: ["hand-lift-big", null, null, null] as RoundState["cardIds"], cardUsesRemaining: [3, 0, 0, 0] as RoundState["cardUsesRemaining"] };
+      const lifted = hook({ round: withUses, owner: 0 });
+      const exhausted = hook({ round: { ...withUses, cardUsesRemaining: [0, 0, 0, 0] }, owner: 0 });
+      expect(exhausted.players[0]!.hand).toEqual(base.players[0]!.hand);
+      const changed = calcShanten(base.players[0]!.hand) > 2;
+      expect(lifted.cardUsesRemaining[0]).toBe(changed ? 2 : 3);
+      if (changed) changedHands++;
+    }
+    expect(changedHands).toBeGreaterThan(0);
+    void blank;
   });
 });

@@ -24,7 +24,7 @@ import {
   type RoundScoreOutcome,
 } from "./gameEngine.js";
 import { dealNewRound, hasBustedPlayer, planNextRound, rankSeats, settleLeftoverKyotaku } from "./matchFormat.js";
-import { applyCardBustGuards, applyCardMatchEndBonuses, resolveKyotakuWithCard } from "./cards.js";
+import { applyCardBustGuards, applyCardMatchEndBonuses, consumeBoonUses, resolveKyotakuWithCard } from "./cards.js";
 import { decideTileSwaps } from "./ai/simpleAi.js";
 
 type Scores = [number, number, number, number];
@@ -169,7 +169,8 @@ export function advanceToNextRound(
     carriedTileSwaps,
     dealerWonRenchan,
     round.cardIds,
-    round.cardUsesRemaining,
+    // 加護系カードは、この局で和了に使った分を次局へ進む時に減らす（結果画面の間は変えない）。
+    consumeBoonUses(round),
     round.cardNegateArmed,
     match.format,
     carriedPairDeals,
