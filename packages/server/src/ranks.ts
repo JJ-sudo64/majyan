@@ -12,6 +12,8 @@ import {
   type RankedHistoryEntry,
   type RankedHistoryResponse,
   type RankedPlaceStats,
+  type RankedSeriesPoint,
+  RANKED_SERIES_LIMIT,
   type RankingEntry,
   type RankingResponse,
   type RankResult,
@@ -52,7 +54,7 @@ export const RANKING_SIZE = 100;
 /** 戦績で返す最近の対局の数。 */
 export const RANKED_HISTORY_LIMIT = 20;
 
-const emptyStats = (): RankedPlaceStats => ({ games: 0, places: [0, 0, 0, 0] });
+const emptyStats = (): RankedPlaceStats => ({ games: 0, places: [0, 0, 0, 0], busted: 0 });
 
 export class RankService {
   constructor(
@@ -135,17 +137,28 @@ export class RankService {
     const byFormat: Record<MatchFormat, RankedPlaceStats> = { tonpuusen: emptyStats(), hanchan: emptyStats() };
     const counts = this.db
       .prepare(
-        `SELECT m.format AS format, r.place AS place, COUNT(*) AS n FROM ranked_results r
+        `SELECT m.format AS format, r.place AS place, COUNT(*) AS n,
+                SUM(CASE WHEN r.final_score < 0 THEN 1 ELSE 0 END) AS busted
+         FROM ranked_results r
          JOIN ranked_matches m ON m.id = r.match_id WHERE r.user_id = ? GROUP BY m.format, r.place`,
       )
-      .all(userId) as { format: MatchFormat; place: number; n: number }[];
+      .all(userId) as { format: MatchFormat; place: number; n: number; busted: number }[];
     for (const c of counts) {
       for (const stats of [total, byFormat[c.format]]) {
         if (!stats || c.place < 1 || c.place > 4) continue;
         stats.games += c.n;
         stats.places[c.place - 1]! += c.n;
+        stats.busted += c.busted;
       }
     }
+    // 順位の推移グラフ用: 直近の順位を古い順に。
+    const seriesRows = this.db
+      .prepare(
+        `SELECT m.format AS format, r.place AS place FROM ranked_results r JOIN ranked_matches m ON m.id = r.match_id
+         WHERE r.user_id = ? ORDER BY m.finished_at DESC, m.rowid DESC LIMIT ?`,
+      )
+      .all(userId, RANKED_SERIES_LIMIT) as { format: MatchFormat; place: 1 | 2 | 3 | 4 }[];
+    const series: RankedSeriesPoint[] = seriesRows.reverse().map((r) => ({ format: r.format, place: r.place }));
 
     const rows = this.db
       .prepare(
@@ -201,7 +214,7 @@ export class RankService {
         })),
       };
     });
-    return { total, byFormat, recent };
+    return { total, byFormat, recent, series };
   }
 
   /** 段位の高い順のランキング（段位戦を1回以上打った人だけ）。 */

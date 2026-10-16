@@ -117,8 +117,13 @@ describe("RankService", () => {
       { seat: 2, userId: id, name: "A", characterId: "masato", cardId: "point-drain", place: 1, finalScore: 41000 },
     ]);
     const h = ranks.history(id);
-    expect(h.total).toEqual({ games: 2, places: [1, 0, 0, 1] });
-    expect(h.byFormat.hanchan).toEqual({ games: 1, places: [0, 0, 0, 1] });
+    expect(h.total).toEqual({ games: 2, places: [1, 0, 0, 1], busted: 1 }); // 2000点のマイナスで終わった対局が飛び1回
+    // 順位の推移グラフ用: 古い順。
+    expect(h.series).toEqual([
+      { format: "hanchan", place: 4 },
+      { format: "tonpuusen", place: 1 },
+    ]);
+    expect(h.byFormat.hanchan).toEqual({ games: 1, places: [0, 0, 0, 1], busted: 1 });
     expect(h.recent.map((e) => e.matchId)).toEqual(["new", "old"]);
     expect(h.recent[0]!.seats.map((s) => [s.name, s.isYou, s.isCpu])).toEqual([
       ["A", true, false],

@@ -175,6 +175,14 @@ export interface GachaRollResponse {
 export interface RankedPlaceStats {
   games: number;
   places: [number, number, number, number];
+  /** 飛び（終わった時の持ち点が0点未満）になった回数。 */
+  busted: number;
+}
+
+/** 順位の推移グラフの1点（古い順に並べる）。 */
+export interface RankedSeriesPoint {
+  format: MatchFormat;
+  place: 1 | 2 | 3 | 4;
 }
 
 /** 段位戦1試合の、ある席の人（CPUを含む）。 */
@@ -212,7 +220,12 @@ export interface RankedHistoryResponse {
   byFormat: Record<MatchFormat, RankedPlaceStats>;
   /** 新しい順。 */
   recent: RankedHistoryEntry[];
+  /** 直近の順位（古い順。最大RANKED_SERIES_LIMIT戦）。順位の推移・順位の割合のグラフ用。 */
+  series: RankedSeriesPoint[];
 }
+
+/** 順位の推移グラフ用に返す対局数の上限。 */
+export const RANKED_SERIES_LIMIT = 100;
 
 /** 運営からのお知らせ。 */
 export interface Announcement {

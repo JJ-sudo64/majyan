@@ -8472,3 +8472,165 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .setup-picker-modal__grid {
   gap: 6px;
 }
+
+/* 戦績のまとめ（HistoryStats）。左に折れ線と順位の割合、右に東風戦・半荘戦の成績を並べる。 */
+.history-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+.history-stats__total {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+.history-stats__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+.history-stats__left,
+.history-stats__right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.history-stats__block {
+  padding: 8px 12px 10px;
+  border: 1px solid rgba(233, 196, 106, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.history-stats__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.history-stats__head h3 {
+  margin: 0;
+  padding-left: 8px;
+  border-left: 3px solid #e9c46a;
+  font-size: 14px;
+}
+.history-stats__note {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.history-stats__window {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.history-stats__window button {
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.history-stats__window button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.history-stats__line {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.history-stats__grid {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1;
+}
+.history-stats__axis {
+  fill: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+}
+.history-stats__path {
+  fill: none;
+  stroke: #e9892f;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.history-stats__dot {
+  fill: #f7c948;
+  stroke: #1a130c;
+  stroke-width: 0.8;
+}
+.history-stats__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.history-stats__bar-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.history-stats__bar-track {
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.history-stats__bar {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+}
+.history-stats__bar--place1 {
+  background: #f9d56e;
+}
+.history-stats__bar--place2 {
+  background: #f2a03d;
+}
+.history-stats__bar--place3 {
+  background: #e0673a;
+}
+.history-stats__bar--place4 {
+  background: #b5263a;
+}
+.history-stats__bar-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #ffd27a;
+}
+.history-stats__grid-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 10px;
+}
+.history-stats__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 11px;
+  opacity: 0.95;
+}
+.history-stats__stat strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: #ffd27a;
+}
+.history-screen__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 12px;
+}
+.history-screen__pager .btn {
+  padding: 3px 12px;
+  font-size: 12px;
+}

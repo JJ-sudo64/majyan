@@ -6,14 +6,16 @@ import {
   type MatchFormat,
   type ReportReason,
   type RankedHistoryResponse,
-  type RankedPlaceStats,
   type RankingEntry,
   type RankingResponse,
 } from "@majyan/core";
 import { fetchRankedHistory, fetchRanking, fetchReplay, reportPlayer } from "../online/account.js";
 import { useGameStore } from "../store/gameStore.js";
+import { HistoryStats } from "./HistoryStats.js";
 
 const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
+/** 対局一覧の1ページに出す件数（スクロールなしで収まる数）。 */
+const MATCHES_PER_PAGE = 3;
 
 /** 「卓上のてんこしゃんこ・マサト」→「マサト」。二つ名の無いキャラはそのまま。 */
 function shortCharacterName(characterId: string): string {
@@ -21,35 +23,10 @@ function shortCharacterName(characterId: string): string {
   return name.slice(name.lastIndexOf("・") + 1);
 }
 
-function percent(n: number, games: number): string {
-  return games ? `${((n / games) * 100).toFixed(1)}%` : "-";
-}
-
-function averagePlace(stats: RankedPlaceStats): string {
-  if (!stats.games) return "-";
-  const sum = stats.places.reduce((acc, n, i) => acc + n * (i + 1), 0);
-  return (sum / stats.games).toFixed(2);
-}
-
 function formatDate(ms: number): string {
   const d = new Date(ms);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function StatsRow({ label, stats }: { label: string; stats: RankedPlaceStats }) {
-  const [first, second, , fourth] = stats.places;
-  return (
-    <tr>
-      <th>{label}</th>
-      <td>{stats.games}</td>
-      <td>{averagePlace(stats)}</td>
-      <td>{percent(first, stats.games)}</td>
-      <td>{percent(first + second, stats.games)}</td>
-      <td>{percent(stats.games - fourth, stats.games)}</td>
-      <td className="history-screen__places">{stats.places.join(" / ")}</td>
-    </tr>
-  );
 }
 
 function RankingRow({ e }: { e: RankingEntry }) {
@@ -104,10 +81,11 @@ function RankingView() {
 
 /** 段位戦の戦績（通算の順位の成績と、最近の対局）と、段位のランキング。 */
 export function HistoryScreen({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<"history" | "ranking">("history");
+  const [tab, setTab] = useState<"stats" | "history" | "ranking">("stats");
   const [history, setHistory] = useState<RankedHistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingReplay, setLoadingReplay] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   /** 通報しようとしている相手（理由を選んで送るまで）。 */
   const [reporting, setReporting] = useState<{ matchId: string; seat: number; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<ReportReason>("name");
@@ -152,8 +130,11 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
       <div className="gacha-screen history-screen" onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
           <div className="inbox-screen__tabs">
-            <button type="button" className={`inbox-screen__tab${tab === "history" ? " is-active" : ""}`} onClick={() => setTab("history")}>
+            <button type="button" className={`inbox-screen__tab${tab === "stats" ? " is-active" : ""}`} onClick={() => setTab("stats")}>
               戦績（段位戦）
+            </button>
+            <button type="button" className={`inbox-screen__tab${tab === "history" ? " is-active" : ""}`} onClick={() => setTab("history")}>
+              対局一覧
             </button>
             <button type="button" className={`inbox-screen__tab${tab === "ranking" ? " is-active" : ""}`} onClick={() => setTab("ranking")}>
               ランキング
@@ -165,7 +146,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
         </div>
 
         {tab === "ranking" && <RankingView />}
-        {tab === "history" && !history && !error && <p className="setup-lead">読み込んでいます…</p>}
+        {tab !== "ranking" && !history && !error && <p className="setup-lead">読み込んでいます…</p>}
         {error && <p className="online-lobby__error">{error}</p>}
         {notice && (
           <div className="online-lobby__notice" onClick={() => setNotice(null)}>
@@ -173,31 +154,14 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
+        {tab === "stats" && history && <HistoryStats total={history.total} byFormat={history.byFormat} series={history.series} />}
+
         {tab === "history" && history && (
           <>
-            <table className="history-screen__stats">
-              <thead>
-                <tr>
-                  <th />
-                  <th>対局数</th>
-                  <th>平均順位</th>
-                  <th>1位率</th>
-                  <th>連対率</th>
-                  <th>4位回避率</th>
-                  <th>1位/2位/3位/4位</th>
-                </tr>
-              </thead>
-              <tbody>
-                <StatsRow label="通算" stats={history.total} />
-                <StatsRow label={FORMAT_LABEL.tonpuusen} stats={history.byFormat.tonpuusen} />
-                <StatsRow label={FORMAT_LABEL.hanchan} stats={history.byFormat.hanchan} />
-              </tbody>
-            </table>
-
             <div className="online-lobby__section-title">最近の対局</div>
             {history.recent.length === 0 && <p className="setup-lead">まだ段位戦を打っていません。</p>}
             <ul className="history-screen__list">
-              {history.recent.map((e) => (
+              {history.recent.slice(page * MATCHES_PER_PAGE, (page + 1) * MATCHES_PER_PAGE).map((e) => (
                 <li key={e.matchId} className={`history-screen__match history-screen__match--place${e.place}`}>
                   <div className="history-screen__match-head">
                     <span className="history-screen__place">{e.place}位</span>
@@ -269,6 +233,24 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                 </li>
               ))}
             </ul>
+            {history.recent.length > MATCHES_PER_PAGE && (
+              <div className="history-screen__pager">
+                <button type="button" className="btn" disabled={page === 0} onClick={() => setPage(page - 1)}>
+                  ‹ 新しい対局
+                </button>
+                <span>
+                  {page + 1} / {Math.ceil(history.recent.length / MATCHES_PER_PAGE)}
+                </span>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={(page + 1) * MATCHES_PER_PAGE >= history.recent.length}
+                  onClick={() => setPage(page + 1)}
+                >
+                  古い対局 ›
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
