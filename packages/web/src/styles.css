@@ -5167,8 +5167,31 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   border-radius: 8px;
   font-size: 12px;
 }
-.dev-account-tools__label {
+/* ロビーのパネルの高さを取らないよう、画面の右下に浮かせる。 */
+.dev-account-tools--float {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 50;
+  margin-top: 0;
+  background: rgba(10, 10, 10, 0.9);
+}
+.dev-account-tools--open {
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 460px;
+}
+.dev-account-tools__toggle {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
   opacity: 0.7;
+  cursor: pointer;
+}
+button.dev-account-tools__toggle.dev-account-tools {
+  border: 1px dashed rgba(255, 255, 255, 0.35);
 }
 .dev-account-tools__warn {
   color: #ffd27a;
@@ -6468,9 +6491,9 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .oh-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   min-height: 0;
-  padding: 16px 4px 16px 0;
+  padding: 10px 4px 10px 0;
   overflow-y: auto;
 }
 /* 縦の中央に置く。justify-content:centerだと中身が高さを超えた時に上が切れて
