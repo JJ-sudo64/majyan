@@ -1,10 +1,21 @@
 import { useState } from "react";
-import { CARDS, CHARACTERS, type AiDifficulty, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, cardRarity, type AiDifficulty, type MatchFormat } from "@majyan/core";
 import { useGameStore, type CpuDifficultySettings } from "../store/gameStore.js";
 import { playUiClickFor } from "../sound.js";
+import { RARITY_STARS } from "./GachaCard.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
-const CARD_LIST = Object.values(CARDS);
+/** カードの一覧は、レア度の高い順（同じレア度は常時→消費の順、その中は定義順）に並べる。 */
+const CARD_LIST = Object.values(CARDS)
+  .map((card, index) => ({ card, index }))
+  .sort(
+    (a, b) =>
+      cardRarity(b.card.id) - cardRarity(a.card.id) ||
+      Number(b.card.kind === "passive") - Number(a.card.kind === "passive") ||
+      a.index - b.index,
+  )
+  .map(({ card }) => card);
+type CardKindFilter = "all" | "passive" | "consumable";
 
 /** 各CPU席のキャラクター指定。null = おまかせ（ランダム）。 */
 type CpuCharacterSettings = [string | null, string | null, string | null, string | null];
@@ -59,6 +70,12 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
   // 開く別モーダル（ピッカー）に追い出す。
   const [showCharacterPicker, setShowCharacterPicker] = useState(false);
   const [showCardPicker, setShowCardPicker] = useState(false);
+  // カードが増えたので、ピッカーはレア度と種類で絞り込めるようにする。
+  const [cardRarityFilter, setCardRarityFilter] = useState<0 | 1 | 2 | 3>(0);
+  const [cardKindFilter, setCardKindFilter] = useState<CardKindFilter>("all");
+  const visibleCards = CARD_LIST.filter(
+    (c) => (cardRarityFilter === 0 || cardRarity(c.id) === cardRarityFilter) && (cardKindFilter === "all" || c.kind === cardKindFilter),
+  );
   const selectedCharacter = selectedCharacterId ? CHARACTERS[selectedCharacterId] : undefined;
   const selectedCard = selectedCardId ? CARDS[selectedCardId] : undefined;
 
@@ -298,6 +315,36 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
                 ×
               </button>
             </div>
+            <div className="card-picker-filters">
+              {([0, 3, 2, 1] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  className={`card-picker-filters__chip${cardRarityFilter === r ? " is-active" : ""}`}
+                  onClick={() => setCardRarityFilter(r)}
+                >
+                  {r === 0 ? "すべて" : RARITY_STARS[r]}
+                </button>
+              ))}
+              <span className="card-picker-filters__gap" />
+              {(
+                [
+                  ["all", "全種類"],
+                  ["passive", "常時"],
+                  ["consumable", "消費"],
+                ] as [CardKindFilter, string][]
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  className={`card-picker-filters__chip${cardKindFilter === k ? " is-active" : ""}`}
+                  onClick={() => setCardKindFilter(k)}
+                >
+                  {label}
+                </button>
+              ))}
+              <span className="card-picker-filters__count">{visibleCards.length}枚</span>
+            </div>
             <div className="setup-character-select__grid setup-picker-modal__grid">
               <button
                 type="button"
@@ -312,7 +359,7 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
                   <div className="character-card__shortname">なし</div>
                 </div>
               </button>
-              {CARD_LIST.map((c) => (
+              {visibleCards.map((c) => (
                 <button
                   key={c.id}
                   type="button"
@@ -329,6 +376,7 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
                   <div className="character-card__name">
                     <div className="character-card__shortname">{c.name}</div>
                   </div>
+                  <div className="card-card__stars">{RARITY_STARS[cardRarity(c.id)]}</div>
                   <div className="card-card__desc">{c.description}</div>
                 </button>
               ))}
