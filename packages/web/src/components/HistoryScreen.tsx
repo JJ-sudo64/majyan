@@ -154,7 +154,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {tab === "stats" && history && <HistoryStats total={history.total} byFormat={history.byFormat} series={history.series} />}
+        {tab === "stats" && history && <HistoryStats total={history.total} byFormat={history.byFormat} series={history.series} roundStats={history.roundStats} winKinds={history.winKinds} />}
 
         {tab === "history" && history && (
           <>

@@ -5,6 +5,7 @@
 import { gunzipSync, gzipSync } from "node:zlib";
 import type { PlayerIndex, ReplayResponse, ReplayRound, ReplaySeat, MatchFormat } from "@majyan/core";
 import type { Database } from "./db.js";
+import { saveRoundStats } from "./roundStats.js";
 
 export class ReplayStore {
   constructor(private readonly db: Database) {}
@@ -16,6 +17,12 @@ export class ReplayStore {
          ON CONFLICT(match_id, round_index) DO UPDATE SET data = excluded.data`,
       )
       .run(matchId, roundIndex, gzipSync(JSON.stringify(round)));
+    // 戦績の集計用に、この局の成績も数えて保存する。数えそこなっても対局は止めない。
+    try {
+      saveRoundStats(this.db, matchId, roundIndex, round);
+    } catch (err) {
+      console.error("[majyan-server] 局の成績を数えられませんでした:", err);
+    }
   }
 
   /** その人が見られる牌譜。無い・見られない時はnull。 */

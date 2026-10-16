@@ -319,6 +319,24 @@ export const MIGRATIONS: readonly string[] = [
     created_at INTEGER NOT NULL
   );
   `,
+  // 19: 局ごとの成績（戦績の和了率・放銃率などの元。1局×4席ぶん。牌譜から数えて保存する）
+  // seat = -1 の行は「数えようとしたが記録が途中で切れていた」印（数え直しを繰り返さないため）
+  `
+  CREATE TABLE round_stats (
+    match_id TEXT NOT NULL,
+    round_index INTEGER NOT NULL,
+    seat INTEGER NOT NULL,
+    dealer INTEGER NOT NULL,
+    riichi INTEGER NOT NULL,
+    open INTEGER NOT NULL,
+    win INTEGER NOT NULL,
+    tsumo INTEGER NOT NULL,
+    dealt_in INTEGER NOT NULL,
+    win_points INTEGER NOT NULL,
+    win_turn INTEGER NOT NULL,
+    PRIMARY KEY (match_id, round_index, seat)
+  );
+  `,
 ];
 
 export type Database = DatabaseSyncType;

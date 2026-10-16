@@ -43,6 +43,7 @@ import { InboxService } from "./inbox.js";
 import { MissionService } from "./missions.js";
 import { FriendService } from "./friends.js";
 import { ReplayStore } from "./replays.js";
+import { startRoundStatsBackfill } from "./roundStats.js";
 import { CpuPool } from "./cpuPool.js";
 import { ShopService } from "./shop.js";
 import { ModerationService } from "./moderation.js";
@@ -88,6 +89,8 @@ const missions = new MissionService(db, wallet);
 const authenticate = (token: string) => accounts.authenticate(token);
 // 対局中の卓はDBへ保存しておき、再起動したら続きから再開する（入り直せば同じ席に戻れる）。
 const replays = new ReplayStore(db);
+// 局ごとの成績を数えていない牌譜（この機能より前の対局）を、起動後に少しずつ数える。
+startRoundStatsBackfill(db, (err) => console.error("[majyan-server] 局の成績の取り込みに失敗しました:", err));
 // フレンド（観戦の可否）はroomsの「今どこにいるか」を使い、roomsは観戦の可否にフレンドを使うので、後から結ぶ。
 let friends: FriendService | undefined;
 // CPUの思考は別スレッドで（重い局面で全部の卓が止まらないように）。

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { MatchFormat, RankedPlaceStats, RankedSeriesPoint } from "@majyan/core";
+import type { MatchFormat, RankedPlaceStats, RankedSeriesPoint, RoundStatsSummary, WinKinds } from "@majyan/core";
 
 const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
 /** 順位の推移グラフに出す対局数の選択肢（−・＋で切り替える）。 */
@@ -100,40 +100,106 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** 東風戦・半荘戦ごとの成績（順位の割合など）。 */
-function FormatPanel({ format, stats }: { format: MatchFormat; stats: RankedPlaceStats }) {
-  const [first, second, third, fourth] = stats.places;
+/** 和了の種類（立直・副露・闇聴）の内訳をドーナツで見せる。 */
+function WinKindsDonut({ kinds }: { kinds: WinKinds }) {
+  const total = kinds.riichi + kinds.open + kinds.dama;
+  const parts = [
+    { label: "立直", n: kinds.riichi, className: "history-stats__donut--riichi" },
+    { label: "副露", n: kinds.open, className: "history-stats__donut--open" },
+    { label: "闇聴", n: kinds.dama, className: "history-stats__donut--dama" },
+  ];
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
   return (
-    <section className="history-stats__block history-stats__panel">
+    <section className="history-stats__block">
       <div className="history-stats__head">
-        <h3>{FORMAT_LABEL[format]}</h3>
-        <span className="history-stats__note">{stats.games}戦</span>
+        <h3>和了グラフ</h3>
       </div>
-      <div className="history-stats__grid-stats">
-        <Stat label="一位率" value={percent(first, stats.games)} />
-        <Stat label="二位率" value={percent(second, stats.games)} />
-        <Stat label="三位率" value={percent(third, stats.games)} />
-        <Stat label="四位率" value={percent(fourth, stats.games)} />
-        <Stat label="連対率" value={percent(first + second, stats.games)} />
-        <Stat label="四位回避率" value={percent(stats.games - fourth, stats.games)} />
-        <Stat label="対戦数" value={String(stats.games)} />
-        <Stat label="平均順位" value={averagePlace(stats)} />
-        <Stat label="飛び率" value={percent(stats.busted, stats.games)} />
+      <div className="history-stats__donut-wrap">
+        <svg viewBox="0 0 100 100" className="history-stats__donut" role="img" aria-label="和了の種類の内訳">
+          <circle cx="50" cy="50" r={radius} className="history-stats__donut-bg" />
+          {total > 0 &&
+            parts.map((part) => {
+              const length = (part.n / total) * circumference;
+              const circle = (
+                <circle
+                  key={part.label}
+                  cx="50"
+                  cy="50"
+                  r={radius}
+                  className={`history-stats__donut-seg ${part.className}`}
+                  strokeDasharray={`${length} ${circumference - length}`}
+                  strokeDashoffset={-offset}
+                  transform="rotate(-90 50 50)"
+                />
+              );
+              offset += length;
+              return circle;
+            })}
+        </svg>
+        <ul className="history-stats__legend">
+          {parts.map((part) => (
+            <li key={part.label}>
+              <span className={`history-stats__swatch ${part.className}`} />
+              {part.label} <strong>{percent(part.n, total)}</strong>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
 }
 
-/** 戦績のまとめ。左に折れ線と順位の割合、右に東風戦・半荘戦ごとの成績を並べ、スクロールなしで収める。 */
+function ratio(n: number, d: number): string {
+  return d ? `${((n / d) * 100).toFixed(2)}%` : "-";
+}
+
+/** 東風戦・半荘戦ごとの成績。順位の割合は対局ごと、和了率などは局ごとの記録から出す。 */
+function FormatPanel({ format, stats, rounds }: { format: MatchFormat; stats: RankedPlaceStats; rounds: RoundStatsSummary }) {
+  const [first, second, third, fourth] = stats.places;
+  return (
+    <section className="history-stats__block history-stats__panel">
+      <div className="history-stats__grid-stats" data-format={format}>
+        <Stat label="一位率" value={percent(first, stats.games)} />
+        <Stat label="対戦数" value={String(stats.games)} />
+        <Stat label="和了率" value={ratio(rounds.wins, rounds.rounds)} />
+        <Stat label="二位率" value={percent(second, stats.games)} />
+        <Stat label="平均和了" value={rounds.wins ? String(Math.round(rounds.winPointsTotal / rounds.wins)) : "-"} />
+        <Stat label="ツモ率" value={ratio(rounds.tsumoWins, rounds.wins)} />
+        <Stat label="三位率" value={percent(third, stats.games)} />
+        <Stat label="平均順位" value={averagePlace(stats)} />
+        <Stat label="放銃率" value={ratio(rounds.dealtIn, rounds.rounds)} />
+        <Stat label="四位率" value={percent(fourth, stats.games)} />
+        <Stat label="最大連荘" value={rounds.maxRenchan ? String(rounds.maxRenchan) : "-"} />
+        <Stat label="副露率" value={ratio(rounds.openRounds, rounds.rounds)} />
+        <Stat label="飛び率" value={percent(stats.busted, stats.games)} />
+        <Stat label="和了巡数" value={rounds.wins ? (rounds.winTurnTotal / rounds.wins).toFixed(2) : "-"} />
+        <Stat label="立直率" value={ratio(rounds.riichiRounds, rounds.rounds)} />
+        <Stat label="連対率" value={percent(first + second, stats.games)} />
+        <Stat label="四位回避率" value={percent(stats.games - fourth, stats.games)} />
+        <Stat label="数えた局数" value={String(rounds.rounds)} />
+      </div>
+    </section>
+  );
+}
+
+/** 戦績のまとめ。左に折れ線・和了グラフ・順位グラフ、右に東風戦／半荘戦の成績を出し、スクロールなしで収める。 */
 export function HistoryStats({
   total,
   byFormat,
   series,
+  roundStats,
+  winKinds,
 }: {
   total: RankedPlaceStats;
   byFormat: Record<MatchFormat, RankedPlaceStats>;
   series: RankedSeriesPoint[];
+  roundStats: Record<MatchFormat, RoundStatsSummary>;
+  winKinds: WinKinds;
 }) {
+  // 対局の多いほうを先に出す。
+  const [format, setFormat] = useState<MatchFormat>(byFormat.tonpuusen.games >= byFormat.hanchan.games ? "tonpuusen" : "hanchan");
   return (
     <div className="history-stats">
       <p className="history-stats__total">
@@ -142,11 +208,22 @@ export function HistoryStats({
       <div className="history-stats__cols">
         <div className="history-stats__left">
           <PlaceLineChart series={series} />
-          <PlaceBars series={series} />
+          <div className="history-stats__pair">
+            <WinKindsDonut kinds={winKinds} />
+            <PlaceBars series={series} />
+          </div>
         </div>
         <div className="history-stats__right">
-          <FormatPanel format="tonpuusen" stats={byFormat.tonpuusen} />
-          <FormatPanel format="hanchan" stats={byFormat.hanchan} />
+          <div className="history-stats__formats">
+            {(["tonpuusen", "hanchan"] as MatchFormat[]).map((f) => (
+              <button key={f} type="button" className={`history-stats__format${format === f ? " is-active" : ""}`} onClick={() => setFormat(f)}>
+                {FORMAT_LABEL[f]}
+                <small>{byFormat[f].games}戦</small>
+              </button>
+            ))}
+          </div>
+          <FormatPanel format={format} stats={byFormat[format]} rounds={roundStats[format]} />
+          <p className="history-stats__note history-stats__footnote">和了率などは、牌譜が残っている対局の局ごとの記録から数えています。</p>
         </div>
       </div>
     </div>

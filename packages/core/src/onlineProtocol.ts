@@ -179,6 +179,32 @@ export interface RankedPlaceStats {
   busted: number;
 }
 
+/** 東風戦・半荘戦ごとの、局ごとの成績の合計（率は画面側で割って出す）。 */
+export interface RoundStatsSummary {
+  /** 数えた局数。 */
+  rounds: number;
+  wins: number;
+  /** 和了のうちツモだった回数。 */
+  tsumoWins: number;
+  dealtIn: number;
+  riichiRounds: number;
+  openRounds: number;
+  /** 和了点の合計・和了した巡目の合計（和了回数で割って平均にする）。 */
+  winPointsTotal: number;
+  winTurnTotal: number;
+  /** 親として続けて回ってきた局数の最大（連荘の最大）。 */
+  maxRenchan: number;
+}
+
+/** 和了の種類の内訳（直近100戦）。 */
+export interface WinKinds {
+  riichi: number;
+  /** 立直せずに副露して和了した回数。 */
+  open: number;
+  /** 立直も副露もせずに（闇聴で）和了した回数。 */
+  dama: number;
+}
+
 /** 順位の推移グラフの1点（古い順に並べる）。 */
 export interface RankedSeriesPoint {
   format: MatchFormat;
@@ -222,6 +248,10 @@ export interface RankedHistoryResponse {
   recent: RankedHistoryEntry[];
   /** 直近の順位（古い順。最大RANKED_SERIES_LIMIT戦）。順位の推移・順位の割合のグラフ用。 */
   series: RankedSeriesPoint[];
+  /** 局ごとの成績（和了率・放銃率など）。牌譜を残し始めた対局より前の分は含まれない。 */
+  roundStats: Record<MatchFormat, RoundStatsSummary>;
+  /** 和了の種類の内訳（直近RANKED_SERIES_LIMIT戦）。 */
+  winKinds: WinKinds;
 }
 
 /** 順位の推移グラフ用に返す対局数の上限。 */

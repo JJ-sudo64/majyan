@@ -21,6 +21,7 @@ import {
   type RankView,
 } from "@majyan/core";
 import { transaction, type Database } from "./db.js";
+import { loadRoundStats } from "./roundStats.js";
 
 interface RankRow {
   tier: number;
@@ -214,7 +215,7 @@ export class RankService {
         })),
       };
     });
-    return { total, byFormat, recent, series };
+    return { total, byFormat, recent, series, ...loadRoundStats(this.db, userId) };
   }
 
   /** 段位の高い順のランキング（段位戦を1回以上打った人だけ）。 */
