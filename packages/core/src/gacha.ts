@@ -63,6 +63,7 @@ export const CARD_RARITY: Record<string, Rarity> = {
   "score-double": 3,
   "point-drain": 3,
   "han-up-2": 3,
+  "han-up-3": 3,
   nullify: 3,
   "dora-guarantee": 3,
   // ★2: 毎局効く、または狙った場面で確実に得をする
@@ -76,7 +77,10 @@ export const CARD_RARITY: Record<string, Rarity> = {
   "kyotaku-collector": 2,
   "last-stand": 2,
   "ippatsu-extend": 2,
+  "catch-up": 2,
+  "gauge-boost": 2,
   // ★1: 1回きりの保険・場面が限られる
+  "point-drain-small": 1,
   "tenpai-insurance": 1,
   "bust-guard": 1,
   "tile-count-insight": 1,

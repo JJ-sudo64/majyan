@@ -1114,3 +1114,66 @@ describe("dealer-honba-boost card (親孝行)", () => {
     expect(withBoost.scoreDeltas[1]).toBe(without.scoreDeltas[1]);
   });
 });
+
+describe("han-up-3 card (渾身の三翻)", () => {
+  it("sets cardBonusHan[owner] to 3", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: ["han-up-3", null, null, null],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+    });
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.cardBonusHan).toEqual([3, 0, 0, 0]);
+    expect(next.cardUsesRemaining[0]).toBe(0);
+  });
+});
+
+describe("point-drain-small card (小銭拾い)", () => {
+  it("sets a pendingScoreAdjustment of +1500 for the owner and -500 for each other seat", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: [null, "point-drain-small", null, null],
+      currentTurn: 1,
+      phase: "awaiting-discard",
+    });
+    const next = applyAction(round, { type: "useCard", player: 1 });
+    expect(next.pendingScoreAdjustment).toEqual([-500, 1500, -500, -500]);
+    expect(next.cardUsesRemaining[1]).toBe(0);
+  });
+});
+
+describe("catch-up card (追い上げ)", () => {
+  const round = makeRound({ players: [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] });
+  const withCard = { ...round, cardIds: [null, null, "catch-up", null] as RoundState["cardIds"] };
+
+  it("adds 3000 to the holder's final score when they are not in first place", () => {
+    expect(applyCardMatchEndBonuses(withCard, [30000, 25000, 20000, 25000])).toEqual([30000, 25000, 23000, 25000]);
+  });
+
+  it("does nothing for the holder in first place (a tie for first counts as first)", () => {
+    expect(applyCardMatchEndBonuses(withCard, [10000, 20000, 40000, 30000])).toEqual([10000, 20000, 40000, 30000]);
+    expect(applyCardMatchEndBonuses(withCard, [10000, 20000, 30000, 30000])).toEqual([10000, 20000, 30000, 30000]);
+  });
+});
+
+describe("gauge-boost card (ゲージ加速)", () => {
+  const hand = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"] as TileCode[];
+
+  it("raises gauge gain by 1.5x on any hand", () => {
+    let round = makeRound({
+      players: [emptyPlayer(hand), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "", "", ""],
+      cardIds: ["gauge-boost", null, null, null],
+      format: "tonpuusen",
+      roundWind: 1,
+      roundNumber: 1,
+      currentTurn: 0,
+      phase: "awaiting-draw",
+      wall: makeWall(["9m", "9p", "9p", "9p"]),
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    round = applyAction(round, { type: "discard", player: 0, tileId: round.lastDrawnTile!.id, tsumogiri: true });
+    expect(round.players[0]!.skillGauge).toBe(15); // 通常10のところ1.5倍
+  });
+});

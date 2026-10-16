@@ -155,6 +155,36 @@ export const CARDS: Record<string, Card> = {
       }),
     },
   },
+  "han-up-3": {
+    id: "han-up-3",
+    name: "渾身の三翻",
+    description: "使用すると、この局で次に自分が和了した時、翻数が3翻アップする（他に役が無い手には乗らない。役満には影響しない）。この局中に和了できなければ不発。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => ({
+        ...ctx.round,
+        cardBonusHan: setAt(ctx.round.cardBonusHan, ctx.owner, 3),
+      }),
+    },
+  },
+  "point-drain-small": {
+    id: "point-drain-small",
+    name: "小銭拾い",
+    description: "使用すると、他の3人から500点ずつ（合計1500点）を即座に奪い取る。和了や流局を待たない即時効果。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => {
+        const { round, owner } = ctx;
+        const delta: [number, number, number, number] = [0, 0, 0, 0];
+        for (const p of [0, 1, 2, 3] as PlayerIndex[]) {
+          if (p === owner) continue;
+          delta[p] -= 500;
+          delta[owner] += 500;
+        }
+        return { ...round, pendingScoreAdjustment: delta };
+      },
+    },
+  },
   "point-drain": {
     id: "point-drain",
     name: "点棒吸収",
@@ -200,6 +230,31 @@ export const CARDS: Record<string, Card> = {
         next[owner] += 5000;
         return next;
       },
+    },
+  },
+  "catch-up": {
+    id: "catch-up",
+    name: "追い上げ",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分が1位でなければ、最終点数に3000点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => {
+        const { scores, owner } = ctx;
+        const isTop = scores.every((s, i) => i === owner || s <= scores[owner]!);
+        if (isTop) return scores;
+        const next = [...scores] as [number, number, number, number];
+        next[owner] += 3000;
+        return next;
+      },
+    },
+  },
+  "gauge-boost": {
+    id: "gauge-boost",
+    name: "ゲージ加速",
+    description: "持っているだけの常時効果。自分の必殺技ゲージの増加量が常に1.5倍（端数は切り上げ）になる。使っても無くならない（何度でも発動する）。",
+    kind: "passive",
+    hooks: {
+      // 実際の判定はgameEngine.tsのgainGaugeが行う。
     },
   },
   "tenpai-insurance": {
