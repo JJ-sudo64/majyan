@@ -584,6 +584,59 @@ export const CARDS: Record<string, Card> = {
       },
     },
   },
+  "close-race": {
+    id: "close-race",
+    name: "僅差の追い風",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分より上の順位の誰かとの点差が1000点以内だった場合に限り、最終点数に500点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) =>
+        bonusOnMatchEnd(
+          ctx,
+          (scores, owner) => {
+            const above = scores.filter((s) => s > scores[owner]!);
+            return above.length > 0 && Math.min(...above) - scores[owner]! <= 1000;
+          },
+          500,
+        ),
+    },
+  },
+  "soften-defeat": {
+    id: "soften-defeat",
+    name: "傷口を浅く",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分の最終点数が10000点未満だった場合に限り、最終点数に1000点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores[owner]! < 10000, 1000),
+    },
+  },
+  "big-win-afterglow": {
+    id: "big-win-afterglow",
+    name: "大勝の余韻",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分の最終点数が40000点以上だった場合に限り、最終点数に500点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores[owner]! >= 40000, 500),
+    },
+  },
+  "origin-blessing": {
+    id: "origin-blessing",
+    name: "原点の加護",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分の最終点数が原点（25000点）の前後1000点以内（24000〜26000点）だった場合に限り、最終点数に300点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores[owner]! >= 24000 && scores[owner]! <= 26000, 300),
+    },
+  },
+  "dealer-collection": {
+    id: "dealer-collection",
+    name: "親の集金",
+    description: "使用すると、自分が親の時に限り、他の3人から400点ずつ（合計1200点）を即座に奪い取る（自分が親でなければ何も起きない）。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => (ctx.round.dealerSeat === ctx.owner ? drainPointsEach(ctx, 400) : ctx.round),
+    },
+  },
   nullify: {
     id: "nullify",
     name: "無効化",

@@ -1550,3 +1550,35 @@ describe("a sixth batch of weak ★1 cards", () => {
     expect(sawEast).toBeGreaterThan(0);
   });
 });
+
+describe("a seventh batch of weak ★1 cards", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+  const holding = (card: string, seat: 0 | 1 | 2 | 3 = 0) => {
+    const cardIds: RoundState["cardIds"] = [null, null, null, null];
+    cardIds[seat] = card;
+    return { ...makeRound({ players: blank() }), cardIds };
+  };
+
+  it("close-race pays only when someone above is within 1000 points", () => {
+    expect(applyCardMatchEndBonuses(holding("close-race"), [24500, 30000, 25500, 20000])).toEqual([25000, 30000, 25500, 20000]);
+    expect(applyCardMatchEndBonuses(holding("close-race"), [24400, 30000, 25500, 20000])).toEqual([24400, 30000, 25500, 20000]);
+    expect(applyCardMatchEndBonuses(holding("close-race"), [30000, 29500, 20000, 20500])).toEqual([30000, 29500, 20000, 20500]);
+  });
+
+  it("soften-defeat, big-win-afterglow and origin-blessing pay at their own thresholds", () => {
+    expect(applyCardMatchEndBonuses(holding("soften-defeat"), [9900, 40000, 30000, 20100])).toEqual([10900, 40000, 30000, 20100]);
+    expect(applyCardMatchEndBonuses(holding("soften-defeat"), [10000, 40000, 30000, 20000])).toEqual([10000, 40000, 30000, 20000]);
+    expect(applyCardMatchEndBonuses(holding("big-win-afterglow", 1), [20000, 40000, 20000, 20000])).toEqual([20000, 40500, 20000, 20000]);
+    expect(applyCardMatchEndBonuses(holding("big-win-afterglow", 1), [20000, 39900, 20000, 20100])).toEqual([20000, 39900, 20000, 20100]);
+    expect(applyCardMatchEndBonuses(holding("origin-blessing", 2), [25000, 25000, 24000, 26000])).toEqual([25000, 25000, 24300, 26000]);
+    expect(applyCardMatchEndBonuses(holding("origin-blessing", 2), [25000, 25000, 26100, 23900])).toEqual([25000, 25000, 26100, 23900]);
+  });
+
+  it("dealer-collection takes 400 from each seat only while the holder is the dealer", () => {
+    const base = { players: blank(), cardIds: [null, "dealer-collection", null, null] as RoundState["cardIds"], currentTurn: 1 as const, phase: "awaiting-discard" as const };
+    const asDealer = applyAction(makeRound({ ...base, dealerSeat: 1 }), { type: "useCard", player: 1 });
+    expect(asDealer.pendingScoreAdjustment).toEqual([-400, 1200, -400, -400]);
+    const notDealer = applyAction(makeRound({ ...base, dealerSeat: 3 }), { type: "useCard", player: 1 });
+    expect(notDealer.pendingScoreAdjustment).toEqual(makeRound(base).pendingScoreAdjustment);
+  });
+});
