@@ -1500,3 +1500,53 @@ describe("even more weak ★1 cards", () => {
     expect(gain(1)).toBe(10);
   });
 });
+
+describe("a sixth batch of weak ★1 cards", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+
+  it("gauge-fill-tiny adds 20% of the gauge maximum without exceeding it", () => {
+    const max = CHARACTERS["hiiragi"]!.gaugeMax;
+    const round = makeRound({ players: blank(), characterIds: ["hiiragi", "", "", ""], cardIds: ["gauge-fill-tiny", null, null, null], currentTurn: 0, phase: "awaiting-discard" });
+    expect(applyAction(round, { type: "useCard", player: 0 }).players[0]!.skillGauge).toBe(Math.ceil(max * 0.2));
+    const nearlyFull = { ...round, players: round.players.map((p, i) => (i === 0 ? { ...p, skillGauge: max - 1 } : p)) as RoundState["players"] };
+    expect(applyAction(nearlyFull, { type: "useCard", player: 0 }).players[0]!.skillGauge).toBe(max);
+  });
+
+  it("top-place-trim pays only the winner (ties for first included)", () => {
+    const round = { ...makeRound({ players: blank() }), cardIds: [null, "top-place-trim", null, null] as RoundState["cardIds"] };
+    expect(applyCardMatchEndBonuses(round, [20000, 40000, 15000, 25000])).toEqual([20000, 40500, 15000, 25000]);
+    expect(applyCardMatchEndBonuses(round, [40000, 40000, 10000, 10000])).toEqual([40000, 40500, 10000, 10000]);
+    expect(applyCardMatchEndBonuses(round, [40000, 30000, 15000, 15000])).toEqual([40000, 30000, 15000, 15000]);
+  });
+
+  it("round-up-bonus rounds the holder's final score up to the next 1000", () => {
+    const round = { ...makeRound({ players: blank() }), cardIds: [null, null, "round-up-bonus", null] as RoundState["cardIds"] };
+    expect(applyCardMatchEndBonuses(round, [25100, 24800, 25300, 24800])).toEqual([25100, 24800, 26000, 24800]);
+    expect(applyCardMatchEndBonuses(round, [25000, 25000, 25000, 25000])).toEqual([25000, 25000, 25000, 25000]);
+    expect(applyCardMatchEndBonuses(round, [30000, 30000, -400, 40400])).toEqual([30000, 30000, 0, 40400]);
+  });
+
+  it("the deal-time cards keep 13 tiles and do what they say", () => {
+    const pairsOf = (hand: Hand) => {
+      const counts = new Map<string, number>();
+      for (const t of hand.concealed) counts.set(t.code, (counts.get(t.code) ?? 0) + 1);
+      return [...counts.values()].filter((c) => c >= 2).length;
+    };
+    const terminals = (hand: Hand) => hand.concealed.filter((t) => isNumbered(t.code) && (numberOf(t.code) === 1 || numberOf(t.code) === 9)).length;
+    const east = (hand: Hand) => hand.concealed.filter((t) => t.code === "1z").length;
+    let sawPair = 0;
+    let sawEast = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const deal = (card: string) =>
+        dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false, [card, null, null, null]).players[0]!.hand;
+      const base = dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""]).players[0]!.hand;
+      for (const card of ["terminal-sweep", "pair-step", "round-wind-pair"]) expect(deal(card).concealed).toHaveLength(13);
+      expect(terminals(deal("terminal-sweep"))).toBe(Math.max(0, terminals(base) - 2));
+      if (pairsOf(deal("pair-step")) === pairsOf(base) + 1) sawPair++;
+      expect(pairsOf(deal("pair-step"))).toBeGreaterThanOrEqual(pairsOf(base));
+      if (east(base) < 2 && east(deal("round-wind-pair")) >= 2) sawEast++;
+    }
+    expect(sawPair).toBeGreaterThan(0);
+    expect(sawEast).toBeGreaterThan(0);
+  });
+});

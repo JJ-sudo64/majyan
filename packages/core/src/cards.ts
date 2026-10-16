@@ -7,10 +7,10 @@
  */
 import type { PlayerIndex } from "./actions.js";
 import { seatWindOf, type RoundState } from "./gameState.js";
-import { isHonor, type TileCode } from "./tiles.js";
+import { isHonor, isTerminal, type TileCode } from "./tiles.js";
 import { revealNextDora } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, countPairs, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -84,6 +84,10 @@ const OPENING_GAUGE = 15;
 const DEALER_GAUGE = 5;
 /** カード「参加賞」で対局終了時に足す点数。 */
 const PARTICIPATION_BONUS = 500;
+/** カード「一口充填」で増えるゲージの割合（ゲージ最大値に対して）。 */
+const GAUGE_FILL_TINY_RATIO = 0.2;
+/** カード「勝ち逃げ」で1位に足す点数。 */
+const TOP_PLACE_TRIM_BONUS = 500;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
 
@@ -499,6 +503,85 @@ export const CARDS: Record<string, Card> = {
     kind: "passive",
     hooks: {
       // 実際の判定はgameEngine.tsのgainGauge（isFinalHand）が行う。
+    },
+  },
+  "gauge-fill-tiny": {
+    id: "gauge-fill-tiny",
+    name: "一口充填",
+    description: "使用すると、自分の必殺技ゲージが最大値の2割ぶん増える（最大値を超えない）。ゲージを持たないキャラでは何も起きない。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => {
+        const character = CHARACTERS[ctx.round.characterIds[ctx.owner]];
+        if (!character || character.gaugeMax <= 0) return ctx.round;
+        return addGauge(ctx.round, ctx.owner, Math.ceil(character.gaugeMax * GAUGE_FILL_TINY_RATIO));
+      },
+    },
+  },
+  "top-place-trim": {
+    id: "top-place-trim",
+    name: "勝ち逃げ",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分が1位（同点1位も含む）だった場合に限り、最終点数に500点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores.every((s, i) => i === owner || s <= scores[owner]!), TOP_PLACE_TRIM_BONUS),
+    },
+  },
+  "round-up-bonus": {
+    id: "round-up-bonus",
+    name: "切り上げの恩恵",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分の最終点数が次の1000点単位まで切り上げられる（ちょうど1000点単位ならそのまま）。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => {
+        const { scores, owner } = ctx;
+        const rounded = Math.ceil(scores[owner]! / 1000) * 1000 + 0; // +0で-0を0にする
+        if (rounded === scores[owner]) return scores;
+        const next = [...scores] as [number, number, number, number];
+        next[owner] = rounded;
+        return next;
+      },
+    },
+  },
+  "terminal-sweep": {
+    id: "terminal-sweep",
+    name: "端牌整理",
+    description: "持っているだけの常時効果。配牌時、手牌の数牌の端（1・9）を最大2枚まで山の中張牌（2〜8）と入れ替える（字牌は対象外）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = swapTerminalsForSimples(round.players[owner]!.hand, round.wall, 2, isTerminal);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "pair-step": {
+    id: "pair-step",
+    name: "対子の一歩",
+    description: "持っているだけの常時効果。配牌時、手牌のトイツ（同じ牌2枚の組）を、山から同じ牌を調達してもう1組だけ増やす（山に該当する牌が無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const p = round.players[owner]!;
+        const target = Math.min(countPairs(p.hand.concealed) + 1, 6);
+        const { hand, wall } = ensureAtLeastPairs(p.hand, round.wall, target);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "round-wind-pair": {
+    id: "round-wind-pair",
+    name: "場風の約束",
+    description: "持っているだけの常時効果。配牌時、手牌に場風牌のトイツが無ければ、山から場風牌を調達して作る（山に材料が無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = ensureYakuhaiPair(round.players[owner]!.hand, round.wall, [`${round.roundWind}z` as TileCode]);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
     },
   },
   nullify: {
