@@ -200,6 +200,18 @@ function hasPlausibleYakuOpen(hand: Hand, round: RoundState, player: PlayerIndex
   return false;
 }
 
+/** 他家の手牌が見えている時（handsRevealedToが自分）、聴牌している他家の待ち牌の集合。
+    見えていなければ空。 */
+function revealedWaitingCodes(round: RoundState, player: PlayerIndex): Set<TileCode> {
+  const codes = new Set<TileCode>();
+  if (round.handsRevealedTo !== player) return codes;
+  round.players.forEach((pl, i) => {
+    if (i === player) return;
+    for (const code of getWaitingTiles(pl.hand)) codes.add(code);
+  });
+  return codes;
+}
+
 /** 自分の手番（打牌選択）の意思決定 */
 export function decideTurnAction(round: RoundState, player: PlayerIndex, difficulty: AiDifficulty = DEFAULT_AI_DIFFICULTY): GameAction {
   const profile = AI_PROFILES[difficulty];
@@ -248,9 +260,15 @@ export function decideTurnAction(round: RoundState, player: PlayerIndex, difficu
 
   let bestTileId = p.hand.concealed[0]!.id;
 
+  // 偵察・透視の術で他家の手牌が見えている間は、聴牌している相手の当たり牌を避ける。
+  const revealedWaits = revealedWaitingCodes(round, player);
+  const discardable = p.hand.concealed.filter((t) => !revealedWaits.has(t.code));
+  // 切れる牌が全部当たり牌なら、避けようがないので普段通りに選ぶ。
+  const candidates = discardable.length > 0 ? discardable : p.hand.concealed;
+
   if (wantSafety) {
     let bestSafetyTier = -1;
-    for (const t of p.hand.concealed) {
+    for (const t of candidates) {
       const tier = safetyTier(t.code, riichiOpponentsDiscards, profile.defenseQuality);
       if (tier > bestSafetyTier) {
         bestSafetyTier = tier;
@@ -263,7 +281,7 @@ export function decideTurnAction(round: RoundState, player: PlayerIndex, difficu
     // 寄せる（Lv3以上。ドラ・役牌の温存よりは優先度を下げる）。
     const plan = profile.valueAware && p.ruleChangeActive ? ruleChangePlan(p.hand) : null;
     let bestPenalty = Infinity;
-    for (const t of p.hand.concealed) {
+    for (const t of candidates) {
       const { hand: rest } = removeTileFromHand(p.hand, t.id);
       const shanten = calcShanten(rest);
       const terminalOrHonor = isTerminalOrHonor(t.code);

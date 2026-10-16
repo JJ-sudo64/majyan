@@ -2467,3 +2467,30 @@ describe("mio's 取り返し (retrieveDiscard)", () => {
     expect(next.lastActivatedSkill).toEqual({ owner: 0, characterId: "mio" });
   });
 });
+
+describe("CPU discards while other hands are revealed (偵察・透視の術)", () => {
+  // 他家(player1)は2zと3zのシャンポン待ち。player0は普段なら字牌の3zを切る手。
+  const round = makeRound({
+    players: [
+      emptyPlayer(["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m", "1z", "1z", "3z", "5p", "5m"]),
+      emptyPlayer(["3m", "3m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "2z", "2z", "3z", "3z"]),
+      emptyPlayer(["5m", "5m", "5m", "4p", "5p", "6p", "7s", "8s", "9s", "4z", "4z", "5z", "5z"]),
+      emptyPlayer(["7m", "7m", "7m", "4p", "5p", "6p", "7s", "8s", "9s", "6z", "6z", "7z", "7z"]),
+    ],
+    currentTurn: 0,
+    phase: "awaiting-discard",
+  });
+  const discardedCode = (r: RoundState) => {
+    const action = decideTurnAction(r, 0, 3);
+    return action.type === "discard" ? r.players[0]!.hand.concealed.find((t) => t.id === action.tileId)!.code : null;
+  };
+
+  it("avoids a tile that an opponent in tenpai is waiting on", () => {
+    expect(discardedCode(round)).toBe("3z"); // 見えていなければ普段通り
+    expect(discardedCode({ ...round, handsRevealedTo: 0 })).not.toBe("3z");
+  });
+
+  it("does not change anything when someone else is the one who can see the hands", () => {
+    expect(discardedCode({ ...round, handsRevealedTo: 2 })).toBe("3z");
+  });
+});
