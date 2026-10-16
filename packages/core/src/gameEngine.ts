@@ -224,6 +224,24 @@ export function isFuriten(player: PlayerRoundState): boolean {
   return waits.some((w) => discardedCodes.has(w));
 }
 
+/** 持っているだけで和了に乗る翻（加護系カード）。条件を満たした和了にだけ1翻足す。
+    いずれも消費されず、他に役が無い手には乗らない（小手先の一翻などと同じ扱い）。
+      親の加護: 自分が親の時／立直の加護: 立直中の和了／ツモの加護: ツモ和了
+      */
+function passiveBonusHan(round: RoundState, player: PlayerIndex, isTsumo: boolean): number {
+  const p = round.players[player];
+  switch (round.cardIds[player]) {
+    case "dealer-boon":
+      return player === round.dealerSeat ? 1 : 0;
+    case "riichi-boon":
+      return p.riichi ? 1 : 0;
+    case "tsumo-boon":
+      return isTsumo ? 1 : 0;
+    default:
+      return 0;
+  }
+}
+
 function buildWinContext(
   round: RoundState,
   player: PlayerIndex,
@@ -260,7 +278,7 @@ function buildWinContext(
     })(),
     // カード「小手先の一翻」「会心の二翻」で加算される翻数。カードの持ち主
     // 本人の和了にのみ乗る。
-    bonusHan: round.cardBonusHan[player],
+    bonusHan: round.cardBonusHan[player] + passiveBonusHan(round, player, isTsumo),
     keepClosedHandYaku: p.ruleChangeActive,
     ronOnlyRiichi: p.ronOnlyRiichi,
   };

@@ -241,3 +241,18 @@ export function ensureAtLeastDoraTiles(hand: Hand, wall: WallState, minCount: nu
   }
   return current;
 }
+
+/** 手牌に刻子（同じ牌3枚以上）が無ければ、手牌にある対子の1つに山から同じ牌を1枚足して
+    刻子にする（外すのは、その牌でも対子でもない牌）。対子が無い、または山に同じ牌が無ければ、
+    次の対子を試し、全部だめなら何もしない（不発）。 */
+export function ensureAtLeastOneTriplet(hand: Hand, wall: WallState): { hand: Hand; wall: WallState } {
+  const countOf = (code: TileCode) => hand.concealed.filter((t) => t.code === code).length;
+  if (hand.concealed.some((t) => countOf(t.code) >= 3)) return { hand, wall };
+  const pairCodes = [...new Set(hand.concealed.filter((t) => countOf(t.code) === 2).map((t) => t.code))];
+  for (const code of pairCodes) {
+    const target = wall.liveTiles.find((t) => t.code === code);
+    const removable = [...hand.concealed].reverse().find((t) => countOf(t.code) === 1) ?? [...hand.concealed].reverse().find((t) => t.code !== code);
+    if (target && removable) return swapHandTilesWithWall(hand, wall, [removable.id], [target.id]);
+  }
+  return { hand, wall };
+}

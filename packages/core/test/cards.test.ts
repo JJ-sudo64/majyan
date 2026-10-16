@@ -1640,3 +1640,61 @@ describe("stronger cards (★2/★3)", () => {
     expect(checked).toBeGreaterThan(0);
   });
 });
+
+describe("stronger ★2 cards (加護・暗刻の種・気合半充填)", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+  // 2m3m4m + 5p6p7p + 7s8s9s + 1z1z1z + 9m9mの門前自摸手（役満ではない）。
+  const winHand = ["2m", "3m", "4m", "5p", "6p", "7p", "7s", "8s", "9s", "1z", "1z", "1z", "9m", "9m"] as TileCode[];
+  const tsumoDelta = (opts: { card?: string; dealerSeat?: 0 | 1 | 2 | 3; riichi?: boolean }) => {
+    const player0 = { ...emptyPlayer(winHand), riichi: opts.riichi ?? false };
+    const round = makeRound({
+      players: [player0, emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: [opts.card ?? null, null, null, null],
+      dealerSeat: opts.dealerSeat ?? 0,
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      lastDrawnTile: player0.hand.concealed[player0.hand.concealed.length - 1]!,
+      result: { type: "tsumo", winners: [0], dealerContinues: true },
+      anyCallOrRiichiMade: true,
+    });
+    return computeRoundScoreOutcome(round).scoreDeltas[0]!;
+  };
+
+  it("tsumo-boon adds a han to a tsumo win", () => {
+    expect(tsumoDelta({ card: "tsumo-boon" })).toBeGreaterThan(tsumoDelta({}));
+  });
+
+  it("dealer-boon adds a han only while the holder is the dealer", () => {
+    expect(tsumoDelta({ card: "dealer-boon", dealerSeat: 0 })).toBeGreaterThan(tsumoDelta({ dealerSeat: 0 }));
+    expect(tsumoDelta({ card: "dealer-boon", dealerSeat: 1 })).toBe(tsumoDelta({ dealerSeat: 1 }));
+  });
+
+  it("riichi-boon adds a han only to a riichi win", () => {
+    // 親だと満貫の上限に当たって差が出ないので、子の和了で比べる。
+    expect(tsumoDelta({ card: "riichi-boon", riichi: true, dealerSeat: 1 })).toBeGreaterThan(tsumoDelta({ riichi: true, dealerSeat: 1 }));
+    expect(tsumoDelta({ card: "riichi-boon", riichi: false, dealerSeat: 1 })).toBe(tsumoDelta({ riichi: false, dealerSeat: 1 }));
+  });
+
+  it("triplet-seed gives the opening hand a triplet when the raw deal has none, keeping 13 tiles", () => {
+    const hasTriplet = (hand: Hand) => hand.concealed.some((t) => hand.concealed.filter((x) => x.code === t.code).length >= 3);
+    let checked = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const deal = (cards?: [string | null, null, null, null]) =>
+        dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false, cards);
+      const base = deal();
+      if (hasTriplet(base.players[0]!.hand)) continue;
+      const withCard = deal(["triplet-seed", null, null, null]);
+      expect(withCard.players[0]!.hand.concealed).toHaveLength(13);
+      if (hasTriplet(withCard.players[0]!.hand)) checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it("gauge-fill-half adds 60% of the gauge maximum without exceeding it", () => {
+    const max = CHARACTERS["hiiragi"]!.gaugeMax;
+    const round = makeRound({ players: blank(), characterIds: ["hiiragi", "", "", ""], cardIds: ["gauge-fill-half", null, null, null], currentTurn: 0, phase: "awaiting-discard" });
+    expect(applyAction(round, { type: "useCard", player: 0 }).players[0]!.skillGauge).toBe(Math.ceil(max * 0.6));
+    const nearlyFull = { ...round, players: round.players.map((p, i) => (i === 0 ? { ...p, skillGauge: max - 1 } : p)) as RoundState["players"] };
+    expect(applyAction(nearlyFull, { type: "useCard", player: 0 }).players[0]!.skillGauge).toBe(max);
+  });
+});

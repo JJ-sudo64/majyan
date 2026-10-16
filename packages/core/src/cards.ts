@@ -10,7 +10,7 @@ import { seatWindOf, type RoundState } from "./gameState.js";
 import { isHonor, isTerminal, type TileCode } from "./tiles.js";
 import { revealNextDora } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, countPairs, ensureAtLeastDoraTiles, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, countPairs, ensureAtLeastDoraTiles, ensureAtLeastOneTriplet, ensureAtLeastOneYakuhaiTile, ensureAtLeastOneTileNearDora, leanTowardMainSuit, swapTerminalsForSimples } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -90,6 +90,8 @@ const GAUGE_FILL_TINY_RATIO = 0.2;
 const TOP_PLACE_TRIM_BONUS = 500;
 /** カード「ドラ二枚確約」で保証するドラの枚数。 */
 const DORA_GUARANTEE_2_COUNT = 2;
+/** カード「気合半充填」で増えるゲージの割合（ゲージ最大値に対して）。 */
+const GAUGE_FILL_HALF_RATIO = 0.6;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
 
@@ -698,6 +700,59 @@ export const CARDS: Record<string, Card> = {
         const { round, owner } = ctx;
         const { hand, wall } = ensureAtLeastDoraTiles(round.players[owner]!.hand, round.wall, DORA_GUARANTEE_2_COUNT);
         return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "dealer-boon": {
+    id: "dealer-boon",
+    name: "親の加護",
+    description: "持っているだけの常時効果。自分が親の局で和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    kind: "passive",
+    hooks: {
+      // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
+    },
+  },
+  "riichi-boon": {
+    id: "riichi-boon",
+    name: "立直の加護",
+    description: "持っているだけの常時効果。自分が立直して和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    kind: "passive",
+    hooks: {
+      // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
+    },
+  },
+  "tsumo-boon": {
+    id: "tsumo-boon",
+    name: "ツモの加護",
+    description: "持っているだけの常時効果。自分がツモ和了した時、翻数が1翻アップする（他に役が無い手には乗らない。役満には影響しない）。使っても無くならない。",
+    kind: "passive",
+    hooks: {
+      // 実際の加算はgameEngine.tsのpassiveBonusHanが行う。
+    },
+  },
+  "triplet-seed": {
+    id: "triplet-seed",
+    name: "暗刻の種",
+    description: "持っているだけの常時効果。配牌時、手牌に刻子（同じ牌3枚）が無ければ、トイツの1つに山から同じ牌を1枚足して刻子にする（トイツが無い、または山に同じ牌が無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = ensureAtLeastOneTriplet(round.players[owner]!.hand, round.wall);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "gauge-fill-half": {
+    id: "gauge-fill-half",
+    name: "気合半充填",
+    description: "使用すると、自分の必殺技ゲージが最大値の6割ぶん増える（最大値を超えない）。ゲージを持たないキャラでは何も起きない。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => {
+        const character = CHARACTERS[ctx.round.characterIds[ctx.owner]];
+        if (!character || character.gaugeMax <= 0) return ctx.round;
+        return addGauge(ctx.round, ctx.owner, Math.ceil(character.gaugeMax * GAUGE_FILL_HALF_RATIO));
       },
     },
   },
