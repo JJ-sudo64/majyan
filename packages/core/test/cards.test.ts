@@ -1301,3 +1301,77 @@ describe("tanyao-guarantee card (断么確約)", () => {
     }
   });
 });
+
+describe("weak ★1 cards", () => {
+  const blank = () => [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] as RoundState["players"];
+
+  it("point-drain-tiny takes 300 from each other seat", () => {
+    const round = makeRound({ players: blank(), cardIds: [null, null, "point-drain-tiny", null], currentTurn: 2, phase: "awaiting-discard" });
+    const next = applyAction(round, { type: "useCard", player: 2 });
+    expect(next.pendingScoreAdjustment).toEqual([-300, -300, 900, -300]);
+  });
+
+  it("gauge-fill-small adds 40% of the gauge maximum without exceeding it", () => {
+    const max = CHARACTERS["hiiragi"]!.gaugeMax;
+    const round = makeRound({ players: blank(), characterIds: ["hiiragi", "", "", ""], cardIds: ["gauge-fill-small", null, null, null], currentTurn: 0, phase: "awaiting-discard" });
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.players[0]!.skillGauge).toBe(Math.ceil(max * 0.4));
+    const nearlyFull = { ...round, players: round.players.map((p, i) => (i === 0 ? { ...p, skillGauge: max - 1 } : p)) as RoundState["players"] };
+    expect(applyAction(nearlyFull, { type: "useCard", player: 0 }).players[0]!.skillGauge).toBe(max);
+  });
+
+  it("peek-once reveals the next draw and can only be used once", () => {
+    const round = makeRound({ players: blank(), cardIds: ["peek-once", null, null, null], currentTurn: 0, phase: "awaiting-discard" });
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.players[0]!.revealedFutureDraws).toHaveLength(1);
+    expect(next.cardUsesRemaining[0]).toBe(0);
+  });
+
+  it("last-place-small and catch-up-small add their small bonuses", () => {
+    const round = makeRound({ players: blank() });
+    const lastSmall = { ...round, cardIds: ["last-place-small", null, null, null] as RoundState["cardIds"] };
+    expect(applyCardMatchEndBonuses(lastSmall, [10000, 20000, 15000, 30000])).toEqual([12000, 20000, 15000, 30000]);
+    expect(applyCardMatchEndBonuses(lastSmall, [30000, 20000, 15000, 10000])).toEqual([30000, 20000, 15000, 10000]);
+    const catchSmall = { ...round, cardIds: [null, "catch-up-small", null, null] as RoundState["cardIds"] };
+    expect(applyCardMatchEndBonuses(catchSmall, [30000, 20000, 15000, 10000])).toEqual([30000, 21000, 15000, 10000]);
+    expect(applyCardMatchEndBonuses(catchSmall, [10000, 40000, 15000, 10000])).toEqual([10000, 40000, 15000, 10000]);
+  });
+
+  it("gauge-boost-small raises gauge gain by 1.2x", () => {
+    const hand = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"] as TileCode[];
+    let round = makeRound({
+      players: [emptyPlayer(hand), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["hiiragi", "", "", ""],
+      cardIds: ["gauge-boost-small", null, null, null],
+      format: "tonpuusen",
+      roundWind: 1,
+      roundNumber: 1,
+      currentTurn: 0,
+      phase: "awaiting-draw",
+      wall: makeWall(["9m", "9p", "9p", "9p"]),
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    round = applyAction(round, { type: "discard", player: 0, tileId: round.lastDrawnTile!.id, tsumogiri: true });
+    expect(round.players[0]!.skillGauge).toBe(12); // 通常10のところ1.2倍
+  });
+
+  it("the three deal-time cards keep 13 tiles and do what they say", () => {
+    const pairsOf = (hand: Hand) => {
+      const counts = new Map<string, number>();
+      for (const t of hand.concealed) counts.set(t.code, (counts.get(t.code) ?? 0) + 1);
+      return [...counts.values()].filter((c) => c >= 2).length;
+    };
+    const yaochu = (hand: Hand) => hand.concealed.filter((t) => !isNumbered(t.code) || numberOf(t.code) === 1 || numberOf(t.code) === 9).length;
+    const yakuhai = ["1z", "5z", "6z", "7z"];
+    for (let seed = 1; seed <= 30; seed++) {
+      const deal = (card: string) =>
+        dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""], undefined, undefined, false, [card, null, null, null]).players[0]!.hand;
+      const base = dealNewRound(1, 1, 0, 0, 0, makeSeededRng(seed), ["", "", "", ""]).players[0]!.hand;
+      expect(deal("pair-guarantee-lite").concealed).toHaveLength(13);
+      if (pairsOf(base) < 2) expect(pairsOf(deal("pair-guarantee-lite"))).toBeGreaterThanOrEqual(2);
+      expect(yaochu(deal("tanyao-step"))).toBe(Math.max(0, yaochu(base) - 1));
+      expect(deal("yakuhai-seed").concealed).toHaveLength(13);
+      if (!base.concealed.some((t) => yakuhai.includes(t.code))) expect(deal("yakuhai-seed").concealed.some((t) => yakuhai.includes(t.code))).toBe(true);
+    }
+  });
+});

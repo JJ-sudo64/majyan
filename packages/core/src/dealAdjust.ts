@@ -178,3 +178,12 @@ export function swapTerminalsForSimples(hand: Hand, wall: WallState, maxSwaps: n
   if (n === 0) return { hand, wall };
   return swapHandTilesWithWall(hand, wall, outgoing.slice(0, n).map((t) => t.id), incoming.slice(0, n).map((t) => t.id));
 }
+
+/** 手牌に役牌（yakuhaiCodes）が1枚も無ければ、山から役牌を1枚持ってきて手牌の適当な1枚と
+    入れ替える。山にも無ければ何もしない（極めて稀な不発）。 */
+export function ensureAtLeastOneYakuhaiTile(hand: Hand, wall: WallState, yakuhaiCodes: TileCode[]): { hand: Hand; wall: WallState } {
+  if (hand.concealed.some((t) => yakuhaiCodes.includes(t.code))) return { hand, wall };
+  const target = wall.liveTiles.find((t) => yakuhaiCodes.includes(t.code));
+  if (!target) return { hand, wall };
+  return swapHandTilesWithWall(hand, wall, [hand.concealed[0]!.id], [target.id]);
+}

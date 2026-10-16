@@ -10,7 +10,7 @@ import { seatWindOf, type RoundState } from "./gameState.js";
 import type { TileCode } from "./tiles.js";
 import { revealNextDora } from "./wall.js";
 import { CHARACTERS } from "./characters.js";
-import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, swapTerminalsForSimples } from "./dealAdjust.js";
+import { ensureAtLeastOneMeld, ensureAtLeastOneDora, ensureAtLeastOneRedTile, ensureAtLeastPairs, ensureYakuhaiPair, ensureAtLeastOneYakuhaiTile, swapTerminalsForSimples } from "./dealAdjust.js";
 
 export interface CardContext {
   round: RoundState;
@@ -73,8 +73,41 @@ function setAt<T>(tuple: [T, T, T, T], index: PlayerIndex, value: T): [T, T, T, 
 
 /** カード「対子確約」で保証するトイツの組数（コウジの必殺技は4組）。 */
 const PAIR_GUARANTEE_MIN_PAIRS = 3;
+/** カード「二対子確約」で保証するトイツの組数。 */
+const PAIR_GUARANTEE_LITE_MIN_PAIRS = 2;
+/** カード「ちょい充填」で増えるゲージの割合（ゲージ最大値に対して）。 */
+const GAUGE_FILL_SMALL_RATIO = 0.4;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
+
+/** 他家から1人あたりamount点を奪う、点棒吸収系カードのonUse。 */
+function drainPointsEach(ctx: CardContext, amount: number): RoundState {
+  const delta: [number, number, number, number] = [0, 0, 0, 0];
+  for (const p of [0, 1, 2, 3] as PlayerIndex[]) {
+    if (p === ctx.owner) continue;
+    delta[p] -= amount;
+    delta[ctx.owner] += amount;
+  }
+  return { ...ctx.round, pendingScoreAdjustment: delta };
+}
+
+/** 役牌（白發中、自風、場風）の牌コード。 */
+function yakuhaiCodesFor(round: RoundState, owner: PlayerIndex): TileCode[] {
+  const codes = [`${seatWindOf(round.dealerSeat, owner)}z`, `${round.roundWind}z`, "5z", "6z", "7z"] as TileCode[];
+  return [...new Set(codes)];
+}
+
+/** onMatchEndで、条件に合う持ち主へ点数を足す。 */
+function bonusOnMatchEnd(
+  ctx: CardMatchEndContext,
+  applies: (scores: CardMatchEndContext["scores"], owner: PlayerIndex) => boolean,
+  bonus: number,
+): [number, number, number, number] {
+  if (!applies(ctx.scores, ctx.owner)) return ctx.scores;
+  const next = [...ctx.scores] as [number, number, number, number];
+  next[ctx.owner] += bonus;
+  return next;
+}
 
 export const CARDS: Record<string, Card> = {
   "meld-guarantee": {
@@ -185,6 +218,114 @@ export const CARDS: Record<string, Card> = {
         const { hand, wall } = swapTerminalsForSimples(p.hand, round.wall, TANYAO_GUARANTEE_MAX_SWAPS);
         return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
       },
+    },
+  },
+  "point-drain-tiny": {
+    id: "point-drain-tiny",
+    name: "ささやかな吸収",
+    description: "使用すると、他の3人から300点ずつ（合計900点）を即座に奪い取る。和了や流局を待たない即時効果。使用すると無くなる。",
+    kind: "consumable",
+    hooks: { onUse: (ctx) => drainPointsEach(ctx, 300) },
+  },
+  "gauge-fill-small": {
+    id: "gauge-fill-small",
+    name: "ちょい充填",
+    description: "使用すると、自分の必殺技ゲージが最大値の4割ぶん増える（最大値を超えない）。ゲージを持たないキャラでは何も起きない。使用すると無くなる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => {
+        const character = CHARACTERS[ctx.round.characterIds[ctx.owner]];
+        if (!character || character.gaugeMax <= 0) return ctx.round;
+        return {
+          ...ctx.round,
+          players: updatePlayer(ctx.round, ctx.owner, (pl) => ({
+            ...pl,
+            skillGauge: Math.min(character.gaugeMax, pl.skillGauge + Math.ceil(character.gaugeMax * GAUGE_FILL_SMALL_RATIO)),
+          })),
+        };
+      },
+    },
+  },
+  "peek-once": {
+    id: "peek-once",
+    name: "ちら見",
+    description: "使用すると、通常のローテーション（誰も鳴かない前提）で次に自分が自摸ってくるはずの牌1枚だけを、あらかじめ見ることができる。対局を通して1回だけ使える。誰かが鳴いて手番の巡りがズレると、予知は外れる。",
+    kind: "consumable",
+    hooks: {
+      onUse: (ctx) => {
+        const next = ctx.round.wall.liveTiles[3];
+        const revealedFutureDraws: TileCode[] = next ? [next.code] : [];
+        return {
+          ...ctx.round,
+          players: updatePlayer(ctx.round, ctx.owner, (pl) => ({ ...pl, revealedFutureDraws })),
+        };
+      },
+    },
+  },
+  "pair-guarantee-lite": {
+    id: "pair-guarantee-lite",
+    name: "二対子確約",
+    description: "持っているだけの常時効果。配牌時、手牌のトイツ（同じ牌2枚の組）が2組に満たなければ、山から同じ牌を調達して入れ替え、必ず2組以上にする（山に該当する牌が無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = ensureAtLeastPairs(round.players[owner]!.hand, round.wall, PAIR_GUARANTEE_LITE_MIN_PAIRS);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "tanyao-step": {
+    id: "tanyao-step",
+    name: "断么の一歩",
+    description: "持っているだけの常時効果。配牌時、手牌の么九牌（1・9・字牌）を1枚だけ山の中張牌（2〜8）と入れ替える（么九牌が無ければ何も起きない）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = swapTerminalsForSimples(round.players[owner]!.hand, round.wall, 1);
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "yakuhai-seed": {
+    id: "yakuhai-seed",
+    name: "役牌の種",
+    description: "持っているだけの常時効果。配牌時、手牌に役牌（白發中、自風、場風）が1枚も無ければ、山から役牌を1枚持ってきて手牌の適当な1枚と入れ替える（山に無ければ不発）。",
+    kind: "passive",
+    hooks: {
+      onDealHand: (ctx) => {
+        const { round, owner } = ctx;
+        const { hand, wall } = ensureAtLeastOneYakuhaiTile(round.players[owner]!.hand, round.wall, yakuhaiCodesFor(round, owner));
+        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+      },
+    },
+  },
+  "last-place-small": {
+    id: "last-place-small",
+    name: "小さな起死回生",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分が最下位（4位。同点最下位も含む）だった場合に限り、最終点数に2000点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => scores.every((s, i) => i === owner || s >= scores[owner]!), 2000),
+    },
+  },
+  "catch-up-small": {
+    id: "catch-up-small",
+    name: "負け惜しみ",
+    description: "持っているだけの常時効果。対局（半荘/東風戦）が終了した瞬間、自分が1位でなければ、最終点数に1000点が加算される。",
+    kind: "passive",
+    hooks: {
+      onMatchEnd: (ctx) => bonusOnMatchEnd(ctx, (scores, owner) => !scores.every((s, i) => i === owner || s <= scores[owner]!), 1000),
+    },
+  },
+  "gauge-boost-small": {
+    id: "gauge-boost-small",
+    name: "ゲージ微加速",
+    description: "持っているだけの常時効果。自分の必殺技ゲージの増加量が常に1.2倍（端数は切り上げ）になる。使っても無くならない（何度でも発動する）。",
+    kind: "passive",
+    hooks: {
+      // 実際の判定はgameEngine.tsのgainGaugeが行う。
     },
   },
   nullify: {
