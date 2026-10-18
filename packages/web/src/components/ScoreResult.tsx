@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CHARACTERS, TUTORIAL_SCENARIOS, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useOnlineStore } from "../online/onlineLink.js";
@@ -8,6 +8,9 @@ import { MatchVictoryOverlay } from "./MatchVictoryOverlay.js";
 import { TileView } from "./TileView.js";
 
 const PLAYER_NAMES: Record<number, string> = { 0: "あなた", 1: "下家", 2: "対面", 3: "上家" };
+
+/** 役の読み上げ中は先へ進めないが、音声が終わりを知らせずに止まった時のための上限。 */
+const READING_MAX_MS = 20000;
 
 // 和了時、それまで伏せられていた他家の手牌も含めて「実際にどういう手で
 // 上がったか」を牌姿で見せる（役・点数の文字情報だけでは分かりにくい、
@@ -130,7 +133,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
   // 和了したキャラに役ボイスがあれば、成立した役を宣言順に読み上げる
   // （ツモ/ロンの掛け声はuseGameSounds側で既に鳴っているため、ここでは
   //   役名・翻数帯のみを対象にする）。ボイス未収録の役は無音でスキップする。
-  useEffect(() => {
+  const voiceQueue = useMemo(() => {
     const queue: string[] = [];
     for (const [playerStr, { analysis, score }] of winnerEntries) {
       const player = Number(playerStr) as PlayerIndex;
@@ -148,11 +151,28 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
         if (clip) queue.push(clip);
       }
     }
-    if (queue.length === 0) return;
-    // useGameSounds側の「ツモ」「ロン」の掛け声と被らないよう、少し間を置いてから読み上げる。
-    const timer = window.setTimeout(() => playVoiceQueue(queue), 900);
-    return () => window.clearTimeout(timer);
+    return queue;
   }, [outcome]);
+  // 読み上げている間は「次の局へ」等で飛ばせないようにする。最初の描画から
+  // 立てておく（効果の中でtrueにすると、一瞬だけボタンが押せてしまう）。
+  const [reading, setReading] = useState(voiceQueue.length > 0);
+  useEffect(() => {
+    if (voiceQueue.length === 0) {
+      setReading(false);
+      return undefined;
+    }
+    setReading(true);
+    const finish = () => setReading(false);
+    // useGameSounds側の「ツモ」「ロン」の掛け声と被らないよう、少し間を置いてから読み上げる。
+    const timer = window.setTimeout(() => playVoiceQueue(voiceQueue, finish), 900);
+    // 音声が終わりを知らせないまま止まっても、ボタンが押せないままにならないよう
+    // 上限を置く。
+    const safety = window.setTimeout(finish, READING_MAX_MS);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(safety);
+    };
+  }, [voiceQueue]);
 
   // 対局全体の最終順位1位（同点なら起家に近い席、core の rankSeats 参照）。
   // 結果モーダルを見終えた後に別画面でドンと出す「優勝」演出用。
@@ -321,12 +341,12 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                 </div>
               </div>
             )}
-            <button className="btn btn--primary" onClick={() => setShowVictory(true)}>
+            <button className="btn btn--primary" onClick={() => setShowVictory(true)} disabled={reading}>
               結果を見る
             </button>
           </div>
         ) : (
-          <button className="btn btn--primary" onClick={acknowledgeRoundEnd} disabled={online && roundEndAcknowledged}>
+          <button className="btn btn--primary" onClick={acknowledgeRoundEnd} disabled={reading || (online && roundEndAcknowledged)}>
             {online && roundEndAcknowledged
               ? "他のプレイヤーを待っています…"
               : tutorial

@@ -94,21 +94,28 @@ export function speakVoice(clipUrl: string | undefined, fallbackText: string) {
   speak(fallbackText);
 }
 
-/** 複数の収録ボイスを重ならないよう順番に再生する（役の連続宣言などに使用）。 */
-export function playVoiceQueue(urls: string[]) {
-  if (typeof window === "undefined" || urls.length === 0) return;
+/** 複数の収録ボイスを重ならないよう順番に再生する（役の連続宣言などに使用）。
+    onDoneは最後まで再生し終えた時（再生できなかった時も）に1回呼ぶ。 */
+export function playVoiceQueue(urls: string[], onDone?: () => void) {
+  if (typeof window === "undefined" || urls.length === 0) {
+    onDone?.();
+    return;
+  }
   const [first, ...rest] = urls;
   const audio = getVoiceClip(first!);
-  if (!audio) return;
+  if (!audio) {
+    playVoiceQueue(rest, onDone);
+    return;
+  }
   audio.currentTime = 0;
   audio.volume = getSeVolume();
   audio.onended = () => {
     audio.onended = null;
-    if (rest.length > 0) playVoiceQueue(rest);
+    playVoiceQueue(rest, onDone);
   };
   void audio.play().catch(() => {
     audio.onended = null;
-    if (rest.length > 0) playVoiceQueue(rest);
+    playVoiceQueue(rest, onDone);
   });
 }
 
