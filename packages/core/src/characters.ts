@@ -1170,13 +1170,13 @@ export const CHARACTERS: Record<string, Character> = {
     avatar: "/avatars/characters/koki.webp",
     cutin: "/avatars/characters/koki-cutin.webp",
     topArt: "/avatars/characters/koki-top.webp",
-    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている。
-    // 牌は写っていない(お札・グラス・葉巻のみ)のでcrop不要。文字が右端
-    // ぎりぎりにあるためkeepEdge: "right"にする。
+    // 3枚とも「リーチ」「ツモ」「ロン」の筆文字が絵に描き込まれている（豪華
+    // カジノの白スーツ版）。牌は写っていない(卓の緑のラシャだけ)のでcrop不要。
+    // 文字はリーチ・ツモが右端寄り、ロンは左端寄りなので、それぞれ寄せた側を残す。
     declarationArt: {
       riichi: { src: "/declarations/koki-riichi.webp", keepEdge: "right" },
       tsumo: { src: "/declarations/koki-tsumo.webp", keepEdge: "right" },
-      ron: { src: "/declarations/koki-ron.webp", keepEdge: "right" },
+      ron: { src: "/declarations/koki-ron.webp", keepEdge: "left" },
     },
     // 「太っ腹」の筆文字が右下寄り（札束・チップは牌ではないので外さない）。
     skillArt: { src: "/declarations/koki-skill.webp", keepEdge: "right" },
