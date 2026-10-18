@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { PlayerIndex, RoundState } from "@majyan/core";
 import { WIND_NAMES, seatWindOf } from "@majyan/core";
 import { SeatBadge } from "./SeatBadge.js";
+import { ScoreStandings } from "./ScoreStandings.js";
 import { useGameStore } from "../store/gameStore.js";
 import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
 
@@ -17,7 +18,18 @@ function ScoreDeltaPop({ delta }: { delta: number }) {
   );
 }
 
-export function CenterBoard({ round, scores }: { round: RoundState; scores: [number, number, number, number] }) {
+export function CenterBoard({
+  round,
+  scores,
+  startingDealer,
+}: {
+  round: RoundState;
+  scores: [number, number, number, number];
+  startingDealer: PlayerIndex;
+}) {
+  // 押すと点差の一覧を出す（ScoreStandings.tsx）。
+  const [standingsOpen, setStandingsOpen] = useState(false);
+
   // 必殺技「時間停止」発動中は発動者の手牌・河・副露以外の画面全体をグレー
   // アウトする演出の一部。中央の点数表示・局情報は誰の持ち物でもないため、
   // 発動中は誰が発動者かに関わらず一律でグレーアウトする。
@@ -56,7 +68,10 @@ export function CenterBoard({ round, scores }: { round: RoundState; scores: [num
   } as CSSProperties;
 
   return (
-    <div className={`center-board${frozenClass}`} style={centerBoardStyle}>
+    <div className={`center-board${frozenClass}`} style={centerBoardStyle} onClick={() => setStandingsOpen(true)}>
+      {standingsOpen && (
+        <ScoreStandings round={round} scores={scores} startingDealer={startingDealer} onClose={() => setStandingsOpen(false)} />
+      )}
       <div className="center-board__round">
         {WIND_NAMES[round.roundWind]}
         {round.roundNumber}局

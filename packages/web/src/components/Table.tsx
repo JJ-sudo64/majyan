@@ -458,7 +458,7 @@ export function Table() {
                       selectedTileId={retrieveReclaimTileId ?? undefined}
                     />
                   </div>
-                  <CenterBoard round={round} scores={match.scores} />
+                  <CenterBoard round={round} scores={match.scores} startingDealer={match.startingDealer} />
                   {/* リーチ棒（1000点棒）。点数バッジ（外側）と中央の局情報
                       「東◯局」「残りN枚」（内側）の隙間に置く（位置の詳細は
                       styles.cssの.riichi-stick--*参照）。配置編集モード中は、

@@ -19,6 +19,8 @@ export function SettingsPanel() {
   const autoTsumogiri = useSettingsStore((s) => s.autoTsumogiri);
   const setAutoTsumogiri = useSettingsStore((s) => s.setAutoTsumogiri);
   const autoWin = useSettingsStore((s) => s.autoWin);
+  const autoPassCalls = useSettingsStore((s) => s.autoPassCalls);
+  const setAutoPassCalls = useSettingsStore((s) => s.setAutoPassCalls);
   const replaying = useGameStore((s) => s.replay !== null || s.spectating);
   const setAutoWin = useSettingsStore((s) => s.setAutoWin);
   const tile3dEnabled = useSettingsStore((s) => s.tile3dEnabled);
@@ -70,6 +72,13 @@ export function SettingsPanel() {
             onClick={() => setAutoWin(!autoWin)}
           >
             自動和了{autoWin ? " ON" : " OFF"}
+          </button>
+          <button
+            type="button"
+            className={`hud__toggle-btn${autoPassCalls ? " hud__toggle-btn--on" : ""}`}
+            onClick={() => setAutoPassCalls(!autoPassCalls)}
+          >
+            鳴きなし{autoPassCalls ? " ON" : " OFF"}
           </button>
         </div>
       </div>}

@@ -1118,6 +1118,83 @@ button {
   background: url("/table/center-cluster.png") center / 100% 100% no-repeat;
 }
 
+/* 押すと点差の一覧が開く（ScoreStandings.tsx）。 */
+.center-board {
+  cursor: pointer;
+}
+.score-standings__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+.score-standings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 340px;
+  padding: 16px 20px;
+  border: 1px solid rgba(230, 195, 106, 0.6);
+  border-radius: 14px;
+  background: linear-gradient(170deg, rgba(36, 26, 16, 0.98), rgba(14, 10, 7, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: #f4ead2;
+}
+.score-standings__title {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(230, 195, 106, 0.38);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #fff3d2;
+}
+.score-standings__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.score-standings__table td {
+  padding: 5px 6px;
+}
+.score-standings__rank {
+  color: #e6c36a;
+  white-space: nowrap;
+}
+.score-standings__score,
+.score-standings__diff {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.score-standings__diff {
+  min-width: 4.5em;
+  opacity: 0.85;
+}
+.score-standings__row--me {
+  background: rgba(230, 195, 106, 0.16);
+  font-weight: 700;
+}
+.score-standings__notes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.score-standings__close {
+  align-self: center;
+  padding: 4px 20px;
+  border: 1px solid rgba(230, 195, 106, 0.45);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(58, 43, 25, 0.95), rgba(28, 20, 12, 0.95));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 .center-board__seat {
   position: absolute;
   /* 卓全体をzoomで伸縮表示している上に、上家/下家側はさらにrotate
@@ -1379,13 +1456,16 @@ button {
      .hudはボタン等の操作要素を持たないため丸ごと素通しにしてよい。 */
   pointer-events: none;
 }
-/* 自動ツモ切り/自動和了トグル+BGM音量。対局情報(.hud、左上)とは役割が
-   違うため切り離し、画面左下の別パネルにした（SettingsPanel.tsx）。
+/* 自動ツモ切り/自動和了/鳴きなしのトグル。対局情報(.hud、左上)とは役割が
+   違うため切り離し、右上の歯車の下に置く（SettingsPanel.tsx）。左下だと
+   上家の副露（最大4つで縦に伸びて画面下近くまで来る）や手牌の左端に被るため、
+   副露も手牌も来ない右上の隙間にした。下の対面キャラパネル(右端の座席、
+   y≈130〜)に被らないよう、高さは抑えてある。
    見た目は.hudと揃えるため配色/枠は同じにし、位置だけ変える。 */
 .settings-panel {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
+  top: 44px;
+  right: 8px;
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -1393,11 +1473,16 @@ button {
   background: linear-gradient(160deg, rgba(24, 16, 8, 0.85), rgba(10, 7, 4, 0.8));
   border: 1px solid rgba(212, 175, 55, 0.32);
   border-radius: 10px;
-  padding: 6px 10px;
+  padding: 3px 5px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   /* 操作ボタンのクリックを奪う不具合対策（.debug-panelのコメント参照）。
      トグルボタン・スライダーだけ下のルールでpointer-events:autoに戻す。 */
   pointer-events: none;
+}
+.settings-panel .hud__toggle-btn {
+  font-size: 11px;
+  line-height: 1.1;
+  padding: 1px 6px;
 }
 .settings-panel .hud__toggle-btn,
 .settings-panel input[type="range"] {
@@ -1520,8 +1605,11 @@ button {
    跨いでも意図が分かるよう、押している間だけでなくON/OFFの状態が常に
    ラベル文字と縁色で見える形にする（ホバー中しか分からないtitle属性等では
    なく、いつでも一目で現在の設定が分かるようにするため）。 */
+/* 右上の狭い隙間に収めるため縦に積む。 */
 .hud__auto-toggles {
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
 }
 .hud__toggle-btn {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));

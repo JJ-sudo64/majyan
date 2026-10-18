@@ -10,6 +10,7 @@ const SE_STORAGE_KEY = "majyan.seVolume";
 const DEFAULT_SE_VOLUME = 0.86;
 const AUTO_TSUMOGIRI_KEY = "majyan.autoTsumogiri";
 const AUTO_WIN_KEY = "majyan.autoWin";
+const AUTO_PASS_CALLS_KEY = "majyan.autoPassCalls";
 const TILE3D_ENABLED_KEY = "majyan.tile3dEnabled";
 
 /**
@@ -86,6 +87,11 @@ interface SettingsState {
       （じゃんたま等の「自動和了」相当）。 */
   autoWin: boolean;
   setAutoWin: (value: boolean) => void;
+  /** ONの間、ポン/チー/カンの選択肢を出さず自動で見送る（雀魂の「鳴きなし」相当）。
+      ロンできる時だけは、いつも通りロンのボタンを出す。ルールではなく自分の画面だけの
+      設定で、チュートリアル中は効かない。 */
+  autoPassCalls: boolean;
+  setAutoPassCalls: (value: boolean) => void;
   /** ONの間、下家・上家の伏せ手牌をCSS 3D(Tile3D)の立体牌で表示する。
       OFFの間は従来の2D（帯だけの表現）にフォールバックする。GPUの合成
       負荷が高い環境（弱いGPU、ハードウェアアクセラレーションが実質使えない
@@ -137,6 +143,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setAutoWin: (value) => {
     set({ autoWin: value });
     persistBoolean(AUTO_WIN_KEY, value);
+  },
+  autoPassCalls: loadInitialBoolean(AUTO_PASS_CALLS_KEY),
+  setAutoPassCalls: (value) => {
+    set({ autoPassCalls: value });
+    persistBoolean(AUTO_PASS_CALLS_KEY, value);
   },
   tile3dEnabled: loadInitialBooleanDefaultTrue(TILE3D_ENABLED_KEY),
   setTile3dEnabled: (value) => {

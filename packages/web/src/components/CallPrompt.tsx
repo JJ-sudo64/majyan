@@ -38,7 +38,17 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
     if (autoWin && canRon && !cutinHold) humanCall({ type: "ron", player: HUMAN });
   }, [autoWin, canRon, humanCall, cutinHold]);
 
-  if (!show) return null;
+  // 鳴きなし: ポン/チー/カンの選択肢では止まらない。ロンできない時は自動で見送り、
+  // ロンできる時はロンのボタン（と見送り）だけ出す。チュートリアルは鳴きを教える
+  // 場なので効かせない。
+  const tutorial = useGameStore((s) => !!s.tutorial);
+  const passCalls = useSettingsStore((s) => s.autoPassCalls) && !tutorial;
+  const autoSkip = passCalls && show && !canRon;
+  useEffect(() => {
+    if (autoSkip && !cutinHold) humanSkip();
+  }, [autoSkip, humanSkip, cutinHold]);
+
+  if (!show || autoSkip) return null;
 
   // 役の判定はストアが本物の対局状態から計算済み（seatView.tsのcomputeSeatOptions参照）。
   const analysis = options!.ronAnalysis;
@@ -50,7 +60,7 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
           ロン {analysis && (analysis.isYakuman ? "(役満)" : `(${analysis.han}翻${analysis.fu}符)`)}
         </button>
       )}
-      {options!.canPon && (
+      {!passCalls && options!.canPon && (
         <button
           className="btn btn--call btn--call-tiles"
           onClick={() => humanCall({ type: "pon", player: HUMAN, usedHandTileIds: options!.canPon!.usedHandTileIds })}
@@ -63,7 +73,7 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
           </span>
         </button>
       )}
-      {options!.canMinkan && (
+      {!passCalls && options!.canMinkan && (
         <button
           className="btn btn--call btn--call-tiles"
           onClick={() => humanCall({ type: "minkan", player: HUMAN, usedHandTileIds: options!.canMinkan!.usedHandTileIds })}
@@ -76,7 +86,7 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
           </span>
         </button>
       )}
-      {options!.chiOptions.map((c, i) => (
+      {(passCalls ? [] : options!.chiOptions).map((c, i) => (
         <button
           key={i}
           className="btn btn--call btn--call-tiles"
