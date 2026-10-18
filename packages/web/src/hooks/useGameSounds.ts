@@ -31,20 +31,16 @@ function speakPlayerVoice(round: RoundState | undefined, player: number, event: 
  * 対局が始まっていない間（round未定義）は何もしない。
  */
 export function useGameSounds(round: RoundState | undefined) {
-  // 対局開始（roundがundefined→定義済みに変わった瞬間）に、挨拶ボイスを
-  // 持つキャラがいれば1回だけ再生する。局が進む間はroundが常に定義済みの
-  // ままなので、次に発火するのはタイトルへ戻って新しい対局を始めた時のみ。
+  // 対局開始（roundがundefined→定義済みに変わった瞬間）に、自分（席0）の
+  // キャラの挨拶ボイスを1回だけ再生する（他家のキャラは喋らない。挨拶ボイスが
+  // 無いキャラなら無音）。局が進む間はroundが常に定義済みのままなので、
+  // 次に発火するのはタイトルへ戻って新しい対局を始めた時のみ。
   const roundStarted = !!round;
   const hadRoundRef = useRef(false);
   useEffect(() => {
     if (!hadRoundRef.current && round) {
-      for (const characterId of round.characterIds) {
-        const clip = CHARACTERS[characterId]?.voiceClips?.greeting;
-        if (clip) {
-          playVoiceClip(clip);
-          break;
-        }
-      }
+      const clip = CHARACTERS[round.characterIds[0]]?.voiceClips?.greeting;
+      if (clip) playVoiceClip(clip);
     }
     hadRoundRef.current = roundStarted;
   }, [roundStarted]);
