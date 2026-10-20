@@ -28,6 +28,28 @@ export interface StrongProfile {
   smartCalls: boolean;
   /** 3副露以上した相手も、リーチ者に準じて警戒する（Lv5）。 */
   watchOpenHands: boolean;
+  /** 持ち点と局の進み具合を見て押し引きを変える（Lv5）。終盤にリードしていれば堅く、大きく負けていれば攻める。 */
+  scoreAware: boolean;
+}
+
+/** 終盤の自分の立場。点数が分からない（roundにpointsが無い）時はnull。 */
+type Standing = "safe-lead" | "desperate" | "normal";
+
+function standingOf(round: RoundState, player: PlayerIndex): Standing {
+  const pts = round.points;
+  if (!pts) return "normal";
+  const index = (round.roundWind - 1) * 4 + (round.roundNumber - 1);
+  const lastIndex = round.format === "tonpuusen" ? 3 : 7;
+  if (index < lastIndex - 1) return "normal"; // 終盤（最後の2局）だけ見る
+  const mine = pts[player];
+  const others = pts.filter((_, i) => i !== player);
+  const rank = 1 + others.filter((v) => v > mine).length;
+  const lead = mine - Math.max(...others);
+  const last = index >= lastIndex;
+  if (rank === 1 && lead >= (last ? 8000 : 15000)) return "safe-lead";
+  if (last && rank >= 3) return "desperate";
+  if (last && rank === 2 && Math.max(...others) - mine >= 12000) return "desperate";
+  return "normal";
 }
 
 /** 表ドラの牌コード集合。 */
@@ -193,10 +215,13 @@ export function chooseStrongDiscard(
 
   // 押すか降りるか。リーチ者がいない時は常に押す（通常の牌効率）。
   let fold = false;
+  const standing = profile.scoreAware ? standingOf(round, player) : "normal";
   if (riichiOthers.length > 0) {
     const myDora = countDora(p.hand, doraCodes);
     const turn = p.discards.length;
-    if (bestShanten >= 2) fold = true;
+    if (standing === "safe-lead" && !(bestShanten === 0 && bestUkeire >= 4)) fold = true;
+    else if (standing === "desperate") fold = bestShanten >= 2 ? turn > 9 : bestUkeire === 0;
+    else if (bestShanten >= 2) fold = true;
     else if (bestShanten === 1) {
       fold = !(
         profile.pushAtOneShanten &&
