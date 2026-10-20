@@ -1,7 +1,7 @@
 /**
  * CPUの難易度の強さを測る。「難易度Aの1人 対 難易度Bの3人」の東風戦を回して、Aの成績を出す。
  *
- *   npm run difficulty-sim -- <A:1-5> <B:1-5> <対局数> [seed]
+ *   npm run difficulty-sim -- <A:1-5> <B:1-5> <対局数> [seed] [Aのキャラクターid]
  *   例) npm run difficulty-sim -- 5 2 100 1     Lv5の1人 対 Lv2の3人を100戦
  *
  * Aの席は対局ごとに持ち回り。キャラ・カードは付けない（打牌・鳴き・押し引きの強さだけを見る）。
@@ -30,13 +30,14 @@ const subject = Number(process.argv[2]) as AiDifficulty;
 const field = Number(process.argv[3]) as AiDifficulty;
 const matches = Number(process.argv[4]);
 const rng = makeRng(Number(process.argv[5] ?? 1));
+const subjectCharacter = process.argv[6] ?? "";
 const places = [0, 0, 0, 0];
 let wins = 0, dealIns = 0, rounds = 0, scoreSum = 0;
 const t0 = Date.now();
 for (let m = 0; m < matches; m++) {
   const subjSeat = SEATS[m % 4]!;
   const level = (seat: number) => (seat === subjSeat ? subject : field);
-  let match = createMatch("tonpuusen", rng, ["", "", "", ""], false, [null, null, null, null]);
+  let match = createMatch("tonpuusen", rng, SEATS.map((st) => (st === subjSeat ? subjectCharacter : "")) as [string, string, string, string], false, [null, null, null, null]);
   let steps = 0;
   while (!match.finished) {
     const d = pendingDecision(match.round);

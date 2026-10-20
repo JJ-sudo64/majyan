@@ -30,6 +30,9 @@ export interface StrongProfile {
   watchOpenHands: boolean;
   /** 持ち点と局の進み具合を見て押し引きを変える（Lv5）。終盤にリードしていれば堅く、大きく負けていれば攻める。 */
   scoreAware: boolean;
+  /** 必殺技の効果が出ている間の打牌を、その効果に合わせる（Lv5）。太っ腹中はドラを切って有効牌を引く、
+      ベタ降り中は刻子を崩して盾を張る、など。 */
+  traitAware: boolean;
 }
 
 /** 終盤の自分の立場。点数が分からない（roundにpointsが無い）時はnull。 */
@@ -239,6 +242,11 @@ export function chooseStrongDiscard(
     fold = bestShanten >= 2;
   }
 
+  // 必殺技の効果に合わせた打牌（Lv5）。
+  const kokiActive = profile.traitAware && p.futopparaPending;
+  const shieldWanted = profile.traitAware && p.bettaoriActive && !p.bettaoriShield;
+  const countInHand = (code: TileCode) => p.hand.concealed.filter((t) => t.code === code).length;
+
   let best = options[0]!;
   let bestScore = -Infinity;
   for (const o of options) {
@@ -247,17 +255,23 @@ export function chooseStrongDiscard(
     if (fold) {
       // 安全第一。同じ安全さなら、向聴数・受け入れの良い方。
       score = -dangerOf(t.code) * 1000 - o.shanten * 10 + o.ukeire * 0.1;
+      // ベタ降り中に刻子を崩すと盾が立つ。同じくらい安全なら崩す方を選ぶ。
+      if (shieldWanted && countInHand(t.code) === 3) score += 300;
     } else {
       // 向聴数を最優先、次に受け入れ枚数。ドラ・赤・役牌の対子は残す。降りない時でも
       // 危険な牌は少し避ける（同じ受け入れなら安全な方）。
       const sameCount = candidates.filter((c) => c.code === t.code).length;
-      const valuable = t.isRed === true || doraCodes.has(t.code) || (sameCount >= 2 && isYakuhai(t.code, round, player));
+      const isDora = t.isRed === true || doraCodes.has(t.code);
+      // 太っ腹中は、ドラを切るたびに次のツモが有効牌になるので、手を進められる範囲で積極的に切る。
+      const valuable = (isDora && !kokiActive) || (sameCount >= 2 && isYakuhai(t.code, round, player));
       score =
         -o.shanten * 1000 +
         o.ukeire * 10 -
         (valuable ? 15 : 0) -
         dangerOf(t.code) * (riichiOthers.length > 0 || openThreats.length > 0 ? 25 : 0) +
-        (isTerminalOrHonor(t.code) ? 1 : 0);
+        (isTerminalOrHonor(t.code) ? 1 : 0) +
+        (kokiActive && isDora ? 40 : 0) +
+        (shieldWanted && (riichiOthers.length > 0 || openThreats.length > 0) && countInHand(t.code) === 3 ? 30 : 0);
     }
     if (score > bestScore) {
       bestScore = score;

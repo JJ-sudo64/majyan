@@ -66,7 +66,7 @@ const AI_PROFILES: Record<AiDifficulty, AiProfile> = {
     riichiConsidersValue: false,
     callSelectivity: false,
     // 牌効率（受け入れ枚数）で切る。降り方は現物だけを安全とする簡単なもの。
-    strong: { pushAtOneShanten: false, detailedDanger: false, smartRiichi: false, smartCalls: false, watchOpenHands: false, scoreAware: false },
+    strong: { pushAtOneShanten: false, detailedDanger: false, smartRiichi: false, smartCalls: false, watchOpenHands: false, scoreAware: false, traitAware: false },
   },
   4: {
     mistakeRate: 0,
@@ -75,7 +75,7 @@ const AI_PROFILES: Record<AiDifficulty, AiProfile> = {
     defenseQuality: "genbutsu",
     riichiConsidersValue: false,
     callSelectivity: true,
-    strong: { pushAtOneShanten: false, detailedDanger: true, smartRiichi: false, smartCalls: true, watchOpenHands: false, scoreAware: false },
+    strong: { pushAtOneShanten: false, detailedDanger: true, smartRiichi: false, smartCalls: true, watchOpenHands: false, scoreAware: false, traitAware: false },
   },
   5: {
     mistakeRate: 0,
@@ -84,7 +84,7 @@ const AI_PROFILES: Record<AiDifficulty, AiProfile> = {
     defenseQuality: "suji",
     riichiConsidersValue: true,
     callSelectivity: true,
-    strong: { pushAtOneShanten: true, detailedDanger: true, smartRiichi: true, smartCalls: true, watchOpenHands: true, scoreAware: true },
+    strong: { pushAtOneShanten: true, detailedDanger: true, smartRiichi: true, smartCalls: true, watchOpenHands: true, scoreAware: true, traitAware: true },
   },
 };
 
