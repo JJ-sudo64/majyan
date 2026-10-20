@@ -209,8 +209,6 @@ export function OpponentArea({
     (s) => s.kamichaHandGroupByMeldCount,
     isKamicha,
   );
-  const tile3dDrawnOffsetX = usePlayerTile3DParam((s) => s.drawnOffsetX, (s) => s.kamichaDrawnOffsetX, isKamicha);
-  const tile3dDrawnOffsetY = usePlayerTile3DParam((s) => s.drawnOffsetY, (s) => s.kamichaDrawnOffsetY, isKamicha);
   // 副露を1つ鳴くごと(1番目〜4番目)の個別配置。各副露は完全に独立して
   // 位置・角度を持つ（MeldEditToolbar.tsx＋卓上での直接ドラッグで調整）。
   const tile3dMeldSlots = usePlayerTile3DParam((s) => s.meldSlots, (s) => s.kamichaMeldSlots, isKamicha);
@@ -450,7 +448,6 @@ export function OpponentArea({
       }
     : basePlayer;
   const isCurrent = round.currentTurn === player;
-  const concealedCount = p.hand.concealed.length;
   const discardCount = p.discards.length;
 
   const isSideSeat = player === 1 || player === 3;

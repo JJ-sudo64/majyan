@@ -1,15 +1,12 @@
 import {
   prevTileForDora,
   sortTiles,
-  tileCodeToIndex,
   type Tile,
   type TileCode,
-  type Wind,
 } from "./tiles.js";
 import {
   addTileToHand,
   allHandTileCodes,
-  createEmptyHand,
   getWaitingTiles,
   isConcealedHand,
   isTenpaiByRule,
@@ -474,10 +471,6 @@ export function canKyushuKyuhai(round: RoundState, player: PlayerIndex): boolean
   return kinds.size >= 9;
 }
 
-function meldTileCounts(hand: Hand, code: TileCode): number {
-  return hand.concealed.filter((t) => t.code === code).length;
-}
-
 /**
  * リーチ後の暗槓は、今ツモった牌で槓する場合（送り槓は不可）で、槓した後も待ちが
  * リーチ時と同じ時だけ許す。待ちが変わる暗槓を許すと、リーチ時には待っていなかった
@@ -520,7 +513,7 @@ export function kakanOptions(round: RoundState, player: PlayerIndex): string[] {
   return p.hand.concealed.filter((t) => ponCodes.has(t.code)).map((t) => t.id);
 }
 
-function startCallWindow(round: RoundState, discarder: PlayerIndex, discardTile: RoundState["lastDiscard"], isChankan: boolean): PendingCallWindow {
+function startCallWindow(_round: RoundState, discarder: PlayerIndex, discardTile: RoundState["lastDiscard"], isChankan: boolean): PendingCallWindow {
   return {
     discarderIndex: discarder,
     discardTile: discardTile!.tile,

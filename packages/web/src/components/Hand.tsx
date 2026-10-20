@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Meld, PlayerIndex, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
+import type { Meld, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
 import { meldDisplaySlots } from "../meldDisplay.js";
 import {
   CARDS,

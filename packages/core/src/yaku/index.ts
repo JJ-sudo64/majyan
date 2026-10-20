@@ -182,7 +182,6 @@ function evaluateYakuman(
 ): YakuResult[] {
   const results: YakuResult[] = [];
 
-  const allTerminalOrHonor = allCodes.every(isTerminalOrHonor);
   const allHonor = allCodes.every(isHonor);
   const allGreen = allCodes.every(isGreenTile);
   const allTerminal = allCodes.every(isTerminal);
