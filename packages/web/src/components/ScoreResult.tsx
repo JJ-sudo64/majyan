@@ -115,7 +115,8 @@ function resultTitle(round: RoundState): string {
   if (r.type === "tsumo") return `${PLAYER_NAMES[r.winners[0]!]} のツモ和了`;
   if (r.type === "ron") return `${r.winners.map((w) => PLAYER_NAMES[w]).join("・")} のロン和了`;
   if (r.type === "exhaustive-draw") return "流局（荒牌平局）";
-  return "流局（九種九牌）";
+  // 九種九牌だけが宣言者を持つ。宣言者のいない途中流局は四槓散了。
+  return r.declarer !== undefined ? "流局（九種九牌）" : "流局（四槓散了）";
 }
 
 export function ScoreResult({ round, outcome }: { round: RoundState; outcome: RoundScoreOutcome }) {

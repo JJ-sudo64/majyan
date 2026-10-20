@@ -209,6 +209,32 @@ describe("kan limit", () => {
     expect(ankanOptions(round, 0)).toEqual(["1m"]);
     expect(ankanOptions({ ...round, kanCount: 4 }, 0)).toEqual([]);
   });
+
+  it("ends the round as an abortive draw when the discard after a fourth kan by different players goes unclaimed", () => {
+    const kan = (code: TileCode): Meld => ({ type: "ankan", tiles: [tile(code), tile(code), tile(code), tile(code)] });
+    const build = (melds: Meld[][]) =>
+      makeRound({
+        kanCount: 4,
+        wall: wall(["9s", "9s"]),
+        players: [
+          player(["2m", "3m", "4m", "5p", "6p", "7p", "2s", "3s", "4s", "5s", "5s"], { hand: handOf(["2m", "3m", "4m", "5p", "6p", "7p", "2s", "3s", "4s", "5s", "5s"], melds[0]) }),
+          player(FILLER.slice(0, 10), { hand: handOf(FILLER.slice(0, 10), melds[1]) }),
+          player(FILLER.slice(0, 7), { hand: handOf(FILLER.slice(0, 7), melds[2]) }),
+          player(FILLER.slice(0, 7), { hand: handOf(FILLER.slice(0, 7), melds[3]) }),
+        ],
+      });
+    // 2人で2回ずつ槓した: 打牌が通ったら流局
+    let round = build([[kan("1m"), kan("9m")], [], [kan("1p"), kan("9p")], []]);
+    round = drawAndDiscard(round, 0, "9s");
+    round = allSkip(round);
+    expect(round.phase).toBe("round-over");
+    expect(round.result?.type).toBe("abortive-draw");
+    // 1人で4回槓した: 続行
+    let solo = build([[kan("1m"), kan("9m"), kan("1p"), kan("9p")], [], [], []]);
+    solo = drawAndDiscard(solo, 0, "9s");
+    solo = allSkip(solo);
+    expect(solo.phase).not.toBe("round-over");
+  });
 });
 
 describe("skills that replace the drawn tile", () => {

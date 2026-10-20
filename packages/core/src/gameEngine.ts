@@ -1022,6 +1022,13 @@ function applySkipAction(round: RoundState, player: PlayerIndex): RoundState {
   return resolveCallWindowIfComplete({ ...round, pendingCallWindow: nextWindow });
 }
 
+/** 四槓散了の条件: カンが4回済みで、その4回が全部同じ人ではない。 */
+function isFourKanAbort(round: RoundState): boolean {
+  if (round.kanCount < 4) return false;
+  const kansBy = round.players.map((pl) => pl.hand.melds.filter((m) => m.type === "ankan" || m.type === "minkan" || m.type === "kakan").length);
+  return !kansBy.some((n) => n >= 4);
+}
+
 function resolveCallWindowIfComplete(round: RoundState): RoundState {
   const window = round.pendingCallWindow!;
   if (window.respondedBy.length < window.awaitingPlayers.length) {
@@ -1053,6 +1060,11 @@ function resolveCallWindowIfComplete(round: RoundState): RoundState {
 
   if (window.isChankan) {
     return finalizeKakanAfterChankanWindow(round, window.discarderIndex);
+  }
+
+  // 四槓散了: 4回目のカンの後の打牌がロンされずに通ったら流局（4回とも1人が槓した時は四槓子を狙えるので続行）。
+  if (isFourKanAbort(round)) {
+    return { ...round, phase: "round-over", pendingCallWindow: null, result: { type: "abortive-draw", winners: [], dealerContinues: true } };
   }
 
   const kanOrPon = window.declaredCalls.find((c) => c.type === "pon" || c.type === "minkan");
