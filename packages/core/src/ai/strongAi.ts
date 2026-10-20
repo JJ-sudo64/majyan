@@ -243,7 +243,7 @@ export function chooseStrongDiscard(
   }
 
   // 必殺技の効果に合わせた打牌（Lv5）。
-  const kokiActive = profile.traitAware && p.futopparaPending;
+  const kokiActive = false; // 測定で放銃率が上がるだけで順位は伸びなかったため、太っ腹中のドラ切りは行わない（10-20）
   const shieldWanted = profile.traitAware && p.bettaoriActive && !p.bettaoriShield;
   const countInHand = (code: TileCode) => p.hand.concealed.filter((t) => t.code === code).length;
 
