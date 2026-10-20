@@ -120,8 +120,8 @@ export function OnlineStamps({ canSend }: { canSend: boolean }) {
               })}
             </div>
           )}
-          {/* ひとり用だけ。相手の席にスタンプがどう出るかを見るための確認用。 */}
-          {!online && canSend && (
+          {/* 開発用（devビルドのひとり用だけ）。相手の席にスタンプがどう出るかを見るための確認用。 */}
+          {import.meta.env.DEV && !online && canSend && (
             <button
               type="button"
               className="online-stamps__choice"
@@ -133,8 +133,8 @@ export function OnlineStamps({ canSend }: { canSend: boolean }) {
               全席に表示（位置確認）
             </button>
           )}
-          {/* ひとり用だけ。九種九牌の流局で相手の手牌が開く動きを見るための確認用。 */}
-          {!online && canSend && (
+          {/* 開発用（devビルドのひとり用だけ）。九種九牌の流局で相手の手牌が開く動きを見るための確認用。 */}
+          {import.meta.env.DEV && !online && canSend && (
             <button
               type="button"
               className="online-stamps__choice"
