@@ -66,7 +66,7 @@ export interface BackgroundDebugState {
 export const useBackgroundDebugStore = create<BackgroundDebugState>()(
   persist(
     (set) => ({
-      // 実機(Edge)で詰めた確定値。新しい卓面背景(table-surface-bg-2.png、
+      // 実機(Edge)で詰めた確定値。新しい卓面背景(table-surface-bg-2.webp、
       // tableBackgroundStore.ts参照)に合わせた位置・拡大率で、以前の
       // 「素のまま(100%, 0, 0)」ではパネル絵とスコアUIがズレる。
       bgScale: 101,

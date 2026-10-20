@@ -674,7 +674,7 @@ button {
   /* 実際にどの画像を使うかはtableBackgroundStore.tsで管理し、Table.tsx
      側からCSSカスタムプロパティ--table-bg-imageとして注入する
      （複数の背景画像を切り替えられるようにするため）。 */
-  background-image: var(--table-bg-image, url("/table/table-surface-bg-sakura.png"));
+  background-image: var(--table-bg-image, url("/table/table-surface-bg-sakura.webp"));
   background-repeat: no-repeat;
   background-size: var(--bg-scale, 100%) var(--bg-scale, 100%);
   /* 横/縦位置は「%指定」ではなくpx単位の中心からのオフセットにしている。

@@ -27,14 +27,14 @@ export interface TableBackgroundOption {
 // 未知のidのフォールバック先は先頭。既定の背景はDEFAULT_BACKGROUND_ID。旧「初期背景」
 // (id:"default"、table-surface-bg.png)は2026-09-24に削除した。
 export const TABLE_BACKGROUND_OPTIONS: TableBackgroundOption[] = [
-  { id: "sakura-2026-09-24", label: "桜(紫)", path: "/table/table-surface-bg-sakura.png" },
-  { id: "seigaiha-2026-09-24", label: "青海波(紺)", path: "/table/table-surface-bg-seigaiha.png" },
-  { id: "neon-2026-09-24", label: "ネオン", path: "/table/table-surface-bg-neon.png" },
-  { id: "wood-2026-09-24", label: "木目", path: "/table/table-surface-bg-wood.png" },
-  { id: "marble-2026-09-24", label: "大理石", path: "/table/table-surface-bg-marble.png" },
-  { id: "nami-2026-09-24", label: "荒波(紺)", path: "/table/table-surface-bg-nami.png" },
-  { id: "benizakura-2026-09-24", label: "紅桜(赤)", path: "/table/table-surface-bg-benizakura.png" },
-  { id: "blue-2026-09-18", label: "新背景(青)", path: "/table/table-surface-bg-2.png" },
+  { id: "sakura-2026-09-24", label: "桜(紫)", path: "/table/table-surface-bg-sakura.webp" },
+  { id: "seigaiha-2026-09-24", label: "青海波(紺)", path: "/table/table-surface-bg-seigaiha.webp" },
+  { id: "neon-2026-09-24", label: "ネオン", path: "/table/table-surface-bg-neon.webp" },
+  { id: "wood-2026-09-24", label: "木目", path: "/table/table-surface-bg-wood.webp" },
+  { id: "marble-2026-09-24", label: "大理石", path: "/table/table-surface-bg-marble.webp" },
+  { id: "nami-2026-09-24", label: "荒波(紺)", path: "/table/table-surface-bg-nami.webp" },
+  { id: "benizakura-2026-09-24", label: "紅桜(赤)", path: "/table/table-surface-bg-benizakura.webp" },
+  { id: "blue-2026-09-18", label: "新背景(青)", path: "/table/table-surface-bg-2.webp" },
 ];
 
 const DEFAULT_BACKGROUND_ID = "neon-2026-09-24";
