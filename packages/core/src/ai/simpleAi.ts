@@ -396,7 +396,7 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
   const currentShanten = calcShanten(hand);
 
   const matches = hand.concealed.filter((t) => t.code === discardTile.code);
-  if (matches.length >= 3) {
+  if (matches.length >= 3 && round.kanCount < 4) {
     const [a, b, c] = matches;
     const { hand: afterA } = removeTileFromHand(hand, a!.id);
     const { hand: afterB } = removeTileFromHand(afterA, b!.id);

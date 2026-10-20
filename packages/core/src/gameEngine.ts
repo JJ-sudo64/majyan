@@ -493,6 +493,7 @@ function riichiAnkanKeepsWaits(round: RoundState, player: PlayerIndex, code: Til
 
 export function ankanOptions(round: RoundState, player: PlayerIndex): TileCode[] {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return [];
+  if (round.kanCount >= 4) return []; // 5つ目のカンはできない
   const p = round.players[player];
   const counts = new Map<TileCode, number>();
   for (const t of p.hand.concealed) counts.set(t.code, (counts.get(t.code) ?? 0) + 1);
@@ -508,6 +509,7 @@ export function ankanOptions(round: RoundState, player: PlayerIndex): TileCode[]
 
 export function kakanOptions(round: RoundState, player: PlayerIndex): string[] {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return [];
+  if (round.kanCount >= 4) return [];
   const p = round.players[player];
   const ponCodes = new Set(p.hand.melds.filter((m) => m.type === "pon").map((m) => m.tiles[0]!.code));
   return p.hand.concealed.filter((t) => ponCodes.has(t.code)).map((t) => t.id);
@@ -992,6 +994,7 @@ function assertValidMeldCall(round: RoundState, window: PendingCallWindow, playe
   const concealed = round.players[player].hand.concealed;
   const ids = call.usedHandTileIds;
   const tiles = ids.map((id) => concealed.find((t) => t.id === id));
+  if (call.type === "minkan" && round.kanCount >= 4) throw new Error("call: これ以上カンできません");
   const needed = call.type === "minkan" ? 3 : 2;
   if (ids.length !== needed || new Set(ids).size !== needed || tiles.some((t) => !t)) {
     throw new Error("call: 使う手牌が正しくありません");

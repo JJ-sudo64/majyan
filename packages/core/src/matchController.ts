@@ -311,7 +311,7 @@ export function computeCallOptions(round: RoundState, seat: PlayerIndex): CallOp
         }
       : null;
   const canMinkan =
-    matches.length >= 3
+    matches.length >= 3 && round.kanCount < 4
       ? {
           tileCode: discardTile.code,
           redFlags: [discardRed, !!matches[0]!.isRed, !!matches[1]!.isRed, !!matches[2]!.isRed] as [boolean, boolean, boolean, boolean],

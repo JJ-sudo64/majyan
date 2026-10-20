@@ -194,6 +194,23 @@ describe("kan during riichi", () => {
   });
 });
 
+describe("kan limit", () => {
+  it("offers no fifth kan once four have been made", () => {
+    let round = makeRound({
+      wall: wall(["9p"]),
+      players: [
+        player(["1m", "1m", "1m", "1m", "2s", "3s", "4s", "4p", "5p", "6p", "7s", "8s", "9s"]),
+        player(FILLER),
+        player(FILLER),
+        player(FILLER),
+      ],
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    expect(ankanOptions(round, 0)).toEqual(["1m"]);
+    expect(ankanOptions({ ...round, kanCount: 4 }, 0)).toEqual([]);
+  });
+});
+
 describe("skills that replace the drawn tile", () => {
   it("a tile redrawn from the live wall after a kan is not a rinshan draw", () => {
     let round = makeRound({
