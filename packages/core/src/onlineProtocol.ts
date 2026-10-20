@@ -297,7 +297,7 @@ export interface GiftClaimResponse {
 export const JADE_REASON_LABELS: Record<string, string> = {
   "starting-bonus": "はじめての雀玉",
   "daily-login": "ログインボーナス",
-  "ranked-reward": "段位戦の報酬",
+  "ranked-reward": "段位戦の報酬（廃止前の記録）",
   gift: "プレゼント",
   "gacha-1": "ガチャ（1回）",
   "gacha-10": "ガチャ（10連）",
@@ -373,6 +373,8 @@ export interface MissionsResponse {
   missions: MissionView[];
   /** 次にリセットされる時刻（ミリ秒）。 */
   resetsAt: number;
+  /** ウィークリーミッションが新しくなる時刻（月曜0時・日本時間）。 */
+  weeklyResetsAt: number;
 }
 
 export interface MissionClaimResponse {
@@ -626,8 +628,6 @@ export interface OnlineSeatView {
 export interface RankResult {
   place: 1 | 2 | 3 | 4;
   delta: number;
-  /** この試合でもらえた雀玉（1日の上限に達していると0）。 */
-  jadeReward: number;
   before: RankView;
   after: RankView;
 }

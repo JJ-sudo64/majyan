@@ -9,8 +9,6 @@
 import {
   DAILY_LOGIN_JADE,
   jstDate,
-  rankedJadeReward,
-  RANKED_JADE_DAILY_CAP,
   STARTING_JADE,
   type JadeBalance,
   type JadeHistoryEntry,
@@ -120,33 +118,6 @@ export class WalletService {
       if (inserted.changes === 0) return null;
       this.grantFree(userId, DAILY_LOGIN_JADE, "daily-login", date);
       return DAILY_LOGIN_JADE;
-    });
-  }
-
-  /** 段位戦の報酬を渡す（1日の上限まで）。実際に渡した数を返す。 */
-  grantRankedReward(userId: string, format: MatchFormat, place: 1 | 2 | 3 | 4, matchId: string): number {
-    const date = jstDate(this.now());
-    return transaction(this.db, () => {
-      // 同じ対局の報酬は1回だけ（再起動で対局を戻した時、終わる直前の局面から
-      // やり直して終了の処理がもう一度走ることがあるため）。
-      const granted = this.db
-        .prepare("SELECT 1 FROM jade_ledger WHERE user_id = ? AND reason = 'ranked-reward' AND ref = ?")
-        .get(userId, matchId);
-      if (granted) return 0;
-      const row = this.db
-        .prepare("SELECT amount FROM daily_claims WHERE user_id = ? AND kind = 'ranked' AND date = ?")
-        .get(userId, date) as { amount: number } | undefined;
-      const already = row?.amount ?? 0;
-      const amount = Math.max(0, Math.min(rankedJadeReward(format, place), RANKED_JADE_DAILY_CAP - already));
-      if (amount === 0) return 0;
-      this.db
-        .prepare(
-          `INSERT INTO daily_claims (user_id, kind, date, amount) VALUES (?, 'ranked', ?, ?)
-           ON CONFLICT(user_id, kind, date) DO UPDATE SET amount = daily_claims.amount + excluded.amount`,
-        )
-        .run(userId, date, amount);
-      this.grantFree(userId, amount, "ranked-reward", matchId);
-      return amount;
     });
   }
 

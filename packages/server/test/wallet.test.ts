@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DAILY_LOGIN_JADE, GACHA_PRICE, RANKED_JADE_DAILY_CAP, STARTING_JADE, rarityOf } from "@majyan/core";
+import { DAILY_LOGIN_JADE, GACHA_PRICE, STARTING_JADE, rarityOf } from "@majyan/core";
 import { AccountService } from "../src/accounts.js";
 import { CollectionService } from "../src/collection.js";
 import { openDatabase } from "../src/db.js";
@@ -56,23 +56,6 @@ describe("WalletService", () => {
     clock.t = Date.UTC(2026, 9, 1, 15, 30, 0); // 翌日 00:30 JST
     expect(wallet.claimDailyLogin(userId)).toBe(DAILY_LOGIN_JADE);
     expect(wallet.balance(userId).free).toBe(STARTING_JADE + 2 * DAILY_LOGIN_JADE);
-  });
-
-  it("caps ranked rewards per day", () => {
-    const { wallet, userId, clock } = setup();
-    let total = 0;
-    for (let i = 0; i < 20; i++) total += wallet.grantRankedReward(userId, "hanchan", 1, `m${i}`);
-    expect(total).toBe(RANKED_JADE_DAILY_CAP);
-    clock.t += 24 * 60 * 60_000;
-    expect(wallet.grantRankedReward(userId, "tonpuusen", 2, "next-day")).toBe(30);
-  });
-
-  it("grants the reward for the same match only once", () => {
-    const { wallet, userId } = setup();
-    const first = wallet.grantRankedReward(userId, "tonpuusen", 1, "same-match");
-    expect(first).toBeGreaterThan(0);
-    // 再起動で対局を戻し、終了の処理がもう一度走っても二重には渡さない。
-    expect(wallet.grantRankedReward(userId, "tonpuusen", 1, "same-match")).toBe(0);
   });
 });
 

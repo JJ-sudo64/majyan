@@ -275,17 +275,6 @@ export const STARTING_JADE = 1500;
 /** 1日1回のログインボーナス（日付は日本時間で区切る）。 */
 export const DAILY_LOGIN_JADE = 100;
 
-/** 段位戦1試合の報酬（半荘戦はこの倍）。順位1〜4。 */
-export const RANKED_JADE_REWARD_TONPUUSEN: readonly [number, number, number, number] = [50, 30, 20, 10];
-
-/** 段位戦の報酬で1日にもらえる上限（日本時間の日付で区切る）。 */
-export const RANKED_JADE_DAILY_CAP = 600;
-
-export function rankedJadeReward(format: "hanchan" | "tonpuusen", place: 1 | 2 | 3 | 4): number {
-  const base = RANKED_JADE_REWARD_TONPUUSEN[place - 1]!;
-  return format === "hanchan" ? base * 2 : base;
-}
-
 /** 日本時間の日付（YYYY-MM-DD）。ログインボーナス等の「1日」の区切りに使う。 */
 export function jstDate(epochMs: number): string {
   return new Date(epochMs + 9 * 60 * 60_000).toISOString().slice(0, 10);

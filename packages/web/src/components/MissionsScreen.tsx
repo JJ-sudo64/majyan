@@ -8,7 +8,7 @@ function untilReset(resetsAt: number, now: number): string {
   return minutes >= 60 ? `あと${Math.floor(minutes / 60)}時間` : `あと${minutes}分`;
 }
 
-/** デイリーミッション。段位戦を打つと進み、達成したら受け取ると雀玉がもらえる。 */
+/** デイリー・ウィークリーミッション。段位戦を打つと進み、達成したら受け取ると雀玉がもらえる。 */
 export function MissionsScreen({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<MissionsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="gacha-screen inbox-screen" onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">デイリーミッション</div>
+          <div className="setup-character-select__label">ミッション</div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
           </button>
@@ -56,14 +56,19 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
         )}
         {data && (
           <>
-            <p className="setup-lead">毎日0時（日本時間）に新しくなります（{untilReset(data.resetsAt, Date.now())}）。</p>
+            <p className="setup-lead">
+              デイリーは毎日0時（{untilReset(data.resetsAt, Date.now())}）、ウィークリーは毎週月曜0時（{untilReset(data.weeklyResetsAt, Date.now())}）に新しくなります（日本時間）。
+            </p>
             {ready.length > 1 && (
               <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void claim(null)}>
                 まとめて受け取る
               </button>
             )}
+            {(["daily", "weekly"] as const).map((period) => (
+            <div key={period}>
+            <div className="setup-character-select__label">{period === "daily" ? "デイリー" : "ウィークリー"}</div>
             <ul className="inbox-screen__list">
-              {data.missions.map((m) => {
+              {data.missions.filter((m) => m.period === period).map((m) => {
                 const done = m.progress >= m.target;
                 return (
                   <li key={m.id} className={`inbox-screen__gift missions-screen__mission${m.claimed ? " is-claimed" : ""}`}>
@@ -87,6 +92,8 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
                 );
               })}
             </ul>
+            </div>
+            ))}
             <p className="gacha-screen__rate-note">ミッションは段位戦だけが対象です（友人戦は数えません）。</p>
           </>
         )}

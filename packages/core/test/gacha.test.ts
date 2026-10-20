@@ -9,7 +9,6 @@ import {
   gachaPool,
   itemRate,
   jstDate,
-  rankedJadeReward,
   rarityOf,
   rollFirstGacha,
   rollGacha,
@@ -93,11 +92,6 @@ describe("rollGacha", () => {
 });
 
 describe("jade helpers", () => {
-  it("doubles ranked rewards for hanchan", () => {
-    expect(rankedJadeReward("tonpuusen", 1)).toBe(50);
-    expect(rankedJadeReward("hanchan", 4)).toBe(20);
-  });
-
   it("splits days at midnight Japan time", () => {
     // 2026-10-01 14:59:59Z = 23:59:59 JST, 15:00:00Z = 翌日 00:00 JST
     expect(jstDate(Date.UTC(2026, 9, 1, 14, 59, 59))).toBe("2026-10-01");

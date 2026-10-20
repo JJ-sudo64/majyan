@@ -274,7 +274,7 @@ export function createApiHandler(options: HttpApiOptions) {
         case "GET /missions": {
           if (!missions) return fail(res, 404, "見つかりません"), true;
           const profile = authed(req, res);
-          if (profile) sendJson(res, 200, { missions: missions.list(profile.id), resetsAt: missions.resetsAt() } satisfies MissionsResponse);
+          if (profile) sendJson(res, 200, { missions: missions.list(profile.id), resetsAt: missions.resetsAt(), weeklyResetsAt: missions.weeklyResetsAt() } satisfies MissionsResponse);
           return true;
         }
         case "POST /missions/claim": {

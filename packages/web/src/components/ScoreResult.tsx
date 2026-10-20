@@ -337,7 +337,6 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                     <span className={rankResult.delta >= 0 ? "score-rank-result__delta--up" : "score-rank-result__delta--down"}>
                       {rankResult.delta >= 0 ? `+${rankResult.delta}` : rankResult.delta}
                     </span>
-                    {rankResult.jadeReward > 0 && <span className="score-rank-result__jade">雀玉 +{rankResult.jadeReward}</span>}
                   </div>
                 </div>
               </div>

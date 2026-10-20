@@ -610,8 +610,7 @@ export class RoomManager {
     for (const m of room.members) {
       const result = changes.get(m.userId);
       if (!result) continue;
-      const jadeReward = this.options.wallet?.grantRankedReward(m.userId, ranked.format, result.place, ranked.matchId) ?? 0;
-      m.client?.send({ t: "rankResult", result: { ...result, jadeReward } });
+      m.client?.send({ t: "rankResult", result });
     }
     if (room.members.every((m) => !m.client)) setTimeout(() => this.deleteRoom(room), 0);
   }
