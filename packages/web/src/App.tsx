@@ -31,11 +31,11 @@ export default function App() {
       <>
         <Stage>
           <Table />
-          {online && <OnlineStampBubbles />}
+          <OnlineStampBubbles />
         </Stage>
         {online && !spectating && <OnlineTurnTimer />}
         {online && !spectating && <OnlineConnectionOverlay />}
-        {online && <OnlineStamps canSend={!spectating} />}
+        {!replaying && <OnlineStamps canSend={!spectating} />}
         {spectating && <SpectatorBanner />}
         {replaying && <ReplayControls />}
       </>

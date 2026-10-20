@@ -795,7 +795,7 @@ function applyKyushuKyuhaiAction(round: RoundState, player: PlayerIndex): RoundS
   return {
     ...round,
     phase: "round-over",
-    result: { type: "abortive-draw", winners: [], dealerContinues: true },
+    result: { type: "abortive-draw", winners: [], declarer: player, dealerContinues: true },
   };
 }
 

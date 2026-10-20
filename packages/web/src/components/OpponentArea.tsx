@@ -1,3 +1,4 @@
+import { useKyushuPreview } from "../store/kyushuPreview.js";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Meld, PlayerIndex, RoundState, Tile, TileCode } from "@majyan/core";
@@ -420,14 +421,17 @@ export function OpponentArea({
   // 公開手牌の角度・位置プレビュー中は、他家の手牌が伏せられた（Tile.hidden、
   // 中身はストアから渡されない）ままだと全部同じダミー牌で並んでしまうため、
   // 見た目確認用のサンプル牌柄を当てる（IDはそのままなのでツモ牌の判定等は変わらない）。
+  const kyushuPreview = useKyushuPreview((s) => s.active);
   const PREVIEW_SAMPLE_CODES: TileCode[] = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "2z", "5z", "6z", "7z"];
-  const basePlayer = revealPreviewActive
+  const KYUSHU_SAMPLE_CODES: TileCode[] = ["1m", "9m", "1p", "9p", "1s", "9s", "1z", "2z", "3z", "4z", "5z", "6z", "7z", "1m"];
+  const sampleCodes = kyushuPreview ? KYUSHU_SAMPLE_CODES : PREVIEW_SAMPLE_CODES;
+  const basePlayer = revealPreviewActive || kyushuPreview
     ? {
         ...round.players[player],
         hand: {
           ...round.players[player].hand,
           concealed: round.players[player].hand.concealed.map((t, i) =>
-            t.hidden ? { id: t.id, code: PREVIEW_SAMPLE_CODES[i % PREVIEW_SAMPLE_CODES.length]! } : t,
+            t.hidden ? { id: t.id, code: sampleCodes[i % sampleCodes.length]! } : t,
           ),
         },
       }
@@ -520,7 +524,9 @@ export function OpponentArea({
   // カゲロウの「透視の術」発動中（自分＝人間プレイヤーに見えている間）、
   // またはこの対面がジンの「大明立直」でオープンリーチ中（p.openRiichi）
   // なら、伏せ牌の代わりに実際の牌柄を表示する。
-  const revealHand = round.handsRevealedTo === HUMAN || p.openRiichi || revealPreviewActive;
+  // 九種九牌で流局を宣言した人は、手牌を倒して見せる（自分が宣言した時は元から見えている）。
+  const declaredKyushu = kyushuPreview || (round.result?.type === "abortive-draw" && round.result.declarer === player);
+  const revealHand = round.handsRevealedTo === HUMAN || p.openRiichi || revealPreviewActive || declaredKyushu;
   // 立体牌(Tile3D)は伏せ牌の見た目だけを詰めてきたため、カゲロウの
   // 「透視の術」等で手牌が公開された時にどう見えるかは未検証。公開時は
   // 見た目が破綻する心配のない従来のTileView表示（2D、帯だけの表現）に
@@ -800,8 +806,8 @@ export function OpponentArea({
             red={red}
             small
             slideIn={splitting ? (isSideSeat ? "split" : "default") : undefined}
-            className={midClass}
-            style={{ ...zIndexStyle, ...enterStyle }}
+            className={[midClass, declaredKyushu ? "tile--kyushu-open" : undefined].filter(Boolean).join(" ") || undefined}
+            style={{ ...zIndexStyle, ...enterStyle, ...(declaredKyushu ? { animationDelay: `${i * 45}ms` } : null) }}
           />
         );
       })}

@@ -157,6 +157,8 @@ export function useGameSounds(round: RoundState | undefined) {
       } else if (result?.type === "exhaustive-draw") {
         const isTenpai = (result.tenpaiPlayers ?? []).includes(0);
         speakPlayerVoice(round, 0, isTenpai ? "tenpai" : "noten", isTenpai ? "テンパイ" : "ノーテン");
+      } else if (result?.type === "abortive-draw" && result.declarer !== undefined) {
+        speakPlayerVoice(round, result.declarer, "kyushuKyuhai", "九種九牌");
       }
     }
     prevPhaseRef.current = phase;

@@ -99,7 +99,8 @@ export type VoiceEvent =
   | "winQuote"
   | "greeting"
   | "tenpai"
-  | "noten";
+  | "noten"
+  | "kyushuKyuhai";
 
 /** 宣言カットインの1枚絵（Character.declarationArt）。 */
 export interface DeclarationArt {

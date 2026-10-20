@@ -64,7 +64,7 @@ function isRevealedDoraIndicator(wall: WallState, index: number): boolean {
  * その座席から見えない情報を伏せたRoundStateを返す（型は同じなので画面側は
  * そのまま描画できる）。伏せるもの:
  * - 他家の手の内（カゲロウの「透視の術」で見えている間・オープンリーチ中・
- *   局終了時の和了者/テンパイ者は公開）
+ *   局終了時の和了者/テンパイ者/九種九牌の宣言者は公開）
  * - 他家の直前のツモ牌（lastDrawnTile）
  * - 山（残り枚数だけ見せる。スバルの「山読み」中は、並び順が分からないよう
  *   牌種順に並べ替えて中身だけ見せる）
@@ -79,7 +79,14 @@ function isRevealedDoraIndicator(wall: WallState, index: number): boolean {
 export function redactRoundForSeat(round: RoundState, seat: PlayerIndex | null): RoundState {
   const roundOver = round.phase === "round-over";
   const shownAtEnd = new Set<PlayerIndex>(
-    roundOver && round.result ? [...round.result.winners, ...(round.result.tenpaiPlayers ?? [])] : [],
+    roundOver && round.result
+      ? [
+          ...round.result.winners,
+          ...(round.result.tenpaiPlayers ?? []),
+          // 九種九牌で流局を宣言した人は、手牌を倒して見せる。
+          ...(round.result.declarer !== undefined ? [round.result.declarer] : []),
+        ]
+      : [],
   );
   const hiddenIds = new Set<string>();
   const players = round.players.map((p, i): PlayerRoundState => {

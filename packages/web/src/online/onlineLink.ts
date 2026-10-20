@@ -70,6 +70,17 @@ function loadStampsMuted(): boolean {
   }
 }
 
+/** スタンプを卓に出す。ネット対戦では届いた時、ひとり用では自分が押した時に呼ぶ。 */
+export function showStamp(seat: PlayerIndex, stampId: string) {
+  useOnlineStore.setState((s) => ({
+    stamps: [
+      // 同じ人の前のスタンプは新しいものに置き換える（同じ席に重ねて出さない）。
+      ...s.stamps.filter((x) => x.seat !== seat).slice(-(MAX_KEPT_STAMPS - 1)),
+      { key: nextStampKey++, seat, stampId, at: Date.now() },
+    ],
+  }));
+}
+
 export function setStampsMuted(muted: boolean) {
   useOnlineStore.setState({ stampsMuted: muted });
   try {
@@ -183,13 +194,7 @@ function handleMessage(message: ServerMessage) {
       useGameStore.getState().applyOnlineView(message.view);
       return;
     case "stamp":
-      useOnlineStore.setState((s) => ({
-        stamps: [
-          // 同じ人の前のスタンプは新しいものに置き換える（同じ席に重ねて出さない）。
-          ...s.stamps.filter((x) => x.seat !== message.seat).slice(-(MAX_KEPT_STAMPS - 1)),
-          { key: nextStampKey++, seat: message.seat, stampId: message.stampId, at: Date.now() },
-        ],
-      }));
+      showStamp(message.seat, message.stampId);
       return;
     case "error":
       if (message.fatal) {

@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { CHARACTERS, STAMP_COOLDOWN_MS, STAMPS, stampById } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
-import { onlineLink, setStampsMuted, useOnlineStore } from "../online/onlineLink.js";
+import { playVoiceClip } from "../sound.js";
+import { useKyushuPreview } from "../store/kyushuPreview.js";
+import { stampArt } from "../online/stampArt.js";
+import { onlineLink, setStampsMuted, showStamp, useOnlineStore } from "../online/onlineLink.js";
 
 /** 届いたスタンプを出しておく時間。 */
 const STAMP_SHOW_MS = 3500;
@@ -42,6 +45,14 @@ export function OnlineStampBubbles() {
           const stamp = stampById(s.stampId);
           const character = characterIds ? CHARACTERS[characterIds[s.seat]] : undefined;
           if (!stamp) return null;
+          const art = stampArt(characterIds?.[s.seat], s.stampId);
+          if (art) {
+            return (
+              <div key={s.key} className={`online-stamp online-stamp--art online-stamp--seat${s.seat}`}>
+                <img className="online-stamp__art" src={art} alt={stamp.text} />
+              </div>
+            );
+          }
           return (
             <div key={s.key} className={`online-stamp online-stamp--seat${s.seat}`}>
               {character && <img className="online-stamp__avatar" src={character.avatar} alt="" />}
@@ -62,6 +73,9 @@ export function OnlineStampBubbles() {
  */
 export function OnlineStamps({ canSend }: { canSend: boolean }) {
   const muted = useOnlineStore((s) => s.stampsMuted);
+  const online = useGameStore((s) => s.online);
+  const characterIds = useGameStore((s) => s.match?.round.characterIds);
+  const myCharacterId = characterIds?.[0];
   const [open, setOpen] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -74,7 +88,9 @@ export function OnlineStamps({ canSend }: { canSend: boolean }) {
   }, [cooldownUntil]);
 
   function send(stampId: string) {
-    onlineLink.send({ t: "stamp", stampId });
+    // ひとり用は相手に送る先がないので、自分の席にだけ出す。
+    if (online) onlineLink.send({ t: "stamp", stampId });
+    else showStamp(0, stampId);
     setCooldownUntil(Date.now() + STAMP_COOLDOWN_MS);
     setNow(Date.now());
     setOpen(false);
@@ -86,12 +102,52 @@ export function OnlineStamps({ canSend }: { canSend: boolean }) {
     <div className="online-stamps">
       {open && (
         <div className="online-stamps__panel">
-          {canSend &&
-            STAMPS.map((stamp) => (
-              <button key={stamp.id} type="button" className="online-stamps__choice" disabled={cooling} onClick={() => send(stamp.id)}>
-                {stamp.text}
-              </button>
-            ))}
+          {canSend && (
+            <div className={`online-stamps__grid${stampArt(myCharacterId, STAMPS[0]!.id) ? " online-stamps__grid--art" : ""}`}>
+              {STAMPS.map((stamp) => {
+                const art = stampArt(myCharacterId, stamp.id);
+                return (
+                  <button
+                    key={stamp.id}
+                    type="button"
+                    className={`online-stamps__choice${art ? " online-stamps__choice--art" : ""}`}
+                    disabled={cooling}
+                    onClick={() => send(stamp.id)}
+                  >
+                    {art ? <img src={art} alt={stamp.text} /> : stamp.text}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {/* ひとり用だけ。相手の席にスタンプがどう出るかを見るための確認用。 */}
+          {!online && canSend && (
+            <button
+              type="button"
+              className="online-stamps__choice"
+              onClick={() => {
+                for (const seat of [0, 1, 2, 3] as const) showStamp(seat, STAMPS[seat * 2]!.id);
+                setOpen(false);
+              }}
+            >
+              全席に表示（位置確認）
+            </button>
+          )}
+          {/* ひとり用だけ。九種九牌の流局で相手の手牌が開く動きを見るための確認用。 */}
+          {!online && canSend && (
+            <button
+              type="button"
+              className="online-stamps__choice"
+              onClick={() => {
+                useKyushuPreview.getState().start();
+                const clip = CHARACTERS[characterIds?.[0] ?? ""]?.voiceClips?.kyushuKyuhai;
+                if (clip) playVoiceClip(clip);
+                setOpen(false);
+              }}
+            >
+              九種九牌の演出を確認
+            </button>
+          )}
           <label className="online-stamps__mute">
             <input type="checkbox" checked={muted} onChange={(e) => setStampsMuted(e.target.checked)} />
             スタンプを表示しない

@@ -5989,7 +5989,7 @@ button.dev-account-tools__toggle.dev-account-tools {
 .online-stamps__panel {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   padding: 8px;
   border: 1px solid rgba(212, 175, 55, 0.6);
   border-radius: 10px;
@@ -6012,6 +6012,23 @@ button.dev-account-tools__toggle.dev-account-tools {
   opacity: 0.4;
   cursor: default;
 }
+/* 選ぶ欄はほぼ正方形になるよう並べる（絵なら4列×2段、文字なら2列）。 */
+.online-stamps__grid {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 4px;
+}
+.online-stamps__grid--art {
+  grid-template-columns: repeat(4, auto);
+}
+.online-stamps__choice--art {
+  padding: 2px;
+  background: none;
+}
+.online-stamps__choice--art img {
+  display: block;
+  height: 104px;
+}
 .online-stamps__mute {
   display: flex;
   align-items: center;
@@ -6032,24 +6049,25 @@ button.dev-account-tools__toggle.dev-account-tools {
   pointer-events: none;
   animation: online-stamp-pop 3.5s ease forwards;
 }
+/* 自分のネームプレート（left:240px・幅268px・top:478px）の右隣。立直棒や河にかからない位置。 */
 .online-stamp--seat0 {
-  left: 50%;
-  bottom: 30%;
-  translate: -50% 0;
+  left: 520px;
+  top: 468px;
 }
+/* 相手の席も、ネームプレート（下家=右端・対面=上の右寄り・上家=左端、いずれも卓の外側の角）の近くに出す。 */
 .online-stamp--seat1 {
-  right: 3%;
-  top: 42%;
+  right: 128px;
+  top: 150px;
   flex-direction: row-reverse;
 }
 .online-stamp--seat2 {
-  left: 50%;
-  top: 12%;
-  translate: -50% 0;
+  right: 430px;
+  top: 110px;
+  flex-direction: row-reverse;
 }
 .online-stamp--seat3 {
-  left: 3%;
-  top: 42%;
+  left: 128px;
+  top: 130px;
 }
 .online-stamp__avatar {
   width: 48px;
@@ -6076,6 +6094,10 @@ button.dev-account-tools__toggle.dev-account-tools {
 .online-stamp__text {
   font-size: 16px;
   font-weight: bold;
+}
+.online-stamp__art {
+  height: 120px;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
 }
 @keyframes online-stamp-pop {
   0% {
@@ -9030,4 +9052,25 @@ button.oh-player__rank:hover .oh-player__rank-help {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+}
+
+/* 九種九牌で流局を宣言した人の手牌を、端から順に起こして見せる（伏せていた牌が手前に倒れてくる）。 */
+.tile--kyushu-open {
+  transform-origin: 50% 100%;
+  animation: tile-kyushu-open 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+@keyframes tile-kyushu-open {
+  from {
+    scale: 1 0.08;
+    opacity: 0.2;
+    filter: brightness(1.6);
+  }
+  60% {
+    scale: 1 1.08;
+    opacity: 1;
+  }
+  to {
+    scale: 1 1;
+    filter: none;
+  }
 }

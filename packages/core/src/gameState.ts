@@ -140,6 +140,7 @@ export interface RoundEndResult {
   winners: PlayerIndex[];
   loser?: PlayerIndex; // ロン時の放銃者
   tenpaiPlayers?: PlayerIndex[]; // 荒牌流局時のテンパイ者
+  declarer?: PlayerIndex; // 九種九牌流局を宣言した人（ボイスを鳴らす席）
   dealerContinues: boolean;
 }
 
