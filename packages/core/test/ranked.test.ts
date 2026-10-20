@@ -29,14 +29,16 @@ describe("rank labels", () => {
 
 describe("rankPointDelta", () => {
   it("adds placement points and the final score difference", () => {
-    // 上雀1・半荘: 1位+45、持ち点42300 → +17
-    expect(rankPointDelta(r(2, 0, 700), "hanchan", 1, 42300)).toBe(45 + 17);
-    // 4位の減点は段が上がるほど重い
-    expect(rankPointDelta(r(2, 0, 700), "hanchan", 4, 25000)).toBe(-40);
-    expect(rankPointDelta(r(2, 2, 1100), "hanchan", 4, 25000)).toBe(-60);
-    // 東風戦は順位の増減が半分
-    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 1, 25000)).toBe(23);
-    // 箱下(マイナス)の持ち点もそのまま反映
+    // 上雀1(銀の間)・半荘: 1位+40、持ち点42300 → +17
+    expect(rankPointDelta(r(2, 0, 700), "hanchan", 1, 42300)).toBe(40 + 17);
+    // 東風戦は東風戦の値(1位+20)
+    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 1, 25000)).toBe(20);
+    // 4位の減点は段が上がるほど重い（雀魂の表: 東風 雀傑★1=-40、★3=-60、半荘 -80、-120）
+    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 4, 25000)).toBe(-40);
+    expect(rankPointDelta(r(2, 2, 1100), "tonpuusen", 4, 25000)).toBe(-60);
+    expect(rankPointDelta(r(2, 0, 700), "hanchan", 4, 25000)).toBe(-80);
+    expect(rankPointDelta(r(2, 2, 1100), "hanchan", 4, 25000)).toBe(-120);
+    // 箱下(マイナス)の持ち点もそのまま反映（中雀1の半荘4位 -20）
     expect(rankPointDelta(r(1, 0, 400), "hanchan", 4, -5400)).toBe(-20 - 30);
   });
 });
@@ -49,9 +51,14 @@ describe("applyRankPoints", () => {
     expect(applyRankPoints(r(4, 2, 8990), 100)).toEqual(r(5, 0, 0));
   });
 
-  it("never demotes 下雀 and 中雀, but floors their points at 0", () => {
+  it("never demotes 下雀 and 中雀1, but floors their points at 0", () => {
     expect(applyRankPoints(r(0, 1, 5), -50)).toEqual(r(0, 1, 0));
     expect(applyRankPoints(r(1, 0, 10), -50)).toEqual(r(1, 0, 0));
+  });
+
+  it("demotes 中雀2 and 中雀3 like the original", () => {
+    expect(applyRankPoints(r(1, 1, 10), -50)).toEqual(r(1, 0, 300));
+    expect(applyRankPoints(r(1, 2, 10), -50)).toEqual(r(1, 1, 400));
   });
 
   it("demotes from 上雀 upward, including 雀神 back to 雀帝3", () => {
@@ -83,6 +90,6 @@ describe("applyRankPoints", () => {
 describe("rankAfterMatch", () => {
   it("reports the change for the result screen", () => {
     const change = rankAfterMatch(r(0, 0, 10), "hanchan", 1, 30000);
-    expect(change).toEqual({ before: r(0, 0, 10), after: r(0, 1, 0), delta: 35, place: 1 });
+    expect(change).toEqual({ before: r(0, 0, 10), after: r(0, 1, 0), delta: 25, place: 1 });
   });
 });

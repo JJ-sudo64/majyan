@@ -98,7 +98,7 @@ describe("RankService", () => {
     const a = player("A");
     expect(ranks.get(a.profile.id)).toMatchObject({ label: "下雀1", points: 0, gamesPlayed: 0 });
     const first = ranks.recordMatch("m1", "hanchan", [{ userId: a.profile.id, seat: 0, place: 1, finalScore: 35000 }]);
-    expect(first.get(a.profile.id)).toMatchObject({ place: 1, delta: 40, after: { label: "下雀2", points: 0, gamesPlayed: 1 } });
+    expect(first.get(a.profile.id)).toMatchObject({ place: 1, delta: 30, after: { label: "下雀2", points: 0, gamesPlayed: 1 } });
     // 同じ対局をもう一度渡しても段位は動かない。
     const again = ranks.recordMatch("m1", "hanchan", [{ userId: a.profile.id, seat: 0, place: 1, finalScore: 35000 }]);
     expect(again.size).toBe(0);

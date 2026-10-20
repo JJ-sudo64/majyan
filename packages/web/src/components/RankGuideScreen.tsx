@@ -112,7 +112,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
                         <th scope="row">
                           {rankLabel(r)}
                           {isMine(r) && <span className="rank-guide__here">今ここ</span>}
-                          {!tier.canDemote && <span className="rank-guide__safe">降段なし</span>}
+                          {!tier.canDemote[r.level] && <span className="rank-guide__safe">降段なし</span>}
                         </th>
                         <td>{max === null ? "上限なし" : `${tier.levelStart[r.level]} → ${max}`}</td>
                         {PLACES.map((p) => {
