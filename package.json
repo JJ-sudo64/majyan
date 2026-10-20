@@ -15,6 +15,7 @@
     "admin": "npm run admin -w packages/server --",
     "normalize-audio": "node scripts/normalize-audio.mjs",
     "balance": "tsx scripts/balance-sim.mts",
+    "difficulty-sim": "tsx scripts/difficulty-sim.mts",
     "build:web": "npm run build -w packages/web",
     "start": "npm run build -w packages/web && npm run start -w packages/server"
   }

@@ -1,3 +1,4 @@
+import { pickBorrowTarget, shouldUseSkillNow } from "./skillTiming.js";
 import type { RoundState } from "../gameState.js";
 import type { GameAction, PlayerIndex } from "../actions.js";
 import { calcShanten } from "../shanten.js";
@@ -79,11 +80,14 @@ export function decideCpuTurnAction(
 ): GameAction {
   if (!canDeclareTsumo(round, seat)) {
     const candidates: (GameAction | null)[] = [
-      canUseSkill(round, seat) ? { type: "useSkill", player: seat } : null,
+      // 強い難易度（Lv4以上）は、技ごとに「使うと得な場面」だけで使う。弱い方は使えるなら即使う。
+      canUseSkill(round, seat) && (difficulty < 4 || shouldUseSkillNow(round, seat)) ? { type: "useSkill", player: seat } : null,
       // カリンの「借り物競争」: 借りられるなら選べる中の先頭の相手から借りる。
       (() => {
         const targets = borrowableSkillTargets(round, seat);
-        return targets.length > 0 ? { type: "borrowSkill", player: seat, target: targets[0]! } : null;
+        return targets.length > 0
+          ? { type: "borrowSkill", player: seat, target: difficulty >= 4 ? pickBorrowTarget(round, targets) : targets[0]! }
+          : null;
       })(),
       decideRetrieveDiscard(round, seat),
       canUseCard(round, seat) ? { type: "useCard", player: seat } : null,

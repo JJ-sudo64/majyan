@@ -5,6 +5,7 @@ import { calcShanten, bestShantenAfterDiscard } from "../shanten.js";
 import { doraIndicators } from "../wall.js";
 import { seatWindOf, type RoundState } from "../gameState.js";
 import type { GameAction, PlayerIndex } from "../actions.js";
+import { chooseStrongDiscard, shouldSkipRiichi, strongCallAllowed, type StrongProfile } from "./strongAi.js";
 import {
   canDeclareRon,
   canDeclareTsumo,
@@ -36,6 +37,8 @@ interface AiProfile {
   riichiConsidersValue: boolean;
   /** ポン/チー/大明槓が役なし開手になる場合、鳴かずに見送るか。 */
   callSelectivity: boolean;
+  /** 受け入れ枚数・押し引きまで見る打牌選択（strongAi.ts）。無ければ従来の「向聴数→ドラ/役牌→端字牌」。 */
+  strong?: StrongProfile;
 }
 
 const AI_PROFILES: Record<AiDifficulty, AiProfile> = {
@@ -62,6 +65,8 @@ const AI_PROFILES: Record<AiDifficulty, AiProfile> = {
     defenseQuality: "genbutsu",
     riichiConsidersValue: false,
     callSelectivity: false,
+    // 牌効率（受け入れ枚数）で切る。降り方は現物だけを安全とする簡単なもの。
+    strong: { pushAtOneShanten: false, detailedDanger: false, smartRiichi: false, smartCalls: false, watchOpenHands: false },
   },
   4: {
     mistakeRate: 0,
@@ -70,6 +75,7 @@ const AI_PROFILES: Record<AiDifficulty, AiProfile> = {
     defenseQuality: "genbutsu",
     riichiConsidersValue: false,
     callSelectivity: true,
+    strong: { pushAtOneShanten: false, detailedDanger: true, smartRiichi: false, smartCalls: true, watchOpenHands: false },
   },
   5: {
     mistakeRate: 0,
@@ -78,6 +84,7 @@ const AI_PROFILES: Record<AiDifficulty, AiProfile> = {
     defenseQuality: "suji",
     riichiConsidersValue: true,
     callSelectivity: true,
+    strong: { pushAtOneShanten: true, detailedDanger: true, smartRiichi: true, smartCalls: true, watchOpenHands: true },
   },
 };
 
@@ -234,9 +241,15 @@ export function decideTurnAction(round: RoundState, player: PlayerIndex, difficu
     return { type: "discard", player, tileId: round.lastDrawnTile!.id, tsumogiri: true };
   }
 
-  if (canRiichi(round, player)) {
-    const candidates = riichiCandidateTileIds(round, player);
-    if (candidates.length > 0) {
+  const riichiCandidates = canRiichi(round, player) ? riichiCandidateTileIds(round, player) : [];
+  // Lv5は、待ちが薄い・追っかけで安手などの時はリーチせずに（ツモ和了は付く）手を進める。
+  const skipRiichi =
+    profile.strong?.smartRiichi === true &&
+    riichiCandidates.length > 0 &&
+    riichiCandidates.every((id) => shouldSkipRiichi(round, player, removeTileFromHand(p.hand, id).hand));
+  if (!skipRiichi && riichiCandidates.length > 0) {
+    const candidates = riichiCandidates;
+    {
       const doraCodes = profile.riichiConsidersValue ? computeDoraCodes(round) : null;
       let bestTileId = candidates[0]!;
       let bestScore = -Infinity;
@@ -266,7 +279,9 @@ export function decideTurnAction(round: RoundState, player: PlayerIndex, difficu
   // 切れる牌が全部当たり牌なら、避けようがないので普段通りに選ぶ。
   const candidates = discardable.length > 0 ? discardable : p.hand.concealed;
 
-  if (wantSafety) {
+  if (profile.strong && !p.ruleChangeActive) {
+    bestTileId = chooseStrongDiscard(round, player, candidates, profile.strong).tileId;
+  } else if (wantSafety) {
     let bestSafetyTier = -1;
     for (const t of candidates) {
       const tier = safetyTier(t.code, riichiOpponentsDiscards, profile.defenseQuality);
@@ -389,7 +404,7 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
     const meld: Meld = { type: "minkan", tiles: [discardTile, a!, b!, c!] };
     const probe: Hand = { concealed: afterC.concealed, melds: [...afterC.melds, meld] };
     const yakuOk = !profile.callSelectivity || hasPlausibleYakuOpen(probe, round, player);
-    if (calcShanten(probe) < currentShanten && yakuOk) {
+    if (calcShanten(probe) < currentShanten && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, calcShanten(probe), probe, discardTile.code))) {
       return { type: "minkan", player, usedHandTileIds: [a!.id, b!.id, c!.id] };
     }
   }
@@ -402,7 +417,7 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
     const probe: Hand = { concealed: afterB.concealed, melds: [...afterB.melds, meld] };
     const best = bestShantenAfterDiscard(probe);
     const yakuOk = !profile.callSelectivity || hasPlausibleYakuOpen(probe, round, player);
-    if (best < currentShanten && yakuOk) {
+    if (best < currentShanten && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, best, probe, discardTile.code))) {
       return { type: "pon", player, usedHandTileIds: [a!.id, b!.id] };
     }
   }
@@ -421,7 +436,7 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
       const probe: Hand = { concealed: after2.concealed, melds: [...after2.melds, meld] };
       const best = bestShantenAfterDiscard(probe);
       const yakuOk = !profile.callSelectivity || hasPlausibleYakuOpen(probe, round, player);
-      if (best < bestShantenAfter && yakuOk) {
+      if (best < bestShantenAfter && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, best, probe))) {
         bestShantenAfter = best;
         bestOption = [t1.code, t2.code];
       }
