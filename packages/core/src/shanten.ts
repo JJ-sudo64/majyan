@@ -16,74 +16,107 @@ function shantenFromResult(result: SearchResult, openMelds: number): number {
 }
 
 /**
+ * 1つの色（数牌は9要素、字牌は7要素）の枚数配列について、面子の数mと雀頭の有無hごとに、
+ * 取れる搭子・対子の最大数を返す（[m*2+h]、取れない組み合わせは-1）。
+ * 同じ並びは何度も出てくるので結果を覚えておく。
+ */
+const suitMemo = new Map<number, Int8Array>();
+const SUIT_MEMO_LIMIT = 200000;
+
+function suitTable(counts: number[], offset: number, len: number, numbered: boolean): Int8Array {
+  let key = len === 9 ? 1 : 2; // 数牌と字牌を区別する
+  for (let i = 0; i < len; i++) key = key * 5 + counts[offset + i]!;
+  const cached = suitMemo.get(key);
+  if (cached) return cached;
+
+  const out = new Int8Array(10).fill(-1);
+  const c = counts.slice(offset, offset + len);
+
+  function search(idx: number, melds: number, partials: number, hasPair: boolean): void {
+    while (idx < len && c[idx] === 0) idx++;
+    if (idx >= len) {
+      const slot = melds * 2 + (hasPair ? 1 : 0);
+      if (partials > out[slot]!) out[slot] = partials;
+      return;
+    }
+    const n = c[idx]!;
+    if (n >= 3) {
+      c[idx]! -= 3;
+      search(idx, melds + 1, partials, hasPair);
+      c[idx]! += 3;
+    }
+    if (n >= 2) {
+      c[idx]! -= 2;
+      if (!hasPair) search(idx, melds, partials, true);
+      search(idx, melds, partials + 1, hasPair);
+      c[idx]! += 2;
+    }
+    if (numbered && idx <= len - 3 && c[idx + 1]! > 0 && c[idx + 2]! > 0) {
+      c[idx]!--;
+      c[idx + 1]!--;
+      c[idx + 2]!--;
+      search(idx, melds + 1, partials, hasPair);
+      c[idx]!++;
+      c[idx + 1]!++;
+      c[idx + 2]!++;
+    }
+    if (numbered && idx <= len - 2 && c[idx + 1]! > 0) {
+      c[idx]!--;
+      c[idx + 1]!--;
+      search(idx, melds, partials + 1, hasPair);
+      c[idx]!++;
+      c[idx + 1]!++;
+    }
+    if (numbered && idx <= len - 3 && c[idx + 2]! > 0) {
+      c[idx]!--;
+      c[idx + 2]!--;
+      search(idx, melds, partials + 1, hasPair);
+      c[idx]!++;
+      c[idx + 2]!++;
+    }
+    search(idx + 1, melds, partials, hasPair);
+  }
+  search(0, 0, 0, false);
+
+  if (suitMemo.size >= SUIT_MEMO_LIMIT) suitMemo.clear();
+  suitMemo.set(key, out);
+  return out;
+}
+
+/**
  * 標準形（4面子+雀頭）のシャンテン数を、副露済み面子数を考慮して計算する。
  * concealedCounts は手の内（副露牌を除く）の34要素カウント配列。
+ * 色ごとの最良の取り方（suitTable）を、4色分つなぎ合わせて最良を選ぶ。
  */
 export function calcStandardShanten(concealedCounts: number[], openMelds: number): number {
-  let best = Infinity;
-
-  function search(idx: number, counts: number[], melds: number, partials: number, hasPair: boolean): void {
-    if (idx >= 34) {
-      const shanten = shantenFromResult({ melds, partials, hasPair }, openMelds);
-      if (shanten < best) best = shanten;
-      return;
-    }
-    const c = counts[idx]!;
-    if (c === 0) {
-      search(idx + 1, counts, melds, partials, hasPair);
-      return;
-    }
-
-    // 刻子として消費
-    if (c >= 3) {
-      const next = counts.slice();
-      next[idx]! -= 3;
-      search(idx, next, melds + 1, partials, hasPair);
-    }
-
-    // 対子として消費（雀頭 or 対子搭子）
-    if (c >= 2) {
-      const next = counts.slice();
-      next[idx]! -= 2;
-      if (!hasPair) {
-        search(idx, next, melds, partials, true);
+  // dp[m*2+h] = 面子m個・雀頭h（0/1）の時の搭子・対子の最大数
+  let dp = new Int8Array(10).fill(-1);
+  dp[0] = 0;
+  for (let suit = 0; suit < 4; suit++) {
+    const numbered = suit < 3;
+    const table = suitTable(concealedCounts, suit * 9, numbered ? 9 : 7, numbered);
+    const next = new Int8Array(10).fill(-1);
+    for (let a = 0; a < 10; a++) {
+      if (dp[a]! < 0) continue;
+      for (let b = 0; b < 10; b++) {
+        if (table[b]! < 0) continue;
+        const h = (a & 1) + (b & 1);
+        if (h > 1) continue;
+        const m = (a >> 1) + (b >> 1);
+        if (m > 4) continue;
+        const slot = m * 2 + h;
+        const p = dp[a]! + table[b]!;
+        if (p > next[slot]!) next[slot] = p;
       }
-      search(idx, next, melds, partials + 1, hasPair);
     }
-
-    const isNumbered = idx < 27;
-    const numberInSuit = idx % 9;
-
-    // 順子として消費
-    if (isNumbered && numberInSuit <= 6 && counts[idx + 1]! > 0 && counts[idx + 2]! > 0) {
-      const next = counts.slice();
-      next[idx]! -= 1;
-      next[idx + 1]! -= 1;
-      next[idx + 2]! -= 1;
-      search(idx, next, melds + 1, partials, hasPair);
-    }
-
-    // 両面/辺張搭子 (idx, idx+1)
-    if (isNumbered && numberInSuit <= 7 && counts[idx + 1]! > 0) {
-      const next = counts.slice();
-      next[idx]! -= 1;
-      next[idx + 1]! -= 1;
-      search(idx, next, melds, partials + 1, hasPair);
-    }
-
-    // 嵌張搭子 (idx, idx+2)
-    if (isNumbered && numberInSuit <= 6 && counts[idx + 2]! > 0) {
-      const next = counts.slice();
-      next[idx]! -= 1;
-      next[idx + 2]! -= 1;
-      search(idx, next, melds, partials + 1, hasPair);
-    }
-
-    // 残りを孤立牌として放棄し次の種類へ
-    search(idx + 1, counts, melds, partials, hasPair);
+    dp = next;
   }
-
-  search(0, concealedCounts.slice(), 0, 0, false);
+  let best = Infinity;
+  for (let slot = 0; slot < 10; slot++) {
+    if (dp[slot]! < 0) continue;
+    const sh = shantenFromResult({ melds: slot >> 1, partials: dp[slot]!, hasPair: (slot & 1) === 1 }, openMelds);
+    if (sh < best) best = sh;
+  }
   return best;
 }
 
