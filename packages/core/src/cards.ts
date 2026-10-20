@@ -102,6 +102,8 @@ const BOON_USES = 2;
 const HAND_LIFT_USES = 3;
 /** カード「断么確約」で入れ替える么九牌の最大枚数。 */
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
+/** 断么確約が効く局の回数。測定（10-20、200席）で無制限だと平均順位1.96と抜けていたため絞る。 */
+const TANYAO_GUARANTEE_USES = 2;
 
 /** 配牌を書き換える強めのカードの共通処理。残り回数が無ければ何もせず、実際に牌を入れ替えた局だけ1回消費する。 */
 function limitedDealAdjust(ctx: CardContext, adjust: (hand: Hand, wall: WallState) => { hand: Hand; wall: WallState }): RoundState {
@@ -282,15 +284,12 @@ export const CARDS: Record<string, Card> = {
   "tanyao-guarantee": {
     id: "tanyao-guarantee",
     name: "断么確約",
-    description: "持っているだけの常時効果。配牌時、手牌の么九牌（1・9・字牌）を最大4枚まで山の中張牌（2〜8）と入れ替え、断么九を狙いやすい手にする。",
+    description: "持っているだけの常時効果。配牌時、手牌の么九牌（1・9・字牌）を最大4枚まで山の中張牌（2〜8）と入れ替え、断么九を狙いやすい手にする。実際に入れ替えた局だけ数え、対局を通して2局まで効き、使い切ると無くなる。",
     kind: "passive",
+    maxUses: TANYAO_GUARANTEE_USES,
     hooks: {
-      onDealHand: (ctx) => {
-        const { round, owner } = ctx;
-        const p = round.players[owner]!;
-        const { hand, wall } = swapTerminalsForSimples(p.hand, round.wall, TANYAO_GUARANTEE_MAX_SWAPS);
-        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
-      },
+      onDealHand: (ctx) =>
+        limitedDealAdjust(ctx, (hand, wall) => swapTerminalsForSimples(hand, wall, TANYAO_GUARANTEE_MAX_SWAPS)),
     },
   },
   "point-drain-tiny": {

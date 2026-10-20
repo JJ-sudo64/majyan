@@ -8,6 +8,9 @@
  * キャラとカードは互いに無関係に配るので、キャラの表はカードの影響を、カードの表はキャラの
  * 影響を平均でならしたものになる。
  *
+ * --cards a,b,c を付けると、その札だけを測る: 1対局につき1席だけが札を持ち（席は持ち回り、
+ * 「none」は札なし＝基準）、残りの3席は札なし。札の表の「対局数」は席数と同じ。
+ *
  * 読み方の注意:
  * - 打っているのはCPU（simpleAi）。必殺技は「使えるなら即使う」ので、使いどころを選ぶと
  *   強い技は低めに、いつ使っても得な技は高めに出る。人が打った時の強さそのものではない
@@ -75,7 +78,7 @@ function makeRng(seed: number): () => number {
   };
 }
 
-function simulate(matches: number, format: MatchFormat, difficulty: AiDifficulty, seed: number): Result {
+function simulate(matches: number, format: MatchFormat, difficulty: AiDifficulty, seed: number, only: string[] = []): Result {
   const rng = makeRng(seed);
   const pick = <T>(list: readonly T[]) => list[Math.floor(rng() * list.length)]!;
   const cardChoices: (string | null)[] = [null, ...CARD_IDS];
@@ -83,7 +86,9 @@ function simulate(matches: number, format: MatchFormat, difficulty: AiDifficulty
 
   for (let m = 0; m < matches; m++) {
     const characterIds = SEATS.map(() => pick(CHARACTER_IDS)) as [string, string, string, string];
-    const cardIds = SEATS.map(() => pick(cardChoices)) as [string | null, string | null, string | null, string | null];
+    const cardIds = (only.length > 0
+      ? SEATS.map((seat) => (seat === m % 4 ? (only[Math.floor(m / 4) % only.length] === "none" ? null : only[Math.floor(m / 4) % only.length]!) : null))
+      : SEATS.map(() => pick(cardChoices))) as [string | null, string | null, string | null, string | null];
     const tallies = SEATS.map((seat) => [
       (result.characters[characterIds[seat]] ??= emptyTally()),
       (result.cards[cardIds[seat] ?? NO_CARD] ??= emptyTally()),
@@ -184,6 +189,7 @@ const { values } = parseArgs({
     difficulty: { type: "string", default: "2" },
     workers: { type: "string" },
     seed: { type: "string", default: "1" },
+    cards: { type: "string" },
     json: { type: "string" },
     // 内部用: 子プロセスとして1かたまりを回し、結果を親へ送る。
     child: { type: "boolean" },
@@ -193,13 +199,15 @@ const matches = Number(values.matches);
 const format = values.format as MatchFormat;
 const difficulty = Number(values.difficulty) as AiDifficulty;
 const seed = Number(values.seed);
+const only = values.cards ? values.cards.split(",") : [];
+for (const id of only) if (id !== "none" && !CARD_IDS.includes(id)) throw new Error(`知らない札: ${id}`);
 if (!Number.isInteger(matches) || matches <= 0 || !["tonpuusen", "hanchan"].includes(format) || ![1, 2, 3, 4, 5].includes(difficulty) || !Number.isInteger(seed)) {
   console.error("使い方: npm run balance -- [--matches 数] [--format tonpuusen|hanchan] [--difficulty 1-5] [--workers 数] [--seed 数] [--json ファイル]");
   process.exit(1);
 }
 
 if (values.child) {
-  process.send!(simulate(matches, format, difficulty, seed));
+  process.send!(simulate(matches, format, difficulty, seed, only));
 } else {
   const workers = Math.max(1, Math.min(matches, Number(values.workers) || Math.max(1, availableParallelism() - 2)));
   const started = Date.now();
@@ -219,6 +227,7 @@ if (values.child) {
           String(difficulty),
           "--seed",
           String(seed * 1000 + i),
+          ...(only.length > 0 ? ["--cards", only.join(",")] : []),
         ]);
         child.once("message", (message) => resolve(message as Result));
         child.once("error", reject);
