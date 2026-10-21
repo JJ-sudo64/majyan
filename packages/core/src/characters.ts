@@ -301,7 +301,7 @@ export const CHARACTERS: Record<string, Character> = {
     // 引き直す牌はランダム（カエデと違い有効牌が保証されない賭け）なので、
     // 制約なしで発動できる点を割り引いてカエデより速くする。
     gaugeMax: 100,
-    gaugePerTurn: 8,
+    gaugePerTurn: 9,
     gaugePerDealIn: 25,
     skill: {
       id: "nagi-tsumikomi",
@@ -351,7 +351,7 @@ export const CHARACTERS: Record<string, Character> = {
     skillArt: { src: "/declarations/raiko-skill.webp", keepEdge: "top-left" },
     declarationAccent: "#ffc83d",
     gaugeMax: RAIKO_GAUGE_MAX,
-    gaugePerTurn: 12,
+    gaugePerTurn: 8,
     gaugePerDealIn: 20,
     skill: {
       id: "raiko-issen",
@@ -443,7 +443,7 @@ export const CHARACTERS: Record<string, Character> = {
     skillArt: { src: "/declarations/toki-skill.webp", keepEdge: "left" },
     declarationAccent: "#8a5cff",
     gaugeMax: 100,
-    gaugePerTurn: 14,
+    gaugePerTurn: 10,
     gaugePerDealIn: 22,
     skill: {
       id: "toki-reijou-kengen",
@@ -520,7 +520,7 @@ export const CHARACTERS: Record<string, Character> = {
     skillArt: { src: "/declarations/luna-skill.webp", keepEdge: "top-left" },
     declarationAccent: "#b57bff",
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 9,
     gaugePerDealIn: 20,
     skill: {
       id: "runa-unmei-no-saihai",
@@ -759,7 +759,7 @@ export const CHARACTERS: Record<string, Character> = {
     skillArt: { src: "/declarations/jin-skill.webp", keepEdge: "right" },
     declarationAccent: "#ff2e3a",
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 9,
     gaugePerDealIn: 20,
     skill: {
       id: "jin-daimei-riichi",
@@ -1682,7 +1682,7 @@ export const CHARACTERS: Record<string, Character> = {
     skillArt: { src: "/declarations/koji-skill.webp", keepEdge: "left" },
     declarationAccent: "#e8b530",
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 9,
     gaugePerDealIn: 20,
     skill: {
       id: "koji-toitoi-no-yakusoku",
@@ -1812,7 +1812,7 @@ export const CHARACTERS: Record<string, Character> = {
     },
     doraManyVoiceClip: "/voices/nannan/yaku/ドラ沢山.mp3",
     gaugeMax: 100,
-    gaugePerTurn: 10,
+    gaugePerTurn: 8,
     gaugePerDealIn: 20,
     skill: {
       id: "nannan-rule-henkou",
