@@ -89,7 +89,7 @@ export function ensureNoMelds(hand: Hand, wall: WallState, maxAttempts: number):
 
 /** 手牌にドラ（表ドラ、および赤ドラの5m/5p/5s）が1枚も無ければ、
     山から該当する1枚を見つけて手牌の適当な1枚と入れ替える。山にも
-    見つからなければ何もしない（極めて稀な不発）。サキの「特技ドラ引き」
+    見つからなければ何もしない（極めて稀な不発）。マキの「特技ドラ引き」
     と同じ「表示牌から求まるドラ、および赤ドラ」の判定を使う。 */
 export function ensureAtLeastOneDora(hand: Hand, wall: WallState): { hand: Hand; wall: WallState } {
   const doraCodes = new Set(doraIndicators(wall).map(nextTileForDora));

@@ -304,7 +304,7 @@ export function canDeclareTsumo(round: RoundState, player: PlayerIndex): WinAnal
   return analyzeWin(p.hand, ctx);
 }
 
-/** 和了判定そのもの（フリテンチェック込み）。タカハルの「アトミックベタ降り」の
+/** 和了判定そのもの（フリテンチェック込み）。タカノリの「アトミックベタ降り」の
     盾は「そのプレイヤーからは誰もロンできない」という別枠の防御であって
     フリテンとは無関係なため、ここでは含めない（canDeclareRon側で別途チェックする）。 */
 function analyzeRonForPlayer(round: RoundState, player: PlayerIndex, discardTile: TileCode, chankan: boolean): WinAnalysis | null {
@@ -319,7 +319,7 @@ function analyzeRonForPlayer(round: RoundState, player: PlayerIndex, discardTile
 }
 
 export function canDeclareRon(round: RoundState, player: PlayerIndex, discardTile: TileCode, discarder: PlayerIndex, chankan = false): WinAnalysis | null {
-  // タカハルの「アトミックベタ降り」: 盾が立っている間はその捨て牌からは
+  // タカノリの「アトミックベタ降り」: 盾が立っている間はその捨て牌からは
   // 誰もロンできない（成立した瞬間、applyDiscardAction/applyRiichiAction側で消費される）。
   if (round.players[discarder]!.bettaoriShield) return null;
   // カード「一閃の盾」: 持っていて未消費の間は同様にその捨て牌からロンできない
@@ -589,7 +589,7 @@ function applyDrawAction(round: RoundState, player: PlayerIndex): RoundState {
   if (liveTilesRemaining(round.wall) === 0) {
     return buildExhaustiveDrawResult(round);
   }
-  // トモヒロの「手牌が一枚しかいない人」等、他家のツモ牌を操作するパッシブ
+  // トモヒコの「手牌が一枚しかいない人」等、他家のツモ牌を操作するパッシブ
   // 効果を実際にツモを引く前に適用する。持ち主自身のツモには影響しないよう
   // 各hooks側でowner===drawerを弾く前提。
   let preDrawRound = round;
@@ -652,7 +652,7 @@ function applyDiscardAction(round: RoundState, action: DiscardAction): RoundStat
   let afterDiscardRound = { ...round, players };
   const onAfterDiscard = CHARACTERS[round.characterIds[action.player]]?.skill.hooks.onAfterDiscard;
   if (onAfterDiscard) afterDiscardRound = onAfterDiscard({ round: afterDiscardRound, owner: action.player }, tile);
-  // タカハルの盾(bettaoriShield)は、ここでは消費しない。ここで「この牌は
+  // タカノリの盾(bettaoriShield)は、ここでは消費しない。ここで「この牌は
   // 本来ロンされていたはず」という判定だけでbettaoriShieldをfalseにして
   // しまうと、まさにこの直後に行われるcanDeclareRon（鳴き応答ウィンドウ・
   // hasAnyoneWhoCanRon）が盾を見た時には既にfalseになっており、盾が実際に
@@ -678,7 +678,7 @@ function hasAnyoneWhoCanRon(round: RoundState, players: RoundState["players"], d
   return false;
 }
 
-/** タカハルの「アトミックベタ降り」の盾を、実際に守った瞬間（＝盾が無ければ
+/** タカノリの「アトミックベタ降り」の盾を、実際に守った瞬間（＝盾が無ければ
     誰かにロンされていたはずの捨て牌に対する応答ウィンドウが、誰のロンも
     無いまま終わった瞬間）に消費する。安全な牌を切っている間（誰の当たり
     牌でもない間）は盾を温存し続ける（無駄撃ちしない）。
@@ -695,7 +695,7 @@ function consumeBettaoriShieldIfItJustSaved(round: RoundState, discarder: Player
 
 /** カード「一閃の盾」を、実際に守った瞬間（＝盾が無ければ誰かにロンされて
     いたはずの捨て牌に対する応答ウィンドウが、誰のロンも無いまま終わった瞬間）
-    に消費する。タカハルのbettaoriShieldと全く同じ考え方（安全な牌を切っている
+    に消費する。タカノリのbettaoriShieldと全く同じ考え方（安全な牌を切っている
     間は温存する）。呼び出し側の制約もconsumeBettaoriShieldIfItJustSavedと同じ。 */
 function consumeCardGuardIfItJustSaved(round: RoundState, discarder: PlayerIndex, tile: TileCode, chankan: boolean): RoundState {
   if (round.cardIds[discarder] !== "houjuu-guard" || round.cardUsesRemaining[discarder] <= 0) return round;
@@ -729,9 +729,9 @@ function applyRiichiAction(round: RoundState, action: RiichiAction): RoundState 
   const gaugeRate = CHARACTERS[round.characterIds[action.player]]?.gaugePerTurn ?? 0;
   players = gainGauge(round, action.player, players, gaugeRate);
 
-  // コウキの「太っ腹」/タカハルの「アトミックベタ降り」等、自分の打牌に
+  // コウキの「太っ腹」/タカノリの「アトミックベタ降り」等、自分の打牌に
   // 反応するパッシブ効果はリーチ宣言の打牌に対しても同様に適用する。
-  // タカハルの盾はここでは消費しない（applyDiscardAction側の同様のコメント
+  // タカノリの盾はここでは消費しない（applyDiscardAction側の同様のコメント
   // 参照）。resolveCallWindowIfComplete側でロン不成立が確定した時に消費する。
   let afterDiscardRound = { ...round, players };
   const character = CHARACTERS[round.characterIds[action.player]];
@@ -1050,7 +1050,7 @@ function resolveCallWindowIfComplete(round: RoundState): RoundState {
 
   // 誰もロンを宣言できなかった（宣言しなかったのではなく、盾があれば
   // canDeclareRonが常にnullを返すため誰も「できなかった」）ことがここで
-  // 確定した。タカハルの盾は「このタイミングで初めて」消費する。
+  // 確定した。タカノリの盾は「このタイミングで初めて」消費する。
   round = consumeBettaoriShieldIfItJustSaved(round, window.discarderIndex, window.discardTile.code, window.isChankan);
   round = consumeCardGuardIfItJustSaved(round, window.discarderIndex, window.discardTile.code, window.isChankan);
   // 見逃しフリテンの印は盾の判定（ロンできた人がいたか）の後で付ける。

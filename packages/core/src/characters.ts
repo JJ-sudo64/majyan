@@ -40,21 +40,21 @@ function hasOwnPendingDraw(round: RoundState, owner: number): boolean {
   return round.players[owner]!.hand.concealed.some((t) => t.id === drawn.id);
 }
 
-/** ナオキの「クマクマタイム」で配牌改善に使う最大試行回数。大きいほど
+/** ナオトの「クマクマタイム」で配牌改善に使う最大試行回数。大きいほど
     強力（テンパイに達しやすい）だが計算量も増える。元は20だったが
     「強すぎる」との指摘を受けて半分にした。 */
 const NAOKI_DRAFT_ATTEMPTS = 10;
 
-/** サキの「特技ドラ引き」用: gaugeMaxと同じ値。ゲージ満タン判定を
+/** マキの「特技ドラ引き」用: gaugeMaxと同じ値。ゲージ満タン判定を
     onBeforeDraw側（＝キャラのgaugeMaxフィールドとは別の場所）で自前で
     行う必要があるため、値を二重管理しないよう定数として切り出している。 */
 const SAKI_GAUGE_MAX = 100;
 
-/** ライコの「一閃」用: gaugeMaxと同じ値。サキと同じ理由でonBeforeDraw側の
+/** ライコの「一閃」用: gaugeMaxと同じ値。マキと同じ理由でonBeforeDraw側の
     自前のゲージ満タン判定に定数として切り出している。 */
 const RAIKO_GAUGE_MAX = 100;
 
-/** ナオキの「クマクマタイム」用: 配牌済みの13枚を山からの1枚ずつの
+/** ナオトの「クマクマタイム」用: 配牌済みの13枚を山からの1枚ずつの
     入れ替え（ヒルクライム法）で改善する。各試行で山から1枚引き、
     それを手牌のどれかと入れ替えた時に最もシャンテン数が良くなる組み合わせ
     があれば採用（元の牌は山の末尾へ戻す）、無ければ引いた牌をそのまま
@@ -105,7 +105,7 @@ function isNakedTanki(hand: Hand): boolean {
   return hand.melds.length === 4 && hand.concealed.length === 1;
 }
 
-/** タカハルの「アトミックベタ降り」用: 打牌によって、手の内で既に完成していた
+/** タカノリの「アトミックベタ降り」用: 打牌によって、手の内で既に完成していた
     面子（刻子＝同じ牌3枚、または順子＝連続する3つの数牌）が崩れたかどうかを
     判定する。preDiscardConcealedCodesは打牌前（切った牌を含む）の手牌コード。
     刻子は「切る前にちょうど3枚あった（4枚以上は暗槓相当で崩れたとは言えない）」、
@@ -141,7 +141,7 @@ const MEBIUS_BREAK_ATTEMPTS = 20;
     (2) その発動者が自分以外（同卓者）である、(3) コピー元キャラクターが
     onActivateを持つ（onRiichi専用の自動発動技はボタン経由で再現できないため
     対象外）、(4) コピー元自身の追加発動条件（canActivate。例:
-    ライコの「一発中のみ」、タカハルの「未発動中のみ」等）を自分（コピーする側）
+    ライコの「一発中のみ」、タカノリの「未発動中のみ」等）を自分（コピーする側）
     が満たしている。(4)が無いと、コピー元のonActivateが前提とする状態
     （例: 自分の自摸牌が手牌に存在する等）を満たさないまま呼び出され、
     例外が飛ぶおそれがある（nagi/raiko/kaedeのhasOwnPendingDraw等）。
@@ -174,7 +174,7 @@ export const CHARACTERS: Record<string, Character> = {
       ron: { src: "/declarations/hiiragi-ron.webp", keepEdge: "right" },
     },
     // 「開花」の筆文字が左端寄り。
-    skillArt: { src: "/declarations/hiiragi-skill.webp", keepEdge: "left" },
+    skillArt: { src: "/declarations/hiiragi-skill.webp", keepEdge: "right" },
     declarationAccent: "#ff4fa3",
     voiceClips: {
       chi: "/voices/hiiragi/chi.mp3",
@@ -210,7 +210,7 @@ export const CHARACTERS: Record<string, Character> = {
       "三色同刻": "/voices/hiiragi/yaku/三色同刻.mp3",
       "一気通貫": "/voices/hiiragi/yaku/一気通貫.mp3",
       "混老頭": "/voices/hiiragi/yaku/混老頭.mp3",
-      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサトと同じ）。
+      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサキと同じ）。
       "純全帯幺九": "/voices/hiiragi/yaku/純全帯么九.mp3",
       "混全帯幺九": "/voices/hiiragi/yaku/混全帯么九.mp3",
       "対々和": "/voices/hiiragi/yaku/対々和.mp3",
@@ -369,7 +369,7 @@ export const CHARACTERS: Record<string, Character> = {
         // 「リーチと同時（一発中の自摸）に自動発動してほしい、ボタン操作を
         // 挟みたくない」との指摘を受け、本人の分はonBeforeDraw（実際に
         // ツモを引く直前に全プレイヤーのキャラクターへ呼ばれるフック）で
-        // 自動化した。ツモる前なので、サキの「特技ドラ引き」と同じ要領で
+        // 自動化した。ツモる前なので、マキの「特技ドラ引き」と同じ要領で
         // 「これから引く牌」そのものを山の中ですり替えるだけでよく、以前の
         // onActivate（一旦引いた自摸牌を山へ戻し、待ち牌を引き直す）より
         // シンプルになっている。
@@ -379,7 +379,7 @@ export const CHARACTERS: Record<string, Character> = {
           const p = round.players[owner]!;
           if (!p.ippatsuActive) return round;
           if (p.skillGauge < RAIKO_GAUGE_MAX) return round;
-          // 成功/不発を問わずこの時点でゲージは消費される（サキと同じ）。
+          // 成功/不発を問わずこの時点でゲージは消費される（マキと同じ）。
           const players = updatePlayer(round, owner, (pl) => ({ ...pl, skillGauge: 0 }));
           const waits = new Set(getWaitingTiles(p.hand));
           const wallIndex = round.wall.liveTiles.findIndex((t) => waits.has(t.code));
@@ -823,7 +823,7 @@ export const CHARACTERS: Record<string, Character> = {
   },
   masato: {
     id: "masato",
-    name: "卓上のてんこしゃんこ・マサト",
+    name: "卓上のてんこしゃんこ・マサキ",
     description: "必殺技「三色の煌めき」: 発動すると、三色同順に近づく牌が5秒間光って見える演出。",
     winQuote: "三色以外いらない。三色こそ至高。",
     avatar: "/avatars/characters/masato.webp",
@@ -992,7 +992,7 @@ export const CHARACTERS: Record<string, Character> = {
   },
   saki: {
     id: "saki",
-    name: "強気のヴィーナス・サキ",
+    name: "強気のアフロディーテ・マキ",
     description: "必殺技「特技ドラ引き」: 必殺技ゲージが満タンになると、次に自分がツモる瞬間、自動的にその牌がドラ（赤ドラ含む）になる。",
     winQuote: "運も実力のうち？　いいえ、これは実力よ。持ってる女に、外れなんて無いの。",
     avatar: "/avatars/characters/saki.webp",
@@ -1043,7 +1043,7 @@ export const CHARACTERS: Record<string, Character> = {
       "三色同刻": "/voices/saki/yaku/三色同刻.mp3",
       "一気通貫": "/voices/saki/yaku/一気通貫.mp3",
       "混老頭": "/voices/saki/yaku/混老頭.mp3",
-      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサトと同じ）。
+      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサキと同じ）。
       "純全帯幺九": "/voices/saki/yaku/純全帯么九.mp3",
       "混全帯幺九": "/voices/saki/yaku/混全帯么九.mp3",
       "対々和": "/voices/saki/yaku/対々和.mp3",
@@ -1139,7 +1139,7 @@ export const CHARACTERS: Record<string, Character> = {
   },
   naoki: {
     id: "naoki",
-    name: "卓上の暴君・ナオキ",
+    name: "卓上の暴熊・ナオト",
     description: "必殺技「クマクマタイム」: パッシブスキル。自分が和了して親のまま連荘すると自動的に発動し、次の局から配牌が良くなる。連荘が止まると元に戻る。",
     winQuote: "誰の卓だ？　俺の卓だ。親が続く限り、この場はずっと俺のものだ。",
     avatar: "/avatars/characters/naoki.webp",
@@ -1191,7 +1191,7 @@ export const CHARACTERS: Record<string, Character> = {
       "三色同刻": "/voices/naoki/yaku/三色同刻.mp3",
       "一気通貫": "/voices/naoki/yaku/一気通貫.mp3",
       "混老頭": "/voices/naoki/yaku/混老頭.mp3",
-      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサトと同じ）。
+      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサキと同じ）。
       "純全帯幺九": "/voices/naoki/yaku/純全帯么九.mp3",
       "混全帯幺九": "/voices/naoki/yaku/混全帯么九.mp3",
       "対々和": "/voices/naoki/yaku/対々和.mp3",
@@ -1283,7 +1283,7 @@ export const CHARACTERS: Record<string, Character> = {
   },
   tomohiro: {
     id: "tomohiro",
-    name: "ヤンチャな貴公子・トモヒロ",
+    name: "ヤンチャなプリンス・トモヒコ",
     description: "必殺技「手牌が一枚しかない人」: パッシブスキル。手牌が4面子すべて鳴き終わって残り1枚（単騎待ち）の間、他の誰かがテンパイしていてもその当たり牌を引かせない。",
     winQuote: "たった1枚で待つ男に、隙なんて見せられるわけないだろ？",
     avatar: "/avatars/characters/tomohiro.webp",
@@ -1395,7 +1395,7 @@ export const CHARACTERS: Record<string, Character> = {
       "三色同刻": "/voices/koki/yaku/三色同刻.mp3",
       "一気通貫": "/voices/koki/yaku/一気通貫.mp3",
       "混老頭": "/voices/koki/yaku/混老頭.mp3",
-      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサトと同じ）。
+      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサキと同じ）。
       "純全帯幺九": "/voices/koki/yaku/純全帯么九.mp3",
       "混全帯幺九": "/voices/koki/yaku/混全帯么九.mp3",
       "対々和": "/voices/koki/yaku/対々和.mp3",
@@ -1510,7 +1510,7 @@ export const CHARACTERS: Record<string, Character> = {
   },
   takaharu: {
     id: "takaharu",
-    name: "最速最強・タカハル",
+    name: "ベタオリスト・タカノリ",
     description: "必殺技「アトミックベタ降り」: 発動後、手牌の完成した面子（刻子や順子）を崩すたびに盾が立ち、盾がある間はロンされるはずの牌を切っても1度だけ無効化される。盾は局が終わるまで何度でも張り直せる。",
     winQuote: "最速も最強も、生き残ってこそだろ？降りる時はきっちり降りる、それだけの話だ。",
     avatar: "/avatars/characters/takaharu.webp",
@@ -1757,7 +1757,7 @@ export const CHARACTERS: Record<string, Character> = {
       "三色同刻": "/voices/nannan/yaku/三色同刻.mp3",
       "一気通貫": "/voices/nannan/yaku/一気通貫.mp3",
       "混老頭": "/voices/nannan/yaku/混老頭.mp3",
-      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサトと同じ）。
+      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサキと同じ）。
       "純全帯幺九": "/voices/nannan/yaku/純全帯么九.mp3",
       "混全帯幺九": "/voices/nannan/yaku/混全帯么九.mp3",
       "対々和": "/voices/nannan/yaku/対々和.mp3",
@@ -1883,7 +1883,7 @@ export const CHARACTERS: Record<string, Character> = {
       "三色同刻": "/voices/deagari/yaku/三色同刻.mp3",
       "一気通貫": "/voices/deagari/yaku/一気通貫.mp3",
       "混老頭": "/voices/deagari/yaku/混老頭.mp3",
-      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサトと同じ）。
+      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサキと同じ）。
       "純全帯幺九": "/voices/deagari/yaku/純全帯么九.mp3",
       "混全帯幺九": "/voices/deagari/yaku/混全帯么九.mp3",
       "対々和": "/voices/deagari/yaku/対々和.mp3",
@@ -2063,7 +2063,7 @@ export const CHARACTERS: Record<string, Character> = {
       "三色同刻": "/voices/kagami/yaku/三色同刻.mp3",
       "一気通貫": "/voices/kagami/yaku/一気通貫.mp3",
       "混老頭": "/voices/kagami/yaku/混老頭.mp3",
-      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサトと同じ）。
+      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサキと同じ）。
       "純全帯幺九": "/voices/kagami/yaku/純全帯么九.mp3",
       "混全帯幺九": "/voices/kagami/yaku/混全帯么九.mp3",
       "対々和": "/voices/kagami/yaku/対々和.mp3",
@@ -2238,7 +2238,7 @@ export const CHARACTERS: Record<string, Character> = {
       "三色同刻": "/voices/sena/yaku/三色同刻.mp3",
       "一気通貫": "/voices/sena/yaku/一気通貫.mp3",
       "混老頭": "/voices/sena/yaku/混老頭.mp3",
-      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサトと同じ）。
+      // 置いたファイル名は「么」、ゲームの役名は「幺」（マサキと同じ）。
       "純全帯幺九": "/voices/sena/yaku/純全帯么九.mp3",
       "混全帯幺九": "/voices/sena/yaku/混全帯么九.mp3",
       "対々和": "/voices/sena/yaku/対々和.mp3",

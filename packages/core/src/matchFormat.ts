@@ -141,7 +141,7 @@ export function dealNewRound(
     lastActivatedSkill: null,
   };
 
-  // ナオキの「クマクマタイム」・メビウスの「陰陽配牌」等、配牌そのものを
+  // ナオトの「クマクマタイム」・メビウスの「陰陽配牌」等、配牌そのものを
   // パッシブに書き換えるキャラ専用のフック。gameEngine.tsのonBeforeDrawと
   // 同様、盤上の全プレイヤーのキャラクターに対して順に呼び出す。「自分が
   // 親の時だけ」「親でない時だけ」等の判定はフック側（characters.ts）が

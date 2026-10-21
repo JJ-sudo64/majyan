@@ -24,7 +24,7 @@ describe("announcements", () => {
     const { inbox, advance } = setup();
     const a = inbox.postAnnouncement({ title: "メンテ", body: "10/8 に行います" });
     advance(1000);
-    const b = inbox.postAnnouncement({ title: "新キャラ", body: "マサト登場", endsAt: 1_000_000 + 5000 });
+    const b = inbox.postAnnouncement({ title: "新キャラ", body: "マサキ登場", endsAt: 1_000_000 + 5000 });
     inbox.postAnnouncement({ title: "予告", body: "まだ", publishedAt: 1_000_000 + 10 * DAY });
     expect(inbox.announcements().map((x) => x.id)).toEqual([b, a]);
     expect(inbox.latestAnnouncementId()).toBe(b);

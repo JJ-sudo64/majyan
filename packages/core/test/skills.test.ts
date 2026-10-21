@@ -997,8 +997,8 @@ describe("skill gauge", () => {
 
     const next = applyAction(round, { type: "draw", player: 0 });
 
-    expect(next.lastDrawnTile!.id).toBe(expectedId); // player0の自摸なのでサキ(player1)の効果は無関係
-    expect(next.players[1]!.skillGauge).toBe(100); // サキ自身のゲージも消費されない
+    expect(next.lastDrawnTile!.id).toBe(expectedId); // player0の自摸なのでマキ(player1)の効果は無関係
+    expect(next.players[1]!.skillGauge).toBe(100); // マキ自身のゲージも消費されない
   });
 });
 
@@ -1036,12 +1036,12 @@ describe("naoki's passive onDealHand (クマクマタイム)", () => {
   });
 
   it("stops applying once the renchan is broken (dealer changes)", () => {
-    // ナオキが親のまま連荘中から、親が交代して(honba=0に戻り)次局を迎えた状況。
-    const nextDealer = 1; // ナオキ(0)ではない別の親に交代
+    // ナオトが親のまま連荘中から、親が交代して(honba=0に戻り)次局を迎えた状況。
+    const nextDealer = 1; // ナオト(0)ではない別の親に交代
     const withNaoki = dealNewRound(1, 2, 0, 0, nextDealer, makeSeededRng(7), ["naoki", "hiiragi", "raiko", "toki"]);
     const withoutNaoki = dealNewRound(1, 2, 0, 0, nextDealer, makeSeededRng(7), ["", "hiiragi", "raiko", "toki"]);
 
-    // ナオキはもう親ではないので、そもそも彼のonDealHandは呼ばれず配牌は素のまま。
+    // ナオトはもう親ではないので、そもそも彼のonDealHandは呼ばれず配牌は素のまま。
     expect(withNaoki.players[0]!.hand.concealed.map((t) => t.code)).toEqual(
       withoutNaoki.players[0]!.hand.concealed.map((t) => t.code),
     );
@@ -1134,7 +1134,7 @@ describe("koji's 対子の約束 (next-round pair deal)", () => {
       const seat = (seed % 4) as PlayerIndex;
       const flags: [boolean, boolean, boolean, boolean] = [false, false, false, false];
       flags[seat] = true;
-      // メビウス・ナオキ・カードの配牌効果と同卓していても4組になることを確かめる。
+      // メビウス・ナオト・カードの配牌効果と同卓していても4組になることを確かめる。
       const chars: [string, string, string, string] = ["mebius", "naoki", "koji", "hiiragi"];
       const cards: [string | null, string | null, string | null, string | null] = ["meld-guarantee", "dora-guarantee", null, null];
       const without = dealNewRound(1, 1, 1, 0, 0, makeSeededRng(seed), chars, undefined, undefined, true, cards, undefined, undefined, "hanchan");

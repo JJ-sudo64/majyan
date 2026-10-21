@@ -41,7 +41,7 @@ export function SkillActivationOverlay({ round }: { round: RoundState }) {
     return undefined;
   }, [gaugeSignature]);
 
-  // ナオキの「クマクマタイム」等、ゲージを使わず配牌時に自動発動するパッシブ
+  // ナオトの「クマクマタイム」等、ゲージを使わず配牌時に自動発動するパッシブ
   // 系の演出。上のゲージ低下検知では拾えないため、局の切り替わり
   // （東/南・局番号・本場の組み合わせが変わった瞬間）を別途検知し、その
   // 新しい局がround.dealerRenchanByWinで、かつ親のキャラがonDealHandを
@@ -61,8 +61,8 @@ export function SkillActivationOverlay({ round }: { round: RoundState }) {
     return () => clearTimeout(timer);
   }, [roundKey, round.dealerRenchanByWin, round.dealerSeat, round.characterIds]);
 
-  // トモヒロの「手牌が一枚しかいない人」用の演出。こちらもゲージを使わない
-  // パッシブ（かつナオキと違い配牌時ではなく任意のツモ直前に不定期発動する）
+  // トモヒコの「手牌が一枚しかいない人」用の演出。こちらもゲージを使わない
+  // パッシブ（かつナオトと違い配牌時ではなく任意のツモ直前に不定期発動する）
   // ため、上のどちらの検知にも乗らない。実際にすり替えが起きるたびgameEngine.ts
   // 側が単調増加させるround.tomohiroGuardCountの増分だけを見て発動とみなす。
   const tomohiroGuardCount = round.tomohiroGuardCount;

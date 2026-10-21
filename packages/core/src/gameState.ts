@@ -190,7 +190,7 @@ export interface RoundState {
       連荘して迎えたかどうか。本場が付く連荘には荒牌流局での親テンパイ継続や
       九種九牌流局（常に親継続）も含まれるが、それらとは区別するため専用の
       フラグにしている（matchFormat.tsのdealNewRound、gameStore.tsの
-      acknowledgeRoundEnd参照）。ナオキの必殺技「クマクマタイム」のように
+      acknowledgeRoundEnd参照）。ナオトの必殺技「クマクマタイム」のように
       「自分の親番で（和了による）連荘をした時」に限定して発動したいパッシブ
       系キャラの判定に使う。半荘/局をまたぐ持ち越しは不要で、配牌のたびに
       その場で再計算される。 */
@@ -201,7 +201,7 @@ export interface RoundState {
       （gameEngine.tsのcanRiichi参照）。局をまたいでは持ち越さない
       （次局の配牌でnullにリセットされる）。 */
   riichiLockedBy: PlayerIndex | null;
-  /** トモヒロの「手牌が一枚しかいない人」が、実際に他家の当たり牌をすり替えて
+  /** トモヒコの「手牌が一枚しかいない人」が、実際に他家の当たり牌をすり替えて
       防いだ回数（対局を通して単調増加、局をまたいでも0に戻さない）。ゲージを
       使わないパッシブ効果のため、他の必殺技のような「ゲージが満タン(>0)から
       0に戻った瞬間」検知が使えない。SkillActivationOverlay.tsx側がこの値の

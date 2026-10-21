@@ -153,7 +153,7 @@ export function advanceToNextRound(
   const carriedGauges = round.players.map((p) => p.skillGauge) as Scores;
   const carriedTileSwaps = round.players.map((p) => p.pendingTileSwapNextRound) as [boolean, boolean, boolean, boolean];
   const carriedPairDeals = round.players.map((p) => p.pendingPairDealNextRound) as [boolean, boolean, boolean, boolean];
-  // ナオキの「クマクマタイム」等が見る「自分の和了による連荘か」。本場が付く
+  // ナオトの「クマクマタイム」等が見る「自分の和了による連荘か」。本場が付く
   // 連荘には荒牌流局の親テンパイ継続・九種九牌流局も含まれるため、resultの
   // 種別まで見て区別する（RoundState.dealerRenchanByWin参照）。
   const dealerWonRenchan = result.dealerContinues && (result.type === "tsumo" || result.type === "ron");

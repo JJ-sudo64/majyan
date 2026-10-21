@@ -23,7 +23,7 @@ export interface TileViewProps {
       どの牌に対して鳴こうとしているか一目でわかるよう強めに光らせる
       （hoveredCode一致によるtile--highlightedとは独立で、常時表示される）。 */
   callTarget?: boolean;
-  /** マサトの必殺技「三色の煌めき」発動中、三色同順に絡みそうな牌として
+  /** マサキの必殺技「三色の煌めき」発動中、三色同順に絡みそうな牌として
       一時的に光らせる対象かどうか。ホバー起点のtile--highlightedとは
       独立した、時間経過で消える演出用の別クラス。 */
   sanshokuHint?: boolean;

@@ -17,7 +17,7 @@ const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanc
 /** 対局一覧の1ページに出す件数（スクロールなしで収まる数）。 */
 const MATCHES_PER_PAGE = 3;
 
-/** 「卓上のてんこしゃんこ・マサト」→「マサト」。二つ名の無いキャラはそのまま。 */
+/** 「卓上のてんこしゃんこ・マサキ」→「マサキ」。二つ名の無いキャラはそのまま。 */
 function shortCharacterName(characterId: string): string {
   const name = CHARACTERS[characterId]?.name ?? characterId;
   return name.slice(name.lastIndexOf("・") + 1);

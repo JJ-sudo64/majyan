@@ -465,7 +465,7 @@ describe("nullify card (無効化)", () => {
 
 describe("houjuu-guard card (一閃の盾)", () => {
   // 三暗刻+一刻子(対々和)+9m単騎待ち。tenpaiWaitingOn9mはskills.test.tsの
-  // タカハルの盾テストと同じ形（トイトイで役が成立し普通にロンできる待ち）。
+  // タカノリの盾テストと同じ形（トイトイで役が成立し普通にロンできる待ち）。
   const tenpaiWaitingOn9m = ["1m", "1m", "1m", "2p", "2p", "2p", "3s", "3s", "3s", "4z", "4z", "4z", "9m"] as TileCode[];
 
   it("has no onUse (no useCard button) even though it is a consumable card", () => {

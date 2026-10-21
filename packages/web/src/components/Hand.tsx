@@ -50,7 +50,7 @@ function countInLiveWall(round: RoundState, code: TileCode): number {
   return count;
 }
 
-// マサトの必殺技「三色の煌めき」用。1〜7を開始点とする7通りの三色同順
+// マサキの必殺技「三色の煌めき」用。1〜7を開始点とする7通りの三色同順
 // （例: 開始2なら2m3m4m/2p3p4p/2s3s4s）それぞれについて、手牌（副露込み）
 // が実際に持っている該当牌の枚数を数え、最も多く絡んでいる一組を選んで
 // その9種のコードのうち実際に手にある牌だけをハイライト対象として返す。
@@ -319,7 +319,7 @@ export function Hand({ round }: { round: RoundState }) {
     return undefined;
   }, [drawnTile, player.skillGauge]);
 
-  // マサトの必殺技「三色の煌めき」発動演出。この技はround側の状態を
+  // マサキの必殺技「三色の煌めき」発動演出。この技はround側の状態を
   // 一切変えない（onActivateはround不変のno-op）純粋な見た目だけの効果
   // のため、他の必殺技と同じ「ゲージが満タン(>0)から0に戻った瞬間」検知を
   // ここでも流用し、5秒間だけ該当牌をtile--sanshoku-hintで光らせる。

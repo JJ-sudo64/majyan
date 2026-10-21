@@ -21,7 +21,7 @@ export interface SkillHooks {
       フックを持つキャラの持ち主、drawerが実際にツモするプレイヤー。
       owner !== drawerもありうる）。ツモ牌をすり替える等の効果に使う。
       効果が無ければctx.roundをそのまま返せばよい。
-      （例: トモヒロの「手牌が一枚しかいない人」は自分が裸単騎の間、
+      （例: トモヒコの「手牌が一枚しかいない人」は自分が裸単騎の間、
       他家が聴牌中に引くはずの当たり牌を山の別の牌とすり替える。） */
   onBeforeDraw?: (ctx: SkillContext, drawer: PlayerIndex) => RoundState;
   /** 自分が打牌した直後。gameEngine.applyDiscardActionが打牌を手牌から
@@ -43,7 +43,7 @@ export interface SkillHooks {
   onActivate?: (ctx: SkillContext) => RoundState;
   /** 配牌直後（matchFormat.tsのdealNewRoundの終わり）。ゲージとは無関係に
       条件を満たせば自動的に効果を及ぼすパッシブ系キャラ専用のフック
-      （例: ナオキの「クマクマタイム」、メビウスの「陰陽配牌」）。
+      （例: ナオトの「クマクマタイム」、メビウスの「陰陽配牌」）。
       呼び出し側は盤上の全プレイヤーのキャラクターに対して順に呼び出す
       （ctx.ownerがこのフックを持つキャラの持ち主。「自分が親の時だけ」等の
       条件はフック側でctx.owner===ctx.round.dealerSeatを見て各自判定する。

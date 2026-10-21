@@ -4,11 +4,11 @@ import { CHARACTERS, type PlayerIndex, type RoundState } from "@majyan/core";
 export function SkillGauge({ round, player }: { round: RoundState; player: PlayerIndex }) {
   const character = CHARACTERS[round.characterIds[player]];
   if (!character) return null;
-  // ゲージを一切消費しないキャラ（ナオキ/トモヒロ等、gaugePerTurn/
+  // ゲージを一切消費しないキャラ（ナオト/トモヒコ等、gaugePerTurn/
   // gaugePerDealInが両方0の完全パッシブ）はバーが満タンまで伸びることが
   // 無いにも関わらず表示だけされると「ボタンが出ないバグ」に見えてしまう
   // ため、そもそも表示しない。onActivate/onRiichiの有無ではなく実際に
-  // ゲージが貯まるかどうかで判定する（サキの「特技ドラ引き」のように
+  // ゲージが貯まるかどうかで判定する（マキの「特技ドラ引き」のように
   // onActivateもonRiichiも持たずonBeforeDrawだけでゲージ満タン時に自動
   // 発動するキャラも、ゲージ自体は貯まるためバーは表示する）。
   if (character.gaugePerTurn <= 0 && character.gaugePerDealIn <= 0) return null;
