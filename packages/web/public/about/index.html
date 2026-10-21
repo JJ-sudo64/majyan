@@ -74,6 +74,9 @@ button { font: inherit; color: inherit; }
   margin: 10px 0 14px;
   letter-spacing: 0.06em;
 }
+.pv__frame { position: relative; max-width: 960px; margin: 0 auto; border-radius: 6px; overflow: hidden; background: #000;
+  box-shadow: 0 0 0 1px var(--line), 0 24px 70px rgba(0, 0, 0, 0.6), 0 0 80px rgba(230, 195, 106, 0.12); aspect-ratio: 16 / 9; }
+.pv__frame video { display: block; width: 100%; height: 100%; object-fit: cover; background: #000; }
 .sec-lead { color: var(--ink-2); max-width: 680px; margin: 0 auto; font-size: 15px; }
 .gold-text {
   background: linear-gradient(180deg, #fff4cf 0%, var(--gold-2) 30%, var(--gold) 60%, var(--gold-deep) 100%);
@@ -471,6 +474,7 @@ button { font: inherit; color: inherit; }
   <div class="wrap">
     <a class="header__logo" href="#top" aria-label="雀神 トップへ"><img src="/about/img/logo.webp" alt="" />雀神</a>
     <nav class="nav" id="nav">
+      <a href="#pv">PV</a>
       <a href="#about">ゲーム紹介</a>
       <a href="#character">キャラクター</a>
       <a href="#mode">モード</a>
@@ -503,6 +507,21 @@ button { font: inherit; color: inherit; }
     <div class="hero__dots" id="heroDots"></div>
     <div class="hero__scroll">SCROLL</div>
   </section>
+
+  <!-- PV -->
+  <section class="sec" id="pv" style="padding-bottom:20px">
+    <div class="wrap">
+      <div class="sec-head reveal" style="margin-bottom:36px">
+        <div class="sec-en">PROMOTION VIDEO</div>
+        <h2 class="sec-title">まずは、<span class="gold-text">42秒</span>の卓へ。</h2>
+      </div>
+      <div class="pv__frame reveal">
+        <video controls playsinline preload="none" poster="/about/img/pv-poster.webp" src="/about/pv.mp4">お使いのブラウザは動画に対応していません。</video>
+      </div>
+    </div>
+  </section>
+
+  <div class="ornament"></div>
 
   <!-- ゲーム紹介 -->
   <section class="sec about" id="about">

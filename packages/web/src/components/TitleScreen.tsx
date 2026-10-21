@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSettingsStore } from "../store/settingsStore.js";
 import { useFitScale } from "../hooks/useFitScale.js";
 import { playUiClickFor } from "../sound.js";
@@ -17,6 +17,14 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
   const { containerRef, scale } = useFitScale(TITLE_WIDTH, TITLE_HEIGHT);
   const [showRules, setShowRules] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPv, setShowPv] = useState(false);
+  useEffect(() => {
+    if (!showPv) return undefined;
+    window.dispatchEvent(new CustomEvent("pv-playing", { detail: true }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("pv-playing", { detail: false }));
+    };
+  }, [showPv]);
   const bgmVolume = useSettingsStore((s) => s.bgmVolume);
   const setBgmVolume = useSettingsStore((s) => s.setBgmVolume);
   const seVolume = useSettingsStore((s) => s.seVolume);
@@ -39,7 +47,22 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
           <button type="button" className="title-screen__menu-btn" aria-label="設定" onClick={() => setShowSettings(true)} />
           <button type="button" className="title-screen__menu-btn" aria-label="終了" onClick={handleExit} />
         </div>
+
+        <button type="button" className="title-screen__pv-btn" onClick={() => setShowPv(true)}>
+          <span className="title-screen__pv-btn__icon">▶</span>PV
+        </button>
       </div>
+
+      {showPv && (
+        <div className="modal-overlay" onClick={() => setShowPv(false)}>
+          <div className="pv-modal" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="pv-modal__close" aria-label="閉じる" onClick={() => setShowPv(false)}>
+              ×
+            </button>
+            <video className="pv-modal__video" src="/about/pv.mp4" poster="/about/img/pv-poster.webp" controls autoPlay playsInline />
+          </div>
+        </div>
+      )}
 
       {showRules && <RulesGuide onClose={() => setShowRules(false)} />}
 

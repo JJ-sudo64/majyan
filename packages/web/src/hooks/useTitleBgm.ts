@@ -27,8 +27,16 @@ export function useTitleBgm(enabled: boolean) {
     }
     window.addEventListener("pointerdown", retryOnInteraction, { once: true });
 
+    // PVの再生窓が開いている間は、動画の音と重ならないようBGMを止める（TitleScreen.tsxが送る）。
+    function onPvPlaying(e: Event) {
+      if ((e as CustomEvent<boolean>).detail) audio.pause();
+      else audio.play().catch(() => {});
+    }
+    window.addEventListener("pv-playing", onPvPlaying);
+
     return () => {
       window.removeEventListener("pointerdown", retryOnInteraction);
+      window.removeEventListener("pv-playing", onPvPlaying);
       audio.pause();
       audio.src = "";
       audioRef.current = null;

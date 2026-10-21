@@ -107,6 +107,57 @@ button {
   position: absolute;
   inset: 0;
 }
+/* タイトル左下のPVボタン（動画を窓で再生する） */
+.title-screen__pv-btn {
+  position: absolute;
+  left: 48px;
+  bottom: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 26px 10px 18px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #f3d58a;
+  background: rgba(10, 8, 18, 0.62);
+  border: 1px solid rgba(233, 196, 111, 0.7);
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.title-screen__pv-btn:hover {
+  background: rgba(233, 196, 111, 0.22);
+}
+.title-screen__pv-btn__icon {
+  font-size: 16px;
+}
+/* PVの再生窓。画面（ウィンドウ）に収まる大きさで16:9のまま拡縮する。 */
+.pv-modal {
+  position: relative;
+  width: min(92vw, calc(88vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid rgba(233, 196, 111, 0.6);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.7);
+}
+.pv-modal__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+.pv-modal__close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  font-size: 28px;
+  line-height: 1;
+  color: #fff;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
 .title-screen__menu .title-screen__menu-btn {
   --bevel: 29px;
   border-radius: 0;
