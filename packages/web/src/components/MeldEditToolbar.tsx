@@ -22,6 +22,8 @@ export function MeldEditToolbar() {
   const setPreviewCount = useTile3DDebugStore((s) => s.setMeldEditPreviewCount);
   const activeSlot = useTile3DDebugStore((s) => s.meldEditActiveSlot);
   const setActiveSlot = useTile3DDebugStore((s) => s.setMeldEditActiveSlot);
+  const ankanSlots = useTile3DDebugStore((s) => s.meldEditAnkanSlots);
+  const setAnkanSlot = useTile3DDebugStore((s) => s.setMeldEditAnkanSlot);
   const setMeldSlot = useTile3DDebugStore((s) => s.setMeldSlot);
   const resetMeldSlot = useTile3DDebugStore((s) => s.resetMeldSlot);
   const shimochaSlots = useTile3DDebugStore((s) => s.meldSlots);
@@ -73,6 +75,23 @@ export function MeldEditToolbar() {
             {n}個
           </button>
         ))}
+      </div>
+      <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類">
+        <span className="meld-edit-toolbar__hint">副露{activeSlot + 1}の仮表示</span>
+        <button
+          type="button"
+          className={`tile3d-debug-panel__btn${!ankanSlots[activeSlot] ? " tile3d-debug-panel__btn--active" : ""}`}
+          onClick={() => setAnkanSlot(activeSlot, false)}
+        >
+          ポン
+        </button>
+        <button
+          type="button"
+          className={`tile3d-debug-panel__btn${ankanSlots[activeSlot] ? " tile3d-debug-panel__btn--active" : ""}`}
+          onClick={() => setAnkanSlot(activeSlot, true)}
+        >
+          暗槓
+        </button>
       </div>
       <label className="meld-edit-toolbar__row meld-edit-toolbar__row--rotate">
         <span>副露{activeSlot + 1}・傾き</span>

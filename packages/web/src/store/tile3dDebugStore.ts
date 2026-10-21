@@ -74,6 +74,38 @@ const DEFAULT_HAND_GROUP_SLOT: HandGroupSlotConfig = { offsetX: 0, offsetY: 0, r
 /** 副露0個(鳴いていない)〜4個の5状態。 */
 export const HAND_GROUP_SLOT_COUNT = 5;
 
+/** 対面の手牌位置のスロット番号。副露の数n(0〜4)と、そのうち4枚の副露
+    （暗槓・加槓・大明槓）の数k(0〜n)の組ごとに1つ持つ——ポン(3枚)とカン(4枚)で
+    副露の幅が違い、手牌のズレ方も変わるため。(n,k)の組は全部で15通り。 */
+/** 対面の副露1個ごとの個別位置のスロット番号。副露の並び順(0〜3番目)と、
+    4枚の副露(カン)かどうかの組ごとに1つ（ポンとカンで幅が違い、置きたい
+    位置も変わるため）。副露全体の位置(toimenMeldSlot)に重ねて足される。 */
+export const TOIMEN_MELD_EACH_COUNT = MELD_SLOT_COUNT * 2;
+export function toimenMeldEachIndex(slot: number, isKan: boolean): number {
+  return Math.min(Math.max(slot, 0), MELD_SLOT_COUNT - 1) * 2 + (isKan ? 1 : 0);
+}
+export interface ToimenMeldEachConfig {
+  offsetX: number;
+  offsetY: number;
+}
+
+/** 副露数ごと(5つ)の値を、副露数×カンの数(15)の並びに広げる（同じ副露数の
+    スロットには同じ値を写す）。下家・上家の手牌位置の初期値と移行に使う。 */
+function expandHandGroupByKan<T>(byMeldCount: readonly T[]): T[] {
+  const out: T[] = [];
+  for (let n = 0; n < HAND_GROUP_SLOT_COUNT; n++) {
+    for (let k = 0; k <= n; k++) out[(n * (n + 1)) / 2 + k] = { ...byMeldCount[n]! };
+  }
+  return out;
+}
+
+export const TOIMEN_HAND_SLOT_COUNT = (HAND_GROUP_SLOT_COUNT * (HAND_GROUP_SLOT_COUNT + 1)) / 2;
+export function toimenHandSlotIndex(meldCount: number, kanCount: number): number {
+  const n = Math.min(Math.max(meldCount, 0), HAND_GROUP_SLOT_COUNT - 1);
+  const k = Math.min(Math.max(kanCount, 0), n);
+  return (n * (n + 1)) / 2 + k;
+}
+
 /** 河・ネームプレート・リーチ棒の座席ごとの位置調整（RiverEditToolbar/
     NameplateEditToolbar/RiichiStickEditToolbar.tsx参照）。副露/手牌と違い
     4人全員(自分含む)が対象で、鳴き数などの状態分岐も無いため座席ごとに
@@ -132,33 +164,53 @@ export interface ToimenSlotConfig {
  */
 /** 下家の副露4スロット（配列index=副露の順番）。 */
 const INITIAL_MELD_SLOTS: MeldSlotConfig[] = [
-  { offsetX: 703, offsetY: -101, rotate: -12 },
-  { offsetX: 557, offsetY: -77, rotate: -12 },
-  { offsetX: 416, offsetY: -53, rotate: -11 },
-  { offsetX: 274, offsetY: -31, rotate: -12 },
+  { offsetX: 731, offsetY: -75, rotate: -12 },
+  { offsetX: 689, offsetY: -122, rotate: -12 },
+  { offsetX: 534, offsetY: -46, rotate: -11 },
+  { offsetX: 494, offsetY: -92, rotate: -12 },
 ];
 /** 下家の手牌列、副露0〜4個の各状態。 */
 const INITIAL_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
-  { offsetX: 30, offsetY: 39, rotate: -3 },
+  { offsetX: 26, offsetY: 4, rotate: -3 },
   { offsetX: 37, offsetY: 64, rotate: -3 },
+  { offsetX: 34, offsetY: 30, rotate: -3 },
   { offsetX: 43, offsetY: 91, rotate: -3 },
+  { offsetX: 43, offsetY: 91, rotate: -3 },
+  { offsetX: 41, offsetY: 52, rotate: -3 },
   { offsetX: 52, offsetY: 116, rotate: -3 },
+  { offsetX: 52, offsetY: 116, rotate: -3 },
+  { offsetX: 52, offsetY: 116, rotate: -3 },
+  { offsetX: 50, offsetY: 78, rotate: -3 },
+  { offsetX: 61, offsetY: 146, rotate: -3 },
+  { offsetX: 61, offsetY: 146, rotate: -3 },
+  { offsetX: 61, offsetY: 146, rotate: -3 },
+  { offsetX: 52, offsetY: 102, rotate: -3 },
   { offsetX: 61, offsetY: 146, rotate: -3 },
 ];
 /** 上家の副露4スロット。 */
 const INITIAL_KAMICHA_MELD_SLOTS: MeldSlotConfig[] = [
-  { offsetX: -70, offsetY: 59, rotate: 15 },
-  { offsetX: -152, offsetY: 30, rotate: 14 },
-  { offsetX: -231, offsetY: 2, rotate: 15 },
-  { offsetX: -303, offsetY: -25, rotate: 15 },
+  { offsetX: -59, offsetY: 54, rotate: 15 },
+  { offsetX: -16, offsetY: 9, rotate: 14 },
+  { offsetX: -136, offsetY: 17, rotate: 15 },
+  { offsetX: -96, offsetY: -27, rotate: 15 },
 ];
 /** 上家の手牌列、副露0〜4個の各状態。 */
 const INITIAL_KAMICHA_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
-  { offsetX: -18, offsetY: -91, rotate: 19 },
-  { offsetX: -9, offsetY: -79, rotate: 19 },
-  { offsetX: -3, offsetY: -71, rotate: 19 },
-  { offsetX: 7, offsetY: -64, rotate: 19 },
-  { offsetX: 24, offsetY: -63, rotate: 19 },
+  { offsetX: -14, offsetY: -75, rotate: 19 },
+  { offsetX: -5, offsetY: -65, rotate: 19 },
+  { offsetX: -5, offsetY: -64, rotate: 19 },
+  { offsetX: 4, offsetY: -58, rotate: 19 },
+  { offsetX: 4, offsetY: -56, rotate: 19 },
+  { offsetX: 5, offsetY: -57, rotate: 19 },
+  { offsetX: 15, offsetY: -55, rotate: 19 },
+  { offsetX: 16, offsetY: -55, rotate: 19 },
+  { offsetX: 18, offsetY: -53, rotate: 19 },
+  { offsetX: 17, offsetY: -54, rotate: 19 },
+  { offsetX: 25, offsetY: -55, rotate: 19 },
+  { offsetX: 25, offsetY: -48, rotate: 19 },
+  { offsetX: 25, offsetY: -50, rotate: 19 },
+  { offsetX: 26, offsetY: -47, rotate: 19 },
+  { offsetX: 26, offsetY: -48, rotate: 19 },
 ];
 /** 河、座席順(自分/下家/対面/上家)。対面だけ牌を少し小さくしている。 */
 const INITIAL_RIVER_SLOTS: RiverSlotConfig[] = [
@@ -169,7 +221,7 @@ const INITIAL_RIVER_SLOTS: RiverSlotConfig[] = [
 ];
 /** 公開手牌(透視の術・大明立直)の座席ごとの角度・位置。2026-09-27に
     実機(Avast)で詰めた値。 */
-const INITIAL_REVEAL_HAND_ROTATE: Record<RevealSeat, number> = { shimocha: -11, toimen: 0, kamicha: 13 };
+const INITIAL_REVEAL_HAND_ROTATE: Record<RevealSeat, number> = { shimocha: -11, toimen: 0, kamicha: 14 };
 const INITIAL_REVEAL_HAND_OFFSET: Record<RevealSeat, { x: number; y: number }> = {
   shimocha: { x: 47, y: 109 },
   toimen: { x: 0, y: 0 },
@@ -191,21 +243,50 @@ const INITIAL_NAMEPLATE_SLOTS: SeatSlotConfig[] = [
 ];
 /** 副露配置編集モードで仮表示する副露の数。 */
 const INITIAL_MELD_EDIT_PREVIEW_COUNT = 4;
-/** 対面の手牌全体。 */
-const INITIAL_TOIMEN_HAND_SLOT: ToimenSlotConfig = { offsetX: -62, offsetY: 3, scale: 0.9 };
 /** 対面の副露全体。 */
-const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: -7, offsetY: -16, scale: 0.85 };
+const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: 7, offsetY: -26, scale: 0.85 };
+/** 対面の手牌、副露の数nとカンの数kの組ごと(toimenHandSlotIndexの番号順:
+    0副露; 1副露(k=0,1); 2副露(k=0..2); …; 4副露(k=0..4))。2026-10-21に実機で調整した値。 */
+const INITIAL_TOIMEN_HAND_SLOTS: ToimenSlotConfig[] = [
+  { offsetX: -33, offsetY: 1, scale: 0.9 },
+  { offsetX: -54, offsetY: 2, scale: 0.9 },
+  { offsetX: -54, offsetY: 2, scale: 0.9 },
+  { offsetX: -64, offsetY: 1, scale: 0.9 },
+  { offsetX: -66, offsetY: 1, scale: 0.9 },
+  { offsetX: -77, offsetY: 1, scale: 0.9 },
+  { offsetX: -74, offsetY: 4, scale: 0.9 },
+  { offsetX: -74, offsetY: 4, scale: 0.9 },
+  { offsetX: -86, offsetY: 3, scale: 0.9 },
+  { offsetX: -103, offsetY: 3, scale: 0.9 },
+  { offsetX: -80, offsetY: -1, scale: 0.9 },
+  { offsetX: -92, offsetY: 1, scale: 0.9 },
+  { offsetX: -101, offsetY: 1, scale: 0.9 },
+  { offsetX: -113, offsetY: -1, scale: 0.9 },
+  { offsetX: -101, offsetY: 1, scale: 0.9 },
+];
+/** 対面の副露1個ごとの個別位置(toimenMeldEachIndexの番号順:
+    副露1のポン・カン、副露2のポン・カン、…)。同上。 */
+const INITIAL_TOIMEN_MELD_EACH: ToimenMeldEachConfig[] = [
+  { offsetX: 0, offsetY: 0 },
+  { offsetX: 20, offsetY: 1 },
+  { offsetX: -115, offsetY: 51 },
+  { offsetX: -118, offsetY: 53 },
+  { offsetX: -94, offsetY: 0 },
+  { offsetX: -97, offsetY: 0 },
+  { offsetX: -232, offsetY: 49 },
+  { offsetX: -232, offsetY: 52 },
+];
 /** 下家の牌形状・並べ方パラメータ(配列以外のスカラー値)。初期状態と
     v4→v6 migrate(下の「全ブラウザ統一」処理参照)の両方から参照する
     ので、値をここに集約して二重管理を避ける。 */
 const INITIAL_SCALARS = {
-  rx: 136,
+  rx: 133,
   ry: 83,
   scale: 1.5,
   thickness: 12,
   whiteWidth: 8.3,
-  aspectX: 1.25,
-  aspectY: 1.25,
+  aspectX: 1.4,
+  aspectY: 1.15,
   spacing: -45,
   fanOffsetX: 4,
   frontIsLast: true,
@@ -214,13 +295,13 @@ const INITIAL_SCALARS = {
 } as const;
 /** 上家の牌形状・並べ方パラメータ(配列以外のスカラー値)。同上の理由で集約。 */
 const INITIAL_KAMICHA_SCALARS = {
-  kamichaRx: 51,
-  kamichaRy: -102,
+  kamichaRx: 60,
+  kamichaRy: -107,
   kamichaScale: 1.2,
   kamichaThickness: 16,
   kamichaWhiteWidth: 11.6,
-  kamichaAspectX: 1.15,
-  kamichaAspectY: 1,
+  kamichaAspectX: 1.3,
+  kamichaAspectY: 1.55,
   kamichaSpacing: -30,
   kamichaFanOffsetX: 0,
   kamichaFrontIsLast: true,
@@ -323,6 +404,24 @@ export interface Tile3DDebugState {
       卓上で直接ドラッグを始めた副露にも自動的に同期する。 */
   meldEditActiveSlot: number;
   setMeldEditActiveSlot: (v: number) => void;
+  /** 編集モード中の仮の副露を、スロット(0〜3)ごとに暗槓(4枚、両端伏せ)で
+      表示するかどうか。4枚が横に並ぶと隣の副露と被ることがあるため、
+      暗槓のときの位置も卓上で確かめながら決められるようにする。実際の
+      副露が既にあるスロットには効かない（本物のデータを優先）。確認用の
+      フラグなので、meldEditSeat等と同じく永続化しない。 */
+  meldEditAnkanSlots: boolean[];
+  setMeldEditAnkanSlot: (slot: number, v: boolean) => void;
+  /** 対面の副露編集モード(ToimenEditToolbar)用の同じ設定。下家・上家の
+      設定とは独立（対面は塊ごと動かすが、並びの確認は1個ずつ切り替えたい）。
+      永続化しない。 */
+  toimenEditAnkanSlots: boolean[];
+  setToimenEditAnkanSlot: (slot: number, v: boolean) => void;
+  /** 対面の編集モードで「鳴いた副露の数」を指定する(0〜4)。手牌がその
+      副露数ぶん短くなり(13-3n枚)、副露もn個仮表示される。手牌の位置は
+      この副露数のスロット(toimenHandSlots[n])に対して編集される。
+      永続化しない。 */
+  toimenEditMeldCount: number;
+  setToimenEditMeldCount: (v: number) => void;
 
   /** 手牌配置編集モード。nullなら編集モードOFF。副露配置編集モードと
       全く同じ考え方で、実際の卓の上でその座席の手牌の塊を直接ドラッグ
@@ -374,11 +473,25 @@ export interface Tile3DDebugState {
   nameplateEditActiveSeat: 0 | 1 | 2 | 3;
   setNameplateEditActiveSeat: (v: 0 | 1 | 2 | 3) => void;
 
-  /** 対面の手牌全体・副露全体それぞれの位置・拡大率。ToimenEditToolbar.tsx参照。 */
-  toimenHandSlot: ToimenSlotConfig;
+  /** 対面の手牌全体の位置・拡大率を、鳴いた副露の数(0〜4)と、そのうちカン
+      （4枚の副露）の数との組ごとに持つ（鳴くたびに手牌が短くなり、副露の
+      幅も変わって見た目がズレるのを固定する。番号はtoimenHandSlotIndex）。
+      setToimenHandSlot/resetToimenHandSlotは、編集モードで選んでいる副露数
+      (toimenEditMeldCount)と、toimenEditAnkanSlotsで暗槓にした副露の数に
+      対応するスロットに対して働く。ToimenEditToolbar.tsx参照。 */
+  toimenHandSlots: ToimenSlotConfig[];
   setToimenHandSlot: (patch: Partial<ToimenSlotConfig>) => void;
   resetToimenHandSlot: () => void;
+  /** 対面の副露全体の位置・拡大率（こちらは副露数に依らず1つ）。 */
   toimenMeldSlot: ToimenSlotConfig;
+  /** 対面の副露1個ごとの個別位置（toimenMeldEachIndexの番号）。副露全体の
+      位置の上にさらに足される。 */
+  toimenMeldEach: ToimenMeldEachConfig[];
+  setToimenMeldEach: (index: number, patch: Partial<ToimenMeldEachConfig>) => void;
+  resetToimenMeldEach: (index: number) => void;
+  /** 対面の副露編集で、個別位置を調整している副露の並び順(0〜3)。永続化しない。 */
+  toimenEditActiveMeld: number;
+  setToimenEditActiveMeld: (v: number) => void;
   setToimenMeldSlot: (patch: Partial<ToimenSlotConfig>) => void;
   resetToimenMeldSlot: () => void;
   /** 対面配置編集モード。nullなら編集モードOFF。"hand"/"meld"のどちらを
@@ -426,8 +539,8 @@ export interface Tile3DDebugState {
   resetMeldSlot: (isKamicha: boolean, index: number) => void;
   /** isKamicha=falseなら下家、trueなら上家のhandGroupByMeldCount[meldCount]
       をpatchで部分更新する。 */
-  setHandGroupSlot: (isKamicha: boolean, meldCount: number, patch: Partial<HandGroupSlotConfig>) => void;
-  resetHandGroupSlot: (isKamicha: boolean, meldCount: number) => void;
+  setHandGroupSlot: (isKamicha: boolean, index: number, patch: Partial<HandGroupSlotConfig>) => void;
+  resetHandGroupSlot: (isKamicha: boolean, index: number) => void;
   setKamichaShrinkReversed: (v: boolean) => void;
 
   setKamichaRx: (v: number) => void;
@@ -467,6 +580,14 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       setMeldEditPreviewCount: (meldEditPreviewCount) => set({ meldEditPreviewCount }),
       meldEditActiveSlot: 0,
       setMeldEditActiveSlot: (meldEditActiveSlot) => set({ meldEditActiveSlot }),
+      meldEditAnkanSlots: [false, false, false, false],
+      toimenEditAnkanSlots: [false, false, false, false],
+      toimenEditMeldCount: 0,
+      setToimenEditMeldCount: (toimenEditMeldCount) => set({ toimenEditMeldCount }),
+      setToimenEditAnkanSlot: (slot, v) =>
+        set((state) => ({ toimenEditAnkanSlots: state.toimenEditAnkanSlots.map((on, i) => (i === slot ? v : on)) })),
+      setMeldEditAnkanSlot: (slot, v) =>
+        set((state) => ({ meldEditAnkanSlots: state.meldEditAnkanSlots.map((on, i) => (i === slot ? v : on)) })),
 
       handEditSeat: null,
       setHandEditSeat: (handEditSeat) => set({ handEditSeat }),
@@ -532,14 +653,40 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       nameplateEditActiveSeat: 0,
       setNameplateEditActiveSeat: (nameplateEditActiveSeat) => set({ nameplateEditActiveSeat }),
 
-      toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT },
-      setToimenHandSlot: (patch) => set((state) => ({ toimenHandSlot: { ...state.toimenHandSlot, ...patch } })),
-      resetToimenHandSlot: () => set({ toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT } }),
+      toimenHandSlots: INITIAL_TOIMEN_HAND_SLOTS.map((slot) => ({ ...slot })),
+      setToimenHandSlot: (patch) =>
+        set((state) => {
+          const at = toimenHandSlotIndex(state.toimenEditMeldCount, state.toimenEditAnkanSlots.slice(0, state.toimenEditMeldCount).filter(Boolean).length);
+          return { toimenHandSlots: state.toimenHandSlots.map((slot, i) => (i === at ? { ...slot, ...patch } : slot)) };
+        }),
+      resetToimenHandSlot: () =>
+        set((state) => {
+          const at = toimenHandSlotIndex(state.toimenEditMeldCount, state.toimenEditAnkanSlots.slice(0, state.toimenEditMeldCount).filter(Boolean).length);
+          return { toimenHandSlots: state.toimenHandSlots.map((slot, i) => (i === at ? { ...INITIAL_TOIMEN_HAND_SLOTS[i]! } : slot)) };
+        }),
       toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
+      toimenMeldEach: INITIAL_TOIMEN_MELD_EACH.map((slot) => ({ ...slot })),
+      setToimenMeldEach: (index, patch) =>
+        set((state) => ({ toimenMeldEach: state.toimenMeldEach.map((slot, i) => (i === index ? { ...slot, ...patch } : slot)) })),
+      resetToimenMeldEach: (index) =>
+        set((state) => ({ toimenMeldEach: state.toimenMeldEach.map((slot, i) => (i === index ? { ...INITIAL_TOIMEN_MELD_EACH[i]! } : slot)) })),
+      toimenEditActiveMeld: 0,
+      setToimenEditActiveMeld: (toimenEditActiveMeld) => set({ toimenEditActiveMeld }),
       setToimenMeldSlot: (patch) => set((state) => ({ toimenMeldSlot: { ...state.toimenMeldSlot, ...patch } })),
       resetToimenMeldSlot: () => set({ toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT } }),
       toimenEditTarget: null,
-      setToimenEditTarget: (toimenEditTarget) => set({ toimenEditTarget }),
+      // 編集モードを開く時は、手牌なら「鳴かず」から始める。副露を選んだ時に
+      // 「鳴かず」のままだと動かす副露が1つも出ないため、最大の4個にする
+      // （開いた直後でも、手牌から切り替えた時でも同じ）。
+      setToimenEditTarget: (toimenEditTarget) =>
+        set((state) => ({
+          toimenEditTarget,
+          ...(toimenEditTarget === "meld" && state.toimenEditMeldCount === 0
+            ? { toimenEditMeldCount: 4 }
+            : state.toimenEditTarget === null && toimenEditTarget === "hand"
+              ? { toimenEditMeldCount: 0 }
+              : null),
+        })),
 
       revealHandRotate: { ...INITIAL_REVEAL_HAND_ROTATE },
       setRevealHandRotate: (seat, v) => set((state) => ({ revealHandRotate: { ...state.revealHandRotate, [seat]: v } })),
@@ -586,18 +733,20 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
           slots[index] = { ...(isKamicha ? INITIAL_KAMICHA_MELD_SLOTS : INITIAL_MELD_SLOTS)[index]! };
           return { [key]: slots } as Partial<Tile3DDebugState>;
         }),
-      setHandGroupSlot: (isKamicha, meldCount, patch) =>
+      // indexはtoimenHandSlotIndex(副露の数, カンの数)の番号（下家・上家の
+      // 手牌位置も、対面と同じく副露数×カンの数ごとに持つ）。
+      setHandGroupSlot: (isKamicha, index, patch) =>
         set((state) => {
           const key = isKamicha ? "kamichaHandGroupByMeldCount" : "handGroupByMeldCount";
           const slots = state[key].slice();
-          slots[meldCount] = { ...slots[meldCount]!, ...patch };
+          slots[index] = { ...slots[index]!, ...patch };
           return { [key]: slots } as Partial<Tile3DDebugState>;
         }),
-      resetHandGroupSlot: (isKamicha, meldCount) =>
+      resetHandGroupSlot: (isKamicha, index) =>
         set((state) => {
           const key = isKamicha ? "kamichaHandGroupByMeldCount" : "handGroupByMeldCount";
           const slots = state[key].slice();
-          slots[meldCount] = { ...(isKamicha ? INITIAL_KAMICHA_HAND_GROUP_SLOTS : INITIAL_HAND_GROUP_SLOTS)[meldCount]! };
+          slots[index] = { ...(isKamicha ? INITIAL_KAMICHA_HAND_GROUP_SLOTS : INITIAL_HAND_GROUP_SLOTS)[index]! };
           return { [key]: slots } as Partial<Tile3DDebugState>;
         }),
       setKamichaShrinkReversed: (kamichaShrinkReversed) => set({ kamichaShrinkReversed }),
@@ -619,7 +768,7 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       name: "tile3d-debug-store",
       // どのブラウザでも同じ値になるようファイルに保存する（sharedTuningStorage.ts参照）
       storage: createJSONStorage(() => sharedTuningStorage),
-      version: 7,
+      version: 11,
       // パネルの開閉状態(activePanel)は「今このセッションで開いているか」
       // だけの一時的なUI状態なので、リロードのたびに閉じた状態(null)から
       // 始まってよい——むしろpersistすると、開いたままリロードした時に
@@ -643,6 +792,14 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
           setMeldEditSeat,
           meldEditActiveSlot,
           setMeldEditActiveSlot,
+          meldEditAnkanSlots,
+          setMeldEditAnkanSlot,
+          toimenEditAnkanSlots,
+          setToimenEditAnkanSlot,
+          toimenEditMeldCount,
+          setToimenEditMeldCount,
+          toimenEditActiveMeld,
+          setToimenEditActiveMeld,
           handEditSeat,
           setHandEditSeat,
           handEditMeldCount,
@@ -794,7 +951,7 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
             riverSlots: INITIAL_RIVER_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riverSlots"],
             riichiStickSlots: INITIAL_RIICHI_STICK_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riichiStickSlots"],
             nameplateSlots: INITIAL_NAMEPLATE_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["nameplateSlots"],
-            toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT },
+            toimenHandSlots: INITIAL_TOIMEN_HAND_SLOTS.map((slot) => ({ ...slot })),
             toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
           };
         }
@@ -816,7 +973,7 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
             riverSlots: INITIAL_RIVER_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riverSlots"],
             riichiStickSlots: INITIAL_RIICHI_STICK_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riichiStickSlots"],
             nameplateSlots: INITIAL_NAMEPLATE_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["nameplateSlots"],
-            toimenHandSlot: { ...INITIAL_TOIMEN_HAND_SLOT },
+            toimenHandSlots: INITIAL_TOIMEN_HAND_SLOTS.map((slot) => ({ ...slot })),
             toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
             revealHandRotate: { ...INITIAL_REVEAL_HAND_ROTATE },
             revealHandOffset: {
@@ -825,6 +982,48 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
               kamicha: { ...INITIAL_REVEAL_HAND_OFFSET.kamicha },
             },
           };
+        }
+        if (version < 8) {
+          // v7→v8: 対面の手牌位置(toimenHandSlot)を副露数ごと(toimenHandSlots)に
+          // 変えた。調整済みの値を失わないよう、今の位置を5つ全部に写す
+          // （見た目は変わらず、以後は副露数ごとに別々に調整できる）。
+          // 旧フィールドが無い環境(強制リセット済み等)は何もしない。
+          const old = s as unknown as { toimenHandSlot?: ToimenSlotConfig };
+          if (old.toimenHandSlot) {
+            const seed = old.toimenHandSlot;
+            s = { ...s, toimenHandSlots: Array.from({ length: HAND_GROUP_SLOT_COUNT }, () => ({ ...seed })) };
+          }
+          delete (s as Record<string, unknown>).toimenHandSlot;
+        }
+        if (version < 9) {
+          // v8→v9: 対面の手牌位置を、副露数だけ(5つ)から副露数×カンの数(15)に
+          // 広げた。調整済みの値を失わないよう、同じ副露数のスロットには
+          // 元の副露数の値をそのまま写す（見た目は変わらない）。
+          const old = (s as unknown as { toimenHandSlots?: ToimenSlotConfig[] }).toimenHandSlots;
+          if (old && old.length === HAND_GROUP_SLOT_COUNT) {
+            const slots: ToimenSlotConfig[] = [];
+            for (let n = 0; n < HAND_GROUP_SLOT_COUNT; n++) {
+              for (let k = 0; k <= n; k++) slots[toimenHandSlotIndex(n, k)] = { ...old[n]! };
+            }
+            s = { ...s, toimenHandSlots: slots };
+          }
+        }
+        if (version < 10) {
+          // v9→v10: 対面の副露1個ごとの個別位置(toimenMeldEach)を追加。
+          // 既に持っている環境(強制リセット済み等)は触らず、無ければ初期値を入れる。
+          if (!(s as unknown as { toimenMeldEach?: unknown }).toimenMeldEach) {
+            s = { ...s, toimenMeldEach: INITIAL_TOIMEN_MELD_EACH.map((slot) => ({ ...slot })) };
+          }
+        }
+        if (version < 11) {
+          // v10→v11: 下家・上家の手牌位置を、副露数だけ(5つ)から副露数×カンの数
+          // (15)に広げた。調整済みの値を失わないよう、同じ副露数のスロットには
+          // 元の副露数の値をそのまま写す（見た目は変わらない）。
+          const groups = s as unknown as Record<string, HandGroupSlotConfig[] | undefined>;
+          for (const key of ["handGroupByMeldCount", "kamichaHandGroupByMeldCount"]) {
+            const old = groups[key];
+            if (old && old.length === HAND_GROUP_SLOT_COUNT) groups[key] = expandHandGroupByKan(old);
+          }
         }
         return s as Tile3DDebugState;
       },

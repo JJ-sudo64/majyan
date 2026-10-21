@@ -5,7 +5,7 @@ import type { Meld, PlayerIndex, RoundState, Tile, TileCode } from "@majyan/core
 import { meldDisplaySlots } from "../meldDisplay.js";
 import { TileView } from "./TileView.js";
 import { Tile3D } from "./Tile3D.js";
-import { HAND_GROUP_SLOT_COUNT, MELD_SLOT_COUNT, useTile3DDebugStore, usePlayerTile3DParam } from "../store/tile3dDebugStore.js";
+import { HAND_GROUP_SLOT_COUNT, MELD_SLOT_COUNT, toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore, usePlayerTile3DParam } from "../store/tile3dDebugStore.js";
 import { useSettingsStore } from "../store/settingsStore.js";
 import type { MeldSlotConfig } from "../store/tile3dDebugStore.js";
 import { viewRect } from "../orientation.js";
@@ -219,6 +219,13 @@ export function OpponentArea({
   const meldEditSeat = useTile3DDebugStore((s) => s.meldEditSeat);
   const meldEditPreviewCount = useTile3DDebugStore((s) => s.meldEditPreviewCount);
   const meldEditActiveSlot = useTile3DDebugStore((s) => s.meldEditActiveSlot);
+  const meldEditAnkanSlots = useTile3DDebugStore((s) => s.meldEditAnkanSlots);
+  const toimenEditAnkanSlots = useTile3DDebugStore((s) => s.toimenEditAnkanSlots);
+  const toimenEditMeldCount = useTile3DDebugStore((s) => s.toimenEditMeldCount);
+  const toimenMeldEach = useTile3DDebugStore((s) => s.toimenMeldEach);
+  const setToimenMeldEach = useTile3DDebugStore((s) => s.setToimenMeldEach);
+  const toimenEditActiveMeld = useTile3DDebugStore((s) => s.toimenEditActiveMeld);
+  const setToimenEditActiveMeld = useTile3DDebugStore((s) => s.setToimenEditActiveMeld);
   const setMeldEditActiveSlot = useTile3DDebugStore((s) => s.setMeldEditActiveSlot);
   const setMeldSlotStore = useTile3DDebugStore((s) => s.setMeldSlot);
   const isEditingThisSeat = (meldEditSeat === "shimocha" && player === 1) || (meldEditSeat === "kamicha" && player === 3);
@@ -303,6 +310,9 @@ export function OpponentArea({
   const handEditSeat = useTile3DDebugStore((s) => s.handEditSeat);
   const handEditMeldCount = useTile3DDebugStore((s) => s.handEditMeldCount);
   const setHandGroupSlotStore = useTile3DDebugStore((s) => s.setHandGroupSlot);
+  // 仮表示の副露のうち、最初のn個に含まれる暗槓(4枚の副露)の数。手牌位置は
+  // 副露の数と、このカンの数の組ごとに持つ（ポンとカンで副露の幅が違うため）。
+  const kansOf = (n: number) => meldEditAnkanSlots.slice(0, n).filter(Boolean).length;
   const isEditingHandThisSeat = (handEditSeat === "shimocha" && player === 1) || (handEditSeat === "kamicha" && player === 3);
   const handGroupDragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   useEffect(() => {
@@ -312,7 +322,7 @@ export function OpponentArea({
     if (!isEditingHandThisSeat) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
-    const current = tile3dHandGroupByMeldCount[handEditMeldCount]!;
+    const current = tile3dHandGroupByMeldCount[toimenHandSlotIndex(handEditMeldCount, kansOf(handEditMeldCount))]!;
     handGroupDragRef.current = { startX: e.clientX, startY: e.clientY, baseX: current.offsetX, baseY: current.offsetY };
   };
   const handleHandGroupPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -327,7 +337,7 @@ export function OpponentArea({
     const zoomRatio = getTableZoomRatio(e.currentTarget);
     const dx = (e.clientX - drag.startX) / zoomRatio;
     const dy = (e.clientY - drag.startY) / zoomRatio;
-    setHandGroupSlotStore(isKamicha, handEditMeldCount, { offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
+    setHandGroupSlotStore(isKamicha, toimenHandSlotIndex(handEditMeldCount, kansOf(handEditMeldCount)), { offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
   };
   const handleHandGroupPointerUp = () => {
     handGroupDragRef.current = null;
@@ -340,13 +350,13 @@ export function OpponentArea({
   // 副露(上家/下家)のscreenDeltaToMeldLocalのような軸変換は不要——
   // 画面上のドラッグ方向をそのままoffsetX/Yに使ってよい。
   const toimenEditTarget = useTile3DDebugStore((s) => s.toimenEditTarget);
-  const toimenHandSlot = useTile3DDebugStore((s) => s.toimenHandSlot);
+  const toimenHandSlots = useTile3DDebugStore((s) => s.toimenHandSlots);
   const setToimenHandSlot = useTile3DDebugStore((s) => s.setToimenHandSlot);
   const toimenMeldSlot = useTile3DDebugStore((s) => s.toimenMeldSlot);
   const setToimenMeldSlot = useTile3DDebugStore((s) => s.setToimenMeldSlot);
   const isEditingToimenHand = player === 2 && toimenEditTarget === "hand";
   const isEditingToimenMeld = player === 2 && toimenEditTarget === "meld";
-  const toimenDragRef = useRef<{ target: "hand" | "meld"; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const toimenDragRef = useRef<{ target: "hand" | "meld" | "each"; key?: number; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   useEffect(() => {
     if (!isEditingToimenHand && !isEditingToimenMeld) toimenDragRef.current = null;
   }, [isEditingToimenHand, isEditingToimenMeld]);
@@ -366,8 +376,24 @@ export function OpponentArea({
     const zoomRatio = getTableZoomRatio(e.currentTarget);
     const dx = (e.clientX - drag.startX) / zoomRatio;
     const dy = (e.clientY - drag.startY) / zoomRatio;
+    if (drag.target === "each") {
+      // 個別位置は副露全体の拡大率(scale)の内側で適用されるため、カーソルに
+      // 追従するようその分で割る。
+      const s = toimenMeldSlot.scale || 1;
+      setToimenMeldEach(drag.key!, { offsetX: Math.round(drag.baseX + dx / s), offsetY: Math.round(drag.baseY + dy / s) });
+      return;
+    }
     const setSlot = drag.target === "hand" ? setToimenHandSlot : setToimenMeldSlot;
     setSlot({ offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
+  };
+  // 副露1個そのものをつかんだ時（副露の外側＝全体のつかみより優先）。
+  const handleToimenMeldEachPointerDown = (slot: number, isKan: boolean) => (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+    const key = toimenMeldEachIndex(slot, isKan);
+    const current = toimenMeldEach[key]!;
+    setToimenEditActiveMeld(Math.min(slot, MELD_SLOT_COUNT - 1));
+    toimenDragRef.current = { target: "each", key, startX: e.clientX, startY: e.clientY, baseX: current.offsetX, baseY: current.offsetY };
   };
   const handleToimenPointerUp = () => {
     toimenDragRef.current = null;
@@ -434,12 +460,29 @@ export function OpponentArea({
         },
       }
     : round.players[player];
-  const p = isEditingHandThisSeatEarly
+  // 対面の編集モードで副露数(toimenEditMeldCount)を指定した時も同じ差し替え。
+  const toimenPreviewMeldCount = player === 2 && toimenEditTarget !== null ? toimenEditMeldCount : null;
+  // 対面の手牌位置は、鳴いた副露の数とカン（4枚の副露）の数ごとのスロット。
+  // 編集中は選んでいる副露数と、暗槓にした副露の数、それ以外は実際の副露。
+  const toimenSlotMelds = toimenPreviewMeldCount ?? round.players[2].hand.melds.length;
+  const toimenSlotKans =
+    toimenPreviewMeldCount !== null
+      ? toimenEditAnkanSlots.slice(0, toimenPreviewMeldCount).filter(Boolean).length
+      : round.players[2].hand.melds.filter((m) => m.tiles.length === 4).length;
+  const toimenHandSlot = toimenHandSlots[toimenHandSlotIndex(toimenSlotMelds, toimenSlotKans)]!;
+  // 副露配置編集モード(下家・上家)中も、仮表示する副露の数ぶん手牌を短くして、
+  // 副露した状態で手牌がどう見えるかを一緒に確かめられるようにする。
+  const previewHandMeldCount = isEditingHandThisSeatEarly
+    ? handEditMeldCount
+    : isEditingThisSeat
+      ? meldEditPreviewCount
+      : toimenPreviewMeldCount;
+  const p = previewHandMeldCount !== null
     ? {
         ...round.players[player],
         hand: {
           ...round.players[player].hand,
-          concealed: Array.from({ length: Math.max(1, 13 - 3 * handEditMeldCount) }, (_, i) => ({
+          concealed: Array.from({ length: Math.max(1, 13 - 3 * previewHandMeldCount) }, (_, i) => ({
             id: `hand-edit-preview-${i}`,
             code: "1m" as TileCode,
             isRed: false,
@@ -832,8 +875,14 @@ export function OpponentArea({
   // 念のため）。p.hand.meldsは手牌配置編集用の差し替え(concealedのみ)の
   // 影響を受けないため、実際の副露数を正しく反映する。
   const realHandMeldCount = Math.min(p.hand.melds.length, HAND_GROUP_SLOT_COUNT - 1);
-  const effectiveHandMeldCount = isEditingHandThisSeat ? handEditMeldCount : realHandMeldCount;
-  const handGroupSlot = tile3dHandGroupByMeldCount[effectiveHandMeldCount] ?? tile3dHandGroupByMeldCount[0]!;
+  const previewHandMeldsForSlot = isEditingHandThisSeat ? handEditMeldCount : isEditingThisSeat ? meldEditPreviewCount : null;
+  const effectiveHandMeldCount = previewHandMeldsForSlot ?? realHandMeldCount;
+  const effectiveHandKanCount =
+    previewHandMeldsForSlot !== null
+      ? kansOf(previewHandMeldsForSlot)
+      : p.hand.melds.slice(0, realHandMeldCount).filter((m) => m.tiles.length === 4).length;
+  const handGroupSlot =
+    tile3dHandGroupByMeldCount[toimenHandSlotIndex(effectiveHandMeldCount, effectiveHandKanCount)] ?? tile3dHandGroupByMeldCount[0]!;
   const tile3dGroupTransform = `translate(${handGroupSlot.offsetX}px, ${handGroupSlot.offsetY}px) rotate(${handGroupSlot.rotate}deg)`;
 
   // Portal先レイヤーの位置を、.opponent-hand-back（祖先の「傾いた卓」
@@ -1092,14 +1141,27 @@ export function OpponentArea({
               // 応じた分だけ仮の副露を表示する——手牌だけ短くして副露が
               // 何も無いと、実際にその副露数だった時の見た目と食い違う
               // ため、両方の編集モードで同じ仮表示の仕組みを共有する。
+              // 対面の副露編集モード(ToimenEditToolbar)も、実際に鳴かれるまで
+              // 動かす対象が無いと位置を決められないため、最大の4個まで
+              // 仮表示で補う（対面は塊ごと動かすので、一番広がる4個で確認する）。
               const previewMeldCountForThisSeat = isEditingThisSeat
                 ? meldEditPreviewCount
                 : isEditingHandThisSeat
                   ? handEditMeldCount
-                  : 0;
+                  : toimenPreviewMeldCount !== null
+                    ? toimenPreviewMeldCount
+                    : isEditingToimenMeld
+                      ? 4
+                      : 0;
               const realMeldCount = p.hand.melds.length;
               const mockCount = previewMeldCountForThisSeat > 0 ? Math.max(0, previewMeldCountForThisSeat - realMeldCount) : 0;
-              const ponMocks = Array.from({ length: mockCount }, (_, k) => makeMockMeld(realMeldCount + k));
+              // 副露配置編集モードのときだけ、ツールバーでスロットごとに選んだ
+              // 種類(ポン/暗槓)で仮表示する（対面の副露編集はtoimenEditAnkanSlots、手牌編集モードの仮表示は常にポン）。
+              const ponMocks = Array.from({ length: mockCount }, (_, k) => {
+                const slot = realMeldCount + k;
+                const asAnkan = ((isEditingThisSeat || isEditingHandThisSeat) && meldEditAnkanSlots[slot]) || ((isEditingToimenMeld || isEditingToimenHand) && toimenEditAnkanSlots[slot]);
+                return makeMockMeld(slot, asAnkan ? "ankan" : "pon");
+              });
               // 暗槓表示確認モード: 副露配置編集モードとは独立に、末尾へ
               // 仮の暗槓を1つだけ追加する（CPUが実際に暗槓するのを待たずに
               // 見た目を確認するための機能、上のponMocksとは別枠）。
@@ -1162,15 +1224,25 @@ export function OpponentArea({
                       transform: `translate(${slotConfig.offsetX}px, ${slotConfig.offsetY}px) rotate(${slotConfig.rotate}deg)`,
                     }
                   : undefined;
+                const isKan = m.tiles.length === 4;
                 const editableClass = isEditingThisSeat
                   ? ` meld--editable${meldEditActiveSlot === Math.min(i, tile3dMeldSlots.length - 1) ? " meld--editable-active" : ""}`
-                  : "";
+                  : isEditingToimenMeld
+                    ? ` meld--editable${toimenEditActiveMeld === Math.min(i, MELD_SLOT_COUNT - 1) ? " meld--editable-active" : ""}`
+                    : "";
+                // 対面の副露1個ごとの個別位置（副露全体の位置に重ねて足される）。
+                const toimenEach = player === 2 ? toimenMeldEach[toimenMeldEachIndex(i, isKan)] : undefined;
+                const eachStyle: CSSProperties | undefined = toimenEach
+                  ? { transform: `translate(${toimenEach.offsetX}px, ${toimenEach.offsetY}px)` }
+                  : undefined;
                 return (
                   <div
                     key={i}
                     className={`meld meld--small${editableClass}${isMock ? " meld--mock" : ""}`}
-                    style={slotStyle}
-                    onPointerDown={isEditingThisSeat ? handleMeldPointerDown(i) : undefined}
+                    style={slotStyle ?? eachStyle}
+                    onPointerDown={
+                      isEditingThisSeat ? handleMeldPointerDown(i) : isEditingToimenMeld ? handleToimenMeldEachPointerDown(i, isKan) : undefined
+                    }
                     onPointerMove={isEditingThisSeat ? handleMeldPointerMove : undefined}
                     onPointerUp={isEditingThisSeat ? handleMeldPointerUp : undefined}
                     onPointerCancel={isEditingThisSeat ? handleMeldPointerUp : undefined}
