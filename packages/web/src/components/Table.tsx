@@ -323,6 +323,48 @@ export function Table() {
 
   const selfCharacter = CHARACTERS[round.characterIds[0]];
 
+  // 上家・下家の3D手牌のレイヤー(.tile3d-hand-layer)はbody直下(z-index:20)にあり、
+  // 卓の中のモーダル(.modal-overlay。結果画面・勝利画面・必殺技の説明など)より
+  // 必ず手前に出てしまう。モーダルが出ている間は、手牌を暗幕と同じ明るさに暗くし、
+  // モーダルの矩形だけくり抜いて手牌が上に重ならないようにする(styles.cssの
+  // .tile3d-hand-layerのclip-path参照)。そのため、モーダルの画面上の矩形を
+  // CSS変数(--modal-l/t/r/b)としてルートへ渡す。出現アニメーション(拡大)の
+  // 終わりに測り直す。
+  useEffect(() => {
+    const screen = document.querySelector(".game-screen");
+    if (!screen) return undefined;
+    const root = document.documentElement;
+    const names = ["--modal-l", "--modal-t", "--modal-r", "--modal-b"] as const;
+    const update = () => {
+      const modal = screen.querySelector<HTMLElement>(":scope > .modal-overlay > .modal");
+      if (!modal) {
+        for (const n of names) root.style.removeProperty(n);
+        return;
+      }
+      const r = modal.getBoundingClientRect();
+      root.style.setProperty("--modal-l", `${Math.round(r.left)}px`);
+      root.style.setProperty("--modal-t", `${Math.round(r.top)}px`);
+      root.style.setProperty("--modal-r", `${Math.round(r.right)}px`);
+      root.style.setProperty("--modal-b", `${Math.round(r.bottom)}px`);
+    };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      update();
+      clearTimeout(timer);
+      timer = setTimeout(update, 300);
+    };
+    const observer = new MutationObserver(schedule);
+    observer.observe(screen, { childList: true });
+    window.addEventListener("resize", schedule);
+    schedule();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", schedule);
+      clearTimeout(timer);
+      for (const n of names) root.style.removeProperty(n);
+    };
+  }, []);
+
   return (
     <DoraProvider doraCodes={doraCodes}>
       <div className="game-screen">

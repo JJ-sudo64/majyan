@@ -29,7 +29,7 @@ export function MatchVictoryOverlay({
     <div className="modal-overlay match-victory-overlay">
       <div className="match-victory-card">
         <div className="match-victory-card__panel" />
-        <div className="match-victory-card__title">優勝</div>
+        <div className="match-victory-card__title">トップ</div>
         <img className="match-victory-card__art" src={champion.character.cutin ?? champion.character.avatar} alt="" />
         <div className="match-victory-card__name">
           {PLAYER_NAMES[champion.player]}（{champion.character.name}）

@@ -52,8 +52,13 @@ export function Stage({ children, menu = false }: { children: ReactNode; /** メ
             width,
             height,
             zoom: scale,
-            // メニューの中では、画面の幅・高さの代わりにキャンバスの大きさを使う（styles.cssの--app-vw/--app-vh）。
-            ...(menu ? { "--app-vw": `${width / 100}px`, "--app-vh": `${height / 100}px` } : null),
+            // 画面の幅・高さの代わりにキャンバスの大きさを使う（styles.cssの--app-vw/--app-vh）。
+            // メニューだけでなく卓でも設定する。vh(ウィンドウ基準)のままだと、キャンバスが
+            // zoomで縮んでいる時（ウィンドウが1392x748より小さい時）に、zoomの内側で
+            // さらに縮んで二重に小さくなる——例えば結果画面の高さの上限が画面の約80%に
+            // なり、全員聴牌の流局でスクロールが出ていた。
+            "--app-vw": `${width / 100}px`,
+            "--app-vh": `${height / 100}px`,
           } as CSSProperties
         }>
         {children}

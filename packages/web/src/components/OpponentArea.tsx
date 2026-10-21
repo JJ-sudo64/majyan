@@ -940,6 +940,11 @@ export function OpponentArea({
         layer.style.top = `${cy - layerRect.height / 2}px`;
       }
       layer.style.setProperty("--tile3d-hand-zoom", String(zoomRatio));
+      // モーダルの矩形でくり抜くclip-path(styles.cssの.tile3d-hand-layer参照)は
+      // layer自身の座標系(左上=style.left/top、scale(zoom)済み)で効くため、
+      // 画面座標→layer座標の変換用に、今の左上位置も変数で渡す。
+      layer.style.setProperty("--layer-x", layer.style.left);
+      layer.style.setProperty("--layer-y", layer.style.top);
     };
 
     // 毎フレームgetBoundingClientRect()を呼ぶrafループで実装した所、

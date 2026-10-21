@@ -2314,6 +2314,38 @@ button {
     0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
+/* 上家・下家の3D手牌のレイヤーはbody直下(z-index:20)にあり、卓の中の
+   モーダル(.modal-overlay。結果画面・勝利画面・必殺技の説明など)より必ず手前に
+   なる——暗幕が手牌に効かず、手牌が明るいままモーダルに重なって見えていた。
+   モーダルが出ている間は、手牌を暗幕(黒の60%)と同じ明るさに暗くし、モーダルの
+   矩形(--modal-l/t/r/b。Table.tsxが測って渡す)だけくり抜いて、手牌がモーダルの
+   上に重ならないようにする。 */
+.tile3d-hand-layer {
+  transition: filter 0.25s;
+}
+body:has(.modal-overlay) .tile3d-hand-layer {
+  /* モーダルの画面上の矩形を、このlayerの座標系(左上=--layer-x/y、
+     scale(--tile3d-hand-zoom)済み)に直す。 */
+  --hole-l: calc((var(--modal-l, 0px) - var(--layer-x, 0px)) / var(--tile3d-hand-zoom, 1));
+  --hole-t: calc((var(--modal-t, 0px) - var(--layer-y, 0px)) / var(--tile3d-hand-zoom, 1));
+  --hole-r: calc((var(--modal-r, 0px) - var(--layer-x, 0px)) / var(--tile3d-hand-zoom, 1));
+  --hole-b: calc((var(--modal-b, 0px) - var(--layer-y, 0px)) / var(--tile3d-hand-zoom, 1));
+  filter: brightness(0.4);
+  clip-path: polygon(
+    evenodd,
+    -9999px -9999px,
+    9999px -9999px,
+    9999px 9999px,
+    -9999px 9999px,
+    -9999px -9999px,
+    var(--hole-l) var(--hole-t),
+    var(--hole-l) var(--hole-b),
+    var(--hole-r) var(--hole-b),
+    var(--hole-r) var(--hole-t),
+    var(--hole-l) var(--hole-t)
+  );
+}
+
 /* リーチ・ツモ・ロンの宣言カットイン(DeclarationCutinOverlay.tsx)。キャラの
    横長1枚絵を、画面中央を横切る斜めカットの帯として叩き付けるように出す。
    body直下にPortalされ、Tile3D手牌(.tile3d-hand-layer、z-index:20)より手前、
@@ -3739,10 +3771,33 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   border-radius: 8px;
   padding: 8px;
 }
+/* 全員聴牌の流局は4人ぶんの手牌が縦に並び、高さが足りずスクロールが出る。
+   名前と待ちを同じ行に並べて、その下に手牌を置き、1人ぶんの高さを詰める
+   （詰めた後に残る余白は、窮屈にならないよう間隔に回す）。 */
+.tenpai-list .win-detail {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  row-gap: 9px;
+  align-items: center;
+  padding: 12px 12px;
+}
+.tenpai-list .win-detail__player {
+  grid-column: 1;
+  grid-row: 1;
+}
+.tenpai-list .win-detail .wait-row {
+  grid-column: 2;
+  grid-row: 1;
+}
+.tenpai-list .win-detail__hand {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
 .tenpai-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 .tenpai-list__label {
   font-weight: bold;
@@ -9039,6 +9094,9 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .modal.modal--result {
   width: min(960px, 96%);
   max-width: 960px;
+  /* 全員聴牌の流局は4人ぶんの手牌が並んで80%では足りず、スクロールが出てしまう。
+     画面（キャンバス）にはまだ余裕があるので、結果画面だけ上下に広げる。 */
+  max-height: calc(var(--app-vh, 1vh) * 96);
 }
 .result-cols {
   display: grid;
