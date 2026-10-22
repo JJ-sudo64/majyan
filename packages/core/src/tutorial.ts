@@ -20,7 +20,8 @@ export type TutorialAllow =
   | { kind: "riichi"; code: TileCode }
   | { kind: "pon" }
   | { kind: "ron" }
-  | { kind: "tsumo" };
+  | { kind: "tsumo" }
+  | { kind: "skill" };
 
 export interface TutorialStep {
   id: string;
@@ -37,7 +38,7 @@ export interface TutorialStep {
   allow?: TutorialAllow;
   /** 光らせる手牌・ボタン。 */
   hintTile?: TileCode;
-  hintButton?: "riichi" | "pon" | "ron" | "tsumo";
+  hintButton?: "riichi" | "pon" | "ron" | "tsumo" | "skill";
 }
 
 export interface TutorialScenario {
@@ -53,6 +54,12 @@ interface Layout {
   draws: TileCode[];
   doraIndicator: TileCode;
   uraIndicator: TileCode;
+  /** 2枚目のドラ表示牌と裏ドラ表示牌（必殺技「開花」でめくれる）。 */
+  secondDoraIndicator?: TileCode;
+  secondUraIndicator?: TileCode;
+  /** 人間のキャラと、最初から満タンにしておく必殺技ゲージ。 */
+  humanCharacterId?: string;
+  humanSkillGauge?: number;
 }
 
 /** 決めた配牌・山の並びのとおりの対局（東1局・人間が親）を作る。 */
@@ -82,13 +89,21 @@ function buildMatch(layout: Layout): MatchState {
   const draws = layout.draws.map(take);
   const dora = take(layout.doraIndicator);
   const ura = take(layout.uraIndicator);
-  // 残りの牌は、王牌の残り12枚と、山の続き（使われない）に回す。
+  const dora2 = layout.secondDoraIndicator ? take(layout.secondDoraIndicator) : undefined;
+  const ura2 = layout.secondUraIndicator ? take(layout.secondUraIndicator) : undefined;
+  // 残りの牌は、王牌の残りと、山の続き（使われない）に回す。王牌は14枚（表示牌の組は4番目から2枚ずつ）。
   const rest = [...pool.values()].flat();
-  const deadFiller = rest.splice(0, 12);
-  const deadWall: Tile[] = [...deadFiller.slice(0, 4), dora, ura, ...deadFiller.slice(4)];
-  const players = dealt.players.map((p, i) => ({ ...p, hand: { concealed: hands[i]!, melds: [] } })) as unknown as RoundState["players"];
+  const indicators: Tile[] = [dora, ura, ...(dora2 && ura2 ? [dora2, ura2] : [])];
+  const deadFiller = rest.splice(0, 14 - 4 - indicators.length);
+  const deadWall: Tile[] = [...rest.splice(0, 4), ...indicators, ...deadFiller];
+  const players = dealt.players.map((p, i) => ({
+    ...p,
+    hand: { concealed: hands[i]!, melds: [] },
+    skillGauge: i === HUMAN ? layout.humanSkillGauge ?? p.skillGauge : p.skillGauge,
+  })) as unknown as RoundState["players"];
   const round: RoundState = {
     ...dealt,
+    characterIds: [layout.humanCharacterId ?? "", "", "", ""],
     players,
     wall: { liveTiles: [...draws, ...rest], deadWall, revealedDoraCount: 1, rinshanDrawn: 0 },
     points: [25000, 25000, 25000, 25000],
@@ -241,13 +256,75 @@ const PON_SCENARIO: TutorialScenario = {
     {
       id: "pon-result",
       advance: "result",
-      text: "ロンであがりました！ 鳴いても、役（ここでは「役牌：中」）があればあがれます。以上でチュートリアルは終わりです。",
+      text: "ロンであがりました！ 鳴いても、役（ここでは「役牌：中」）があればあがれます。次は、キャラクターの「必殺技」を体験します。",
       when: (round) => round.phase === "round-over",
     },
   ],
 };
 
-export const TUTORIAL_SCENARIOS: TutorialScenario[] = [RIICHI_SCENARIO, PON_SCENARIO];
+/** 3局目: 必殺技（ヒイラギの「開花」）。 */
+const SKILL_SCENARIO: TutorialScenario = {
+  id: "skill",
+  build: () =>
+    buildMatch({
+      hands: [
+        // 345萬・678筒・234索・55筒・78索。6索か9索を引けばあがり（6索でタンヤオ・平和・ツモ）。
+        ["3m", "4m", "5m", "6p", "7p", "8p", "2s", "3s", "4s", "5p", "5p", "7s", "8s"],
+        ["1m", "4m", "7m", "1p", "8p", "2s", "5s", "9s", "1z", "2z", "3z", "6z", "7z"],
+        ["2m", "5m", "8m", "2p", "7p", "1s", "4s", "9s", "1z", "2z", "3z", "6z", "7z"],
+        ["3m", "6m", "9m", "1p", "9p", "3s", "5s", "8s", "1z", "2z", "3z", "6z", "7z"],
+      ],
+      // 0:自分=東（使えない） 1,2,3:CPU 4:自分=6索（ツモ和了）
+      draws: ["1z", "4z", "5z", "4z", "6s"],
+      // 最初のドラは1索（手牌に無い）。「開花」で2枚目の表示牌4筒がめくれて、ドラは5筒（手牌に2枚）になる。
+      doraIndicator: "9s",
+      uraIndicator: "6z",
+      secondDoraIndicator: "4p",
+      secondUraIndicator: "7z",
+      humanCharacterId: "hiiragi",
+      humanSkillGauge: 100,
+    }),
+  steps: [
+    {
+      id: "skill-welcome",
+      advance: "next",
+      text: "3局目です。キャラクターごとの「必殺技」を体験します。今回はヒイラギです。必殺技は、局を重ねて溜まるゲージが満タンになると使えます。今回は最初から満タンです。",
+      when: (round) => round.phase === "awaiting-draw" && round.players[HUMAN].discards.length === 0,
+    },
+    {
+      id: "skill-use",
+      advance: "action",
+      allow: { kind: "skill" },
+      hintButton: "skill",
+      text: "ヒイラギの必殺技は「開花」。ドラ表示牌をもう1枚めくって、ドラを増やします。「必殺技」のボタンを押してみましょう。",
+      when: (round) => humanTurnToDiscard(round) && round.wall.revealedDoraCount === 1,
+    },
+    {
+      id: "skill-discard",
+      advance: "action",
+      allow: { kind: "discard", code: "1z" },
+      hintTile: "1z",
+      text: "ドラ表示牌が増えて、ドラは「5筒」になりました。あなたは5筒を2枚持っているので、ドラ2枚ぶん点数が上がります。使えない「東」を捨てましょう。",
+      when: (round) => humanTurnToDiscard(round) && round.wall.revealedDoraCount === 2,
+    },
+    {
+      id: "skill-tsumo",
+      advance: "action",
+      allow: { kind: "tsumo" },
+      hintButton: "tsumo",
+      text: "6索を引きました。あがれます！ 「ツモ」を押しましょう。",
+      when: (round) => humanTurnToDiscard(round) && lastDrawnCode(round) === "6s",
+    },
+    {
+      id: "skill-result",
+      advance: "result",
+      text: "ドラ2枚ぶん、点数が上がりました。必殺技は、キャラクターによって効果がまったく違います。ガチャで集めて、好みのキャラクターで戦ってみてください。以上でチュートリアルは終わりです。",
+      when: (round) => round.phase === "round-over",
+    },
+  ],
+};
+
+export const TUTORIAL_SCENARIOS: TutorialScenario[] = [RIICHI_SCENARIO, PON_SCENARIO, SKILL_SCENARIO];
 
 /** 人間の操作が、台本の許した操作か。 */
 export function tutorialAllows(allow: TutorialAllow | undefined, action: GameAction, round: RoundState): boolean {
@@ -265,6 +342,8 @@ export function tutorialAllows(allow: TutorialAllow | undefined, action: GameAct
       return action.type === "ron";
     case "tsumo":
       return action.type === "tsumo";
+    case "skill":
+      return action.type === "useSkill";
   }
 }
 

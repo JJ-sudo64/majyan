@@ -8,6 +8,7 @@ const HINT_BUTTON_SELECTOR = {
   pon: ".btn--call",
   ron: ".btn--ron",
   tsumo: ".btn--ron",
+  skill: ".btn--skill",
 } as const;
 
 /**
@@ -31,7 +32,7 @@ export function TutorialOverlay() {
   const step = scenario?.steps[tutorial.stepIndex];
   const hintRules: string[] = [];
   if (tutorial.visible && step) {
-    if (step.hintTile) hintRules.push(`.hand-tiles__real .tile[data-tile-code="${step.hintTile}"] { animation: tutorial-pulse 1s ease-in-out infinite; }`);
+    if (step.hintTile) hintRules.push(`.hand-tiles__real .tile[data-tile-code="${step.hintTile}"] { animation: tutorial-pulse-tile 1s ease-in-out infinite; }`);
     if (step.hintButton) hintRules.push(`${HINT_BUTTON_SELECTOR[step.hintButton]} { animation: tutorial-pulse 1s ease-in-out infinite; }`);
   }
 

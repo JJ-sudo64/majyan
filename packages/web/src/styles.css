@@ -9124,6 +9124,18 @@ button.oh-player__rank:hover .oh-player__rank-help {
     box-shadow: 0 0 14px 4px rgba(255, 221, 120, 0.95);
   }
 }
+/* 牌用。box-shadow（牌の厚み）とfilter（縮尺時のぼやけ）には触れず、outlineだけを動かす。 */
+@keyframes tutorial-pulse-tile {
+  0%,
+  100% {
+    outline: 3px solid rgba(255, 221, 120, 0);
+    outline-offset: 2px;
+  }
+  50% {
+    outline: 3px solid rgba(255, 221, 120, 1);
+    outline-offset: 4px;
+  }
+}
 @keyframes tutorial-nudge {
   0%,
   100% {

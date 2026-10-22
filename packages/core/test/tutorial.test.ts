@@ -20,6 +20,8 @@ function humanActionFor(allow: TutorialAllow, match: MatchState): GameAction {
       return { type: "tsumo", player: 0 };
     case "ron":
       return { type: "ron", player: 0 };
+    case "skill":
+      return { type: "useSkill", player: 0 };
     case "pon": {
       const code = round.pendingCallWindow!.discardTile.code;
       return { type: "pon", player: 0, usedHandTileIds: hand.filter((t) => t.code === code).slice(0, 2).map((t) => t.id) };
@@ -98,6 +100,12 @@ describe("tutorial scenarios", () => {
 
   it("riichi scenario: the human's win is a riichi tsumo, the pon scenario's is a ron with the yakuhai", () => {
     const [riichi, pon] = TUTORIAL_SCENARIOS;
+    // 3局目: 「開花」で2枚目の表示牌がめくれ、ドラが5筒になる。
+    const skill = TUTORIAL_SCENARIOS[2]!.build().round;
+    expect(skill.characterIds[0]).toBe("hiiragi");
+    expect(skill.players[0]!.skillGauge).toBe(100);
+    expect(skill.wall.deadWall.length).toBe(14);
+    expect(skill.wall.deadWall[6]!.code).toBe("4p");
     expect(riichi!.build().round.players[0]!.hand.concealed.map((t) => t.code).sort()).toEqual(
       ["2m", "3m", "4m", "4p", "5p", "6p", "6s", "7s", "8s", "3p", "3p", "9m", "4z"].sort(),
     );
