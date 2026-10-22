@@ -54,6 +54,35 @@ describe("strong CPU defense", () => {
   });
 });
 
+/** 席1のライコがリーチ後の一発中（ゲージ満タン）で、席0が席3の捨てた牌に鳴ける場面。 */
+function issenRound(gauge: number): RoundState {
+  const base = createMatch("hanchan", makeRng(7)).round;
+  const players = base.players.map((p) => ({ ...p })) as RoundState["players"];
+  // 1向聴のまま、4pをポンしても向聴数が悪くならない手。
+  const hand = tiles(["2m", "3m", "4m", "6m", "7m", "8m", "4p", "4p", "3s", "5s", "9s", "1z", "7z"], "h");
+  players[0] = { ...players[0]!, hand: { concealed: hand, melds: [] }, riichi: false, discards: [] };
+  players[1] = { ...players[1]!, riichi: true, ippatsuActive: true, skillGauge: gauge };
+  const discardTile = { id: "d0", code: "4p" as TileCode };
+  return {
+    ...base,
+    players,
+    characterIds: ["", "raiko", "", ""],
+    currentTurn: 3,
+    phase: "awaiting-call",
+    pendingCallWindow: { discardTile, discarderIndex: 3, isChankan: false } as RoundState["pendingCallWindow"],
+    handsRevealedTo: null,
+  };
+}
+
+describe("strong CPU vs Raiko's issen", () => {
+  it("Lv4/5 call to break the ippatsu while Raiko has a full gauge, but not when the gauge is empty", () => {
+    for (const level of [4, 5] as const) {
+      expect(decideCpuCallResponse(issenRound(100), 0, level).type).toBe("pon");
+    }
+    expect(decideCpuCallResponse(issenRound(0), 0, 5).type).toBe("skip");
+  });
+});
+
 describe("strong CPU self-play", () => {
   it("plays a whole round at Lv5 against Lv2 without getting stuck", () => {
     const rng = makeRng(42);

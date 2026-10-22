@@ -4,6 +4,7 @@ import { removeTileFromHand, allHandTileCodes, type Hand, type Meld } from "../h
 import { calcShanten, bestShantenAfterDiscard } from "../shanten.js";
 import { doraIndicators } from "../wall.js";
 import { seatWindOf, type RoundState } from "../gameState.js";
+import { CHARACTERS } from "../characters.js";
 import type { GameAction, PlayerIndex } from "../actions.js";
 import { chooseStrongDiscard, shouldSkipRiichi, strongCallAllowed, type StrongProfile } from "./strongAi.js";
 import {
@@ -379,6 +380,15 @@ function findChiOptions(hand: Hand, discardTile: TileCode): [TileCode, TileCode]
   return options;
 }
 
+/** 自分以外にライコがいて、一閃（リーチ後の一発中・ゲージ満タン）を構えているか。 */
+function hasIssenThreat(round: RoundState, player: PlayerIndex): boolean {
+  return round.players.some((p, i) => {
+    if (i === player || !p.ippatsuActive) return false;
+    const character = CHARACTERS[round.characterIds[i]!];
+    return character?.skill.id === "raiko-issen" && p.skillGauge >= character.gaugeMax;
+  });
+}
+
 /** 他家の捨て牌に対する応答（ロン・ポン・カン・チー・スキップ）の意思決定 */
 export function decideCallResponse(round: RoundState, player: PlayerIndex, difficulty: AiDifficulty = DEFAULT_AI_DIFFICULTY): GameAction {
   const profile = AI_PROFILES[difficulty];
@@ -394,6 +404,9 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
   // リーチ後は手牌が固定されるため、ロン以外の宣言（チー/ポン/カン）はできない。
   if (round.players[player].riichi) return { type: "skip", player };
   const currentShanten = calcShanten(hand);
+  // Lv4・5は、ライコが一閃を構えている（リーチ後の一発中でゲージ満タン）間は、手が悪くならない鳴きなら
+  // 役の見込みや安全度を問わず鳴いて、一発を消す。
+  const breakIppatsu = profile.strong?.smartCalls === true && hasIssenThreat(round, player);
 
   const matches = hand.concealed.filter((t) => t.code === discardTile.code);
   if (matches.length >= 3 && round.kanCount < 4) {
@@ -404,7 +417,10 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
     const meld: Meld = { type: "minkan", tiles: [discardTile, a!, b!, c!] };
     const probe: Hand = { concealed: afterC.concealed, melds: [...afterC.melds, meld] };
     const yakuOk = !profile.callSelectivity || hasPlausibleYakuOpen(probe, round, player);
-    if (calcShanten(probe) < currentShanten && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, calcShanten(probe), probe, discardTile.code))) {
+    if (
+      (calcShanten(probe) < currentShanten && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, calcShanten(probe), probe, discardTile.code))) ||
+      (breakIppatsu && calcShanten(probe) <= currentShanten)
+    ) {
       return { type: "minkan", player, usedHandTileIds: [a!.id, b!.id, c!.id] };
     }
   }
@@ -417,7 +433,10 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
     const probe: Hand = { concealed: afterB.concealed, melds: [...afterB.melds, meld] };
     const best = bestShantenAfterDiscard(probe);
     const yakuOk = !profile.callSelectivity || hasPlausibleYakuOpen(probe, round, player);
-    if (best < currentShanten && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, best, probe, discardTile.code))) {
+    if (
+      (best < currentShanten && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, best, probe, discardTile.code))) ||
+      (breakIppatsu && best <= currentShanten)
+    ) {
       return { type: "pon", player, usedHandTileIds: [a!.id, b!.id] };
     }
   }
@@ -436,7 +455,9 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
       const probe: Hand = { concealed: after2.concealed, melds: [...after2.melds, meld] };
       const best = bestShantenAfterDiscard(probe);
       const yakuOk = !profile.callSelectivity || hasPlausibleYakuOpen(probe, round, player);
-      if (best < bestShantenAfter && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, best, probe))) {
+      const normal = best < bestShantenAfter && yakuOk && (!profile.strong?.smartCalls || strongCallAllowed(round, player, best, probe));
+      const sabotage = breakIppatsu && best <= currentShanten && (bestOption === null || best < bestShantenAfter);
+      if (normal || sabotage) {
         bestShantenAfter = best;
         bestOption = [t1.code, t2.code];
       }
