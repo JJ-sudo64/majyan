@@ -118,6 +118,7 @@ export function CharacterPanel({
               <span
                 key={i}
                 className={`character-panel__name-line${line.length > LONG_NAME_LINE_THRESHOLD ? " character-panel__name-line--long" : ""}`}
+                style={{ "--name-chars": line.length } as CSSProperties}
               >
                 {line}
               </span>
@@ -129,6 +130,7 @@ export function CharacterPanel({
               <span
                 key={i}
                 className={`character-panel__name-line${line.length > LONG_NAME_LINE_THRESHOLD ? " character-panel__name-line--long" : ""}`}
+                style={{ "--name-chars": line.length } as CSSProperties}
               >
                 {line}
               </span>

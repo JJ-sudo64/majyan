@@ -189,10 +189,10 @@ const INITIAL_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
 ];
 /** 上家の副露4スロット。 */
 const INITIAL_KAMICHA_MELD_SLOTS: MeldSlotConfig[] = [
-  { offsetX: -59, offsetY: 54, rotate: 15 },
-  { offsetX: -16, offsetY: 9, rotate: 14 },
-  { offsetX: -136, offsetY: 17, rotate: 15 },
-  { offsetX: -96, offsetY: -27, rotate: 15 },
+  { offsetX: -59, offsetY: 54, rotate: 9 },
+  { offsetX: -16, offsetY: 9, rotate: 9 },
+  { offsetX: -138, offsetY: 27, rotate: 10 },
+  { offsetX: -97, offsetY: -17, rotate: 10 },
 ];
 /** 上家の手牌列、副露0〜4個の各状態。 */
 const INITIAL_KAMICHA_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
@@ -768,7 +768,7 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       name: "tile3d-debug-store",
       // どのブラウザでも同じ値になるようファイルに保存する（sharedTuningStorage.ts参照）
       storage: createJSONStorage(() => sharedTuningStorage),
-      version: 11,
+      version: 12,
       // パネルの開閉状態(activePanel)は「今このセッションで開いているか」
       // だけの一時的なUI状態なので、リロードのたびに閉じた状態(null)から
       // 始まってよい——むしろpersistすると、開いたままリロードした時に
@@ -1024,6 +1024,34 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
             const old = groups[key];
             if (old && old.length === HAND_GROUP_SLOT_COUNT) groups[key] = expandHandGroupByKan(old);
           }
+        }
+        if (version < 12) {
+          // v11→v12: 2026-10-24、ユーザーの指示「デフォルトが今の値にしてくれ」により、
+          // 実機で詰めた最新の配置(上家の副露スロットの角度・位置を更新)を全ブラウザの
+          // 既定にする強制上書き。v6→v7と同じく、保存対象の配置をすべてINITIAL_*で置き換える。
+          // 以後(v12以降)はユーザーが動かした値を尊重して上書きしない。
+          s = {
+            ...s,
+            ...INITIAL_SCALARS,
+            meldSlots: INITIAL_MELD_SLOTS.map((slot) => ({ ...slot })),
+            handGroupByMeldCount: INITIAL_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
+            ...INITIAL_KAMICHA_SCALARS,
+            kamichaHandGroupByMeldCount: INITIAL_KAMICHA_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
+            kamichaMeldSlots: INITIAL_KAMICHA_MELD_SLOTS.map((slot) => ({ ...slot })),
+            meldEditPreviewCount: INITIAL_MELD_EDIT_PREVIEW_COUNT,
+            riverSlots: INITIAL_RIVER_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riverSlots"],
+            riichiStickSlots: INITIAL_RIICHI_STICK_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riichiStickSlots"],
+            nameplateSlots: INITIAL_NAMEPLATE_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["nameplateSlots"],
+            toimenHandSlots: INITIAL_TOIMEN_HAND_SLOTS.map((slot) => ({ ...slot })),
+            toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
+            toimenMeldEach: INITIAL_TOIMEN_MELD_EACH.map((slot) => ({ ...slot })),
+            revealHandRotate: { ...INITIAL_REVEAL_HAND_ROTATE },
+            revealHandOffset: {
+              shimocha: { ...INITIAL_REVEAL_HAND_OFFSET.shimocha },
+              toimen: { ...INITIAL_REVEAL_HAND_OFFSET.toimen },
+              kamicha: { ...INITIAL_REVEAL_HAND_OFFSET.kamicha },
+            },
+          };
         }
         return s as Tile3DDebugState;
       },

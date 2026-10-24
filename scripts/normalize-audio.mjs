@@ -34,6 +34,8 @@ const RULES = [
   // ガチャ演出・メニューのボタンの音は scripts/synth-sfx.py が音ごとに大きさを決めて書き出す。
   { match: /^sfx\/(gacha|ui)-/, target: null },
   { match: /^sfx\//, target: -18 },
+  // マキは声が低めで、同じ-18でも他のキャラより小さく聞こえるので少し上げる。
+  { match: /^voices\/saki\//, target: -16 },
   { match: /^voices\//, target: -18 },
   { match: /^bgm\//, target: -20 },
 ];

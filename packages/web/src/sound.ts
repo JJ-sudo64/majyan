@@ -46,11 +46,11 @@ function getVoiceClip(url: string): HTMLAudioElement | null {
 }
 
 /** 収録ボイス音源を1つ再生する（TTSへのフォールバックなし）。 */
-export function playVoiceClip(url: string) {
+export function playVoiceClip(url: string, gain = 1) {
   const audio = getVoiceClip(url);
   if (!audio) return;
   audio.currentTime = 0;
-  audio.volume = getSeVolume();
+  audio.volume = getSeVolume() * gain;
   void audio.play().catch(() => {});
 }
 
@@ -60,19 +60,22 @@ const DEAL_SFX = "/sfx/deal.mp3";
 const RIICHI_SFX = "/sfx/riichi.mp3";
 const WIN_SFX = "/sfx/win.mp3";
 
+/** 打牌・ツモ・配牌のカチッという音はピークが大きくボイスより耳につくので、約-4dB下げて鳴らす。 */
+const TILE_SFX_GAIN = 0.6;
+
 /** 打牌音: 牌を卓に置く音。 */
 export function playDiscardSound() {
-  playVoiceClip(DISCARD_SFX);
+  playVoiceClip(DISCARD_SFX, TILE_SFX_GAIN);
 }
 
 /** ツモ音: 牌を引く音。 */
 export function playDrawSound() {
-  playVoiceClip(DRAW_SFX);
+  playVoiceClip(DRAW_SFX, TILE_SFX_GAIN);
 }
 
 /** 配牌音: 局の開始時に牌を混ぜる音。 */
 export function playDealSound() {
-  playVoiceClip(DEAL_SFX);
+  playVoiceClip(DEAL_SFX, TILE_SFX_GAIN);
 }
 
 /** リーチ宣言の効果音（「シャキーン」。以前は点棒を卓に置く音だった）。 */

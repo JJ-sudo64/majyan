@@ -2080,6 +2080,13 @@ button {
   font-size: 11px;
   white-space: nowrap;
 }
+/* 上家・下家・対面のプレートは文字の入る幅が約90pxしかなく、10文字の異名は11pxでも
+   はみ出す。行の文字数(--name-chars、CharacterPanel.tsx)に合わせて収まる大きさまで縮める。 */
+.character-panel--top .character-panel__name-line--long,
+.character-panel--left .character-panel__name-line--long,
+.character-panel--right .character-panel__name-line--long {
+  font-size: min(11px, calc(90px / var(--name-chars, 8)));
+}
 /* 自分のキャラ名だけ、対局中に必殺技の効果を確認できるようクリック可能に
    している（CharacterPanel.tsx）。<button>化に伴うブラウザ既定の見た目を
    リセットし、通常の名前表示と変わらない見た目にしつつ、クリック可能で

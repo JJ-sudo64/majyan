@@ -139,6 +139,20 @@ export function useGameSounds(round: RoundState | undefined) {
     prevSkillGaugesRef.current = skillGauges;
   }, [skillGaugeSignature]);
 
+  // ナオトの「クマクマタイム」等、配牌時に自動発動するパッシブ。ゲージを使わないので上の検知に
+  // 乗らない。SkillActivationOverlayと同じく、局が切り替わって親の和了連荘になった瞬間に発声する。
+  const passiveRoundKey = round ? `${round.roundWind}-${round.roundNumber}-${round.honba}` : "";
+  const prevPassiveRoundKeyRef = useRef(passiveRoundKey);
+  useEffect(() => {
+    const prevKey = prevPassiveRoundKeyRef.current;
+    prevPassiveRoundKeyRef.current = passiveRoundKey;
+    if (!round || prevKey === passiveRoundKey || !round.dealerRenchanByWin) return;
+    const character = CHARACTERS[round.characterIds[round.dealerSeat]!];
+    if (!character || typeof character.skill.hooks.onDealHand !== "function") return;
+    const fallback = `${character.voiceName ?? character.name} ${character.skill.voiceName ?? character.skill.name}`;
+    speakVoice(character.voiceClips?.skillActivate, fallback);
+  }, [passiveRoundKey]);
+
   const phase = round?.phase;
   const prevPhaseRef = useRef(phase);
   const winVoiceTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
