@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { MissionsResponse } from "@majyan/core";
 import { claimMissions, fetchMissions } from "../online/account.js";
+import { playUiSuccess } from "../sound.js";
 
 /** リセットまでの残り（「あと5時間」「あと30分」）。 */
 function untilReset(resetsAt: number, now: number): string {
@@ -29,6 +30,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
       const res = await claimMissions(missionId);
       setData((d) => (d ? { ...d, missions: res.missions } : d));
       setNotice(`雀玉 ${res.jade} を受け取りました`);
+      playUiSuccess();
     } catch (err) {
       setError((err as Error).message);
     } finally {

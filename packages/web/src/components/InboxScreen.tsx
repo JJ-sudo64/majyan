@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CARDS, CHARACTERS, characterRarity, type GachaItem, type InboxResponse } from "@majyan/core";
 import { claimGifts, fetchInbox, markAnnouncementsSeen, useAccountStore } from "../online/account.js";
+import { playUiSuccess } from "../sound.js";
 
 export type InboxTab = "news" | "gifts";
 
@@ -58,6 +59,7 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
     try {
       const res = await claimGifts(giftId);
       setNotice(`${contentsLabel(res.jade, res.items)} を受け取りました`);
+      playUiSuccess();
       setInbox(await fetchInbox());
     } catch (err) {
       setError((err as Error).message);

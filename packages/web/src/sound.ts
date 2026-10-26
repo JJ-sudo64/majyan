@@ -133,6 +133,8 @@ function audioContext(): AudioContext | null {
 
 const UI_TAP_SFX = "/sfx/ui-tap.mp3";
 const UI_CONFIRM_SFX = "/sfx/ui-confirm.mp3";
+const UI_CANCEL_SFX = "/sfx/ui-cancel.mp3";
+const UI_SUCCESS_SFX = "/sfx/ui-success.mp3";
 const sampleCache = new Map<string, Promise<AudioBuffer | null>>();
 
 /** 音源を読み込んで解読しておく（同じURLは1回だけ）。 */
@@ -197,6 +199,9 @@ function playSample(url: string): SampleHandle {
 // メニューのボタン音は小さいので、最初の1回から鳴るよう先に読み込んでおく。
 void loadSample(UI_TAP_SFX);
 void loadSample(UI_CONFIRM_SFX);
+void loadSample(UI_CANCEL_SFX);
+void loadSample(UI_SUCCESS_SFX);
+void loadSample("/sfx/skill-ready.mp3");
 
 /**
  * 制限時間の残り数秒を知らせる短い電子音（音源ファイルを使わずWeb Audioで鳴らす）。
@@ -225,10 +230,21 @@ export function playCountdownBeep(last = false) {
 
 /**
  * メニュー画面（選択画面・オンラインのホーム）のボタンを押した時の短い音（public/sfx/ui-*.mp3、scripts/synth-sfx.py）。
- * tap=ふつうのボタン（木を軽く打つ音）、confirm=対局を始める・決定するなどの金色のボタン（琴の2音）。
+ * tap=ふつうのボタン（木を軽く打つ音）、confirm=対局を始める・決定するなどの金色のボタン（琴の2音）、
+ * cancel=戻る・閉じるボタン（素材集の「キャンセル」。ui-cancel.mp3）。
  */
-export function playUiClick(kind: "tap" | "confirm" = "tap") {
-  playSample(kind === "confirm" ? UI_CONFIRM_SFX : UI_TAP_SFX);
+export function playUiClick(kind: "tap" | "confirm" | "cancel" = "tap") {
+  playSample(kind === "confirm" ? UI_CONFIRM_SFX : kind === "cancel" ? UI_CANCEL_SFX : UI_TAP_SFX);
+}
+
+/** 必殺技ゲージが満タンになった時の「ビーム砲チャージ」（自分の席だけ。skill-ready.mp3）。 */
+export function playSkillReadySound() {
+  playSample("/sfx/skill-ready.mp3");
+}
+
+/** 雀玉・プレゼントを受け取れた時の音（素材集の「成功音」）。 */
+export function playUiSuccess() {
+  playSample(UI_SUCCESS_SFX);
 }
 
 /**
@@ -238,7 +254,8 @@ export function playUiClick(kind: "tap" | "confirm" = "tap") {
 export function playUiClickFor(event: { target: EventTarget | null }) {
   const target = event.target instanceof Element ? event.target.closest("button, a, select") : null;
   if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
-  playUiClick(target.matches(".oh-mode, .oh-cta, .btn--primary") ? "confirm" : "tap");
+  const isCancel = target.matches(".oh-back, .setup-picker-modal__close, .pv-modal__close");
+  playUiClick(isCancel ? "cancel" : target.matches(".oh-mode, .oh-cta, .btn--primary") ? "confirm" : "tap");
 }
 
 /**

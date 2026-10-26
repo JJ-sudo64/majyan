@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { CHARACTERS, type Meld, type RoundState, type VoiceEvent } from "@majyan/core";
-import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, speakVoice } from "../sound.js";
+import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, playSkillReadySound, speakVoice } from "../sound.js";
 import { winDeclarationSchedule } from "../components/DeclarationCutinOverlay.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
@@ -126,6 +126,9 @@ export function useGameSounds(round: RoundState | undefined) {
   useEffect(() => {
     const prev = prevSkillGaugesRef.current;
     if (round) {
+      // 自分（席0）のゲージが満タンになった瞬間にチャージ音を鳴らす。
+      const max = CHARACTERS[round.characterIds[0]]?.gaugeMax;
+      if (max && prev[0]! < max && skillGauges[0]! >= max) playSkillReadySound();
       for (let i = 0; i < skillGauges.length; i++) {
         if (prev[i]! > 0 && skillGauges[i] === 0) {
           const character = CHARACTERS[round.characterIds[i]!];
