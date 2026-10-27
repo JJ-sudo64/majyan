@@ -134,7 +134,9 @@ export function redactRoundForSeat(round: RoundState, seat: PlayerIndex | null):
     respondedBy: round.pendingCallWindow.respondedBy.filter((p) => p === seat),
     declaredCalls: round.pendingCallWindow.declaredCalls.filter((c) => c.player === seat),
   };
-  return { ...round, players, wall, lastDrawnTile, pendingCallWindow };
+  // 「無効化」を構えているかは本人だけが知る罠なので、他家の分は伏せる。
+  const cardNegateArmed = round.cardNegateArmed.map((armed, i) => i === seat && armed) as RoundState["cardNegateArmed"];
+  return { ...round, players, wall, lastDrawnTile, pendingCallWindow, cardNegateArmed };
 }
 
 export function redactMatchForSeat(match: MatchState, seat: PlayerIndex | null): MatchState {
@@ -257,6 +259,7 @@ function rotateResult(r: RoundEndResult, viewer: PlayerIndex): RoundEndResult {
     winners: r.winners.map((p) => toViewerSeat(p, viewer)),
     ...(r.loser !== undefined ? { loser: toViewerSeat(r.loser, viewer) } : {}),
     ...(r.tenpaiPlayers !== undefined ? { tenpaiPlayers: r.tenpaiPlayers.map((p) => toViewerSeat(p, viewer)) } : {}),
+    ...(r.declarer !== undefined ? { declarer: toViewerSeat(r.declarer, viewer) } : {}),
     dealerContinues: r.dealerContinues,
   };
 }

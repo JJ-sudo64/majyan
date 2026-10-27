@@ -2,7 +2,7 @@ import type { TileCode } from "../tiles.js";
 import { numberOf, suitOf, isTerminalOrHonor, nextTileForDora } from "../tiles.js";
 import { removeTileFromHand, allHandTileCodes, type Hand, type Meld } from "../hand.js";
 import { calcShanten, bestShantenAfterDiscard } from "../shanten.js";
-import { doraIndicators } from "../wall.js";
+import { doraIndicators, liveTilesRemaining } from "../wall.js";
 import { seatWindOf, type RoundState } from "../gameState.js";
 import { CHARACTERS } from "../characters.js";
 import type { GameAction, PlayerIndex } from "../actions.js";
@@ -409,7 +409,7 @@ export function decideCallResponse(round: RoundState, player: PlayerIndex, diffi
   const breakIppatsu = profile.strong?.smartCalls === true && hasIssenThreat(round, player);
 
   const matches = hand.concealed.filter((t) => t.code === discardTile.code);
-  if (matches.length >= 3 && round.kanCount < 4) {
+  if (matches.length >= 3 && round.kanCount < 4 && liveTilesRemaining(round.wall) > 0) {
     const [a, b, c] = matches;
     const { hand: afterA } = removeTileFromHand(hand, a!.id);
     const { hand: afterB } = removeTileFromHand(afterA, b!.id);

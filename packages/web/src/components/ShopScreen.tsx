@@ -198,7 +198,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
                 （無償 {shop.jade.free.toLocaleString()} ／ 有償 {shop.jade.paid.toLocaleString()}）
               </span>
             </div>
-            {shop.mode === "closed" && <p className="setup-lead">雀玉の販売は準備中です。雀玉は段位戦の報酬・ログインボーナス・ミッションでもらえます。</p>}
+            {shop.mode === "closed" && <p className="setup-lead">雀玉の販売は準備中です。雀玉はログインボーナスとミッションでもらえます。</p>}
             {shop.mode === "test" && <p className="shop-screen__test">開発用のテスト購入です。お金は動かず、押すだけで雀玉が増えます。</p>}
             {shop.mode !== "closed" && !shop.ageBracket && <AgeGate busy={busy} onSubmit={(m) => void run(() => declareBirthMonth(m))} />}
             {shop.mode !== "closed" && shop.ageBracket && (

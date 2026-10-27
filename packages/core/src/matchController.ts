@@ -9,6 +9,7 @@
  * 呼び出し側の責務で、ここでは扱わない。
  */
 import type { TileCode } from "./tiles.js";
+import { liveTilesRemaining } from "./wall.js";
 import type { GameAction, PlayerIndex } from "./actions.js";
 import type { MatchState, RoundState } from "./gameState.js";
 import {
@@ -94,7 +95,7 @@ export function settleRound(match: MatchState): SettledRound {
   const { round: guardedRound, scores } = applyCardBustGuards(round, rawScores);
   const result = round.result;
   const keepKyotaku = result.type !== "tsumo" && result.type !== "ron";
-  const plan = planNextRound(round, match.format, result.dealerContinues, keepKyotaku);
+  const plan = planNextRound(round, match.format, result.dealerContinues, keepKyotaku, { scores, startingDealer: match.startingDealer });
   // 箱下続行ルール(continueBelowZero)がオフの場合、誰かが箱割れした時点で
   // 通常の局数を消化しきっていなくても即座に対局終了とする。
   const busted = !match.continueBelowZero && hasBustedPlayer(scores);
@@ -140,7 +141,10 @@ export function advanceToNextRound(
   const result = round.result;
   const keepKyotaku = result.type !== "tsumo" && result.type !== "ron";
   const roundKyotakuAfter = keepKyotaku ? round.kyotaku : 0;
-  const plan = planNextRound(round, match.format, result.dealerContinues, keepKyotaku);
+  const plan = planNextRound(round, match.format, result.dealerContinues, keepKyotaku, {
+    scores: match.scores,
+    startingDealer: match.startingDealer,
+  });
   // 対局終了はsettleRoundで既にfinishedとして反映済みのため通常ここには来ないが、念のため。
   if (plan.matchOver) {
     const settledScores = applyCardMatchEndBonuses(
@@ -311,7 +315,7 @@ export function computeCallOptions(round: RoundState, seat: PlayerIndex): CallOp
         }
       : null;
   const canMinkan =
-    matches.length >= 3 && round.kanCount < 4
+    matches.length >= 3 && round.kanCount < 4 && liveTilesRemaining(round.wall) > 0
       ? {
           tileCode: discardTile.code,
           redFlags: [discardRed, !!matches[0]!.isRed, !!matches[1]!.isRed, !!matches[2]!.isRed] as [boolean, boolean, boolean, boolean],

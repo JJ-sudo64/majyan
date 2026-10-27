@@ -250,12 +250,15 @@ export interface NextRoundPlan {
  * 局終了後、次局の設定を決定する。
  * dealerContinues: 親が連荘するか（親の和了、または親テンパイでの流局）
  * keepKyotaku: 供託を次局に持ち越すか（誰も和了しなかった場合）
+ * standings: この局の精算後の持ち点と起家。渡すと「あがりやめ」を適用する
+ *   （最終局で親が和了、または親テンパイ流局で連荘になる場合でも、親が単独トップなら対局終了）。
  */
 export function planNextRound(
   current: RoundState,
   format: MatchFormat,
   dealerContinues: boolean,
   keepKyotaku: boolean,
+  standings?: { scores: readonly [number, number, number, number]; startingDealer: PlayerIndex },
 ): NextRoundPlan {
   const currentIndex = globalRoundIndex(current.roundWind, current.roundNumber);
   const nextIndex = dealerContinues ? currentIndex : currentIndex + 1;
@@ -264,7 +267,15 @@ export function planNextRound(
   const nextHonba = dealerContinues || isDraw ? current.honba + 1 : 0;
   const nextKyotaku = keepKyotaku ? current.kyotaku : 0;
 
-  const matchOver = !dealerContinues && currentIndex >= maxGlobalRoundIndex(format);
+  const isFinalRound = currentIndex >= maxGlobalRoundIndex(format);
+  // あがりやめ: 親の和了・テンパイ連荘でも、親がトップなら終了する（途中流局の連荘は続行）。
+  const agariYame =
+    dealerContinues &&
+    isFinalRound &&
+    standings !== undefined &&
+    current.result?.type !== "abortive-draw" &&
+    rankSeats(standings.scores, standings.startingDealer)[0] === current.dealerSeat;
+  const matchOver = (!dealerContinues && isFinalRound) || agariYame;
 
   if (matchOver) {
     return {

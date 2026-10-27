@@ -297,31 +297,11 @@ export function Table() {
     return new Set(doraIndicators(match.round.wall).map(nextTileForDora));
   }, [match]);
 
-  if (!match) return null;
-  const round = match.round;
-
-  // ロン/チー/ポン/カンの対象がどの牌か一目でわかるよう、河の中の該当牌を
-  // 光らせる（じゃんたま同様）。加槓に対する槍槓（isChankan）は河ではなく
-  // 既存の副露の牌が対象になるため、河側のハイライトはここでは対象外。
-  const callTargetTileId =
-    round.phase === "awaiting-calls" && round.pendingCallWindow && !round.pendingCallWindow.isChankan
-      ? round.pendingCallWindow.discardTile.id
-      : undefined;
-
-  // 必殺技「時間停止」発動中は、発動者本人の河以外をグレーアウトする
-  // （OpponentArea.tsx/Hand.tsxが自分自身の手牌・副露側は自前で判定する
-  // ため、ここでは河ぶんだけ座席ごとに渡す）。
-  const timeStopSource = ([0, 1, 2, 3] as PlayerIndex[]).find((seat) => round.players[seat].timeStopTurnsRemaining > 0);
-  const riverFrozen = (seat: PlayerIndex) => timeStopSource !== undefined && seat !== timeStopSource;
-
-  // ミオの必殺技「取り返し」選択中: 自分の河から取り返す1枚を選ぶ段階
-  // （reclaimTileIdがまだnull）の間だけ、自分の河をクリック可能にする。
+  // ミオの必殺技「取り返し」選択中の状態（河の選択はこのコンポーネント、手牌の選択はHand.tsx）。
+  // フックは下の早期returnより前に置く（呼ぶ数を毎回同じにするため）。
   const retrieveActive = useRetrieveDiscardStore((s) => s.active);
   const retrieveReclaimTileId = useRetrieveDiscardStore((s) => s.reclaimTileId);
   const selectRetrieveReclaimTile = useRetrieveDiscardStore((s) => s.selectReclaimTile);
-  const humanRiverClickable = retrieveActive && !retrieveReclaimTileId;
-
-  const selfCharacter = CHARACTERS[round.characterIds[0]];
 
   // 上家・下家の3D手牌のレイヤー(.tile3d-hand-layer)はbody直下(z-index:20)にあり、
   // 卓の中のモーダル(.modal-overlay。結果画面・勝利画面・必殺技の説明など)より
@@ -364,6 +344,29 @@ export function Table() {
       for (const n of names) root.style.removeProperty(n);
     };
   }, []);
+
+  if (!match) return null;
+  const round = match.round;
+
+  // ロン/チー/ポン/カンの対象がどの牌か一目でわかるよう、河の中の該当牌を
+  // 光らせる（じゃんたま同様）。加槓に対する槍槓（isChankan）は河ではなく
+  // 既存の副露の牌が対象になるため、河側のハイライトはここでは対象外。
+  const callTargetTileId =
+    round.phase === "awaiting-calls" && round.pendingCallWindow && !round.pendingCallWindow.isChankan
+      ? round.pendingCallWindow.discardTile.id
+      : undefined;
+
+  // 必殺技「時間停止」発動中は、発動者本人の河以外をグレーアウトする
+  // （OpponentArea.tsx/Hand.tsxが自分自身の手牌・副露側は自前で判定する
+  // ため、ここでは河ぶんだけ座席ごとに渡す）。
+  const timeStopSource = ([0, 1, 2, 3] as PlayerIndex[]).find((seat) => round.players[seat].timeStopTurnsRemaining > 0);
+  const riverFrozen = (seat: PlayerIndex) => timeStopSource !== undefined && seat !== timeStopSource;
+
+  // ミオの必殺技「取り返し」選択中: 自分の河から取り返す1枚を選ぶ段階
+  // （reclaimTileIdがまだnull）の間だけ、自分の河をクリック可能にする。
+  const humanRiverClickable = retrieveActive && !retrieveReclaimTileId;
+
+  const selfCharacter = CHARACTERS[round.characterIds[0]];
 
   return (
     <DoraProvider doraCodes={doraCodes}>

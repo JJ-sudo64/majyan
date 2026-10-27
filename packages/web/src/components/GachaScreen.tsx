@@ -145,7 +145,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         </div>
         <p className="setup-lead">
           キャラとカードが出ます。10連は★{TEN_PULL_GUARANTEE.rarity}以上が1つ確定。同じキャラが出たら別々の仲間として増えます。
-          雀玉は段位戦の報酬とログインボーナスでもらえます。
+          雀玉はログインボーナスとミッションでもらえます。
         </p>
 
         <div className="gacha-screen__exchange">

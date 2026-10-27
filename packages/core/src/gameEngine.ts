@@ -1,4 +1,5 @@
 import {
+  isHonor,
   prevTileForDora,
   sortTiles,
   type Tile,
@@ -494,6 +495,7 @@ function riichiAnkanKeepsWaits(round: RoundState, player: PlayerIndex, code: Til
 export function ankanOptions(round: RoundState, player: PlayerIndex): TileCode[] {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return [];
   if (round.kanCount >= 4) return []; // 5つ目のカンはできない
+  if (liveTilesRemaining(round.wall) === 0) return []; // 海底ではカンできない
   const p = round.players[player];
   const counts = new Map<TileCode, number>();
   for (const t of p.hand.concealed) counts.set(t.code, (counts.get(t.code) ?? 0) + 1);
@@ -510,6 +512,7 @@ export function ankanOptions(round: RoundState, player: PlayerIndex): TileCode[]
 export function kakanOptions(round: RoundState, player: PlayerIndex): string[] {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return [];
   if (round.kanCount >= 4) return [];
+  if (liveTilesRemaining(round.wall) === 0) return []; // 海底ではカンできない
   const p = round.players[player];
   const ponCodes = new Set(p.hand.melds.filter((m) => m.type === "pon").map((m) => m.tiles[0]!.code));
   return p.hand.concealed.filter((t) => ponCodes.has(t.code)).map((t) => t.id);
@@ -574,12 +577,39 @@ function buildExhaustiveDrawResult(round: RoundState): RoundState {
     }
   }
   const dealerContinues = tenpaiPlayers.includes(round.dealerSeat);
+  const nagashiPlayers = ([0, 1, 2, 3] as PlayerIndex[]).filter((idx) => isNagashiMangan(round.players[idx]));
   return {
     ...round,
     cardUsesRemaining,
     phase: "round-over",
-    result: { type: "exhaustive-draw", winners: [], tenpaiPlayers, dealerContinues },
+    result: {
+      type: "exhaustive-draw",
+      winners: [],
+      tenpaiPlayers,
+      ...(nagashiPlayers.length > 0 ? { nagashiPlayers } : {}),
+      dealerContinues,
+    },
   };
+}
+
+/** 流し満貫: 捨て牌がすべて么九牌（一九字牌）で、1枚も他家に鳴かれていない。 */
+function isNagashiMangan(player: PlayerRoundState): boolean {
+  return (
+    player.discards.length > 0 &&
+    player.discards.every((d) => !d.calledAway && (isHonor(d.tile.code) || d.tile.code[0] === "1" || d.tile.code[0] === "9"))
+  );
+}
+
+/** 四風連打: 全員の第1打が同じ風牌で、誰も鳴いていない。 */
+function isFourWindsAbort(round: RoundState): boolean {
+  if (round.players.some((pl) => pl.discards.length !== 1 || pl.hand.melds.length > 0)) return false;
+  const first = round.players[0].discards[0]!.tile.code;
+  return ["1z", "2z", "3z", "4z"].includes(first) && round.players.every((pl) => pl.discards[0]!.tile.code === first);
+}
+
+/** 四家立直: 4人全員がリーチしている。 */
+function isFourRiichiAbort(round: RoundState): boolean {
+  return round.players.every((pl) => pl.riichi);
 }
 
 function applyDrawAction(round: RoundState, player: PlayerIndex): RoundState {
@@ -790,7 +820,7 @@ function applyKyushuKyuhaiAction(round: RoundState, player: PlayerIndex): RoundS
   return {
     ...round,
     phase: "round-over",
-    result: { type: "abortive-draw", winners: [], declarer: player, dealerContinues: true },
+    result: { type: "abortive-draw", winners: [], declarer: player, abortReason: "nine-kinds", dealerContinues: true },
   };
 }
 
@@ -799,6 +829,7 @@ function applyAnkanAction(round: RoundState, action: AnkanAction): RoundState {
     throw new Error("ankan: 暗槓できる局面ではありません");
   }
   if (round.kanCount >= 4) throw new Error("ankan: これ以上カンできません（四槓散了）");
+  if (liveTilesRemaining(round.wall) === 0) throw new Error("ankan: 海底ではカンできません");
   const p = round.players[action.player];
   const matching = p.hand.concealed.filter((t) => t.code === action.tileCode);
   if (matching.length !== 4) throw new Error("ankan: 対象の牌が4枚揃っていません");
@@ -845,6 +876,7 @@ function applyKakanAction(round: RoundState, action: KakanAction): RoundState {
     throw new Error("kakan: 加槓できる局面ではありません");
   }
   if (round.kanCount >= 4) throw new Error("kakan: これ以上カンできません（四槓散了）");
+  if (liveTilesRemaining(round.wall) === 0) throw new Error("kakan: 海底ではカンできません");
   const p = round.players[action.player];
   const { tile, hand: handAfterRemove } = removeTileFromHand(p.hand, action.tileId);
   const meldIdx = handAfterRemove.melds.findIndex((m) => m.type === "pon" && m.tiles[0]!.code === tile.code);
@@ -995,6 +1027,7 @@ function assertValidMeldCall(round: RoundState, window: PendingCallWindow, playe
   const ids = call.usedHandTileIds;
   const tiles = ids.map((id) => concealed.find((t) => t.id === id));
   if (call.type === "minkan" && round.kanCount >= 4) throw new Error("call: これ以上カンできません");
+  if (call.type === "minkan" && liveTilesRemaining(round.wall) === 0) throw new Error("call: 河底ではカンできません");
   const needed = call.type === "minkan" ? 3 : 2;
   if (ids.length !== needed || new Set(ids).size !== needed || tiles.some((t) => !t)) {
     throw new Error("call: 使う手牌が正しくありません");
@@ -1064,7 +1097,15 @@ function resolveCallWindowIfComplete(round: RoundState): RoundState {
 
   // 四槓散了: 4回目のカンの後の打牌がロンされずに通ったら流局（4回とも1人が槓した時は四槓子を狙えるので続行）。
   if (isFourKanAbort(round)) {
-    return { ...round, phase: "round-over", pendingCallWindow: null, result: { type: "abortive-draw", winners: [], dealerContinues: true } };
+    return { ...round, phase: "round-over", pendingCallWindow: null, result: { type: "abortive-draw", winners: [], abortReason: "four-kan", dealerContinues: true } };
+  }
+
+  // 四風連打・四家立直: 誰もロンせず（鳴きも無く）通った打牌で成立する途中流局。
+  if (window.declaredCalls.length === 0) {
+    const abortReason = isFourWindsAbort(round) ? "four-winds" : isFourRiichiAbort(round) ? "four-riichi" : null;
+    if (abortReason) {
+      return { ...round, phase: "round-over", pendingCallWindow: null, result: { type: "abortive-draw", winners: [], abortReason, dealerContinues: true } };
+    }
   }
 
   const kanOrPon = window.declaredCalls.find((c) => c.type === "pon" || c.type === "minkan");
@@ -1468,7 +1509,7 @@ export function computeRoundScoreOutcome(round: RoundState): RoundScoreOutcome {
     const voidRiichi = round.pendingRiichiStick === discarder;
     const kyotakuForWinner = voidRiichi ? round.kyotaku - 1 : round.kyotaku;
     if (voidRiichi) deltas[discarder] += RIICHI_STICK_COST;
-    for (const winner of result.winners) {
+    for (const [winnerIndex, winner] of result.winners.entries()) {
       const winTile = round.pendingCallWindow?.discardTile.code ?? round.lastDiscard!.tile.code;
       const isChankan = round.pendingCallWindow?.isChankan ?? false;
       const winnerHand: Hand = {
@@ -1478,7 +1519,9 @@ export function computeRoundScoreOutcome(round: RoundState): RoundScoreOutcome {
       const ctx = buildWinContext(round, winner, winTile, false, isChankan);
       const analysis = analyzeWin(winnerHand, ctx)!;
       const score = scoreWin(analysis, winner === round.dealerSeat, false);
-      const payments = doubleForScoreCard(round, winner, analysis, applyHonba(score.payments, effectiveHonba(round, winner), false));
+      // 積み棒はダブロン・トリプルロンでも頭ハネ（winners[0]）の1人だけが受け取る。
+      const honba = winnerIndex === 0 ? effectiveHonba(round, winner) : 0;
+      const payments = doubleForScoreCard(round, winner, analysis, applyHonba(score.payments, honba, false));
       winAnalyses[winner] = { analysis, score: { ...score, payments } };
       deltas[winner] += payments.total;
       deltas[discarder] -= payments.fromDiscarder!;
@@ -1487,7 +1530,18 @@ export function computeRoundScoreOutcome(round: RoundState): RoundScoreOutcome {
   } else if (result.type === "exhaustive-draw") {
     const tenpai = result.tenpaiPlayers ?? [];
     const noten = ([0, 1, 2, 3] as PlayerIndex[]).filter((p) => !tenpai.includes(p));
-    if (tenpai.length > 0 && tenpai.length < 4) {
+    const nagashi = result.nagashiPlayers ?? [];
+    if (nagashi.length > 0) {
+      // 流し満貫は満貫のツモ和了と同じ点数（親は4000オール、子は親から4000・子から2000）。
+      // ノーテン罰符のやり取りは無し。
+      for (const winner of nagashi) {
+        for (const other of otherPlayers(winner)) {
+          const pay = winner === round.dealerSeat || other === round.dealerSeat ? 4000 : 2000;
+          deltas[winner] += pay;
+          deltas[other] -= pay;
+        }
+      }
+    } else if (tenpai.length > 0 && tenpai.length < 4) {
       const totalPot = 3000;
       const perTenpai = totalPot / tenpai.length;
       const perNoten = totalPot / noten.length;

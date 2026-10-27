@@ -71,7 +71,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
                 ポイントが<b>「昇段」の数字に届くと次の段へ</b>上がります。
               </li>
               <li>
-                ポイントが<b>0を下回ると1つ下の段へ</b>下がります（下雀・中雀は下がりません）。
+                ポイントが<b>0を下回ると1つ下の段へ</b>下がります（下雀と中雀1は下がりません。表の「降段なし」の段です）。
               </li>
             </ol>
 

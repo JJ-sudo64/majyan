@@ -55,7 +55,7 @@ function playFullMatch(format: MatchFormat, seed: number) {
     const result = round.result!;
     const keepKyotaku = result.type !== "tsumo" && result.type !== "ron";
     const kyotakuAfter = result.type === "tsumo" || result.type === "ron" ? 0 : round.kyotaku;
-    const plan = planNextRound(round, format, result.dealerContinues, keepKyotaku);
+    const plan = planNextRound(round, format, result.dealerContinues, keepKyotaku, { scores, startingDealer: match.startingDealer });
 
     if (plan.matchOver) {
       // 対局終了時、次局へ持ち越すはずだった供託(plan.kyotaku)の行き先が

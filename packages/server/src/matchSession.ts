@@ -336,7 +336,13 @@ export class MatchSession {
         key,
         setTimeout(() => {
           this.timers.delete(key);
-          if (!this.disposed) w.run();
+          if (this.disposed) return;
+          try {
+            w.run();
+          } catch (err) {
+            // タイマーの中の例外はプロセス全体を落とす（他の卓も巻き込む）ので、ここで止める。
+            console.error("[majyan-server] 対局の進行に失敗しました:", err);
+          }
         }, Math.max(0, w.delayMs)),
       );
     }
@@ -429,21 +435,35 @@ export class MatchSession {
           run: () => {
             const r = this.match.round;
             if (!this.decideCpu) {
-              this.apply(kind === "turn" ? decideCpuTurnAction(r, seat, s.difficulty) : decideCpuCallResponse(r, seat, s.difficulty));
+              let action: GameAction | null;
+              try {
+                action = kind === "turn" ? decideCpuTurnAction(r, seat, s.difficulty) : decideCpuCallResponse(r, seat, s.difficulty);
+              } catch (err) {
+                console.error("[majyan-server] CPUの思考に失敗しました:", err);
+                action = timeoutAction(r, seat);
+              }
+              if (action) this.apply(action);
               return;
             }
             this.cpuInFlight.add(timerKey);
-            void this.decideCpu(kind, r, seat, s.difficulty).then((action) => {
-              this.cpuInFlight.delete(timerKey);
-              if (this.disposed) return;
-              // 考えている間に他の人が鳴きの応答をしても、この席の判断（同じキー）がまだ
-              // 求められていればそのまま使える（自分の選択肢は他人の応答では変わらない）。
-              // 局面が先へ進んでいた・使えなかった時は、今の局面で考え直す。
-              const stillPending =
-                !this.pendingRoundEnd && pendingSeatDecisions(this.match.round).some((p) => p.seat === seat && p.key === key);
-              if (stillPending && this.apply(action)) return;
-              this.step();
-            });
+            void this.decideCpu(kind, r, seat, s.difficulty)
+              .catch((err): GameAction | null => {
+                // 思考が失敗しても、その席が止まったり、サーバーごと落ちたりしないよう、
+                // 時間切れと同じ自動の操作で進める。
+                console.error("[majyan-server] CPUの思考に失敗しました:", err);
+                return timeoutAction(this.match.round, seat);
+              })
+              .then((action) => {
+                this.cpuInFlight.delete(timerKey);
+                if (this.disposed) return;
+                // 考えている間に他の人が鳴きの応答をしても、この席の判断（同じキー）がまだ
+                // 求められていればそのまま使える（自分の選択肢は他人の応答では変わらない）。
+                // 局面が先へ進んでいた・使えなかった時は、今の局面で考え直す。
+                const stillPending =
+                  !this.pendingRoundEnd && pendingSeatDecisions(this.match.round).some((p) => p.seat === seat && p.key === key);
+                if (action && stillPending && this.apply(action)) return;
+                this.step();
+              });
           },
         });
         continue;

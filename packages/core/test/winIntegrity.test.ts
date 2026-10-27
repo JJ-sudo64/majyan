@@ -151,7 +151,7 @@ describe("kan during riichi", () => {
   it("only allows a concealed kan of the drawn tile that keeps the same waits", () => {
     // 1m1m1m 2m3m + 9p9p: 1m/4m/9p待ち。1mで暗槓すると9p待ちが消えるので不可。
     let round = makeRound({
-      wall: wall(["1m"]),
+      wall: wall(["1m", "8m"]),
       players: [
         player(["1m", "1m", "1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "9p", "9p"], { riichi: true }),
         player(FILLER),
@@ -165,7 +165,7 @@ describe("kan during riichi", () => {
 
     // 1m1m1m + 9p単騎（他は完成面子）: 1mを暗槓しても9p単騎のままなので可。
     let ok = makeRound({
-      wall: wall(["1m"]),
+      wall: wall(["1m", "8m"]),
       players: [
         player(["1m", "1m", "1m", "2s", "3s", "4s", "4p", "5p", "6p", "7s", "8s", "9s", "9p"], { riichi: true }),
         player(FILLER),
@@ -197,7 +197,7 @@ describe("kan during riichi", () => {
 describe("kan limit", () => {
   it("offers no fifth kan once four have been made", () => {
     let round = makeRound({
-      wall: wall(["9p"]),
+      wall: wall(["9p", "8m"]),
       players: [
         player(["1m", "1m", "1m", "1m", "2s", "3s", "4s", "4p", "5p", "6p", "7s", "8s", "9s"]),
         player(FILLER),
@@ -208,6 +208,22 @@ describe("kan limit", () => {
     round = applyAction(round, { type: "draw", player: 0 });
     expect(ankanOptions(round, 0)).toEqual(["1m"]);
     expect(ankanOptions({ ...round, kanCount: 4 }, 0)).toEqual([]);
+  });
+
+  it("offers no kan on the last tile of the wall", () => {
+    let round = makeRound({
+      wall: wall(["1m"]),
+      players: [
+        player(["1m", "1m", "1m", "2s", "3s", "4s", "4p", "5p", "6p", "7s", "8s", "9s", "9p"]),
+        player(FILLER),
+        player(FILLER),
+        player(FILLER),
+      ],
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    expect(round.wall.liveTiles).toHaveLength(0);
+    expect(ankanOptions(round, 0)).toEqual([]);
+    expect(() => applyAction(round, { type: "ankan", player: 0, tileCode: "1m" })).toThrow();
   });
 
   it("ends the round as an abortive draw when the discard after a fourth kan by different players goes unclaimed", () => {

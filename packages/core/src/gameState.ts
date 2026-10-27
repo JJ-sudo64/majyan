@@ -141,6 +141,10 @@ export interface RoundEndResult {
   loser?: PlayerIndex; // ロン時の放銃者
   tenpaiPlayers?: PlayerIndex[]; // 荒牌流局時のテンパイ者
   declarer?: PlayerIndex; // 九種九牌流局を宣言した人（ボイスを鳴らす席）
+  /** 途中流局の種類（abortive-draw のみ）。 */
+  abortReason?: "nine-kinds" | "four-kan" | "four-winds" | "four-riichi";
+  /** 流し満貫が成立した人（exhaustive-draw のみ。いれば満貫のツモ和了と同じ点数を受け取る）。 */
+  nagashiPlayers?: PlayerIndex[];
   dealerContinues: boolean;
 }
 

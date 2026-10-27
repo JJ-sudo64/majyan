@@ -37,7 +37,18 @@ interface Pending {
   req: CpuRequest;
   worker: Worker;
   resolve: (action: GameAction) => void;
+  reject: (reason: unknown) => void;
   timer: ReturnType<typeof setTimeout>;
+}
+
+/** 本体で考えた答えで待っている側を解決する。考えられなければ(例外)待っている側へ失敗として返す
+    （ワーカーのイベントの中で例外を出すと、サーバー全体が落ちるため）。 */
+function settleHere(p: Pick<Pending, "req" | "resolve" | "reject">): void {
+  try {
+    p.resolve(decideHere(p.req));
+  } catch (err) {
+    p.reject(err);
+  }
 }
 
 function decideHere(req: Omit<CpuRequest, "id">): GameAction {
@@ -76,7 +87,7 @@ export class CpuPool {
         if (p.worker !== worker) continue;
         this.pending.delete(id);
         clearTimeout(p.timer);
-        p.resolve(decideHere(p.req));
+        settleHere(p);
       }
       if (this.closed || this.degraded) return;
       const now = Date.now();
@@ -100,7 +111,7 @@ export class CpuPool {
     if ("action" in res) p.resolve(res.action);
     else {
       console.error("[majyan-server] CPUの思考に失敗したため本体で考え直します:", res.error);
-      p.resolve(decideHere(p.req));
+      settleHere(p);
     }
   }
 
@@ -115,14 +126,14 @@ export class CpuPool {
   decide(kind: CpuDecisionKind, round: RoundState, seat: PlayerIndex, difficulty: AiDifficulty): Promise<GameAction> {
     const req: CpuRequest = { id: this.nextId++, kind, round, seat, difficulty };
     const worker = this.closed || this.degraded ? null : this.pickWorker();
-    if (!worker) return Promise.resolve(decideHere(req));
-    return new Promise((resolve) => {
+    if (!worker) return new Promise((resolve) => resolve(decideHere(req)));
+    return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         if (!this.pending.delete(req.id)) return;
         console.error("[majyan-server] CPUの思考が遅すぎるため本体で考え直します");
-        resolve(decideHere(req));
+        settleHere({ req, resolve, reject });
       }, DECISION_TIMEOUT_MS);
-      this.pending.set(req.id, { req, worker, resolve, timer });
+      this.pending.set(req.id, { req, worker, resolve, reject, timer });
       worker.postMessage(req);
     });
   }
@@ -136,7 +147,7 @@ export class CpuPool {
     this.closed = true;
     for (const p of this.pending.values()) {
       clearTimeout(p.timer);
-      p.resolve(decideHere(p.req));
+      settleHere(p);
     }
     this.pending.clear();
     await Promise.all(this.workers.map((w) => w?.terminate()));

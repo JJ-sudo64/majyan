@@ -197,6 +197,29 @@ describe("rotation for the viewer", () => {
     }
   });
 
+  it("hides other seats' armed nullify card but keeps the viewer's own", () => {
+    const base = STATES[0]!.round;
+    const round: RoundState = { ...base, cardNegateArmed: [true, true, true, true] };
+    for (const seat of SEATS) {
+      const armed = redactRoundForSeat(round, seat).cardNegateArmed;
+      expect(armed.map((a, i) => a === (i === seat))).toEqual([true, true, true, true]);
+    }
+    expect(redactRoundForSeat(round, null).cardNegateArmed).toEqual([false, false, false, false]);
+  });
+
+  it("keeps who declared a nine-kinds draw when rotating the result", () => {
+    const base = STATES[0]!;
+    const match: MatchState = {
+      ...base,
+      round: { ...base.round, phase: "round-over", result: { type: "abortive-draw", winners: [], declarer: 2, dealerContinues: true } },
+    };
+    for (const viewer of SEATS) {
+      const rotated = rotateMatchForViewer(match, viewer);
+      expect(rotated.round.result?.declarer).toBe(toViewerSeat(2, viewer));
+      expect(rotateMatchForViewer(rotated, ((4 - viewer) % 4) as PlayerIndex)).toEqual(match);
+    }
+  });
+
   it("converts actions back to absolute seats", () => {
     for (const viewer of SEATS) {
       for (const rel of SEATS) {

@@ -218,7 +218,7 @@ function makeRound(overrides: Partial<RoundState> & { players: RoundState["playe
 describe("局の終わり際", () => {
   it("a rinshan draw after the live wall ran out is 嶺上開花, not also 海底摸月", () => {
     let round = makeRound({
-      wall: wall(["1m"]),
+      wall: wall(["1m", "9p"]),
       players: [
         player(["1m", "1m", "1m", "2s", "3s", "4s", "4p", "5p", "6p", "7s", "8s", "9s", "1z"]),
         player(FILLER), player(FILLER), player(FILLER),
@@ -309,5 +309,121 @@ describe("リーチ棒と本場", () => {
     // 子の和了なら本場は0に戻る。
     const won = { ...round, result: { type: "ron" as const, winners: [2 as const], loser: 1 as const, dealerContinues: false } };
     expect(planNextRound(won, "hanchan", false, false).honba).toBe(0);
+  });
+});
+
+describe("流し満貫・途中流局・ダブロン・あがりやめ", () => {
+  const SEATS = [0, 1, 2, 3] as const;
+  const TANYAO_WAIT: TileCode[] = ["5m", "6m", "2p", "3p", "4p", "4s", "5s", "6s", "6p", "7p", "8p", "3s", "3s"];
+
+  it("四風連打: 全員の第1打が同じ風牌で鳴きが無ければ途中流局", () => {
+    let round = makeRound({
+      wall: wall(["1z", "1z", "1z", "1z", "9m"]),
+      players: [player(FILLER), player(FILLER), player(FILLER), player(FILLER)],
+    });
+    for (const seat of SEATS) {
+      round = applyAction(round, { type: "draw", player: seat });
+      const drawn = round.lastDrawnTile!;
+      round = applyAction(round, { type: "discard", player: seat, tileId: drawn.id, tsumogiri: true });
+      for (const other of SEATS.filter((s) => s !== seat)) {
+        if (round.phase === "awaiting-calls") round = applyAction(round, { type: "skip", player: other });
+      }
+    }
+    expect(round.result?.type).toBe("abortive-draw");
+    expect(round.result?.abortReason).toBe("four-winds");
+    expect(round.result?.dealerContinues).toBe(true);
+  });
+
+  it("四家立直: 4人目のリーチ宣言牌が通ると途中流局（リーチ棒は持ち越し）", () => {
+    let round = makeRound({
+      wall: wall(["9m", "1z", "1z", "1z", "1z", "1z"]),
+      players: [
+        player(["4m", "2p", "3p", "4p", "5p", "6p", "7p", "2s", "3s", "4s", "6s", "7s", "9m"]),
+        player(FILLER, { riichi: true }),
+        player(FILLER, { riichi: true }),
+        player(FILLER, { riichi: true }),
+      ],
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    const fourM = round.players[0].hand.concealed.find((t) => t.code === "4m")!;
+    round = applyAction(round, { type: "riichi", player: 0, tileId: fourM.id });
+    for (const p of [1, 2, 3] as const) round = applyAction(round, { type: "skip", player: p });
+    expect(round.result?.type).toBe("abortive-draw");
+    expect(round.result?.abortReason).toBe("four-riichi");
+    expect(round.kyotaku).toBe(1);
+  });
+
+  it("流し満貫: 么九牌だけを切り鳴かれなかった人が満貫ツモと同じ点数を受け取る", () => {
+    const terminalDiscards = (codes: TileCode[], calledAway = false) =>
+      codes.map((c) => ({ tile: tile(c), calledAway, isRiichiDeclaration: false, isTsumogiri: false }));
+    let round = makeRound({
+      players: [
+        player(FILLER),
+        player(FILLER, { discards: terminalDiscards(["1m", "9p", "3z"]) }),
+        player(FILLER, { discards: terminalDiscards(["1m", "9p"], true) }),
+        player(FILLER, { discards: terminalDiscards(["1m", "5p"]) }),
+      ],
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    expect(round.result?.type).toBe("exhaustive-draw");
+    expect(round.result?.nagashiPlayers).toEqual([1]);
+    const { scoreDeltas } = computeRoundScoreOutcome(round);
+    // 子の流し満貫: 親から4000、他の子から2000ずつ。
+    expect(scoreDeltas).toEqual([-4000, 8000, -2000, -2000]);
+  });
+
+  it("ダブロンの積み棒は頭ハネ（放銃者に近い）1人だけが受け取る", () => {
+    let round = makeRound({
+      honba: 2,
+      wall: wall(["9m"]),
+      players: [
+        player(["4m", "2p", "3p", "4p", "5p", "6p", "7p", "2s", "3s", "4s", "6s", "7s", "9m"]),
+        player(TANYAO_WAIT),
+        player(TANYAO_WAIT),
+        player(FILLER),
+      ],
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    const fourM = round.players[0].hand.concealed.find((t) => t.code === "4m")!;
+    round = applyAction(round, { type: "discard", player: 0, tileId: fourM.id, tsumogiri: false });
+    round = applyAction(round, { type: "ron", player: 1 });
+    round = applyAction(round, { type: "ron", player: 2 });
+    round = applyAction(round, { type: "skip", player: 3 });
+    expect(round.result?.winners).toEqual([1, 2]);
+    const { scoreDeltas } = computeRoundScoreOutcome(round);
+    expect(scoreDeltas[1]! - scoreDeltas[2]!).toBe(600);
+    expect(scoreDeltas[0]).toBe(-(scoreDeltas[1]! + scoreDeltas[2]!));
+  });
+
+  describe("あがりやめ", () => {
+    const finalRound = (result: RoundState["result"]) =>
+      makeRound({ format: "hanchan", roundWind: 2, roundNumber: 4, dealerSeat: 0, players: [player(FILLER), player(FILLER), player(FILLER), player(FILLER)], result });
+    const win = { type: "ron" as const, winners: [0 as const], loser: 1 as const, dealerContinues: true };
+
+    it("最終局で親が和了して単独トップなら終了する", () => {
+      const standings = { scores: [40000, 20000, 20000, 20000] as [number, number, number, number], startingDealer: 0 as const };
+      expect(planNextRound(finalRound(win), "hanchan", true, false, standings).matchOver).toBe(true);
+    });
+
+    it("親テンパイ流局でもトップなら終了する", () => {
+      const draw = { type: "exhaustive-draw" as const, winners: [], tenpaiPlayers: [0 as const], dealerContinues: true };
+      const standings = { scores: [40000, 20000, 20000, 20000] as [number, number, number, number], startingDealer: 0 as const };
+      expect(planNextRound(finalRound(draw), "hanchan", true, true, standings).matchOver).toBe(true);
+    });
+
+    it("親がトップでなければ連荘を続ける", () => {
+      const standings = { scores: [20000, 40000, 20000, 20000] as [number, number, number, number], startingDealer: 0 as const };
+      const plan = planNextRound(finalRound(win), "hanchan", true, false, standings);
+      expect(plan.matchOver).toBe(false);
+      expect(plan.dealerSeat).toBe(0);
+    });
+
+    it("途中流局の連荘や、最終局でない局では終わらない", () => {
+      const standings = { scores: [40000, 20000, 20000, 20000] as [number, number, number, number], startingDealer: 0 as const };
+      const abort = { type: "abortive-draw" as const, winners: [], dealerContinues: true };
+      expect(planNextRound(finalRound(abort), "hanchan", true, true, standings).matchOver).toBe(false);
+      const early = makeRound({ roundWind: 2, roundNumber: 3, players: [player(FILLER), player(FILLER), player(FILLER), player(FILLER)], result: win });
+      expect(planNextRound(early, "hanchan", true, false, standings).matchOver).toBe(false);
+    });
   });
 });

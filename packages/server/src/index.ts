@@ -27,7 +27,7 @@
  * 引数 --dev-tools（npm run dev:server が付ける）: 開発用の操作（最初の10連のやり直し等）を
  * 受け付け、アカウント作成の回数制限をゆるめる。npm start（本番）では付けない。
  */
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
@@ -64,6 +64,10 @@ const HEARTBEAT_MS = 15_000;
     1秒に数回が精々なので、超えたら接続を切る。 */
 const RATE_LIMIT = { perSecond: 10, burst: 30 };
 
+/** 山の並びとガチャの抽選に使う乱数。Math.randomは出た結果から次を予測できてしまうため、
+    段位戦や雀玉（課金）が絡むサーバーでは暗号用の乱数を使う。 */
+const secureRandom = () => randomInt(2 ** 32) / 2 ** 32;
+
 const port = Number(process.env.PORT) || ONLINE_DEFAULT_PORT;
 const staticDir = process.env.STATIC_DIR ?? resolve(import.meta.dirname, "../../web/dist");
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",").map((s) => s.trim()).filter(Boolean) ?? null;
@@ -83,7 +87,7 @@ const stopBackups =
 const accounts = new AccountService(db);
 const ranks = new RankService(db);
 const wallet = new WalletService(db);
-const collections = new CollectionService(db, Math.random, Date.now, wallet);
+const collections = new CollectionService(db, secureRandom, Date.now, wallet);
 const inbox = new InboxService(db, collections, wallet);
 const missions = new MissionService(db, wallet);
 const authenticate = (token: string) => accounts.authenticate(token);
@@ -96,6 +100,7 @@ let friends: FriendService | undefined;
 // CPUの思考は別スレッドで（重い局面で全部の卓が止まらないように）。
 const cpuPool = new CpuPool();
 const rooms = new RoomManager({
+  rng: secureRandom,
   decideCpu: (kind, round, seat, difficulty) => cpuPool.decide(kind, round, seat, difficulty),
   authenticate,
   ranks,

@@ -114,7 +114,9 @@ function resultTitle(round: RoundState): string {
   const r = round.result!;
   if (r.type === "tsumo") return `${PLAYER_NAMES[r.winners[0]!]} のツモ和了`;
   if (r.type === "ron") return `${r.winners.map((w) => PLAYER_NAMES[w]).join("・")} のロン和了`;
-  if (r.type === "exhaustive-draw") return "流局（荒牌平局）";
+  if (r.type === "exhaustive-draw") return r.nagashiPlayers?.length ? "流局（流し満貫）" : "流局（荒牌平局）";
+  if (r.abortReason === "four-winds") return "流局（四風連打）";
+  if (r.abortReason === "four-riichi") return "流局（四家立直）";
   // 九種九牌だけが宣言者を持つ。宣言者のいない途中流局は四槓散了。
   return r.declarer !== undefined ? "流局（九種九牌）" : "流局（四槓散了）";
 }
