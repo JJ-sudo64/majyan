@@ -260,6 +260,8 @@ function rotateResult(r: RoundEndResult, viewer: PlayerIndex): RoundEndResult {
     ...(r.loser !== undefined ? { loser: toViewerSeat(r.loser, viewer) } : {}),
     ...(r.tenpaiPlayers !== undefined ? { tenpaiPlayers: r.tenpaiPlayers.map((p) => toViewerSeat(p, viewer)) } : {}),
     ...(r.declarer !== undefined ? { declarer: toViewerSeat(r.declarer, viewer) } : {}),
+    ...(r.abortReason !== undefined ? { abortReason: r.abortReason } : {}),
+    ...(r.nagashiPlayers !== undefined ? { nagashiPlayers: r.nagashiPlayers.map((p) => toViewerSeat(p, viewer)) } : {}),
     dealerContinues: r.dealerContinues,
   };
 }

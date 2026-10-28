@@ -220,6 +220,21 @@ describe("rotation for the viewer", () => {
     }
   });
 
+  it("keeps the abort reason and nagashi winners when rotating the result", () => {
+    const base = STATES[0]!;
+    const withResult = (result: NonNullable<RoundState["result"]>): MatchState => ({
+      ...base,
+      round: { ...base.round, phase: "round-over", result },
+    });
+    const winds = withResult({ type: "abortive-draw", winners: [], abortReason: "four-winds", dealerContinues: true });
+    const nagashi = withResult({ type: "exhaustive-draw", winners: [], tenpaiPlayers: [], nagashiPlayers: [1, 3], dealerContinues: false });
+    for (const viewer of SEATS) {
+      expect(rotateMatchForViewer(winds, viewer).round.result?.abortReason).toBe("four-winds");
+      expect(rotateMatchForViewer(nagashi, viewer).round.result?.nagashiPlayers).toEqual([toViewerSeat(1, viewer), toViewerSeat(3, viewer)]);
+      expect(rotateMatchForViewer(rotateMatchForViewer(nagashi, viewer), ((4 - viewer) % 4) as PlayerIndex)).toEqual(nagashi);
+    }
+  });
+
   it("converts actions back to absolute seats", () => {
     for (const viewer of SEATS) {
       for (const rel of SEATS) {
