@@ -21,17 +21,20 @@ export interface RankTier {
   levelStart: number[];
   /** 段ごとの、ポイントが0未満になった時に降段するか（falseならポイントは0で止まる）。 */
   canDemote: boolean[];
-  /** 順位による増減（1位〜3位）。雀魂の「部屋」の1位・2位に合わせ、3位は仮の値。 */
+  /** 順位による増減（1位〜3位）。トップ偏重（1位が大きく、2位はほぼ±0）。 */
   placement: ByFormat<[number, number, number]>;
   /** 4位の減点（段ごと）。上の段ほど重い。 */
   fourth: ByFormat<number[]>;
 }
 
 /**
- * 数値は雀魂（じゃんたま）の段位戦に合わせてある（10-21）。昇段・初期ポイントと4位の減点は雀魂の表どおり。
- * 1位・2位は雀魂の部屋の値で、段位ごとに次の部屋を当てている:
- *   下雀・中雀=銅の間、上雀=銀の間、雀王=金の間、雀帝=玉の間、雀神=王座の間。
- * 3位は資料によって値がまちまち（0〜-30）で確かめられていないため、従来の仮の値のまま。
+ * 昇段・初期ポイントは雀魂（じゃんたま）の段位戦に合わせてある（10-21）。
+ * 順位による増減は「1位を取ると気持ちいい」ようにトップ偏重にしてある（10-28、ユーザー希望）:
+ *   形は 1位が大きく加点・2位はほぼ±0・3位と4位は減点（Mリーグ型の 50/10/-10/-30 の形）。
+ *   雀魂と同じペースを保つため、段ごとに「平均的な人」「やや上手」「上手」の1試合あたりの
+ *   増減（持ち点補正を除く）が雀魂の表とほぼ一致するように配点を逆算した。
+ *   順位の分布は 平均25/25/25/25・やや上手30/27/23/20・上手35/28/22/15（%）と仮定。
+ * 下雀は初心者の育成段で、減点が無く従来のまま。
  * 雀神は雀魂の魂天（魂珠で上下する別の仕組み）の代わりに、ポイントを積み上げる形にしてある。
  */
 export const RANK_TIERS: RankTier[] = [
@@ -51,7 +54,7 @@ export const RANK_TIERS: RankTier[] = [
     levelStart: [300, 400, 500],
     // 雀魂でも雀士★1だけは降段しない。
     canDemote: [false, true, true],
-    placement: { tonpuusen: [10, 5, -3], hanchan: [20, 10, -5] },
+    placement: { tonpuusen: [15, 0, -3], hanchan: [30, 0, -5] },
     fourth: { tonpuusen: [-10, -20, -30], hanchan: [-20, -40, -60] },
   },
   {
@@ -60,8 +63,8 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [1200, 1400, 2000],
     levelStart: [600, 700, 1000],
     canDemote: [true, true, true],
-    placement: { tonpuusen: [20, 10, -3], hanchan: [40, 20, -5] },
-    fourth: { tonpuusen: [-40, -50, -60], hanchan: [-80, -100, -120] },
+    placement: { tonpuusen: [33, 0, -19], hanchan: [66, -3, -37] },
+    fourth: { tonpuusen: [-26, -36, -46], hanchan: [-51, -71, -91] },
   },
   {
     id: "janou",
@@ -69,8 +72,8 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [2800, 3200, 3600],
     levelStart: [1400, 1600, 1800],
     canDemote: [true, true, true],
-    placement: { tonpuusen: [40, 20, -5], hanchan: [80, 40, -10] },
-    fourth: { tonpuusen: [-80, -90, -100], hanchan: [-165, -180, -195] },
+    placement: { tonpuusen: [63, 0, -33], hanchan: [126, -2, -65] },
+    fourth: { tonpuusen: [-54, -64, -74], hanchan: [-114, -129, -144] },
   },
   {
     id: "jantei",
@@ -78,8 +81,8 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [4000, 6000, 9000],
     levelStart: [2000, 3000, 4500],
     canDemote: [true, true, true],
-    placement: { tonpuusen: [55, 30, -5], hanchan: [110, 55, -10] },
-    fourth: { tonpuusen: [-110, -120, -130], hanchan: [-210, -225, -240] },
+    placement: { tonpuusen: [87, 1, -42], hanchan: [170, 5, -80] },
+    fourth: { tonpuusen: [-76, -86, -96], hanchan: [-150, -165, -180] },
   },
   {
     id: "janshin",
@@ -87,8 +90,8 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [],
     levelStart: [0],
     canDemote: [true],
-    placement: { tonpuusen: [60, 30, -5], hanchan: [120, 60, -10] },
-    fourth: { tonpuusen: [-130], hanchan: [-240] },
+    placement: { tonpuusen: [94, 0, -46], hanchan: [180, 5, -85] },
+    fourth: { tonpuusen: [-93], hanchan: [-170] },
   },
 ];
 

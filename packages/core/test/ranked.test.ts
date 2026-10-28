@@ -29,17 +29,51 @@ describe("rank labels", () => {
 
 describe("rankPointDelta", () => {
   it("adds placement points and the final score difference", () => {
-    // 上雀1(銀の間)・半荘: 1位+40、持ち点42300 → +17
-    expect(rankPointDelta(r(2, 0, 700), "hanchan", 1, 42300)).toBe(40 + 17);
-    // 東風戦は東風戦の値(1位+20)
-    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 1, 25000)).toBe(20);
-    // 4位の減点は段が上がるほど重い（雀魂の表: 東風 雀傑★1=-40、★3=-60、半荘 -80、-120）
-    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 4, 25000)).toBe(-40);
-    expect(rankPointDelta(r(2, 2, 1100), "tonpuusen", 4, 25000)).toBe(-60);
-    expect(rankPointDelta(r(2, 0, 700), "hanchan", 4, 25000)).toBe(-80);
-    expect(rankPointDelta(r(2, 2, 1100), "hanchan", 4, 25000)).toBe(-120);
+    // 上雀1・半荘: 1位+66、持ち点42300 → +17
+    expect(rankPointDelta(r(2, 0, 700), "hanchan", 1, 42300)).toBe(66 + 17);
+    // 東風戦は東風戦の値(1位+33)
+    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 1, 25000)).toBe(33);
+    // 4位の減点は段が上がるほど重い
+    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 4, 25000)).toBe(-26);
+    expect(rankPointDelta(r(2, 2, 1100), "tonpuusen", 4, 25000)).toBe(-46);
+    expect(rankPointDelta(r(2, 0, 700), "hanchan", 4, 25000)).toBe(-51);
+    expect(rankPointDelta(r(2, 2, 1100), "hanchan", 4, 25000)).toBe(-91);
     // 箱下(マイナス)の持ち点もそのまま反映（中雀1の半荘4位 -20）
     expect(rankPointDelta(r(1, 0, 400), "hanchan", 4, -5400)).toBe(-20 - 30);
+  });
+
+  it("is top-heavy: 1st is the big reward, 2nd is about even, 3rd and 4th lose (from 中雀 up)", () => {
+    for (const format of ["tonpuusen", "hanchan"] as const) {
+      for (let tier = 1; tier < RANK_TIERS.length; tier++) {
+        const rank = r(tier, 0, RANK_TIERS[tier]!.levelStart[0]!);
+        const [p1, p2, p3, p4] = ([1, 2, 3, 4] as const).map((place) => rankPointDelta(rank, format, place, 25000));
+        expect(p1).toBeGreaterThan(0);
+        expect(Math.abs(p2!)).toBeLessThanOrEqual(5);
+        expect(p3).toBeLessThan(0);
+        expect(p4).toBeLessThan(p3!);
+        expect(p1).toBeGreaterThan(Math.abs(p4!) * 0.7); // 1位の得は4位の損に近い大きさ
+      }
+      // どの段でも順位が下がるほどポイントが減る（4位が3位より軽いような逆転が無い）
+      RANK_TIERS.forEach((tier, t) => {
+        for (let level = 0; level < Math.max(1, tier.levelMax.length); level++) {
+          const rank = r(t, level, tier.levelStart[level]!);
+          const deltas = ([1, 2, 3, 4] as const).map((place) => rankPointDelta(rank, format, place, 25000));
+          expect([...deltas].sort((a, b) => b - a)).toEqual(deltas);
+        }
+      });
+    }
+  });
+
+  it("keeps the pace: an average player drifts about as fast as before (東風戦, uniform placements)", () => {
+    // 平均的な人（各順位25%）の1試合あたりの期待増減。配点を変えてもペースが変わらないための目印（持ち点補正は除く）。
+    const drift = (tier: number, level: number) => {
+      const rank = r(tier, level, RANK_TIERS[tier]!.levelStart[level]!);
+      return ([1, 2, 3, 4] as const).reduce((sum, place) => sum + rankPointDelta(rank, "tonpuusen", place, 25000), 0) / 4;
+    };
+    expect(drift(1, 0)).toBeCloseTo(0.5, 0); // 中雀1
+    expect(drift(2, 0)).toBeCloseTo(-3.3, 0); // 上雀1
+    expect(drift(3, 0)).toBeCloseTo(-6.3, 0); // 雀王1
+    expect(drift(4, 0)).toBeCloseTo(-7.5, 0); // 雀帝1
   });
 });
 
