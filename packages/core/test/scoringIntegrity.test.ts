@@ -353,6 +353,25 @@ describe("流し満貫・途中流局・ダブロン・あがりやめ", () => {
     expect(round.kyotaku).toBe(1);
   });
 
+  it("四家立直: 4人目のリーチ宣言牌がロンされたら途中流局にならず和了になる", () => {
+    let round = makeRound({
+      wall: wall(["9m", "1z", "1z", "1z", "1z", "1z"]),
+      players: [
+        player(["4m", "2p", "3p", "4p", "5p", "6p", "7p", "2s", "3s", "4s", "6s", "7s", "9m"]),
+        player(TANYAO_WAIT, { riichi: true }),
+        player(FILLER, { riichi: true }),
+        player(FILLER, { riichi: true }),
+      ],
+    });
+    round = applyAction(round, { type: "draw", player: 0 });
+    const fourM = round.players[0].hand.concealed.find((t) => t.code === "4m")!;
+    round = applyAction(round, { type: "riichi", player: 0, tileId: fourM.id });
+    round = applyAction(round, { type: "ron", player: 1 });
+    for (const p of [2, 3] as const) if (round.phase === "awaiting-calls") round = applyAction(round, { type: "skip", player: p });
+    expect(round.result?.type).toBe("ron");
+    expect(round.result?.winners).toEqual([1]);
+  });
+
   it("流し満貫: 么九牌だけを切り鳴かれなかった人が満貫ツモと同じ点数を受け取る", () => {
     const terminalDiscards = (codes: TileCode[], calledAway = false) =>
       codes.map((c) => ({ tile: tile(c), calledAway, isRiichiDeclaration: false, isTsumogiri: false }));
