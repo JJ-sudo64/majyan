@@ -29,26 +29,27 @@ describe("rank labels", () => {
 
 describe("rankPointDelta", () => {
   it("adds placement points and the final score difference", () => {
-    // 上雀1・半荘: 1位+66、持ち点42300 → +17
-    expect(rankPointDelta(r(2, 0, 700), "hanchan", 1, 42300)).toBe(66 + 17);
-    // 東風戦は東風戦の値(1位+33)
-    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 1, 25000)).toBe(33);
+    // 上雀1・半荘: 1位+54、持ち点42300 → +17
+    expect(rankPointDelta(r(2, 0, 700), "hanchan", 1, 42300)).toBe(54 + 17);
+    // 東風戦は東風戦の値(1位+27)
+    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 1, 25000)).toBe(27);
     // 4位の減点は段が上がるほど重い
-    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 4, 25000)).toBe(-26);
-    expect(rankPointDelta(r(2, 2, 1100), "tonpuusen", 4, 25000)).toBe(-46);
-    expect(rankPointDelta(r(2, 0, 700), "hanchan", 4, 25000)).toBe(-51);
-    expect(rankPointDelta(r(2, 2, 1100), "hanchan", 4, 25000)).toBe(-91);
-    // 箱下(マイナス)の持ち点もそのまま反映（中雀1の半荘4位 -20）
-    expect(rankPointDelta(r(1, 0, 400), "hanchan", 4, -5400)).toBe(-20 - 30);
+    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 4, 25000)).toBe(-33);
+    expect(rankPointDelta(r(2, 2, 1100), "tonpuusen", 4, 25000)).toBe(-53);
+    expect(rankPointDelta(r(2, 0, 700), "hanchan", 4, 25000)).toBe(-65);
+    expect(rankPointDelta(r(2, 2, 1100), "hanchan", 4, 25000)).toBe(-105);
+    // 箱下(マイナス)の持ち点もそのまま反映（中雀1の半荘4位 -15）
+    expect(rankPointDelta(r(1, 0, 400), "hanchan", 4, -5400)).toBe(-15 - 30);
   });
 
-  it("is top-heavy: 1st is the big reward, 2nd is about even, 3rd and 4th lose (from 中雀 up)", () => {
+  it("is top-heavy: 1st is the big reward, 2nd is a small plus, 3rd and 4th lose (from 中雀 up)", () => {
     for (const format of ["tonpuusen", "hanchan"] as const) {
       for (let tier = 1; tier < RANK_TIERS.length; tier++) {
         const rank = r(tier, 0, RANK_TIERS[tier]!.levelStart[0]!);
         const [p1, p2, p3, p4] = ([1, 2, 3, 4] as const).map((place) => rankPointDelta(rank, format, place, 25000));
         expect(p1).toBeGreaterThan(0);
-        expect(Math.abs(p2!)).toBeLessThanOrEqual(5);
+        expect(p2).toBeGreaterThan(0);
+        expect(p2!).toBeLessThanOrEqual(p1! * 0.15);
         expect(p3).toBeLessThan(0);
         expect(p4).toBeLessThan(p3!);
         expect(p1).toBeGreaterThan(Math.abs(p4!) * 0.7); // 1位の得は4位の損に近い大きさ
@@ -70,7 +71,7 @@ describe("rankPointDelta", () => {
       const rank = r(tier, level, RANK_TIERS[tier]!.levelStart[level]!);
       return ([1, 2, 3, 4] as const).reduce((sum, place) => sum + rankPointDelta(rank, "tonpuusen", place, 25000), 0) / 4;
     };
-    expect(drift(1, 0)).toBeCloseTo(0.5, 0); // 中雀1
+    expect(drift(1, 0)).toBeCloseTo(0.3, 0); // 中雀1
     expect(drift(2, 0)).toBeCloseTo(-3.3, 0); // 上雀1
     expect(drift(3, 0)).toBeCloseTo(-6.3, 0); // 雀王1
     expect(drift(4, 0)).toBeCloseTo(-7.5, 0); // 雀帝1
