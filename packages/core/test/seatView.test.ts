@@ -11,6 +11,7 @@ import {
   actionFromViewer,
   fromViewerSeat,
   redactMatchForSeat,
+  redactMatchForSpectator,
   redactRoundForSeat,
   rotateMatchForViewer,
   toViewerSeat,
@@ -232,6 +233,18 @@ describe("rotation for the viewer", () => {
       expect(rotateMatchForViewer(winds, viewer).round.result?.abortReason).toBe("four-winds");
       expect(rotateMatchForViewer(nagashi, viewer).round.result?.nagashiPlayers).toEqual([toViewerSeat(1, viewer), toViewerSeat(3, viewer)]);
       expect(rotateMatchForViewer(rotateMatchForViewer(nagashi, viewer), ((4 - viewer) % 4) as PlayerIndex)).toEqual(nagashi);
+    }
+  });
+
+  it("keeps abort reason and nagashi winners through redaction and rotation (what the server sends)", () => {
+    const base = STATES[0]!;
+    const result = { type: "exhaustive-draw" as const, winners: [], tenpaiPlayers: [], nagashiPlayers: [2 as PlayerIndex], dealerContinues: false };
+    const match: MatchState = { ...base, round: { ...base.round, phase: "round-over", result } };
+    for (const viewer of SEATS) {
+      const sent = rotateMatchForViewer(redactMatchForSeat(match, viewer), viewer);
+      expect(sent.round.result?.nagashiPlayers).toEqual([toViewerSeat(2, viewer)]);
+      const spectator = rotateMatchForViewer(redactMatchForSpectator(match), viewer);
+      expect(spectator.round.result?.nagashiPlayers).toEqual([toViewerSeat(2, viewer)]);
     }
   });
 
