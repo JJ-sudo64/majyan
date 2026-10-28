@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CHARACTERS, TUTORIAL_SCENARIOS, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
+import { CHARACTERS, TUTORIAL_SCENARIOS, M_LEAGUE_RULE, matchPoints, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useOnlineStore } from "../online/onlineLink.js";
 import { playVoiceQueue } from "../sound.js";
@@ -179,6 +179,8 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
 
   // 対局全体の最終順位1位（同点なら起家に近い席、core の rankSeats 参照）。
   // 結果モーダルを見終えた後に別画面でドンと出す「優勝」演出用。
+  // 順位点つきの最終ポイント（参考表示）。段位戦では段位ポイントを出すので重ねない。
+  const finalPoints = match?.finished && !rankResult ? matchPoints(match.scores, match.startingDealer) : null;
   const championIndex = match?.finalRanking?.[0] ?? (match ? rankSeats(match.scores, match.startingDealer)[0] : undefined);
   const championCharacter = championIndex !== undefined ? CHARACTERS[round.characterIds[championIndex]!] : undefined;
   const champion = championIndex !== undefined && championCharacter ? { player: championIndex, character: championCharacter } : undefined;
@@ -296,6 +298,11 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                       {outcome.scoreDeltas[i]}
                     </span>
                   </div>
+                  {finalPoints && (
+                    <div className="rank-card__mpt" title={`${M_LEAGUE_RULE.name}: ${M_LEAGUE_RULE.returnScore}点返し、順位点 ${M_LEAGUE_RULE.placement.join(" / ")}`}>
+                      {M_LEAGUE_RULE.name} <strong className={finalPoints[i]! >= 0 ? "delta-positive" : "delta-negative"}>{finalPoints[i]! >= 0 ? "+" : ""}{finalPoints[i]!.toFixed(1)}pt</strong>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

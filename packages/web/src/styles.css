@@ -4138,6 +4138,11 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 .rank-card__score {
   font-weight: 600;
 }
+.rank-card__mpt {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
 .delta-positive {
   color: #74c69d;
 }
