@@ -8,8 +8,10 @@ import {
   doraIndicators,
   isFuriten,
   allHandTileCodes,
+  usableCardId,
 } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
+import { CardChip } from "./CardFace.js";
 import { useSettingsStore } from "../store/settingsStore.js";
 import { useRetrieveDiscardStore } from "../store/retrieveDiscardStore.js";
 import { TileView } from "./TileView.js";
@@ -190,8 +192,15 @@ export function Hand({ round }: { round: RoundState }) {
   // 必殺技発動の演出はTable.tsxのSkillActivationOverlay（卓全体を使った
   // ド派手な演出）に一本化したため、ここでの個別表示は行わない。
 
-  const heldCard = round.cardIds[HUMAN] ? CARDS[round.cardIds[HUMAN]!] : undefined;
-  const cardReady = !!turnOptions?.card;
+  // 付けているカード（パッシブ1枚＋アクティブ1枚まで）。それぞれ別の残り回数を持つ。
+  const heldCards = (
+    [
+      { id: round.cardIds[HUMAN], uses: round.cardUsesRemaining[HUMAN] },
+      { id: round.cardIds2[HUMAN], uses: round.cardUsesRemaining2[HUMAN] },
+    ] as const
+  ).flatMap(({ id, uses }) => (id && CARDS[id] ? [{ id, card: CARDS[id]!, uses }] : []));
+  // 「使用する」ボタンを出すのは、今使えるカード1枚だけ。
+  const readyCardId = turnOptions?.card ? usableCardId(round, HUMAN) : null;
 
   // 必殺技「時間停止」発動中の演出。OpponentArea.tsxと同じロジックで、
   // 発動者以外は手牌ごと丸ごとグレーアウトする。ネームプレート側の
@@ -503,46 +512,37 @@ export function Hand({ round }: { round: RoundState }) {
             手牌左上のhand-top-statusから移設）。.action-stackはflex-column
             で「カード→ボタン列」の順に積むだけなので、ボタン側が何段に
             折り返しても互いに重ならない。 */}
-        {heldCard && (
-          <div className="wait-row action-stack__card">
-            <span className="wait-row__label">カード</span>
-            {cardReady ? (
-              <button
-                type="button"
-                className="wait-row__shield wait-row__shield--up wait-row__shield--clickable"
-                title={heldCard.description}
-                onClick={() => humanUseCard()}
-              >
-                {heldCard.name}（使用する）
-              </button>
+        {heldCards.map(({ id: heldId, card: heldCard, uses }) => (
+          <div key={heldId} className="action-stack__card">
+            {readyCardId === heldId ? (
+              <CardChip cardId={heldId} note="使用する" ready onClick={() => humanUseCard()} />
             ) : (
-              <span
-                className={`wait-row__shield${round.cardUsesRemaining[HUMAN] > 0 ? " wait-row__shield--up" : ""}`}
-                title={heldCard.description}
-              >
-                {heldCard.name}
-                {heldCard.kind === "passive"
-                  ? heldCard.maxUses === undefined
-                    ? "（常時発動中）"
-                    : // 回数制限つきの常時効果（加護・配牌の底上げ等）は、残り回数を見せる。
-                      round.cardUsesRemaining[HUMAN] > 0
-                      ? `（常時発動中・残り${round.cardUsesRemaining[HUMAN]}回）`
-                      : "（使い切り）"
-                  : heldCard.hooks.onUse
-                    ? round.cardUsesRemaining[HUMAN] > 0
-                      ? `（残り${round.cardUsesRemaining[HUMAN]}回）`
-                      : "（使用済み）"
-                    : // onUseを持たない消費型カード（例:一閃の盾）は自分では使えず、
-                      // 条件を満たした瞬間に自動で発動・消費される「持っているだけ」の
-                      // カードのため、手動使用前提の「残りN回」ではなく発動待ち/
-                      // 発動済みとして表示する（指摘により）。
-                      round.cardUsesRemaining[HUMAN] > 0
-                      ? "（発動待ち）"
-                      : "（発動済み）"}
-              </span>
+              <CardChip
+                cardId={heldId}
+                note={
+                  heldCard.kind === "passive"
+                    ? heldCard.maxUses === undefined
+                      ? "常時発動中"
+                      : // 回数制限つきの常時効果（加護・配牌の底上げ等）は、残り回数を見せる。
+                        uses > 0
+                        ? `常時発動中・残り${uses}回`
+                        : "使い切り"
+                    : heldCard.hooks.onUse
+                      ? uses > 0
+                        ? `残り${uses}回`
+                        : "使用済み"
+                      : // onUseを持たない消費型カード（例:一閃の盾）は自分では使えず、
+                        // 条件を満たした瞬間に自動で発動・消費される「持っているだけ」の
+                        // カードのため、手動使用前提の「残りN回」ではなく発動待ち/
+                        // 発動済みとして表示する（指摘により）。
+                        uses > 0
+                        ? "発動待ち"
+                        : "発動済み"
+                }
+              />
             )}
           </div>
-        )}
+        ))}
         <div className="action-row">
           <CallPrompt round={round} active={isAwaitingCall} />
         {swapAvailable && !swapMode && (

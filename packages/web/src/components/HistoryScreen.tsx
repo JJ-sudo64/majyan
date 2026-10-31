@@ -195,6 +195,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                           <span className="history-screen__seat-character">
                             {shortCharacterName(s.characterId)}
                             {s.cardId && <small> ＋ {CARDS[s.cardId]?.name ?? s.cardId}</small>}
+                            {s.cardId2 && <small> ＋ {CARDS[s.cardId2]?.name ?? s.cardId2}</small>}
                           </span>
                           <span className="history-screen__score">{s.finalScore.toLocaleString()}</span>
                           {!s.isYou && !s.isCpu && (

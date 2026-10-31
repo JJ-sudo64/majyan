@@ -18,11 +18,17 @@ import { RulesGuide } from "./RulesGuide.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 import { playUiClickFor } from "../sound.js";
 
-/** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 点棒吸収」）。 */
+/** 付けているカードの表示（パッシブ・アクティブの順。無ければ「カードなし」）。 */
+function cardLabel(cardId: string | null, cardId2: string | null): string {
+  const names = [cardId, cardId2].flatMap((id) => (id ? [CARDS[id]?.name ?? "カード"] : []));
+  return names.length > 0 ? names.join("＋") : "カードなし";
+}
+
+/** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 面子確約＋点棒吸収」）。 */
 function unitLabel(u: CharacterUnit): string {
   const name = CHARACTERS[u.characterId]?.name ?? u.characterId;
-  const card = u.cardId ? CARDS[u.cardId]?.name : null;
-  return `${"★".repeat(characterRarity(u.characterId))} ${name}${card ? ` ＋ ${card}` : "（カードなし）"}`;
+  const cards = cardLabel(u.cardId, u.cardId2);
+  return `${"★".repeat(characterRarity(u.characterId))} ${name}${u.cardId || u.cardId2 ? ` ＋ ${cards}` : "（カードなし）"}`;
 }
 
 /** 上のバー・下のメニューのアイコン（24x24の線画）。 */
@@ -221,7 +227,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 ×
               </button>
             </div>
-            <UnitDetail characterId={chosen.unit.characterId} cardId={chosen.unit.cardId} />
+            <UnitDetail characterId={chosen.unit.characterId} cardId={chosen.unit.cardId} cardId2={chosen.unit.cardId2} />
           </div>
         </div>
       )}
@@ -265,7 +271,10 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                     <span className="units-screen__stars">{"★".repeat(characterRarity(u.characterId))}</span>
                     <span className="units-screen__name">{character?.name.split("・").at(-1) ?? u.characterId}</span>
                     <span className={`units-screen__card${u.cardId ? "" : " units-screen__card--none"}`}>
-                      {u.cardId ? (CARDS[u.cardId]?.name ?? "カード") : "カードなし"}
+                      {u.cardId ? (CARDS[u.cardId]?.name ?? "カード") : "パッシブなし"}
+                    </span>
+                    <span className={`units-screen__card${u.cardId2 ? "" : " units-screen__card--none"}`}>
+                      {u.cardId2 ? (CARDS[u.cardId2]?.name ?? "カード") : "アクティブなし"}
                     </span>
                   </button>
                 );
@@ -503,7 +512,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             </div>
             <div className="oh-plate__sub">
               {chosen
-                ? `必殺技「${chosen.character.skill.name}」／${chosen.unit.cardId ? (CARDS[chosen.unit.cardId]?.name ?? "カード") : "カードなし"}`
+                ? `必殺技「${chosen.character.skill.name}」／${cardLabel(chosen.unit.cardId, chosen.unit.cardId2)}`
                 : "手持ちからランダムに出ます"}
             </div>
             <div className="oh-plate__buttons">
@@ -639,7 +648,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                           {m.isYou ? "（あなた）" : ""}
                         </span>
                         <span className="oh-seat__loadout">
-                          {character ? character.name : "おまかせ"} ／ {m.cardId ? CARDS[m.cardId]?.name : "カードなし"}
+                          {character ? character.name : "おまかせ"} ／ {cardLabel(m.cardId, m.cardId2)}
                         </span>
                       </span>
                     </li>

@@ -1435,14 +1435,6 @@ button {
   padding: 1px 6px;
   border-radius: 4px;
 }
-.riichi-badge {
-  background: linear-gradient(160deg, #f0c65a, #b8862a);
-  border: 1px solid #fff0c2;
-  color: #1a1a1a;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: bold;
-}
 
 /* ============ デバッグモード用パネル ============ */
 .debug-panel {
@@ -1939,6 +1931,29 @@ button {
   outline: 2px dashed rgba(241, 196, 83, 0.7);
   outline-offset: 3px;
 }
+/* リーチ中はプレートの色を変えて目立たせる（以前は「リーチ」の文字バッジを横に出していたが、
+   見にくいため廃止）。文字を足さず、プレート自身の色と縁の光だけで知らせるので、大きさは変わらない。
+   紅の地に朱金の縁で、拍動する光を縁に回す（box-shadowだけを動かすのでレイアウトに影響しない）。 */
+.character-panel--riichi {
+  background: linear-gradient(150deg, rgba(120, 18, 18, 0.94), rgba(52, 8, 8, 0.9));
+  border-color: #ffd36b;
+  border-width: 2px;
+  padding: 5px 13px 5px 5px;
+  animation: character-panel-riichi-glow 1.4s ease-in-out infinite;
+}
+.character-panel--riichi .character-panel__name,
+.character-panel--riichi .character-panel__score {
+  text-shadow: 0 0 6px rgba(255, 120, 90, 0.8);
+}
+@keyframes character-panel-riichi-glow {
+  0%,
+  100% {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 8px 1px rgba(255, 90, 60, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 22px 5px rgba(255, 110, 70, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
 .character-panel--frozen {
   filter: grayscale(1) brightness(0.55);
   transition: filter 0.5s ease;
@@ -2001,7 +2016,7 @@ button {
 .character-panel--bottom {
   /* 自分の手牌の左上あたり。カード欄（.hand-top-status、手牌の直上・
      左寄せ）に被らないよう、それよりさらに上に置く。
-     以前はtop:470pxだったが、リーチ表示（.riichi-badge）でパネルの
+     以前はtop:470pxだったが、リーチ表示でパネルの
      縦幅が増えたり、親番で風バッジの文字（東(親)）が伸びたりすると
      パネル下端が.hand-top-status（待ち表示）に被って隠れてしまって
      いた（指摘の原因）。上へ少し余裕を持たせるが、上げすぎると今度は
@@ -2126,20 +2141,6 @@ button {
   max-width: 110px;
   margin-top: 2px;
 }
-/* リーチの印はプレートの中に積まず、外の横に出す。中に積むとその1行ぶんプレートが
-   縦に伸び、下にある表示（自分なら手牌の上の待ち・ベタ降り等、他家なら必殺技ゲージ）に
-   かかってしまっていた。外に出せば、リーチしてもプレートの大きさは変わらない。 */
-.character-panel .riichi-badge {
-  position: absolute;
-  top: 50%;
-  left: 100%;
-  margin-left: 6px;
-  transform: translateY(-50%);
-  font-size: 12px;
-  padding: 1px 6px;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-}
 /* 自分にかかっている技の状態（未来視・ベタ降り）。プレートの左横に、見出しを上・
    中身を下にして縦に積む（横幅を取らないように）。 */
 .character-panel__side-status {
@@ -2166,14 +2167,6 @@ button {
 .character-panel__side-item .wait-row__label {
   font-size: 12px;
 }
-/* 下家は画面の右端にいるので、内側（左）に出す。 */
-.character-panel--right .riichi-badge {
-  left: auto;
-  right: 100%;
-  margin-left: 0;
-  margin-right: 6px;
-}
-
 /* 必殺技ゲージ。溜まっている間は帯を伸ばすだけ、満タンになったら
    .skill-gauge--readyで縁を光らせて「発動できる」ことを知らせる。 */
 .skill-gauge {
@@ -2636,6 +2629,132 @@ body:has(.modal-overlay) .tile3d-hand-layer {
   40%,
   100% {
     transform: translateX(100%);
+  }
+}
+/* 必殺技は、リーチ・ツモ・ロンの「中央に叩き付ける」動きと見分けがつくよう、
+   帯を画面の右横から飛び込ませて左へ抜けさせ、背景に放射状の光線とスピード線を足す。
+   静止モード(.cutin-frame--still、開始から1秒＝約59%)でも帯が中央に見える。 */
+.declaration-cutin--skill .declaration-cutin__band {
+  /* イージングは各キーフレームの区間ごとに指定する（全体に強いイージングを掛けると、横移動が最初の0.1秒に詰まって「ぱっと現れた」ようにしか見えない）。 */
+  animation: skill-cutin-dash var(--dur) linear forwards;
+}
+@keyframes skill-cutin-dash {
+  0% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--app-vw, 1vw) * 110), -50%) skewX(-14deg);
+    filter: brightness(1.8);
+    animation-timing-function: cubic-bezier(0.3, 0.55, 0.35, 1);
+  }
+  /* 約0.5秒かけて右から中央へ。少し行き過ぎてから戻る。 */
+  28% {
+    transform: translate(calc(-50% - 14px), -50%) skewX(1deg);
+    filter: brightness(1.2);
+    animation-timing-function: ease-out;
+  }
+  34% {
+    transform: translate(-50%, -50%) skewX(0deg);
+    filter: brightness(1);
+    animation-timing-function: linear;
+  }
+  /* 止まっている間もゆっくり寄っていく。 */
+  80% {
+    opacity: 1;
+    transform: translate(calc(-50% - 10px), -50%) scale(1.03);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(calc(-50% - var(--app-vw, 1vw) * 110), -50%) skewX(10deg);
+  }
+}
+.declaration-cutin--skill .declaration-cutin__sweep {
+  animation: skill-cutin-sweep var(--dur) ease-out forwards;
+}
+@keyframes skill-cutin-sweep {
+  0%,
+  30% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  56%,
+  100% {
+    transform: translateX(-100%);
+  }
+}
+/* 画面中央から広がる放射状の光線（ゆっくり回る）。 */
+.declaration-cutin__rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220vmax;
+  height: 220vmax;
+  margin: -110vmax 0 0 -110vmax;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--accent) 55%, transparent) 0deg 5deg, transparent 5deg 15deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 8%, #000 22%, transparent 60%);
+  mask-image: radial-gradient(circle, transparent 8%, #000 22%, transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: skill-cutin-rays var(--dur) ease-out forwards;
+}
+@keyframes skill-cutin-rays {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.5);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(24deg) scale(1.15);
+  }
+}
+/* 横に流れるスピード線。帯の上下の空いたところに見える。 */
+.declaration-cutin__speed {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(255, 255, 255, 0.5) 22px 24px, transparent 24px 61px),
+    repeating-linear-gradient(0deg, transparent 0 41px, color-mix(in srgb, var(--accent) 70%, white) 41px 44px, transparent 44px 97px);
+  /* 縞を途切れさせ、そのマスクを横へ流して「線が流れる」ように見せる。 */
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 140px, transparent 140px 230px, #000 230px 300px, transparent 300px 470px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 140px, transparent 140px 230px, #000 230px 300px, transparent 300px 470px);
+  -webkit-mask-size: 470px 100%;
+  mask-size: 470px 100%;
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation:
+    skill-cutin-speed-fade var(--dur) ease-out forwards,
+    skill-cutin-speed-flow 0.35s linear infinite;
+}
+@keyframes skill-cutin-speed-fade {
+  0%,
+  4% {
+    opacity: 0;
+  }
+  16% {
+    opacity: 0.85;
+  }
+  78% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes skill-cutin-speed-flow {
+  from {
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+  }
+  to {
+    -webkit-mask-position: -470px 0;
+    mask-position: -470px 0;
   }
 }
 /* 絵に文字が描き込まれていない時(declarationArtのaddWord)だけ、絵の筆文字に寄せた発光文字を重ねる。 */
@@ -3272,8 +3391,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
      （ぼかし大、フェルトへの映り込み）を分けることで、「フェルトの上に
      実際に乗っている」重みを強調する。 */
   box-shadow:
-    0 34px 0 0 #f2f2ec,
-    0 40px 0 0 #3f7a4f,
+    0 34px 0 0 var(--tile-side, #f2f2ec),
+    0 40px 0 0 var(--tile-band, #3f7a4f),
     0 10px 4px rgba(0, 0, 0, 0.4),
     0 42px 24px rgba(0, 0, 0, 0.6);
   display: block;
@@ -3288,8 +3407,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   width: var(--tile-w);
   height: var(--tile-h);
   box-shadow:
-    0 15px 0 0 #f2f2ec,
-    0 18px 0 0 #3f7a4f,
+    0 15px 0 0 var(--tile-side, #f2f2ec),
+    0 18px 0 0 var(--tile-band, #3f7a4f),
     0 4px 2px rgba(0, 0, 0, 0.4),
     0 20px 10px rgba(0, 0, 0, 0.5);
 }
@@ -3301,8 +3420,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   /* HUDのドラ表示で使われるが、厚みの帯が大きすぎて直下の自動ツモ切り
      ボタン列に被っていたため、帯を縮める。 */
   box-shadow:
-    0 9px 0 0 #f2f2ec,
-    0 11px 0 0 #3f7a4f,
+    0 9px 0 0 var(--tile-side, #f2f2ec),
+    0 11px 0 0 var(--tile-band, #3f7a4f),
     0 12px 6px rgba(0, 0, 0, 0.5);
 }
 /* 手牌（立てて持つ牌）の帯は、その牌を持つ本人から見て奥側（自分の体から
@@ -3329,8 +3448,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
   --tile-w: 44px;
   /* 白い厚み部分（帯の本体）が大きすぎるとの指摘のため縮小する。 */
   box-shadow:
-    0 -19px 0 0 #f2f2ec,
-    0 -22px 0 0 #3f7a4f,
+    0 -19px 0 0 var(--tile-side, #f2f2ec),
+    0 -22px 0 0 var(--tile-band, #3f7a4f),
     0 -6px 2px rgba(0, 0, 0, 0.4),
     0 -24px 14px rgba(0, 0, 0, 0.6);
 }
@@ -3358,15 +3477,15 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
    向きが直らなかった）。 */
 .opponent-area--3 .tile {
   box-shadow:
-    15px 0 0 0 #f2f2ec,
-    18px 0 0 0 #3f7a4f,
+    15px 0 0 0 var(--tile-side, #f2f2ec),
+    18px 0 0 0 var(--tile-band, #3f7a4f),
     4px 0 2px rgba(0, 0, 0, 0.4),
     20px 0 10px rgba(0, 0, 0, 0.5);
 }
 .opponent-area--1 .tile {
   box-shadow:
-    -15px 0 0 0 #f2f2ec,
-    -18px 0 0 0 #3f7a4f,
+    -15px 0 0 0 var(--tile-side, #f2f2ec),
+    -18px 0 0 0 var(--tile-band, #3f7a4f),
     -4px 0 2px rgba(0, 0, 0, 0.4),
     -20px 0 10px rgba(0, 0, 0, 0.5);
 }
@@ -3395,8 +3514,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 .opponent-area--2 .opponent-hand-back .tile--face-down,
 .opponent-area--3 .opponent-hand-back .tile--face-down {
   box-shadow:
-    0 -6px 0 0 #3f7a4f,
-    0 -22px 0 0 #f2f2ec,
+    0 -6px 0 0 var(--tile-band, #3f7a4f),
+    0 -22px 0 0 var(--tile-side, #f2f2ec),
     0 -4px 2px rgba(0, 0, 0, 0.4),
     0 -24px 10px rgba(0, 0, 0, 0.5);
 }
@@ -3422,8 +3541,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 .opponent-area--1 .opponent-hand-back .tile--face-down,
 .opponent-area--3 .opponent-hand-back .tile--face-down {
   box-shadow:
-    0 -6px 0 0 #3f7a4f,
-    0 -22px 0 0 #f2f2ec;
+    0 -6px 0 0 var(--tile-band, #3f7a4f),
+    0 -22px 0 0 var(--tile-side, #f2f2ec);
 }
 /* box-shadowは.tileと同じ大きさの角丸コピーを複製しているだけで、
    その「本体にあたる大部分」は本来.tile__face（本体の絵）が上に
@@ -3445,8 +3564,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
    元々の下向きのままで正しいため上書き不要。 */
 .river--top .tile--small {
   box-shadow:
-    0 -15px 0 0 #f2f2ec,
-    0 -18px 0 0 #3f7a4f,
+    0 -15px 0 0 var(--tile-side, #f2f2ec),
+    0 -18px 0 0 var(--tile-band, #3f7a4f),
     0 -4px 2px rgba(0, 0, 0, 0.4),
     0 -20px 10px rgba(0, 0, 0, 0.5);
 }
@@ -3458,8 +3577,8 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
    自分の河の帯だけ縮めて張り出しを減らす。 */
 .river--human .tile--small {
   box-shadow:
-    0 9px 0 0 #f2f2ec,
-    0 11px 0 0 #3f7a4f,
+    0 9px 0 0 var(--tile-side, #f2f2ec),
+    0 11px 0 0 var(--tile-band, #3f7a4f),
     0 3px 1px rgba(0, 0, 0, 0.4),
     0 13px 6px rgba(0, 0, 0, 0.5);
 }
@@ -3475,15 +3594,15 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
    前後関係だけで表現する）。 */
 .river--left .tile--small {
   box-shadow:
-    15px 0 0 0 #f2f2ec,
-    18px 0 0 0 #3f7a4f,
+    15px 0 0 0 var(--tile-side, #f2f2ec),
+    18px 0 0 0 var(--tile-band, #3f7a4f),
     4px 0 2px rgba(0, 0, 0, 0.4),
     20px 0 10px rgba(0, 0, 0, 0.5);
 }
 .river--right .tile--small {
   box-shadow:
-    -15px 0 0 0 #f2f2ec,
-    -18px 0 0 0 #3f7a4f,
+    -15px 0 0 0 var(--tile-side, #f2f2ec),
+    -18px 0 0 0 var(--tile-band, #3f7a4f),
     -4px 0 2px rgba(0, 0, 0, 0.4),
     -20px 0 10px rgba(0, 0, 0, 0.5);
 }
@@ -3580,6 +3699,11 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 .tile--highlighted {
   outline: 2px solid rgba(255, 255, 255, 0.75);
   outline-offset: 1px;
+  /* 厚み（box-shadowで描いた側面の白＋緑の帯）にも、表面と同じ rgba(60,60,60,0.7) を
+     重ねたのと同じ色を当てる（::afterは牌の表面しか覆えないため、側面は色の変数で置き換える）。
+     白#f2f2ec・緑#3f7a4fに 0.7*60 + 0.3*元の色 を計算した値。 */
+  --tile-side: #737371;
+  --tile-band: #3d4f42;
 }
 .tile--highlighted::after {
   content: "";
@@ -8769,6 +8893,8 @@ button.oh-player__rank:hover .oh-player__rank-help {
   cursor: default;
 }
 .card-picker-detail {
+  /* モーダルの高さが足りない時に枠だけが縮み、中の文字が枠からはみ出さないよう、縮めない。 */
+  flex: none;
   min-height: 84px;
   padding: 8px 12px;
   border: 1px solid rgba(233, 196, 106, 0.35);
@@ -9315,4 +9441,535 @@ button.oh-player__rank:hover .oh-player__rank-help {
     scale: 1 1;
     filter: none;
   }
+}
+
+/* ===== カードの見た目（CardFace.tsx / cardDesign.ts） =====
+   採用: B（トレカ風）。A（金墨）は差し替え用に残してある（cardDesign.tsのCARD_DESIGN）。
+   寸法はすべて cqw（カードを入れる枠 .cf の幅に対する割合）なので、枠の幅を変えるだけで拡大縮小する。 */
+.cf {
+  --cf-gold: #d9b45a;
+  --cf-gold-deep: #8a6a24;
+  --cf-silver: #c3cbd5;
+  --cf-silver-deep: #6d7885;
+  --cf-bronze: #c98757;
+  --cf-bronze-deep: #6e4326;
+  --cf-vermilion: #c8402f;
+  --cf-pine: #2f7a5b;
+  --cf-font: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  container-type: inline-size;
+  width: 100%;
+  position: relative;
+  color: #f2eee2;
+  text-align: left;
+}
+.cf *,
+.cf *::before,
+.cf *::after {
+  box-sizing: border-box;
+}
+.cf h3,
+.cf p {
+  margin: 0;
+}
+.cf-a,
+.cf-b {
+  aspect-ratio: 5 / 7;
+  width: 100%;
+  position: relative;
+}
+.cf svg {
+  display: block;
+}
+.cf--btn {
+  cursor: pointer;
+  border-radius: 5cqw;
+  outline-offset: 2px;
+}
+.cf--btn:focus-visible {
+  outline: 2px solid #e9c46a;
+}
+/* 選択中・注目中の印（一覧で使う）。枠の外に光の輪を足す。 */
+.cf--selected::after {
+  content: "✔";
+  position: absolute;
+  top: 3cqw;
+  right: 4cqw;
+  z-index: 3;
+  width: 11cqw;
+  height: 11cqw;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9c46a;
+  color: #231a05;
+  font-size: 7.4cqw;
+  font-weight: 900;
+  box-shadow: 0 0 0 0.8cqw rgba(0, 0, 0, 0.45);
+}
+.cf--focused .cf-a,
+.cf--focused .cf-b {
+  outline: 0.9cqw solid #fff;
+  outline-offset: 0.6cqw;
+  border-radius: 5cqw;
+}
+/* 小さく出す時（一覧）: 効果の文字と種類の行は省き、名前を大きく、絵を大きくする。 */
+.cf--compact .cf-b__text,
+.cf--compact .cf-a p {
+  display: none;
+}
+.cf--compact .cf-b h3 {
+  /* 名前は大きく読める大きさにして、長い名前は2行に折り返す（帯が少し高くなり、絵の窓が縮む）。 */
+  font-size: 11.4cqw;
+  line-height: 1.15;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  text-wrap: balance;
+}
+.cf--compact .cf-a h3 {
+  font-size: 11.6cqw;
+}
+.cf--compact .cf-b__type {
+  font-size: 7.4cqw;
+}
+.cf--compact .cf-b__stars {
+  font-size: 8.4cqw;
+}
+.cf--compact .cf-a__stars {
+  font-size: 9cqw;
+}
+.cf--compact .cf-seal {
+  font-size: 8cqw;
+}
+.cf--compact .cf-b__window svg,
+.cf--compact .cf-a__art svg {
+  width: 40cqw;
+  height: 40cqw;
+}
+
+/* ---------- A: 金墨（ゲームの雰囲気に合わせる） ---------- */
+  .cf-a {
+    --f1: var(--cf-gold); --f2: var(--cf-gold-deep);
+    background: linear-gradient(165deg, #211c13 0%, #0f0e0b 62%);
+    border-radius: 4.5cqw;
+    padding: 5cqw;
+    display: flex; flex-direction: column; gap: 3cqw;
+    box-shadow: 0 0 0 0.7cqw var(--f2), 0 0 0 1.4cqw #0b0b0a, 0 0 0 1.9cqw var(--f1), 0 3cqw 6cqw rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+  }
+  .cf-a[data-r="2"] { --f1: var(--cf-silver); --f2: var(--cf-silver-deep); }
+  .cf-a[data-r="1"] { --f1: var(--cf-bronze); --f2: var(--cf-bronze-deep); }
+  .cf-a::before { content: ""; position: absolute; inset: 2.6cqw; border: 0.4cqw solid color-mix(in srgb, var(--f1) 55%, transparent); border-radius: 3cqw; pointer-events: none; }
+  .cf-a__top { display: flex; justify-content: space-between; align-items: center; padding: 0 1.5cqw; }
+  .cf-a__stars { color: var(--f1); font-size: 7.2cqw; letter-spacing: 0.1em; }
+  .cf-seal { font-family: var(--cf-font); font-weight: 800; font-size: 6.6cqw; line-height: 1; padding: 1.4cqw 2cqw; border-radius: 1cqw; color: #fff4e0; background: var(--cf-vermilion); box-shadow: inset 0 0 0 0.35cqw rgba(255, 255, 255, 0.35); transform: rotate(-3deg); }
+  .cf-seal--passive { background: var(--cf-pine); }
+  .cf-a__art { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; border-radius: 2.4cqw; background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--f1) 38%, transparent), transparent 62%), linear-gradient(180deg, #17140e, #0a0907); box-shadow: inset 0 0 0 0.35cqw color-mix(in srgb, var(--f1) 40%, transparent); }
+  .cf-a__art svg { width: 34cqw; height: 34cqw; stroke: var(--f1); fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 2.4cqw color-mix(in srgb, var(--f1) 70%, transparent)); }
+  .cf-a h3 { font-family: var(--cf-font); font-weight: 800; font-size: 9.6cqw; text-align: center; color: #f2eee2; letter-spacing: 0.06em; }
+  .cf-a p { font-size: 6.2cqw; line-height: 1.5; text-align: center; color: #a8a396; padding: 0 1.5cqw 1.5cqw; text-wrap: balance; }
+  .cf-a[data-r="3"]::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, rgba(255, 220, 140, 0.55) 42%, rgba(255, 252, 235, 0.95) 50%, rgba(255, 220, 140, 0.55) 58%, transparent 70%); transform: translateX(-120%); animation: cf-foil 2.4s ease-in-out infinite; pointer-events: none; mix-blend-mode: screen; }
+  @keyframes cf-foil { 0%, 35% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+  .cf-a[data-r="3"] { animation: cf-gold-glow 2.2s ease-in-out infinite; }
+  @keyframes cf-gold-glow {
+    0%, 100% { box-shadow: 0 0 0 0.7cqw var(--f2), 0 0 0 1.4cqw #0b0b0a, 0 0 0 1.9cqw var(--f1), 0 3cqw 6cqw rgba(0, 0, 0, 0.55), 0 0 3cqw 0.5cqw rgba(217, 180, 90, 0.35); }
+    50% { box-shadow: 0 0 0 0.7cqw var(--f2), 0 0 0 1.4cqw #0b0b0a, 0 0 0 1.9cqw #ffe9a8, 0 3cqw 6cqw rgba(0, 0, 0, 0.55), 0 0 8cqw 2.4cqw rgba(255, 210, 100, 0.7); }
+  }
+
+  /* ---------- B: トレカ風（色つきの枠・イラスト窓・箔） ---------- */
+  .cf-b {
+    --tone-a: #1d7a70; --tone-b: #0e2f35;
+    --rim1: var(--cf-gold); --rim2: var(--cf-gold-deep);
+    border-radius: 5cqw; padding: 2.6cqw;
+    background: linear-gradient(135deg, var(--rim1), var(--rim2) 45%, var(--rim1));
+    box-shadow: 0 3cqw 6cqw rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+  }
+  .cf-b[data-k="active"] { --tone-a: #6b34a8; --tone-b: #27123f; }
+  .cf-b[data-r="2"] { --rim1: var(--cf-silver); --rim2: var(--cf-silver-deep); }
+  .cf-b[data-r="1"] { --rim1: var(--cf-bronze); --rim2: var(--cf-bronze-deep); }
+  .cf-b__face { height: 100%; border-radius: 3.4cqw; padding: 3.6cqw; display: flex; flex-direction: column; gap: 2.6cqw; background: radial-gradient(circle at 50% 18%, var(--tone-a), var(--tone-b) 78%); position: relative; }
+  .cf-b__name { display: flex; justify-content: space-between; align-items: center; gap: 2cqw; padding: 1.8cqw 3cqw; border-radius: 2cqw; background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06)); box-shadow: inset 0 0 0 0.35cqw rgba(255, 255, 255, 0.28); }
+  .cf-b h3 { font-family: var(--cf-font); font-weight: 800; font-size: 8.4cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cf-b__gem { flex: none; width: 6.4cqw; height: 6.4cqw; rotate: 45deg; background: linear-gradient(135deg, #fff, var(--rim1)); box-shadow: 0 0 2cqw var(--rim1); }
+  .cf-b__window { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; border-radius: 2.4cqw; background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 60%), repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 1.4cqw, transparent 1.4cqw 2.8cqw); box-shadow: inset 0 0 0 0.5cqw var(--rim1), inset 0 1cqw 3cqw rgba(0, 0, 0, 0.4); }
+  .cf-b__window svg { width: 32cqw; height: 32cqw; stroke: #fff; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1cqw 1.6cqw rgba(0, 0, 0, 0.5)); }
+  .cf-b__type { display: flex; justify-content: space-between; align-items: center; font-size: 5.6cqw; font-weight: 700; padding: 0 1.5cqw; }
+  .cf-b__stars { color: var(--rim1); letter-spacing: 0.08em; font-size: 6.4cqw; }
+  .cf-b__text { border-radius: 2cqw; padding: 3cqw; background: rgba(8, 8, 14, 0.55); box-shadow: inset 0 0 0 0.35cqw rgba(255, 255, 255, 0.16); }
+  .cf-b p { font-size: 6cqw; line-height: 1.5; }
+  /* ★3: 虹色の箔の帯が走り、縁が虹色に回り、きらめきが瞬く。カーソルを乗せると傾いて光が追う。 */
+  @property --cf-ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  .cf-b[data-r="3"] {
+    background: conic-gradient(from var(--cf-ang), #ffd36b, #ff5fa2, #b05fff, #5fc8ff, #5fffb4, #ffd36b);
+    animation: cf-rim-spin 4s linear infinite, cf-rim-glow 2.4s ease-in-out infinite;
+    transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 0.12s ease-out;
+  }
+  @keyframes cf-rim-spin { to { --cf-ang: 360deg; } }
+  @keyframes cf-rim-glow {
+    0%, 100% { box-shadow: 0 3cqw 6cqw rgba(0, 0, 0, 0.55), 0 0 4cqw 0.5cqw rgba(255, 120, 200, 0.45); }
+    50% { box-shadow: 0 3cqw 6cqw rgba(0, 0, 0, 0.55), 0 0 9cqw 2.2cqw rgba(120, 200, 255, 0.75); }
+  }
+  .cf-b__fx { display: none; }
+  .cf-b[data-r="3"] .cf-b__fx {
+    display: block; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; overflow: hidden;
+    /* 名前の帯（上）と効果の文字（下）は読めるよう弱め、イラスト窓の周りを強く光らせる。 */
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0, rgba(0, 0, 0, 0.22) 13%, #000 19%, #000 62%, rgba(0, 0, 0, 0.2) 69%, rgba(0, 0, 0, 0.2) 100%);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0, rgba(0, 0, 0, 0.22) 13%, #000 19%, #000 62%, rgba(0, 0, 0, 0.2) 69%, rgba(0, 0, 0, 0.2) 100%);
+  }
+  /* 虹の帯: 3秒に1回だけ、斜めにすっと通り抜ける（常時は出さない。アイコンが見えるように薄め）。 */
+  .cf-b[data-r="3"] .cf-b__fx::before {
+    content: ""; position: absolute; inset: -10% -40%;
+    background: linear-gradient(105deg, transparent 38%, rgba(255, 95, 162, 0.55) 43%, rgba(255, 211, 107, 0.6) 47%, rgba(95, 255, 180, 0.55) 51%, rgba(95, 200, 255, 0.55) 55%, rgba(176, 95, 255, 0.5) 59%, transparent 64%);
+    mix-blend-mode: screen; opacity: 0.85;
+    transform: translateX(-100%);
+    animation: cf-holo-pass 3.2s ease-in-out infinite;
+  }
+  @keyframes cf-holo-pass { 0%, 30% { transform: translateX(-100%); } 70%, 100% { transform: translateX(100%); } }
+  /* カーソルを追う光（JSが --mx / --my を入れる） */
+  .cf-b[data-r="3"] .cf-b__spot { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255, 255, 255, 0.35), transparent 45%); mix-blend-mode: overlay; }
+  .cf-b[data-r="3"] .cf-b__gem { animation: cf-gem 1.2s ease-in-out infinite; }
+  @keyframes cf-gem { 50% { box-shadow: 0 0 5cqw 1.2cqw #fff; filter: brightness(1.5); } }
+
+/* ---------- 対局中の小さい表示（カード欄の1枚） ---------- */
+.cf-chip {
+  --chip-rim: #d9b45a;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 8px;
+  border: 0;
+  border-radius: 10px;
+  color: #f2eee2;
+  font: inherit;
+  background: linear-gradient(135deg, #1d7a70, #0e2f35);
+  box-shadow: 0 0 0 2px var(--chip-rim), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.cf-chip[data-k="active"] {
+  background: linear-gradient(135deg, #6b34a8, #27123f);
+}
+.cf-chip[data-r="2"] {
+  --chip-rim: #c3cbd5;
+}
+.cf-chip[data-r="1"] {
+  --chip-rim: #c98757;
+}
+.cf-chip svg {
+  width: 22px;
+  height: 22px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cf-chip b {
+  font-size: 14px;
+}
+.cf-chip small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.cf-chip .cf-seal {
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transform: none;
+}
+.cf-chip--btn {
+  cursor: pointer;
+}
+.cf-chip--ready {
+  animation: cf-chip-ready 1.6s ease-in-out infinite;
+}
+@keyframes cf-chip-ready {
+  50% {
+    box-shadow: 0 0 0 2px var(--chip-rim), 0 0 14px 3px color-mix(in srgb, var(--chip-rim) 75%, transparent), 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-chip--ready {
+    animation: none;
+  }
+}
+
+/* ===== カード面の配置（ガチャ結果・手持ち・詳細・選択ピッカー） ===== */
+/* ガチャ結果のカード1枚: めくれるアニメーションはキャラの札と同じ。 */
+.gacha-cardface {
+  position: relative;
+  width: 100%;
+  animation: gacha-card-flip 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gacha-cardface {
+    animation: none;
+  }
+}
+/* CPU戦のカード選択: カード面は縦長なので、行間も少し取る。 */
+.card-picker-grid {
+  gap: 10px;
+}
+/* 手持ちの装着画面: カード候補を並べて選ぶ。 */
+.units-screen__cards {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.units-screen__card-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 104px;
+}
+.units-screen__card-count {
+  font-size: 12px;
+  opacity: 0.8;
+}
+/* キャラの詳細: カード面を左に小さく、説明を右に。 */
+.unit-detail__card {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.unit-detail__card-face {
+  flex: none;
+  width: 84px;
+}
+.unit-detail__card-body {
+  min-width: 0;
+}
+/* 対局中のカード欄: 小さい表示を縦に積む。 */
+.action-stack__card {
+  display: flex;
+}
+
+/* カードの下の効果の説明（compactで出す時。カード面の中には説明が入らないので、文字を別に出す）。 */
+.cf-caption {
+  margin: 6px 0 0 !important;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+  color: #e6dfcc;
+  text-wrap: balance;
+}
+.units-screen__card-pick {
+  width: 124px;
+}
+/* ガチャ結果のカードのNEW札は、名前にかからないよう、カードの角の外側に出す。 */
+.gacha-cardface .gacha-card__new {
+  top: -6px;
+  left: -6px;
+  z-index: 4;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== カード欄と、欄を開いた時の選択画面（CardSlot.tsx） ===== */
+.cs-slot {
+  --cs-tone: #1d7a70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 112px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+.cs-slot[data-k="consumable"] {
+  --cs-tone: #8a4bd0;
+}
+.cs-slot--btn {
+  cursor: pointer;
+}
+.cs-slot__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--cs-tone) 40%, #fff);
+}
+.cs-slot__face,
+.cs-slot__empty {
+  display: block;
+  width: 100%;
+}
+/* 空の欄: カードと同じ縦横比の破線の枠に「＋」。押せることが一目で分かる。 */
+.cs-slot__empty {
+  aspect-ratio: 5 / 7;
+  display: grid;
+  place-items: center;
+  border: 2px dashed color-mix(in srgb, var(--cs-tone) 75%, #fff);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cs-tone) 18%, transparent);
+}
+.cs-slot--btn:hover .cs-slot__empty,
+.cs-slot--btn:focus-visible .cs-slot__empty {
+  background: color-mix(in srgb, var(--cs-tone) 34%, transparent);
+}
+.cs-slot__plus {
+  font-size: 34px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--cs-tone) 45%, #fff);
+}
+.cs-slot__hint {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.cs-slot__name {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.cs-slot__edit {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  opacity: 0.9;
+}
+.oh-plate__slots {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+}
+.unit-detail__slots {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.cs-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(900px, calc(calc(var(--app-vw, 1vw) * 100) - 24px));
+  max-height: calc(calc(var(--app-vh, 1vh) * 100) - 24px);
+  overflow-y: auto;
+  padding: 18px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 196, 106, 0.55);
+  background: #15110c;
+  color: #f2eee2;
+}
+.cs-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cs-picker__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffe4a3;
+}
+.cs-picker__note {
+  margin: 0;
+  font-size: 13px;
+  color: #ffb4a8;
+}
+.cs-picker__empty {
+  margin: 12px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.85;
+}
+.cs-picker__filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cs-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+  /* カードが多い時は、この中だけをスクロールする（下の説明と決定ボタンは動かさない）。 */
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px 4px 8px;
+}
+.cs-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.cs-pick__count {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.cs-picker__detail {
+  flex: none;
+}
+.cs-picker__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.unit-detail__box--slot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ===== CPU戦のカードを付ける別画面（MatchSetup.tsxのshowLoadout） ===== */
+.cardloadout {
+  display: grid;
+  place-items: center;
+}
+.cardloadout__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 24px 28px;
+  max-width: 640px;
+  border-radius: 14px;
+  background: rgba(10, 8, 6, 0.78);
+  border: 1px solid rgba(233, 196, 106, 0.35);
+}
+.cardloadout__who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cardloadout__who img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(233, 196, 106, 0.6);
+}
+.cardloadout__lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+  color: #e6dfcc;
+}
+.cardloadout__slots {
+  display: flex;
+  gap: 28px;
+}
+.cardloadout__slots .cs-slot {
+  width: 176px;
+}
+/* カード画面は、左右に分けるトップの配置ではなく、中央に1枚の枠として出す。 */
+.online-home .oh-main.cardloadout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cardloadout__body {
+  align-self: center;
+  width: min(640px, calc(calc(var(--app-vw, 1vw) * 100) - 48px));
+}
+.cardloadout__slots .cs-slot {
+  width: 140px;
+}
+.cardloadout__done {
+  align-self: center;
 }

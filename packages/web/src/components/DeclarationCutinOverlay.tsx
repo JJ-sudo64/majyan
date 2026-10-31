@@ -188,6 +188,12 @@ export function DeclarationCutinView({ cutin }: { cutin: Omit<ActiveCutin, "key"
       style={{ "--accent": cutin.accent } as CSSProperties}
     >
       <div className="declaration-cutin__flash" />
+      {cutin.kind === "skill" && (
+        <>
+          <div className="declaration-cutin__rays" />
+          <div className="declaration-cutin__speed" />
+        </>
+      )}
       <div className="declaration-cutin__band" style={bandStyle}>
         <img className="declaration-cutin__art" src={cutin.src} alt="" style={artStyle} />
         <div className="declaration-cutin__sweep" />

@@ -87,7 +87,7 @@ export function CharacterPanel({
 
   return (
     <div
-      className={`character-panel character-panel--${corner}${isCurrent ? " character-panel--active" : ""}${frozen ? " character-panel--frozen" : ""}${editable ? " character-panel--editable" : ""}${editActive ? " character-panel--edit-active" : ""}`}
+      className={`character-panel character-panel--${corner}${isCurrent ? " character-panel--active" : ""}${frozen ? " character-panel--frozen" : ""}${p.riichi ? " character-panel--riichi" : ""}${editable ? " character-panel--editable" : ""}${editActive ? " character-panel--edit-active" : ""}`}
       style={style}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -151,7 +151,6 @@ export function CharacterPanel({
           </span>
           <span className="character-panel__score">{score}点</span>
         </div>
-        {p.riichi && <span className="riichi-badge">リーチ</span>}
         <SkillGauge round={round} player={player} />
       </div>
       {/* 自分にかかっている技の状態（未来視で見えた牌・ベタ降りの盾）。以前は手牌の左上に

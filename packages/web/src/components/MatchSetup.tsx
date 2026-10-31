@@ -1,23 +1,16 @@
 import { useState } from "react";
-import { CARDS, CHARACTERS, cardRarity, type AiDifficulty, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, type AiDifficulty, type MatchFormat } from "@majyan/core";
 import { useGameStore, type CpuDifficultySettings } from "../store/gameStore.js";
 import { playUiClickFor } from "../sound.js";
-import { RARITY_STARS } from "./GachaCard.js";
+import { CardSlot, CardSlotPicker, slotLabel, type SlotKind } from "./CardSlot.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
-/** カードの一覧は、レア度の高い順（同じレア度は常時→消費の順、その中は定義順）に並べる。 */
-const CARD_LIST = Object.values(CARDS)
-  .map((card, index) => ({ card, index }))
-  .sort(
-    (a, b) =>
-      cardRarity(b.card.id) - cardRarity(a.card.id) ||
-      Number(b.card.kind === "passive") - Number(a.card.kind === "passive") ||
-      a.index - b.index,
-  )
-  .map(({ card }) => card);
-type CardKindFilter = "all" | "passive" | "consumable";
-/** カード選択の1ページに並べる枚数（8列×3行）。 */
-const CARD_PAGE_SIZE = 24;
+/** その種類のカードのID（定義順）。カード欄を開いた時の選択肢になる。 */
+function cardIdsOfKind(kind: SlotKind): string[] {
+  return Object.values(CARDS)
+    .filter((c) => c.kind === kind)
+    .map((c) => c.id);
+}
 
 /** 各CPU席のキャラクター指定。null = おまかせ（ランダム）。 */
 type CpuCharacterSettings = [string | null, string | null, string | null, string | null];
@@ -67,28 +60,20 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
   const confirmingCharacter = confirmingCharacterId ? CHARACTERS[confirmingCharacterId] : undefined;
   // カードはキャラと違いCPU対象外の人間専用要素で、おまかせ（ランダム割り当て）
   // という概念が無いため、null=「なし」がそのままデフォルトになる。
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  // パッシブ1枚＋アクティブ（消費型）1枚まで。選んだカードの種類で、どちらの枠に入るかが決まる。
+  const [selectedPassiveId, setSelectedPassiveId] = useState<string | null>(null);
+  const [selectedActiveId, setSelectedActiveId] = useState<string | null>(null);
   // キャラ・カードともに種類が増えて一覧を常時表示するとトップ画面が
   // ごちゃつくため、選択中の1件だけを常時表示し、詳しい一覧はクリックで
   // 開く別モーダル（ピッカー）に追い出す。
   const [showCharacterPicker, setShowCharacterPicker] = useState(false);
-  const [showCardPicker, setShowCardPicker] = useState(false);
-  // カードが増えたので、ピッカーはレア度と種類で絞り込めるようにする。
-  const [cardRarityFilter, setCardRarityFilter] = useState<0 | 1 | 2 | 3>(0);
-  const [cardKindFilter, setCardKindFilter] = useState<CardKindFilter>("all");
-  const visibleCards = CARD_LIST.filter(
-    (c) => (cardRarityFilter === 0 || cardRarity(c.id) === cardRarityFilter) && (cardKindFilter === "all" || c.kind === cardKindFilter),
-  );
-  // 一覧は1画面に収まるぶんずつページで区切り、スクロールが要らないようにする。
-  // タイルを押すと下に説明が出て（スマホでも同じ）、「このカードにする」で決定する。
-  const [cardPage, setCardPage] = useState(0);
-  const [cardFocusId, setCardFocusId] = useState<string | null>(null);
-  const cardPageCount = Math.max(1, Math.ceil(visibleCards.length / CARD_PAGE_SIZE));
-  const cardPageIndex = Math.min(cardPage, cardPageCount - 1);
-  const pageCards = visibleCards.slice(cardPageIndex * CARD_PAGE_SIZE, (cardPageIndex + 1) * CARD_PAGE_SIZE);
-  const focusedCard = cardFocusId ? CARDS[cardFocusId] : undefined;
+  // 開いているカード欄（パッシブ欄／アクティブ欄）。null = 閉じている。
+  const [openSlot, setOpenSlot] = useState<SlotKind | null>(null);
+  // カードを付ける別画面（パッシブ欄・アクティブ欄だけの画面）を出しているか。トップにはカード欄を置かない
+  // （カード欄が大きく、選んだキャラの絵が隠れるため）。
+  const [showLoadout, setShowLoadout] = useState(false);
+  const attachedCardCount = (selectedPassiveId ? 1 : 0) + (selectedActiveId ? 1 : 0);
   const selectedCharacter = selectedCharacterId ? CHARACTERS[selectedCharacterId] : undefined;
-  const selectedCard = selectedCardId ? CARDS[selectedCardId] : undefined;
 
   function setSeatDifficulty(player: 1 | 2 | 3, level: AiDifficulty) {
     setCpuDifficulty((prev) => {
@@ -113,8 +98,9 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
       cpuDifficulty,
       selectedCharacterId ?? undefined,
       continueBelowZero,
-      selectedCardId ?? undefined,
+      selectedPassiveId ?? undefined,
       cpuCharacterIds,
+      selectedActiveId ?? undefined,
     );
   }
 
@@ -122,14 +108,14 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
     // 見た目はオンラインのホーム画面（OnlineLobby.tsx）と共通の .online-home / .oh-* を使う。
     <div className="online-home match-setup" onClickCapture={playUiClickFor}>
       <header className="oh-top">
-        <button type="button" className="oh-back" onClick={onBack}>
-          ← タイトルへ
+        <button type="button" className="oh-back" onClick={showLoadout ? () => setShowLoadout(false) : onBack}>
+          {showLoadout ? "← 戻る" : "← タイトルへ"}
         </button>
-        <div className="oh-top__title">PLAY</div>
+        <div className="oh-top__title">{showLoadout ? "CARD" : "PLAY"}</div>
         <div className="oh-top__spacer" />
         {/* 何度も見返す確認用ページ（CutinGallery.tsx / QuoteGallery.tsx）。別タブで
             開くので、この画面で選んだキャラや設定はそのまま残る。 */}
-        <div className="setup-gallery-links">
+        <div className="setup-gallery-links" style={showLoadout ? { display: "none" } : undefined}>
           <button type="button" className="oh-ghost setup-tutorial-btn" onClick={startTutorial}>
             チュートリアル
           </button>
@@ -145,6 +131,29 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
         </div>
       </header>
 
+      {showLoadout ? (
+        <main className="oh-main cardloadout">
+          <section className="cardloadout__body">
+            <div className="cardloadout__who">
+              {selectedCharacter && <img src={selectedCharacter.avatar} alt="" />}
+              <div>
+                <div className="oh-plate__label">自分のキャラクター</div>
+                <div className="oh-plate__name">{selectedCharacter?.name ?? "おまかせ"}</div>
+              </div>
+            </div>
+            <p className="cardloadout__lead">
+              パッシブ（常に効く）とアクティブ（自分で使う）を、1枚ずつ付けられます。CPU戦では、全カードから自由に選べます。
+            </p>
+            <div className="cardloadout__slots">
+              <CardSlot kind="passive" cardId={selectedPassiveId} onOpen={() => setOpenSlot("passive")} />
+              <CardSlot kind="consumable" cardId={selectedActiveId} onOpen={() => setOpenSlot("consumable")} />
+            </div>
+            <button type="button" className="oh-ghost cardloadout__done" onClick={() => setShowLoadout(false)}>
+              決定して戻る
+            </button>
+          </section>
+        </main>
+      ) : (
       <main className="oh-main">
         <section className="oh-stage">
           {selectedCharacter && (
@@ -159,14 +168,14 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
             <div className="oh-plate__label">自分のキャラクター</div>
             <div className="oh-plate__name">{selectedCharacter?.name ?? "おまかせ"}</div>
             <div className="oh-plate__sub">
-              {selectedCharacter ? `必殺技「${selectedCharacter.skill.name}」` : "ランダムに割り当てます"}／カード: {selectedCard?.name ?? "なし"}
+              {selectedCharacter ? `必殺技「${selectedCharacter.skill.name}」` : "ランダムに割り当てます"}
             </div>
             <div className="oh-plate__buttons">
               <button type="button" className="oh-ghost" onClick={() => setShowCharacterPicker(true)}>
                 キャラを選ぶ
               </button>
-              <button type="button" className="oh-ghost" onClick={() => setShowCardPicker(true)}>
-                カードを選ぶ
+              <button type="button" className="oh-ghost" onClick={() => setShowLoadout(true)}>
+                カードを付ける（{attachedCardCount}/2）
               </button>
             </div>
           </div>
@@ -243,6 +252,7 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
           </div>
         </section>
       </main>
+      )}
 
       {showCharacterPicker && (
         <div className="modal-overlay" onClick={() => setShowCharacterPicker(false)}>
@@ -260,6 +270,7 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
                 onClick={() => {
                   setSelectedCharacterId(null);
                   setShowCharacterPicker(false);
+                  setShowLoadout(true);
                 }}
               >
                 <div className="character-card__avatar character-card__avatar--random">？</div>
@@ -308,6 +319,7 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
                   setSelectedCharacterId(confirmingCharacter.id);
                   setConfirmingCharacterId(null);
                   setShowCharacterPicker(false);
+                  setShowLoadout(true);
                 }}
               >
                 このキャラクターにする
@@ -320,120 +332,25 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
         </div>
       )}
 
-      {showCardPicker && (
-        <div className="modal-overlay" onClick={() => setShowCardPicker(false)}>
-          <div className="setup-picker-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="setup-picker-modal__header">
-              <div className="setup-character-select__label">持っていくカード（1枚まで・自分専用）</div>
-              <button type="button" className="setup-picker-modal__close" onClick={() => setShowCardPicker(false)}>
-                ×
-              </button>
-            </div>
-            <div className="card-picker-filters">
-              {([0, 3, 2, 1] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`card-picker-filters__chip${cardRarityFilter === r ? " is-active" : ""}`}
-                  onClick={() => {
-                    setCardRarityFilter(r);
-                    setCardPage(0);
-                  }}
-                >
-                  {r === 0 ? "すべて" : RARITY_STARS[r]}
-                </button>
-              ))}
-              <span className="card-picker-filters__gap" />
-              {(
-                [
-                  ["all", "全種類"],
-                  ["passive", "常時"],
-                  ["consumable", "消費"],
-                ] as [CardKindFilter, string][]
-              ).map(([k, label]) => (
-                <button
-                  key={k}
-                  type="button"
-                  className={`card-picker-filters__chip${cardKindFilter === k ? " is-active" : ""}`}
-                  onClick={() => {
-                    setCardKindFilter(k);
-                    setCardPage(0);
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-              <span className="card-picker-filters__count">{visibleCards.length}枚</span>
-            </div>
-            <div className="card-picker-grid">
-              {pageCards.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`card-tile${cardFocusId === c.id ? " is-focused" : ""}${selectedCardId === c.id ? " is-selected" : ""}`}
-                  onClick={() => setCardFocusId(c.id)}
-                >
-                  <span className="card-tile__top">
-                    <span className="card-tile__stars">{RARITY_STARS[cardRarity(c.id)]}</span>
-                    <span className="card-tile__kind">{c.kind === "passive" ? "常時" : "消費"}</span>
-                  </span>
-                  <span className="card-tile__name">{c.name}</span>
-                </button>
-              ))}
-            </div>
-            <div className="card-picker-pager">
-              <button type="button" className="card-picker-filters__chip" disabled={cardPageIndex === 0} onClick={() => setCardPage(cardPageIndex - 1)}>
-                ‹ 前へ
-              </button>
-              <span>
-                {cardPageIndex + 1} / {cardPageCount}
-              </span>
-              <button
-                type="button"
-                className="card-picker-filters__chip"
-                disabled={cardPageIndex >= cardPageCount - 1}
-                onClick={() => setCardPage(cardPageIndex + 1)}
-              >
-                次へ ›
-              </button>
-              <span className="card-picker-filters__gap" />
-              <button
-                type="button"
-                className={`card-picker-filters__chip${selectedCardId === null ? " is-active" : ""}`}
-                onClick={() => {
-                  setSelectedCardId(null);
-                  setShowCardPicker(false);
-                }}
-              >
-                カードなしにする
-              </button>
-            </div>
-            <div className="card-picker-detail">
-              {focusedCard ? (
-                <>
-                  <div className="card-picker-detail__head">
-                    <span className="card-picker-detail__name">{focusedCard.name}</span>
-                    <span className="card-tile__stars">{RARITY_STARS[cardRarity(focusedCard.id)]}</span>
-                    <span className="card-tile__kind">{focusedCard.kind === "passive" ? "常時" : "消費"}</span>
-                    <button
-                      type="button"
-                      className="oh-ghost card-picker-detail__pick"
-                      onClick={() => {
-                        setSelectedCardId(focusedCard.id);
-                        setShowCardPicker(false);
-                      }}
-                    >
-                      このカードにする
-                    </button>
-                  </div>
-                  <p className="card-picker-detail__desc">{focusedCard.description}</p>
-                </>
-              ) : (
-                <p className="card-picker-detail__desc">カードを押すと、ここに効果が出ます。</p>
-              )}
-            </div>
-          </div>
-        </div>
+      {openSlot && (
+        <CardSlotPicker
+          kind={openSlot}
+          title={`${slotLabel(openSlot)}に入れるカード`}
+          candidates={cardIdsOfKind(openSlot)}
+          current={openSlot === "passive" ? selectedPassiveId : selectedActiveId}
+          emptyMessage="カードがありません。"
+          onConfirm={(id) => {
+            if (openSlot === "passive") setSelectedPassiveId(id);
+            else setSelectedActiveId(id);
+            setOpenSlot(null);
+          }}
+          onClear={() => {
+            if (openSlot === "passive") setSelectedPassiveId(null);
+            else setSelectedActiveId(null);
+            setOpenSlot(null);
+          }}
+          onClose={() => setOpenSlot(null)}
+        />
       )}
 
     </div>

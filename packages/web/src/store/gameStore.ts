@@ -11,7 +11,7 @@ import {
   decideCpuCallResponse,
   decideCpuTurnAction,
   pendingDecision,
-  randomCardId,
+  randomCardIdOfKind,
   randomCharacterIds,
   fromViewerSeat,
   redactMatchForSeat,
@@ -235,6 +235,8 @@ interface GameStoreState {
     /** 各CPU席のキャラクター指定。要素がnull/undefinedの席はランダムのまま。
         index 0(自分)は無視される。 */
     cpuCharacterIds?: [string | null, string | null, string | null, string | null],
+    /** 自分のアクティブ枠のカード（humanCardIdはパッシブ枠）。 */
+    humanCardId2?: string,
   ) => void;
   debugSetSpeed: (speed: "fast" | "normal") => void;
   debugTogglePause: () => void;
@@ -637,6 +639,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     continueBelowZero = false,
     humanCardId,
     cpuCharacterIds,
+    humanCardId2,
   ) => {
     // 全席まずランダムで割り当て、自分・CPUそれぞれ選んだ席だけ上書きする
     // （未選択の席はランダムのまま）。
@@ -646,15 +649,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       const chosen = cpuCharacterIds?.[seat];
       if (chosen) characterIds[seat] = chosen;
     }
-    // 人間は選択したカード（未選択ならカード無し）、CPU3人は必ずランダムで
-    // 1枚を持たせる（「なし」は無い）。
+    // 人間は選択したカード（未選択ならカード無し）、CPU3人は必ずパッシブ1枚と
+    // アクティブ1枚をランダムで持たせる（「なし」は無い）。
     const cardIds: [string | null, string | null, string | null, string | null] = [
       humanCardId ?? null,
-      randomCardId(),
-      randomCardId(),
-      randomCardId(),
+      randomCardIdOfKind("passive"),
+      randomCardIdOfKind("passive"),
+      randomCardIdOfKind("passive"),
     ];
-    const match = createMatch(format, Math.random, characterIds, continueBelowZero, cardIds);
+    const cardIds2: [string | null, string | null, string | null, string | null] = [
+      humanCardId2 ?? null,
+      randomCardIdOfKind("consumable"),
+      randomCardIdOfKind("consumable"),
+      randomCardIdOfKind("consumable"),
+    ];
+    const match = createMatch(format, Math.random, characterIds, continueBelowZero, cardIds, cardIds2);
     resetCutinHold();
     set({
       ...viewStateFor(match),
