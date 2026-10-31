@@ -113,8 +113,8 @@ describe("RankService", () => {
     ranks.recordMatch("old", "hanchan", [{ userId: id, seat: 0, place: 4, finalScore: -2000 }]);
     vi.setSystemTime(2_000);
     ranks.recordMatch("new", "tonpuusen", [{ userId: id, seat: 2, place: 1, finalScore: 41000 }], [
-      { seat: 0, userId: null, name: "CPU 1", characterId: "zeno", cardId: null, place: 2, finalScore: 30000 },
-      { seat: 2, userId: id, name: "A", characterId: "masato", cardId: "point-drain", place: 1, finalScore: 41000 },
+      { seat: 0, userId: null, name: "CPU 1", characterId: "zeno", cardId: null, cardId2: null, place: 2, finalScore: 30000 },
+      { seat: 2, userId: id, name: "A", characterId: "masato", cardId: null, cardId2: "point-drain", place: 1, finalScore: 41000 },
     ]);
     const h = ranks.history(id);
     expect(h.total).toEqual({ games: 2, places: [1, 0, 0, 1], busted: 1 }); // 2000点のマイナスで終わった対局が飛び1回
@@ -217,10 +217,10 @@ describe("units in matches", () => {
     }
     const bRound = ps[1]!.client.view.match.round;
     expect(bRound.characterIds[0]).toBe(bUnit.characterId);
-    expect(bRound.cardIds[0]).toBe(cardId);
+    expect(bRound.cardIds2[0]).toBe(cardId);
     const aRound = ps[0]!.client.view.match.round;
     expect(collections.units(ps[0]!.profile.id).map((u) => u.characterId)).toContain(aRound.characterIds[0]);
-    expect(aRound.cardIds[0]).toBeNull();
+    expect(aRound.cardIds2[0]).toBeNull();
   });
 });
 

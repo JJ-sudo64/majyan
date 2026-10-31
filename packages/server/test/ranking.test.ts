@@ -53,8 +53,8 @@ describe("account deletion", () => {
       { userId: profile.id, seat: 0, place: 1, finalScore: 40000 },
       { userId: other.id, seat: 1, place: 2, finalScore: 30000 },
     ], [
-      { seat: 0, userId: profile.id, name: "消える人", characterId: "masato", cardId: null, place: 1, finalScore: 40000 },
-      { seat: 1, userId: other.id, name: "残る人", characterId: "zeno", cardId: null, place: 2, finalScore: 30000 },
+      { seat: 0, userId: profile.id, name: "消える人", characterId: "masato", cardId: null, cardId2: null, place: 1, finalScore: 40000 },
+      { seat: 1, userId: other.id, name: "残る人", characterId: "zeno", cardId: null, cardId2: null, place: 2, finalScore: 30000 },
     ]);
 
     accounts.deleteAccount(profile.id);

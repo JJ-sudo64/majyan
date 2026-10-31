@@ -25,7 +25,7 @@ import {
   type RoundScoreOutcome,
 } from "./gameEngine.js";
 import { dealNewRound, hasBustedPlayer, planNextRound, rankSeats, settleLeftoverKyotaku } from "./matchFormat.js";
-import { applyCardBustGuards, applyCardMatchEndBonuses, consumeBoonUses, resolveKyotakuWithCard } from "./cards.js";
+import { applyCardBustGuards, applyCardMatchEndBonuses, consumeBoonUses, hasLiveCard, resolveKyotakuWithCard } from "./cards.js";
 import { decideTileSwaps } from "./ai/simpleAi.js";
 
 type Scores = [number, number, number, number];
@@ -51,10 +51,7 @@ export interface MatchActionResult {
  */
 export function applyMatchAction(match: MatchState, action: GameAction): MatchActionResult {
   const round = match.round;
-  const freeRiichi =
-    action.type === "riichi" &&
-    round.cardIds[action.player] === "no-cost-riichi" &&
-    round.cardUsesRemaining[action.player] > 0;
+  const freeRiichi = action.type === "riichi" && hasLiveCard(round, action.player, "no-cost-riichi");
   let nextRound = applyAction(round, action);
   let scores = match.scores;
   if (action.type === "riichi" && !freeRiichi) {
@@ -161,6 +158,7 @@ export function advanceToNextRound(
   // 連荘には荒牌流局の親テンパイ継続・九種九牌流局も含まれるため、resultの
   // 種別まで見て区別する（RoundState.dealerRenchanByWin参照）。
   const dealerWonRenchan = result.dealerContinues && (result.type === "tsumo" || result.type === "ron");
+  const boonUses = consumeBoonUses(round);
   const nextRound = dealNewRound(
     plan.roundWind,
     plan.roundNumber,
@@ -174,10 +172,12 @@ export function advanceToNextRound(
     dealerWonRenchan,
     round.cardIds,
     // 加護系カードは、この局で和了に使った分を次局へ進む時に減らす（結果画面の間は変えない）。
-    consumeBoonUses(round),
+    boonUses.cardUsesRemaining,
     round.cardNegateArmed,
     match.format,
     carriedPairDeals,
+    round.cardIds2,
+    boonUses.cardUsesRemaining2,
   );
   return { ...match, round: resolveAutoTileSwaps({ ...nextRound, points: match.scores }, autoTileSwapSeats) };
 }

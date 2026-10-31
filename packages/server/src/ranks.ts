@@ -45,6 +45,7 @@ export interface RankedSeatRecord {
   name: string;
   characterId: string;
   cardId: string | null;
+  cardId2: string | null;
   place: 1 | 2 | 3 | 4;
   finalScore: number;
 }
@@ -97,10 +98,10 @@ export class RankService {
       for (const seat of seats) {
         this.db
           .prepare(
-            `INSERT INTO ranked_match_seats (match_id, seat, user_id, name, character_id, card_id, place, final_score)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO ranked_match_seats (match_id, seat, user_id, name, character_id, card_id, card_id2, place, final_score)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
-          .run(matchId, seat.seat, seat.userId, seat.name, seat.characterId, seat.cardId, seat.place, seat.finalScore);
+          .run(matchId, seat.seat, seat.userId, seat.name, seat.characterId, seat.cardId, seat.cardId2, seat.place, seat.finalScore);
       }
       for (const r of results) {
         const { rank, games } = this.row(r.userId);
@@ -178,7 +179,7 @@ export class RankService {
       points_after: number;
     }[];
     const seatQuery = this.db.prepare(
-      `SELECT seat, user_id, name, character_id, card_id, place, final_score FROM ranked_match_seats
+      `SELECT seat, user_id, name, character_id, card_id, card_id2, place, final_score FROM ranked_match_seats
        WHERE match_id = ? ORDER BY place, seat`,
     );
     const recent: RankedHistoryEntry[] = rows.map((row) => {
@@ -189,6 +190,7 @@ export class RankService {
         name: string;
         character_id: string;
         card_id: string | null;
+        card_id2: string | null;
         place: 1 | 2 | 3 | 4;
         final_score: number;
       }[];
@@ -209,6 +211,7 @@ export class RankService {
           isCpu: s.user_id === null,
           characterId: s.character_id,
           cardId: s.card_id,
+          cardId2: s.card_id2,
           place: s.place,
           finalScore: s.final_score,
         })),

@@ -223,6 +223,12 @@ export interface RoundState {
       通して持ち越す（次局でリセットしない。gameStore.tsのacknowledgeRoundEnd
       参照）。0になるとcanUseCardが常にfalseを返す（gameEngine.ts参照）。 */
   cardUsesRemaining: [number, number, number, number];
+  /** 各座席の2枠目のカード（1枠目のcardIdsと同じ意味）。「パッシブ1枚＋アクティブ1枚」の
+      装着では、cardIdsにパッシブ、cardIds2にアクティブを入れる。2枠とも同じ扱いで、
+      どちらの枠にあるかはcards.tsの補助関数（hasCardなど）が吸収する。 */
+  cardIds2: [string | null, string | null, string | null, string | null];
+  /** 2枠目のカードの残り使用可能回数（cardUsesRemainingと同じ意味）。 */
+  cardUsesRemaining2: [number, number, number, number];
   /** カード「無効化」使用後に立つ、次にその座席以外が必殺技を使った瞬間に
       その効果を打ち消すフラグ（座席ごとに独立）。実際に無効化した瞬間にfalseへ
       戻る（gameEngine.tsのapplyUseSkillAction/applyRiichiAction参照）。

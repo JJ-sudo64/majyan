@@ -157,11 +157,17 @@ export interface MeResponse {
   runningRanked: MatchFormat | null;
 }
 
-/** 手持ちのキャラ1体。カードは一度付けたら外せない。 */
+/**
+ * 手持ちのキャラ1体。カードはパッシブ1枚（cardId）とアクティブ1枚（cardId2）まで付けられ、
+ * 一度付けたら外せない。
+ */
 export interface CharacterUnit {
   unitId: string;
   characterId: string;
+  /** パッシブ枠のカード。 */
   cardId: string | null;
+  /** アクティブ枠のカード。 */
+  cardId2: string | null;
 }
 
 export interface GachaRollResponse {
@@ -220,6 +226,7 @@ export interface RankedHistorySeat {
   isCpu: boolean;
   characterId: string;
   cardId: string | null;
+  cardId2: string | null;
   place: 1 | 2 | 3 | 4;
   finalScore: number;
 }
@@ -591,6 +598,7 @@ export interface LobbyMember {
   name: string;
   characterId: string | null;
   cardId: string | null;
+  cardId2: string | null;
   isHost: boolean;
   isYou: boolean;
 }

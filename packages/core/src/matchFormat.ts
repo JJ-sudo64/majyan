@@ -4,7 +4,7 @@ import { createEmptyHand, addTileToHand } from "./hand.js";
 import type { PlayerIndex } from "./actions.js";
 import type { MatchFormat, MatchState, PlayerRoundState, RoundState } from "./gameState.js";
 import { randomCharacterIds, CHARACTERS } from "./characters.js";
-import { CARDS } from "./cards.js";
+import { CARDS, initialCardUses } from "./cards.js";
 import { ensureAtLeastPairs } from "./dealAdjust.js";
 
 const STARTING_SCORE = 25000;
@@ -76,9 +76,7 @@ export function dealNewRound(
   /** 前局から持ち越すカードの残り使用可能回数（半荘/東風戦を通して持ち越す。
       局をまたいでリセットしない）。未指定（＝対局の最初の局）の場合は
       各カードのCard.maxUses（未指定なら1）で初期化する。 */
-  previousCardUsesRemaining: [number, number, number, number] = cardIds.map((id) =>
-    id ? CARDS[id]?.maxUses ?? 1 : 0,
-  ) as [number, number, number, number],
+  previousCardUsesRemaining: [number, number, number, number] = initialCardUses(cardIds),
   /** 前局から持ち越す「無効化」カードの構え状態（座席ごと）。 */
   previousCardNegateArmed: [boolean, boolean, boolean, boolean] = [false, false, false, false],
   /** 対局形式。カード「最後の粘り」のオーラス判定用にRoundStateへそのまま
@@ -88,6 +86,10 @@ export function dealNewRound(
   /** コウジの必殺技「対子の約束」が前局で発動されていたか。trueの座席は
       今局の配牌をトイツ4組以上にする。 */
   previousPendingPairDeals: [boolean, boolean, boolean, boolean] = [false, false, false, false],
+  /** 各座席の2枠目のカード（「パッシブ1枚＋アクティブ1枚」のアクティブ側。RoundState.cardIds2）。 */
+  cardIds2: [string | null, string | null, string | null, string | null] = [null, null, null, null],
+  /** 前局から持ち越す2枠目のカードの残り使用可能回数（previousCardUsesRemainingと同じ意味）。 */
+  previousCardUsesRemaining2: [number, number, number, number] = initialCardUses(cardIds2),
 ): RoundState {
   let wall = buildWall(rng);
   const players: [PlayerRoundState, PlayerRoundState, PlayerRoundState, PlayerRoundState] = [
@@ -133,6 +135,8 @@ export function dealNewRound(
     tomohiroGuardCount: 0,
     cardIds,
     cardUsesRemaining: previousCardUsesRemaining,
+    cardIds2,
+    cardUsesRemaining2: previousCardUsesRemaining2,
     cardNegateArmed: previousCardNegateArmed,
     cardBonusHan: [0, 0, 0, 0],
     cardExtraUraDora: [false, false, false, false],
@@ -154,10 +158,11 @@ export function dealNewRound(
   // カード「面子確約」「ドラ確約」等、配牌時のパッシブ効果。キャラのループとは
   // 別に、カードを持つ全座席ぶん呼ぶ。
   for (const seat of [0, 1, 2, 3] as PlayerIndex[]) {
-    const cardId = cardIds[seat];
-    if (!cardId) continue;
-    const onDealHand = CARDS[cardId]?.hooks.onDealHand;
-    if (onDealHand) dealtRound = onDealHand({ round: dealtRound, owner: seat });
+    for (const cardId of [cardIds[seat], cardIds2[seat]]) {
+      if (!cardId) continue;
+      const onDealHand = CARDS[cardId]?.hooks.onDealHand;
+      if (onDealHand) dealtRound = onDealHand({ round: dealtRound, owner: seat });
+    }
   }
   // コウジの「対子の約束」。カリンの借用・カガミの写し身で発動した場合も
   // 同じフラグが立つため、キャラのonDealHandではなくここで座席ごとに処理する。
@@ -181,6 +186,8 @@ export function createMatch(
   /** 各座席が持つカード（cards.tsのCARDSのキー）。null=カード無し。人間(0)は
       MatchSetupでの選択、CPU(1-3)はgameStore.tsがランダム抽選する。 */
   cardIds: [string | null, string | null, string | null, string | null] = [null, null, null, null],
+  /** 各座席の2枠目のカード（RoundState.cardIds2）。 */
+  cardIds2: [string | null, string | null, string | null, string | null] = [null, null, null, null],
 ): MatchState {
   // 起家（東1局の親）は本来くじ引き等で座席に関わらず決まるもので、
   // 人間プレイヤー(座席0)に固定する理由はない。以前は常にdealerSeat=0
@@ -188,7 +195,7 @@ export function createMatch(
   const startingDealer = Math.floor(rng() * 4) as PlayerIndex;
   const scores: [number, number, number, number] = [STARTING_SCORE, STARTING_SCORE, STARTING_SCORE, STARTING_SCORE];
   const round = {
-    ...dealNewRound(1, 1, 0, 0, startingDealer, rng, characterIds, undefined, undefined, false, cardIds, undefined, undefined, format),
+    ...dealNewRound(1, 1, 0, 0, startingDealer, rng, characterIds, undefined, undefined, false, cardIds, undefined, undefined, format, undefined, cardIds2),
     points: scores,
   };
   return {

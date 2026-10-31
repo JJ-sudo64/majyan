@@ -295,6 +295,8 @@ export function rotateRoundForViewer(round: RoundState, viewer: PlayerIndex): Ro
     tomohiroGuardCount: round.tomohiroGuardCount,
     cardIds: rotateFour(round.cardIds, viewer),
     cardUsesRemaining: rotateFour(round.cardUsesRemaining, viewer),
+    cardIds2: rotateFour(round.cardIds2, viewer),
+    cardUsesRemaining2: rotateFour(round.cardUsesRemaining2, viewer),
     cardNegateArmed: rotateFour(round.cardNegateArmed, viewer),
     cardBonusHan: rotateFour(round.cardBonusHan, viewer),
     cardExtraUraDora: rotateFour(round.cardExtraUraDora, viewer),

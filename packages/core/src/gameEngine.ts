@@ -31,7 +31,7 @@ import {
 import { analyzeWin, type WinAnalysis, type WinContext } from "./yaku/index.js";
 import { scoreWin, applyHonba, type PaymentBreakdown, type ScoreResult } from "./scoring.js";
 import { CHARACTERS } from "./characters.js";
-import { CARDS } from "./cards.js";
+import { CARDS, cardUsesLeft, hasCard, hasLiveCard, seatCardIds, spendCardUse } from "./cards.js";
 import { globalRoundIndex, maxGlobalRoundIndex } from "./matchFormat.js";
 import type {
   GameAction,
@@ -77,17 +77,17 @@ function updatePlayer(
 function clearAllIppatsu(
   round: RoundState,
   players: RoundState["players"],
-): { players: RoundState["players"]; cardUsesRemaining: RoundState["cardUsesRemaining"] } {
-  const cardUsesRemaining = [...round.cardUsesRemaining] as RoundState["cardUsesRemaining"];
+): { players: RoundState["players"]; cardUsesRemaining: RoundState["cardUsesRemaining"]; cardUsesRemaining2: RoundState["cardUsesRemaining2"] } {
+  let spent = round;
   const next = players.map((p, i) => {
     if (!p.ippatsuActive) return p;
-    if (round.cardIds[i] === "ippatsu-extend" && cardUsesRemaining[i]! > 0) {
-      cardUsesRemaining[i]!--;
+    if (hasLiveCard(spent, i as PlayerIndex, "ippatsu-extend")) {
+      spent = spendCardUse(spent, i as PlayerIndex, "ippatsu-extend");
       return p;
     }
     return { ...p, ippatsuActive: false };
   }) as RoundState["players"];
-  return { players: next, cardUsesRemaining };
+  return { players: next, cardUsesRemaining: spent.cardUsesRemaining, cardUsesRemaining2: spent.cardUsesRemaining2 };
 }
 
 /** 「狙い撃ち」で立直した人には和了牌を引かせない（引いてもツモ和了できず、
@@ -156,16 +156,16 @@ function gainGauge(round: RoundState, player: PlayerIndex, players: RoundState["
   // ゲージを増やすカード（常時効果）。いずれも別のカードなので重ならない。
   //   最後の粘り: オーラスだけ2倍／終盤の粘り: オーラスだけ1.5倍
   //   ゲージ加速: 常に1.5倍／ゲージ微加速: 常に1.2倍（端数は切り上げ）
-  const cardId = round.cardIds[player];
+  const has = (id: string) => hasCard(round, player, id);
   const finalHand = isFinalHand(round);
   const boosted =
-    cardId === "last-stand" && finalHand
+    has("last-stand") && finalHand
       ? amount * 2
-      : cardId === "last-stand-small" && finalHand
+      : has("last-stand-small") && finalHand
         ? Math.ceil(amount * 1.5)
-        : cardId === "gauge-boost"
+        : has("gauge-boost")
           ? Math.ceil(amount * 1.5)
-          : cardId === "gauge-boost-small"
+          : has("gauge-boost-small")
             ? Math.ceil(amount * 1.2)
             : amount;
   return updatePlayer(players, player, (pl) => ({ ...pl, skillGauge: Math.min(character.gaugeMax, pl.skillGauge + boosted) }));
@@ -177,7 +177,7 @@ function gainGauge(round: RoundState, player: PlayerIndex, players: RoundState["
 function findNegatingCardOwner(round: RoundState, activatingPlayer: PlayerIndex): PlayerIndex | null {
   for (const seat of [0, 1, 2, 3] as PlayerIndex[]) {
     if (seat === activatingPlayer) continue;
-    if (round.cardIds[seat] !== null && round.cardNegateArmed[seat]) return seat;
+    if (seatCardIds(round, seat).length > 0 && round.cardNegateArmed[seat]) return seat;
   }
   return null;
 }
@@ -230,21 +230,13 @@ export function isFuriten(player: PlayerRoundState): boolean {
       門前の加護: 副露していない（暗槓のみ可）手の和了 */
 function passiveBonusHan(round: RoundState, player: PlayerIndex, isTsumo: boolean): number {
   const p = round.players[player];
-  if (round.cardUsesRemaining[player] <= 0) return 0;
-  switch (round.cardIds[player]) {
-    case "dealer-boon":
-      return player === round.dealerSeat ? 1 : 0;
-    case "riichi-boon":
-      return p.riichi ? 1 : 0;
-    case "tsumo-boon":
-      return isTsumo ? 1 : 0;
-    case "ron-boon":
-      return isTsumo ? 0 : 1;
-    case "menzen-boon":
-      return p.hand.melds.every((m) => m.type === "ankan") ? 1 : 0;
-    default:
-      return 0;
-  }
+  const live = (id: string) => hasLiveCard(round, player, id);
+  if (live("dealer-boon") && player === round.dealerSeat) return 1;
+  if (live("riichi-boon") && p.riichi) return 1;
+  if (live("tsumo-boon") && isTsumo) return 1;
+  if (live("ron-boon") && !isTsumo) return 1;
+  if (live("menzen-boon") && p.hand.melds.every((m) => m.type === "ankan")) return 1;
+  return 0;
 }
 
 function buildWinContext(
@@ -312,7 +304,7 @@ function analyzeRonForPlayer(round: RoundState, player: PlayerIndex, discardTile
   const p = round.players[player];
   // カード「フリテン解除」: 持っていて未消費の間はフリテンでもロン判定を通す
   // （実際に成立した瞬間の消費はapplyRonDeclaration側で行う）。
-  const furitenCleared = round.cardIds[player] === "furiten-clear" && round.cardUsesRemaining[player] > 0;
+  const furitenCleared = hasLiveCard(round, player, "furiten-clear");
   if (isFuriten(p) && !furitenCleared) return null;
   const testHand: Hand = { concealed: sortTiles([...p.hand.concealed, { id: "__ron__", code: discardTile }]), melds: p.hand.melds };
   const ctx = buildWinContext(round, player, discardTile, false, chankan);
@@ -325,7 +317,7 @@ export function canDeclareRon(round: RoundState, player: PlayerIndex, discardTil
   if (round.players[discarder]!.bettaoriShield) return null;
   // カード「一閃の盾」: 持っていて未消費の間は同様にその捨て牌からロンできない
   // （成立した瞬間、resolveCallWindowIfComplete側で消費される）。
-  if (round.cardIds[discarder] === "houjuu-guard" && round.cardUsesRemaining[discarder] > 0) return null;
+  if (hasLiveCard(round, discarder, "houjuu-guard")) return null;
   return analyzeRonForPlayer(round, player, discardTile, chankan);
 }
 
@@ -341,7 +333,7 @@ export function canRiichi(round: RoundState, player: PlayerIndex): boolean {
   // これが無いと、テンパイしていない手でもリーチボタンが常に表示されてしまう。
   if (riichiCandidateTileIds(round, player).length === 0) return false;
   // リーチ棒(1000点)を払えない持ち点ではリーチできない（カード「ノーコストリーチ」で払わない時は可）。
-  const freeRiichi = round.cardIds[player] === "no-cost-riichi" && round.cardUsesRemaining[player] > 0;
+  const freeRiichi = hasLiveCard(round, player, "no-cost-riichi");
   if (!freeRiichi && round.points && round.points[player] < RIICHI_STICK_COST) return false;
   return true;
 }
@@ -435,12 +427,18 @@ export function canRetrieveDiscard(
     （自分の打牌前＝ツモ直後）で使う。パッシブカード（onDealHandのみ持つ）は
     useCardアクション自体が無いため対象外。 */
 export function canUseCard(round: RoundState, player: PlayerIndex): boolean {
-  if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
-  const cardId = round.cardIds[player];
-  if (cardId === null) return false;
-  if (round.cardUsesRemaining[player] <= 0) return false;
-  const card = CARDS[cardId];
-  return !!card && card.kind === "consumable" && !!card.hooks.onUse;
+  return usableCardId(round, player) !== null;
+}
+
+/** 今使えるカード（消費型でonUseを持ち、残り回数がある）のID。2枠のうち最初に見つかった1枚。無ければnull。 */
+export function usableCardId(round: RoundState, player: PlayerIndex): string | null {
+  if (round.currentTurn !== player || round.phase !== "awaiting-discard") return null;
+  for (const cardId of seatCardIds(round, player)) {
+    if (!hasLiveCard(round, player, cardId)) continue;
+    const card = CARDS[cardId];
+    if (card && card.kind === "consumable" && card.hooks.onUse) return cardId;
+  }
+  return null;
 }
 
 /** ルナの必殺技で得た配牌入れ替え権が今使えるかどうか。手番順とは無関係に、
@@ -563,7 +561,7 @@ function resolveDiscardTurnTransition(round: RoundState, discarder: PlayerIndex,
 
 function buildExhaustiveDrawResult(round: RoundState): RoundState {
   const tenpaiPlayers: PlayerIndex[] = [];
-  const cardUsesRemaining = [...round.cardUsesRemaining] as RoundState["cardUsesRemaining"];
+  let spent = round;
   for (const idx of [0, 1, 2, 3] as PlayerIndex[]) {
     if (isTenpaiByRule(round.players[idx].hand)) {
       tenpaiPlayers.push(idx);
@@ -571,16 +569,17 @@ function buildExhaustiveDrawResult(round: RoundState): RoundState {
     }
     // カード「聴牌保険」: 自力でノーテンでも1度だけテンパイ扱いにしてもらえる
     // （ノーテン罰符を回避できる）。実際に発動した瞬間にだけ消費する。
-    if (round.cardIds[idx] === "tenpai-insurance" && cardUsesRemaining[idx] > 0) {
+    if (hasLiveCard(spent, idx, "tenpai-insurance")) {
       tenpaiPlayers.push(idx);
-      cardUsesRemaining[idx] -= 1;
+      spent = spendCardUse(spent, idx, "tenpai-insurance");
     }
   }
   const dealerContinues = tenpaiPlayers.includes(round.dealerSeat);
   const nagashiPlayers = ([0, 1, 2, 3] as PlayerIndex[]).filter((idx) => isNagashiMangan(round.players[idx]));
   return {
     ...round,
-    cardUsesRemaining,
+    cardUsesRemaining: spent.cardUsesRemaining,
+    cardUsesRemaining2: spent.cardUsesRemaining2,
     phase: "round-over",
     result: {
       type: "exhaustive-draw",
@@ -728,12 +727,10 @@ function consumeBettaoriShieldIfItJustSaved(round: RoundState, discarder: Player
     に消費する。タカノリのbettaoriShieldと全く同じ考え方（安全な牌を切っている
     間は温存する）。呼び出し側の制約もconsumeBettaoriShieldIfItJustSavedと同じ。 */
 function consumeCardGuardIfItJustSaved(round: RoundState, discarder: PlayerIndex, tile: TileCode, chankan: boolean): RoundState {
-  if (round.cardIds[discarder] !== "houjuu-guard" || round.cardUsesRemaining[discarder] <= 0) return round;
+  if (!hasLiveCard(round, discarder, "houjuu-guard")) return round;
   const wouldHaveDealtIn = otherPlayers(discarder).some((p) => analyzeRonForPlayer(round, p, tile, chankan) !== null);
   if (!wouldHaveDealtIn) return round;
-  const cardUsesRemaining = [...round.cardUsesRemaining] as RoundState["cardUsesRemaining"];
-  cardUsesRemaining[discarder] -= 1;
-  return { ...round, cardUsesRemaining };
+  return spendCardUse(round, discarder, "houjuu-guard");
 }
 
 function applyRiichiAction(round: RoundState, action: RiichiAction): RoundState {
@@ -798,7 +795,7 @@ function applyRiichiAction(round: RoundState, action: RiichiAction): RoundState 
   // カード「ノーコストリーチ」: 持っていて未消費の間、次のリーチ宣言だけ
   // 供託(kyotaku)を積まずに済む。積まない＝gameStore.ts側の1000点減点も
   // 起きない（riichiPlayerを渡さない）ため、点数の帳尻は崩れない。
-  const freeRiichi = round.cardIds[action.player] === "no-cost-riichi" && round.cardUsesRemaining[action.player] > 0;
+  const freeRiichi = hasLiveCard(round, action.player, "no-cost-riichi");
   const transitioned = resolveDiscardTurnTransition(afterDiscardRound, action.player, tile);
   const resultRound = {
     ...transitioned,
@@ -808,9 +805,7 @@ function applyRiichiAction(round: RoundState, action: RiichiAction): RoundState 
     pendingRiichiStick: !freeRiichi && transitioned.phase === "awaiting-calls" ? action.player : null,
   };
   if (!freeRiichi) return resultRound;
-  const cardUsesRemaining = [...resultRound.cardUsesRemaining] as RoundState["cardUsesRemaining"];
-  cardUsesRemaining[action.player]! -= 1;
-  return { ...resultRound, cardUsesRemaining };
+  return spendCardUse(resultRound, action.player, "no-cost-riichi");
 }
 
 export const RIICHI_STICK_COST = 1000;
@@ -862,6 +857,7 @@ function applyAnkanAction(round: RoundState, action: AnkanAction): RoundState {
     ...round,
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
+    cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
     wall: resolved.wall,
     lastDrawnTile: resolved.tile,
     phase: "awaiting-discard",
@@ -940,6 +936,7 @@ function finalizeKakanAfterChankanWindow(round: RoundState, player: PlayerIndex)
     ...round,
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
+    cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
     wall: resolved.wall,
     lastDrawnTile: resolved.tile,
     phase: "awaiting-discard",
@@ -971,10 +968,8 @@ function applyRonDeclaration(round: RoundState, player: PlayerIndex): RoundState
   // 側のフリテン迂回チェックで許された宣言）を、実際に成立させる瞬間だけ消費する
   // （自力でフリテンでない普通のロンでは消費しない）。
   let nextRound = round;
-  if (isFuriten(round.players[player]) && round.cardIds[player] === "furiten-clear" && round.cardUsesRemaining[player] > 0) {
-    const cardUsesRemaining = [...round.cardUsesRemaining] as RoundState["cardUsesRemaining"];
-    cardUsesRemaining[player]! -= 1;
-    nextRound = { ...round, cardUsesRemaining };
+  if (isFuriten(round.players[player]) && hasLiveCard(round, player, "furiten-clear")) {
+    nextRound = spendCardUse(round, player, "furiten-clear");
   }
   return applyCallDeclaration(nextRound, player, { type: "ron", player });
 }
@@ -985,7 +980,7 @@ const YAKUHAI_DRAGON_CODES = new Set<TileCode>(["5z", "6z", "7z"]);
     （白發中）はポン/カンされない。 */
 function isYakuhaiGuarded(round: RoundState, discarder: PlayerIndex, tileCode: TileCode): boolean {
   if (!YAKUHAI_DRAGON_CODES.has(tileCode)) return false;
-  return round.cardIds[discarder] === "uncallable-yakuhai" && round.cardUsesRemaining[discarder] > 0;
+  return hasLiveCard(round, discarder, "uncallable-yakuhai");
 }
 
 function applyCallDeclaration(round: RoundState, player: PlayerIndex, call: DeclaredCallAction): RoundState {
@@ -1002,10 +997,8 @@ function applyCallDeclaration(round: RoundState, player: PlayerIndex, call: Decl
   // カード「鳴かれず」: 実際にブロックした瞬間だけ消費し、この応答自体は
   // （宣言は受け付けつつ効果を発生させない、ではなく）スキップと同じ扱いにする。
   if ((call.type === "pon" || call.type === "minkan") && isYakuhaiGuarded(round, window.discarderIndex, window.discardTile.code)) {
-    const cardUsesRemaining = [...round.cardUsesRemaining] as RoundState["cardUsesRemaining"];
-    cardUsesRemaining[window.discarderIndex]! -= 1;
     const nextWindow: PendingCallWindow = { ...window, respondedBy: [...window.respondedBy, player] };
-    return resolveCallWindowIfComplete({ ...round, cardUsesRemaining, pendingCallWindow: nextWindow });
+    return resolveCallWindowIfComplete({ ...spendCardUse(round, window.discarderIndex, "uncallable-yakuhai"), pendingCallWindow: nextWindow });
   }
 
   const nextWindow: PendingCallWindow = {
@@ -1170,6 +1163,7 @@ function executeMeldCall(round: RoundState, window: PendingCallWindow, call: Dec
       ...round,
       players,
       cardUsesRemaining: ippatsuResult.cardUsesRemaining,
+    cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
       wall: resolved.wall,
       lastDrawnTile: resolved.tile,
       currentTurn: caller,
@@ -1185,6 +1179,7 @@ function executeMeldCall(round: RoundState, window: PendingCallWindow, call: Dec
     ...round,
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
+    cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
     // チー/ポンでは自分はツモっていない（鳴く前の別プレイヤーのツモ牌を残さない）。
     lastDrawnTile: null,
     currentTurn: caller,
@@ -1373,11 +1368,9 @@ function applyRetrieveDiscardAction(round: RoundState, player: PlayerIndex, recl
 
 function applyUseCardAction(round: RoundState, player: PlayerIndex): RoundState {
   if (!canUseCard(round, player)) throw new Error("useCard: 現在カードを使用できません");
-  const card = CARDS[round.cardIds[player]!]!;
-  const activated = card.hooks.onUse!({ round, owner: player });
-  const cardUsesRemaining = [...activated.cardUsesRemaining] as RoundState["cardUsesRemaining"];
-  cardUsesRemaining[player] -= 1;
-  return { ...activated, cardUsesRemaining };
+  const cardId = usableCardId(round, player)!;
+  const activated = CARDS[cardId]!.hooks.onUse!({ round, owner: player });
+  return spendCardUse(activated, player, cardId);
 }
 
 function applySwapTilesAction(round: RoundState, action: SwapTilesAction): RoundState {
@@ -1464,7 +1457,7 @@ export interface RoundScoreOutcome {
     honba自体を2倍にしてapplyHonbaへ渡すことで実現する（持っているだけの
     常時効果。消費はされない）。 */
 function effectiveHonba(round: RoundState, winner: PlayerIndex): number {
-  if (winner === round.dealerSeat && round.cardIds[winner] === "dealer-honba-boost") return round.honba * 2;
+  if (winner === round.dealerSeat && hasCard(round, winner, "dealer-honba-boost")) return round.honba * 2;
   return round.honba;
 }
 

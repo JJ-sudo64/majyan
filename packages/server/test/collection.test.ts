@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARD_IDS, CHARACTER_IDS, EXCHANGE_COST, FIRST_GACHA, gachaPool } from "@majyan/core";
+import { CARDS, CARD_IDS, CHARACTER_IDS, EXCHANGE_COST, FIRST_GACHA, gachaPool } from "@majyan/core";
 import { AccountService } from "../src/accounts.js";
 import { CollectionService, GachaError } from "../src/collection.js";
 import { openDatabase } from "../src/db.js";
@@ -69,6 +69,42 @@ describe("units and cards", () => {
     expect(() => collections.equipCard(userId, third.unitId, cardId)).toThrow(GachaError);
   });
 
+  it("lets a unit hold one passive card and one active card, but not two of the same kind", () => {
+    const { collections, userId, giveCard, giveUnits } = setup();
+    giveUnits(SOME_CHARACTERS);
+    const passiveIds = CARD_IDS.filter((id) => CARDS[id]!.kind === "passive");
+    const activeIds = CARD_IDS.filter((id) => CARDS[id]!.kind === "consumable");
+    giveCard(passiveIds[0]!);
+    giveCard(passiveIds[1]!);
+    giveCard(activeIds[0]!);
+    giveCard(activeIds[1]!);
+    const unit = collections.units(userId)[0]!;
+    collections.equipCard(userId, unit.unitId, passiveIds[0]!);
+    // 同じパッシブをもう1枚は付けられない（付けたカードは外せないので、入れ替えもできない）。
+    expect(() => collections.equipCard(userId, unit.unitId, passiveIds[1]!)).toThrow(GachaError);
+    collections.equipCard(userId, unit.unitId, activeIds[0]!);
+    expect(() => collections.equipCard(userId, unit.unitId, activeIds[1]!)).toThrow(GachaError);
+    const after = collections.units(userId).find((u) => u.unitId === unit.unitId)!;
+    expect(after.cardId).toBe(passiveIds[0]);
+    expect(after.cardId2).toBe(activeIds[0]);
+    // 付けられなかったカードは減らない。
+    expect(collections.cards(userId)[passiveIds[1]!]).toBe(1);
+    expect(collections.cards(userId)[activeIds[1]!]).toBe(1);
+    expect(collections.resolveUnit(userId, unit.unitId)).toEqual({ characterId: unit.characterId, cardId: passiveIds[0], cardId2: activeIds[0] });
+  });
+
+  it("sorts a card that was equipped before the second slot existed into the slot of its kind", () => {
+    const { db, collections, userId, giveUnits } = setup();
+    giveUnits(SOME_CHARACTERS);
+    const active = CARD_IDS.find((id) => CARDS[id]!.kind === "consumable")!;
+    const unit = collections.units(userId)[0]!;
+    // 昔の形: アクティブのカードがcard_id（1枠目）に入っている。
+    db.prepare("UPDATE character_units SET card_id = ?, card_id2 = NULL WHERE unit_id = ?").run(active, unit.unitId);
+    const row = collections.units(userId).find((u) => u.unitId === unit.unitId)!;
+    expect(row.cardId).toBeNull();
+    expect(row.cardId2).toBe(active);
+  });
+
   it("does not let a player equip someone else's unit", () => {
     const { db, collections, userId, giveCard, giveUnits } = setup();
     const other = new AccountService(db).createGuest("B").profile.id;
@@ -86,7 +122,7 @@ describe("units and cards", () => {
     giveCard(cardId);
     const unit = collections.units(userId)[1]!;
     collections.equipCard(userId, unit.unitId, cardId);
-    expect(collections.resolveUnit(userId, unit.unitId)).toEqual({ characterId: unit.characterId, cardId });
+    expect(collections.resolveUnit(userId, unit.unitId)).toEqual({ characterId: unit.characterId, cardId, cardId2: null });
     for (let i = 0; i < 20; i++) {
       const picked = collections.resolveUnit(userId, "not-my-unit");
       expect(SOME_CHARACTERS).toContain(picked.characterId);
@@ -95,7 +131,7 @@ describe("units and cards", () => {
 
   it("falls back to the first 10-pull's fixed character when the player has none", () => {
     const { collections, userId } = setup();
-    expect(collections.resolveUnit(userId, null)).toEqual({ characterId: FIRST_GACHA.fixed.id, cardId: null });
+    expect(collections.resolveUnit(userId, null)).toEqual({ characterId: FIRST_GACHA.fixed.id, cardId: null, cardId2: null });
   });
 });
 

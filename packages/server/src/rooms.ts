@@ -12,7 +12,7 @@
  */
 import {
   createMatch,
-  randomCardId,
+  randomCardIdOfKind,
   randomCharacterIds,
   DEFAULT_AI_DIFFICULTY,
   ROOM_CODE_MAX_LENGTH,
@@ -111,7 +111,8 @@ interface RoomSnapshot {
   members: { userId: string; name: string; unitId: string | null; seat: PlayerIndex | null }[];
   session: SessionSnapshot;
 }
-const ROOM_SNAPSHOT_VERSION = 1;
+// 2: カードが2枠になり、RoundStateにcardIds2などが増えた（これ以前の保存は捨てる）。
+const ROOM_SNAPSHOT_VERSION = 2;
 const DEFAULT_RESTORE_GRACE_MS = 60_000;
 
 const MAX_MEMBERS = 4;
@@ -553,6 +554,7 @@ export class RoomManager {
     }
     const characterIds = randomCharacterIds(this.rng);
     const cardIds: [string | null, string | null, string | null, string | null] = [null, null, null, null];
+    const cardIds2: [string | null, string | null, string | null, string | null] = [null, null, null, null];
     const seats: SessionSeat[] = [];
     room.members.forEach((m, i) => {
       m.seat = seatOrder[i]!;
@@ -566,15 +568,18 @@ export class RoomManager {
         if (unit) {
           characterIds[seat] = unit.characterId;
           cardIds[seat] = unit.cardId;
+          cardIds2[seat] = unit.cardId2;
         }
         seats[seat] = { kind: "human", name: m.name, connected: !!m.client, rankLabel: this.rankLabelOf(m.userId) };
       } else {
-        cardIds[seat] = randomCardId(this.rng);
+        // CPUは、パッシブ1枚とアクティブ1枚を1枚ずつランダムに持つ。
+        cardIds[seat] = randomCardIdOfKind("passive", this.rng);
+        cardIds2[seat] = randomCardIdOfKind("consumable", this.rng);
         seats[seat] = { kind: "cpu", name: CPU_NAMES[cpuCount++]!, difficulty: DEFAULT_AI_DIFFICULTY };
       }
     }
 
-    const match = createMatch(format, this.rng, characterIds, continueBelowZero, cardIds);
+    const match = createMatch(format, this.rng, characterIds, continueBelowZero, cardIds, cardIds2);
     room.session = new MatchSession({
       ...this.sessionOptions(room),
       match,
@@ -603,6 +608,7 @@ export class RoomManager {
       name: room.session?.seatName(seat) ?? "",
       characterId: round.characterIds[seat],
       cardId: round.cardIds[seat],
+      cardId2: round.cardIds2[seat],
       place: (match.finalRanking!.indexOf(seat) + 1) as 1 | 2 | 3 | 4,
       finalScore: match.scores[seat],
     }));
@@ -616,9 +622,9 @@ export class RoomManager {
   }
 
   /** 待合室に出す、その人が選んだキャラとカード（おまかせならnull）。 */
-  private describeUnit(m: Member): { characterId: string | null; cardId: string | null } {
+  private describeUnit(m: Member): { characterId: string | null; cardId: string | null; cardId2: string | null } {
     const unit = m.unitId ? this.options.collections?.units(m.userId).find((u) => u.unitId === m.unitId) : undefined;
-    return { characterId: unit?.characterId ?? null, cardId: unit?.cardId ?? null };
+    return { characterId: unit?.characterId ?? null, cardId: unit?.cardId ?? null, cardId2: unit?.cardId2 ?? null };
   }
 
   private broadcastLobby(room: Room): void {

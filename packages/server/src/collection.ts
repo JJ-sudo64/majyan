@@ -8,6 +8,7 @@
  */
 import { randomBytes } from "node:crypto";
 import {
+  CARDS,
   CARD_IDS,
   CHARACTER_IDS,
   EXCHANGE_COST,
@@ -49,6 +50,23 @@ interface UnitRow {
   unit_id: string;
   character_id: string;
   card_id: string | null;
+  card_id2: string | null;
+}
+
+/**
+ * ユニットに付いているカードを「パッシブ枠・アクティブ枠」に振り分ける。
+ * 2枠になる前に付けたカードは種類を問わずcard_idに入っているため、読む時に種類で
+ * 振り分け直す（パッシブ→1枠目、アクティブ（消費型）→2枠目）。ゲームから外れたカードは無視する。
+ */
+export function unitCardSlots(row: { card_id: string | null; card_id2: string | null }): { passive: string | null; active: string | null } {
+  let passive: string | null = null;
+  let active: string | null = null;
+  for (const id of [row.card_id, row.card_id2]) {
+    if (!id || !CARD_IDS.includes(id)) continue;
+    if (CARDS[id]!.kind === "passive") passive ??= id;
+    else active ??= id;
+  }
+  return { passive, active };
 }
 
 interface PickupRow {
@@ -133,11 +151,14 @@ export class CollectionService {
   /** 手持ちのキャラ（手に入れた順。ゲームから外れたキャラは除く）。 */
   units(userId: string): CharacterUnit[] {
     const rows = this.db
-      .prepare("SELECT unit_id, character_id, card_id FROM character_units WHERE user_id = ? ORDER BY acquired_at, rowid")
+      .prepare("SELECT unit_id, character_id, card_id, card_id2 FROM character_units WHERE user_id = ? ORDER BY acquired_at, rowid")
       .all(userId) as unknown as UnitRow[];
     return rows
       .filter((r) => CHARACTER_IDS.includes(r.character_id))
-      .map((r) => ({ unitId: r.unit_id, characterId: r.character_id, cardId: r.card_id && CARD_IDS.includes(r.card_id) ? r.card_id : null }));
+      .map((r) => {
+        const slots = unitCardSlots(r);
+        return { unitId: r.unit_id, characterId: r.character_id, cardId: slots.passive, cardId2: slots.active };
+      });
   }
 
   /** まだどのキャラにも付けていないカードの枚数。 */
@@ -156,29 +177,38 @@ export class CollectionService {
     }
     return (
       !!this.db.prepare("SELECT 1 FROM user_cards WHERE user_id = ? AND card_id = ? LIMIT 1").get(userId, item.id) ||
-      !!this.db.prepare("SELECT 1 FROM character_units WHERE user_id = ? AND card_id = ? LIMIT 1").get(userId, item.id)
+      !!this.db.prepare("SELECT 1 FROM character_units WHERE user_id = ? AND (card_id = ? OR card_id2 = ?) LIMIT 1").get(userId, item.id, item.id)
     );
   }
 
   /**
-   * 手持ちのキャラにカードを付ける。一度付けたら外せない。既に付いているキャラ・
-   * 持っていないカードならGachaError。
+   * 手持ちのキャラにカードを付ける。付けられるのはパッシブ1枚・アクティブ1枚まで
+   * （同じ種類をもう1枚は付けられない）で、一度付けたら外せない。同じ種類が既に
+   * 付いているキャラ・持っていないカードならGachaError。
    */
   equipCard(userId: string, unitId: string, cardId: string): void {
     transaction(this.db, () => {
-      const unit = this.db.prepare("SELECT card_id FROM character_units WHERE unit_id = ? AND user_id = ?").get(unitId, userId) as
-        | { card_id: string | null }
+      const unit = this.db.prepare("SELECT card_id, card_id2 FROM character_units WHERE unit_id = ? AND user_id = ?").get(unitId, userId) as
+        | { card_id: string | null; card_id2: string | null }
         | undefined;
       if (!unit) throw new GachaError("そのキャラは持っていません");
-      if (unit.card_id) throw new GachaError("このキャラにはもうカードが付いています（付けたカードは外せません）");
+      if (!CARD_IDS.includes(cardId)) throw new GachaError("そのカードは持っていません");
+      const slots = unitCardSlots(unit);
+      const kind = CARDS[cardId]!.kind;
+      if (kind === "passive" ? slots.passive : slots.active) {
+        throw new GachaError(
+          `このキャラにはもう${kind === "passive" ? "パッシブ" : "アクティブ"}のカードが付いています（付けたカードは外せません）`,
+        );
+      }
+      const next = { passive: kind === "passive" ? cardId : slots.passive, active: kind === "passive" ? slots.active : cardId };
       const card = this.db.prepare("SELECT count FROM user_cards WHERE user_id = ? AND card_id = ?").get(userId, cardId) as
         | { count: number }
         | undefined;
       if (!card || card.count <= 0) throw new GachaError("そのカードは持っていません");
       this.db.prepare("UPDATE user_cards SET count = count - 1 WHERE user_id = ? AND card_id = ?").run(userId, cardId);
       this.db
-        .prepare("UPDATE character_units SET card_id = ?, card_equipped_at = ? WHERE unit_id = ?")
-        .run(cardId, this.now(), unitId);
+        .prepare("UPDATE character_units SET card_id = ?, card_id2 = ?, card_equipped_at = ? WHERE unit_id = ?")
+        .run(next.passive, next.active, this.now(), unitId);
     });
   }
 
@@ -186,12 +216,12 @@ export class CollectionService {
    * 対局に出すキャラとカード。選んだキャラ（unitId）を持っていればそれ、無ければ
    * （おまかせ含む）手持ちからランダム。
    */
-  resolveUnit(userId: string, unitId: string | null): { characterId: string; cardId: string | null } {
+  resolveUnit(userId: string, unitId: string | null): { characterId: string; cardId: string | null; cardId2: string | null } {
     const units = this.units(userId);
     const chosen = (unitId && units.find((u) => u.unitId === unitId)) || units[Math.floor(this.rng() * units.length)];
     // 最初の10連を受け取る前で手持ちが無い時（画面では対局に出られないが、念のため）は、10連で必ずもらえるキャラで出る。
-    if (!chosen) return { characterId: FIRST_GACHA.fixed.id, cardId: null };
-    return { characterId: chosen.characterId, cardId: chosen.cardId };
+    if (!chosen) return { characterId: FIRST_GACHA.fixed.id, cardId: null, cardId2: null };
+    return { characterId: chosen.characterId, cardId: chosen.cardId, cardId2: chosen.cardId2 };
   }
 
   // -------------------------------------------------------------------------

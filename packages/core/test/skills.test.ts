@@ -123,6 +123,8 @@ function makeRound(overrides: Partial<RoundState> & { players: RoundState["playe
     tomohiroGuardCount: 0,
     cardIds: [null, null, null, null],
     cardUsesRemaining: [0, 0, 0, 0],
+    cardIds2: [null, null, null, null],
+    cardUsesRemaining2: [0, 0, 0, 0],
     cardNegateArmed: [false, false, false, false],
     cardBonusHan: [0, 0, 0, 0],
     cardExtraUraDora: [false, false, false, false],

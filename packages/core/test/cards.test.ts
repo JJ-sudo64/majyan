@@ -120,6 +120,8 @@ function makeRound(overrides: Partial<RoundState> & { players: RoundState["playe
     // 消費型カードのデフォルト(maxUses未指定=1)を想定した「未使用」状態。
     // 複数回使えるカード(future-sight等)をテストする際は明示的に上書きする。
     cardUsesRemaining: [1, 1, 1, 1],
+    cardIds2: [null, null, null, null],
+    cardUsesRemaining2: [0, 0, 0, 0],
     cardNegateArmed: [false, false, false, false],
     cardBonusHan: [0, 0, 0, 0],
     cardExtraUraDora: [false, false, false, false],
@@ -1806,12 +1808,12 @@ describe("use limits on the boon and hand-lift cards", () => {
   });
 
   it("consumeBoonUses spends one use only for a winner whose boon condition held", () => {
-    expect(consumeBoonUses(wonRound("riichi-boon", 2))).toEqual([1, 0, 0, 0]);
-    expect(consumeBoonUses(wonRound("tsumo-boon", 2))).toEqual([1, 0, 0, 0]);
-    expect(consumeBoonUses(wonRound("ron-boon", 2))).toEqual([2, 0, 0, 0]); // ツモ和了なのでロンの加護は条件外
-    expect(consumeBoonUses(wonRound("dealer-boon", 2))).toEqual([2, 0, 0, 0]); // 親は座席1
-    expect(consumeBoonUses(wonRound("riichi-boon", 0))).toEqual([0, 0, 0, 0]);
-    expect(consumeBoonUses({ ...wonRound("riichi-boon", 2), result: { type: "draw-exhaustive", dealerContinues: false } as RoundState["result"] })).toEqual([2, 0, 0, 0]);
+    expect(consumeBoonUses(wonRound("riichi-boon", 2)).cardUsesRemaining).toEqual([1, 0, 0, 0]);
+    expect(consumeBoonUses(wonRound("tsumo-boon", 2)).cardUsesRemaining).toEqual([1, 0, 0, 0]);
+    expect(consumeBoonUses(wonRound("ron-boon", 2)).cardUsesRemaining).toEqual([2, 0, 0, 0]); // ツモ和了なのでロンの加護は条件外
+    expect(consumeBoonUses(wonRound("dealer-boon", 2)).cardUsesRemaining).toEqual([2, 0, 0, 0]); // 親は座席1
+    expect(consumeBoonUses(wonRound("riichi-boon", 0)).cardUsesRemaining).toEqual([0, 0, 0, 0]);
+    expect(consumeBoonUses({ ...wonRound("riichi-boon", 2), result: { type: "draw-exhaustive", dealerContinues: false } as RoundState["result"] }).cardUsesRemaining).toEqual([2, 0, 0, 0]);
   });
 
   it("hand-lift cards work for three hands, and only a hand that was actually changed counts", () => {
@@ -1831,5 +1833,60 @@ describe("use limits on the boon and hand-lift cards", () => {
     }
     expect(changedHands).toBeGreaterThan(0);
     void blank;
+  });
+});
+
+describe("two card slots (パッシブ1枚＋アクティブ1枚)", () => {
+  const tenpaiHand = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"] as TileCode[];
+  // 1枠目にパッシブ、2枠目にアクティブを付けた座席0。
+  const twoCards = (overrides: Partial<RoundState> = {}) =>
+    makeRound({
+      players: [emptyPlayer(tenpaiHand), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: ["gauge-boost", null, null, null],
+      cardUsesRemaining: [1, 0, 0, 0],
+      cardIds2: ["future-sight", null, null, null],
+      cardUsesRemaining2: [CARDS["future-sight"]!.maxUses!, 0, 0, 0],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      ...overrides,
+    });
+
+  it("an active card in the second slot can be used, and only its own counter goes down", () => {
+    const round = twoCards({ wall: makeWall(["1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m", "1p", "2p", "3p", "4p"]) });
+    expect(canUseCard(round, 0)).toBe(true);
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.cardUsesRemaining2[0]).toBe(CARDS["future-sight"]!.maxUses! - 1);
+    expect(next.cardUsesRemaining[0]).toBe(1);
+  });
+
+  it("a passive card in the first slot never counts as usable", () => {
+    const round = twoCards({ cardIds2: [null, null, null, null], cardUsesRemaining2: [0, 0, 0, 0] });
+    expect(canUseCard(round, 0)).toBe(false);
+  });
+
+  it("the deal-time effect of both slots is applied", () => {
+    const rng = makeSeededRng(7);
+    const round = dealNewRound(
+      1, 1, 0, 0, 0, rng, ["", "", "", ""], undefined, undefined, false,
+      ["tanyao-guarantee", null, null, null], undefined, undefined, "hanchan", undefined,
+      ["dora-guarantee", null, null, null],
+    );
+    expect(round.cardIds2[0]).toBe("dora-guarantee");
+    expect(round.cardUsesRemaining[0]).toBeLessThanOrEqual(CARDS["tanyao-guarantee"]!.maxUses!);
+    expect(round.cardUsesRemaining2[0]).toBe(1);
+  });
+
+  it("a boon in the second slot adds han and its own use is spent after a win", () => {
+    const base = twoCards({
+      cardIds: [null, null, null, null],
+      cardUsesRemaining: [0, 0, 0, 0],
+      cardIds2: ["tsumo-boon", null, null, null],
+      cardUsesRemaining2: [2, 0, 0, 0],
+      phase: "round-over",
+      result: { type: "tsumo", winners: [0], dealerContinues: false },
+    });
+    const spent = consumeBoonUses(base);
+    expect(spent.cardUsesRemaining2[0]).toBe(1);
+    expect(spent.cardUsesRemaining[0]).toBe(0);
   });
 });

@@ -337,6 +337,12 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (match_id, round_index, seat)
   );
   `,
+  // 20: カードの2枠目（パッシブ1枚＋アクティブ1枚を付けられるようにする。card_idがパッシブ、card_id2がアクティブ）
+  // 既に付いているカードは、読む時に種類で振り分ける（collection.tsのunitCardSlots）
+  `
+  ALTER TABLE character_units ADD COLUMN card_id2 TEXT;
+  ALTER TABLE ranked_match_seats ADD COLUMN card_id2 TEXT;
+  `,
 ];
 
 export type Database = DatabaseSyncType;
