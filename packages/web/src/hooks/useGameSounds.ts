@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { CHARACTERS, type Meld, type RoundState, type VoiceEvent } from "@majyan/core";
-import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, playSkillReadySound, speakVoice } from "../sound.js";
+import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, playSkillReadySound, playSkillActivateSfx, speakVoice } from "../sound.js";
 import { winDeclarationSchedule } from "../components/DeclarationCutinOverlay.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
@@ -135,6 +135,7 @@ export function useGameSounds(round: RoundState | undefined) {
           if (character) {
             const fallback = `${character.voiceName ?? character.name} ${character.skill.voiceName ?? character.skill.name}`;
             speakVoice(character.voiceClips?.skillActivate, fallback);
+            if (character.skillActivateSfx) playSkillActivateSfx(character.skillActivateSfx);
           }
         }
       }

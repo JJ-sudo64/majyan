@@ -202,6 +202,7 @@ void loadSample(UI_CONFIRM_SFX);
 void loadSample(UI_CANCEL_SFX);
 void loadSample(UI_SUCCESS_SFX);
 void loadSample("/sfx/skill-ready.mp3");
+void loadSample("/sfx/raiko-slash.mp3");
 
 /**
  * 制限時間の残り数秒を知らせる短い電子音（音源ファイルを使わずWeb Audioで鳴らす）。
@@ -240,6 +241,11 @@ export function playUiClick(kind: "tap" | "confirm" | "cancel" = "tap") {
 /** 必殺技ゲージが満タンになった時の「ビーム砲チャージ」（自分の席だけ。skill-ready.mp3）。 */
 export function playSkillReadySound() {
   playSample("/sfx/skill-ready.mp3");
+}
+
+/** 必殺技の発動ボイスと同時に鳴らす効果音（Character.skillActivateSfx）。 */
+export function playSkillActivateSfx(url: string) {
+  playSample(url);
 }
 
 /** 雀玉・プレゼントを受け取れた時の音（素材集の「成功音」）。 */

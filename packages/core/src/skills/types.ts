@@ -143,6 +143,8 @@ export interface Character {
   doraVoiceClips?: Partial<Record<number, string>>;
   /** ドラ・裏ドラ・赤ドラが13本以上乗った時の収録ボイス（「ドラ沢山」）。 */
   doraManyVoiceClip?: string;
+  /** 必殺技の発動ボイスと同時に鳴らす効果音（例: ライコの一閃の斬撃音）。 */
+  skillActivateSfx?: string;
   /** アバター画像のパス（public/配下）。ナメプレート等、小さい円形表示用。 */
   avatar: string;
   /** 必殺技発動演出（カットイン）用の縦長立ち絵。未指定ならavatarを代わりに使う。 */
