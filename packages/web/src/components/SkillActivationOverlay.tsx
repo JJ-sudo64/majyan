@@ -9,6 +9,8 @@ interface ActiveAnnounce {
   characterId: string;
   /** 同じキャラが連続で発動した時もCSSアニメーションを最初からやり直させるための一意キー。 */
   key: number;
+  /** カード「無効化」に打ち消された発動（通常のカットインの代わりに専用の演出を出す）。 */
+  nullified?: boolean;
 }
 
 /**
@@ -25,21 +27,36 @@ export function SkillActivationOverlay({ round }: { round: RoundState }) {
   const prevGaugesRef = useRef(gauges);
   const keyRef = useRef(0);
   const [active, setActive] = useState<ActiveAnnounce | null>(null);
+  // 無効化の演出を出し終えた回数。ゲージ低下の検知と取り合わないための印。
+  const nullifyShownRef = useRef(round.nullifyCount);
 
   useEffect(() => {
     const prev = prevGaugesRef.current;
     prevGaugesRef.current = gauges;
+    const nullified = round.nullifyCount > nullifyShownRef.current;
+    nullifyShownRef.current = round.nullifyCount;
     // ゲージは通常の加算では減らないため、満タン(>0)から0への低下＝発動とみなせる。
     for (let i = 0; i < gauges.length; i++) {
       if (prev[i]! > 0 && gauges[i] === 0) {
         keyRef.current += 1;
-        setActive({ characterId: round.characterIds[i]!, key: keyRef.current });
+        setActive({ characterId: round.characterIds[i]!, key: keyRef.current, nullified });
         const timer = setTimeout(() => setActive(null), DISPLAY_MS);
         return () => clearTimeout(timer);
       }
     }
     return undefined;
   }, [gaugeSignature]);
+
+  // ゲージが動かない場面（リーチ時の自動発動など）で打ち消された時の演出。
+  useEffect(() => {
+    const was = nullifyShownRef.current;
+    nullifyShownRef.current = round.nullifyCount; // 局が変わると0に戻るので、減った時も印を合わせる
+    if (round.nullifyCount <= was) return undefined;
+    keyRef.current += 1;
+    setActive({ characterId: round.characterIds[round.currentTurn]!, key: keyRef.current, nullified: true });
+    const timer = setTimeout(() => setActive(null), DISPLAY_MS);
+    return () => clearTimeout(timer);
+  }, [round.nullifyCount]);
 
   // ナオトの「クマクマタイム」等、ゲージを使わず配牌時に自動発動するパッシブ
   // 系の演出。上のゲージ低下検知では拾えないため、局の切り替わり
@@ -55,6 +72,7 @@ export function SkillActivationOverlay({ round }: { round: RoundState }) {
     if (!round.dealerRenchanByWin) return undefined;
     const dealerCharacter = CHARACTERS[round.characterIds[round.dealerSeat]];
     if (!dealerCharacter || typeof dealerCharacter.skill.hooks.onDealHand !== "function") return undefined;
+    if (dealerCharacter.noDealerRenchanCutin) return undefined;
     keyRef.current += 1;
     setActive({ characterId: dealerCharacter.id, key: keyRef.current });
     const timer = setTimeout(() => setActive(null), DISPLAY_MS);
@@ -82,14 +100,29 @@ export function SkillActivationOverlay({ round }: { round: RoundState }) {
   if (!active) return null;
   const character = CHARACTERS[active.characterId];
   if (!character) return null;
-  return <SkillActivationView character={character} key={active.key} />;
+  return <SkillActivationView character={character} key={active.key} nullified={active.nullified} />;
 }
 
 /**
  * 必殺技カットインの見た目だけ（検知やタイマーは持たない）。対局中の
  * SkillActivationOverlayと、全キャラ一覧(CutinGallery.tsx)の両方で使う。
  */
-export function SkillActivationView({ character }: { character: Character }) {
+export function SkillActivationView({ character, nullified }: { character: Character; nullified?: boolean }) {
+  if (nullified) {
+    return (
+      <div className="skill-activation-overlay skill-activation-overlay--nullified">
+        <div className="skill-activation-overlay__flash" />
+        <div className="skill-activation-overlay__cutin-wrap">
+          <div className="skill-activation-overlay__panel" />
+          <img className="skill-activation-overlay__cutin" src={character.cutin ?? character.avatar} alt="" />
+        </div>
+        <div className="skill-activation-overlay__text">
+          <div className="skill-activation-overlay__name">{character.name}の{character.skill.name}は</div>
+          <div className="skill-activation-overlay__skill">無効化された！</div>
+        </div>
+      </div>
+    );
+  }
   // 技名入りの1枚絵があるキャラは、宣言カットインと同じ帯で見せる。
   const art = skillCutin(character);
   if (art) return <DeclarationCutinView cutin={art} />;

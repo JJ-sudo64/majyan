@@ -133,6 +133,8 @@ export function dealNewRound(
     dealerRenchanByWin: dealerWonRenchan,
     riichiLockedBy: null,
     tomohiroGuardCount: 0,
+    nullifyCount: 0,
+    cardTrigger: null,
     cardIds,
     cardUsesRemaining: previousCardUsesRemaining,
     cardIds2,

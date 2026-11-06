@@ -25,7 +25,7 @@ import {
   type RoundScoreOutcome,
 } from "./gameEngine.js";
 import { dealNewRound, hasBustedPlayer, planNextRound, rankSeats, settleLeftoverKyotaku } from "./matchFormat.js";
-import { applyCardBustGuards, applyCardMatchEndBonuses, consumeBoonUses, hasLiveCard, resolveKyotakuWithCard } from "./cards.js";
+import { applyCardBustGuards, applyCardMatchEndBonuses, applyCardMatchEndBonusesWithNotes, CARDS, consumeBoonUses, hasCard, hasLiveCard, resolveKyotakuWithCard } from "./cards.js";
 import { decideTileSwaps } from "./ai/simpleAi.js";
 
 type Scores = [number, number, number, number];
@@ -100,11 +100,20 @@ export function settleRound(match: MatchState): SettledRound {
   // 対局がここで終わる場合、次局へ持ち越すはずだった供託(plan.kyotaku)の
   // 行き先がもう無いため清算する（settleLeftoverKyotakuのコメント参照）。
   // カード「起死回生」等、対局終了時にだけ点数を調整するパッシブ効果もここで適用する。
-  const settledScores = finished
-    ? applyCardMatchEndBonuses(guardedRound, resolveKyotakuWithCard(guardedRound, scores, plan.kyotaku, settleLeftoverKyotaku))
-    : scores;
+  const afterKyotaku = finished ? resolveKyotakuWithCard(guardedRound, scores, plan.kyotaku, settleLeftoverKyotaku) : scores;
+  const bonus = finished ? applyCardMatchEndBonusesWithNotes(guardedRound, afterKyotaku) : null;
+  const settledScores = bonus ? bonus.scores : scores;
+  const finalBonusNotes = [...(finished ? kyotakuNotes(guardedRound, scores, afterKyotaku) : []), ...(bonus?.notes ?? [])];
   const finalRanking = finished ? rankSeats(settledScores, match.startingDealer) : null;
-  return { match: { ...match, round: guardedRound, scores: settledScores, finished, finalRanking }, outcome };
+  return { match: { ...match, round: guardedRound, scores: settledScores, finished, finalRanking, finalBonusNotes }, outcome };
+}
+
+/** カード「供託回収」で動いた点数の内訳（持ち主の分だけ）。 */
+function kyotakuNotes(round: RoundState, before: Scores, after: Scores): { seat: PlayerIndex; title: string; delta: number }[] {
+  const seat = ([0, 1, 2, 3] as PlayerIndex[]).find((s) => hasCard(round, s, "kyotaku-collector"));
+  if (seat === undefined) return [];
+  const delta = after[seat]! - before[seat]!;
+  return delta > 0 ? [{ seat, title: CARDS["kyotaku-collector"]!.name, delta }] : [];
 }
 
 /**

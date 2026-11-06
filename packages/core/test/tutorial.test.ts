@@ -22,6 +22,8 @@ function humanActionFor(allow: TutorialAllow, match: MatchState): GameAction {
       return { type: "ron", player: 0 };
     case "skill":
       return { type: "useSkill", player: 0 };
+    case "card":
+      return { type: "useCard", player: 0 };
     case "pon": {
       const code = round.pendingCallWindow!.discardTile.code;
       return { type: "pon", player: 0, usedHandTileIds: hand.filter((t) => t.code === code).slice(0, 2).map((t) => t.id) };

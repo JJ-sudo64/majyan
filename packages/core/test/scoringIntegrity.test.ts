@@ -207,7 +207,7 @@ function makeRound(overrides: Partial<RoundState> & { players: RoundState["playe
     format: "hanchan", roundWind: 1, roundNumber: 1, honba: 0, kyotaku: 0, dealerSeat: 0, wall: wall([]),
     currentTurn: 0, phase: "awaiting-draw", lastDiscard: null, lastDrawnTile: null, isRinshanTurn: false,
     pendingCallWindow: null, kanCount: 0, result: null, characterIds: ["", "", "", ""], anyCallOrRiichiMade: false,
-    handsRevealedTo: null, wallReadRevealedTo: null, dealerRenchanByWin: false, riichiLockedBy: null, tomohiroGuardCount: 0,
+    handsRevealedTo: null, wallReadRevealedTo: null, dealerRenchanByWin: false, riichiLockedBy: null, tomohiroGuardCount: 0, nullifyCount: 0, cardTrigger: null,
     cardIds: [null, null, null, null], cardUsesRemaining: [0, 0, 0, 0], cardIds2: [null, null, null, null], cardUsesRemaining2: [0, 0, 0, 0], cardNegateArmed: [false, false, false, false],
     cardBonusHan: [0, 0, 0, 0], cardExtraUraDora: [false, false, false, false], cardScoreDoubled: [false, false, false, false],
     pendingScoreAdjustment: null, lastActivatedSkill: null,

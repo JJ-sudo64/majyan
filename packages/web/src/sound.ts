@@ -99,12 +99,17 @@ export function speakVoice(clipUrl: string | undefined, fallbackText: string) {
 
 /** 複数の収録ボイスを重ならないよう順番に再生する（役の連続宣言などに使用）。
     onDoneは最後まで再生し終えた時（再生できなかった時も）に1回呼ぶ。 */
-export function playVoiceQueue(urls: string[], onDone?: () => void) {
+export function playVoiceQueue(urls: (string | number)[], onDone?: () => void) {
   if (typeof window === "undefined" || urls.length === 0) {
     onDone?.();
     return;
   }
   const [first, ...rest] = urls;
+  // 数字は「その ms だけ間を空ける」印（満貫などの前の溜め用）。
+  if (typeof first === "number") {
+    window.setTimeout(() => playVoiceQueue(rest, onDone), first);
+    return;
+  }
   const audio = getVoiceClip(first!);
   if (!audio) {
     playVoiceQueue(rest, onDone);

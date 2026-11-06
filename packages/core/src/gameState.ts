@@ -213,6 +213,14 @@ export interface RoundState {
       単発トリガーで、値そのものに意味は無い（gameEngine.tsのapplyDrawActionが
       呼ぶcharacters.tsのonBeforeDraw参照）。 */
   tomohiroGuardCount: number;
+  /** カード「無効化」が敵の必殺技を実際に打ち消した回数（対局を通して単調増加）。
+      打ち消された発動もゲージは0になるため、画面側（SkillActivationOverlay）が
+      この増分を見て、通常のカットインの代わりに「無効化」の演出を出す。 */
+  nullifyCount: number;
+  /** カードやキャラの自動効果が働いた直近の1件（画面に短い札を出すためだけの
+      一発イベント）。seqは局内で1から増える。局が変わるとnullに戻る。
+      座席はこの局面を見る人から見た番号（seatView.tsで回す）。 */
+  cardTrigger: { seq: number; seat: PlayerIndex; title: string; detail: string } | null;
   /** 各座席が持っているカード（cards.tsのCARDSのキー）。null=カード無し。人間(0)は
       MatchSetupでの選択、CPU(1-3)は対局開始時にランダム抽選される。対局を通して固定
       （キャラクターと同様、半荘/東風戦をまたいでも変わらない。matchFormat.tsの
@@ -272,6 +280,8 @@ export interface MatchState {
   finished: boolean;
   /** 対局終了時の最終順位（1位から順の座席番号、rankSeats参照）。終了するまではnull。 */
   finalRanking: PlayerIndex[] | null;
+  /** 対局終了時に、カードの効果で点数が動いた内訳（結果画面に出す）。無ければ空/未設定。 */
+  finalBonusNotes?: { seat: PlayerIndex; title: string; delta: number }[];
   /** 起家（東1局の親）。同点の順位を「起家に近い順」で決めるのに使う。 */
   startingDealer: PlayerIndex;
   /** 箱下続行ルール。falseの場合、誰かの持ち点が0点未満（箱割れ）になった時点で

@@ -115,7 +115,7 @@ function makeRound(overrides: Partial<RoundState> & { players: RoundState["playe
     wallReadRevealedTo: null,
     dealerRenchanByWin: false,
     riichiLockedBy: null,
-    tomohiroGuardCount: 0,
+    tomohiroGuardCount: 0, nullifyCount: 0, cardTrigger: null,
     cardIds: [null, null, null, null],
     // 消費型カードのデフォルト(maxUses未指定=1)を想定した「未使用」状態。
     // 複数回使えるカード(future-sight等)をテストする際は明示的に上書きする。

@@ -30,6 +30,7 @@ import { ToimenEditToolbar } from "./ToimenEditToolbar.js";
 import { RiichiStickEditToolbar } from "./RiichiStickEditToolbar.js";
 import { RevealHandEditToolbar } from "./RevealHandEditToolbar.js";
 import { SkillActivationOverlay } from "./SkillActivationOverlay.js";
+import { CardTriggerToast } from "./CardTriggerToast.js";
 import { DeclarationCutinOverlay } from "./DeclarationCutinOverlay.js";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 import { viewRect, portalRoot } from "../orientation.js";
@@ -589,6 +590,7 @@ export function Table() {
             （指摘により発覚。Tile3DDebugPanel等と同じ理由でPortal化して
             解決する）。 */}
         {createPortal(<SkillActivationOverlay round={round} />, portalRoot())}
+        {createPortal(<CardTriggerToast round={round} />, portalRoot())}
         {createPortal(<DeclarationCutinOverlay round={round} />, portalRoot())}
 
         {showOwnSkillInfo && selfCharacter && (

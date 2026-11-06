@@ -9,6 +9,7 @@ const HINT_BUTTON_SELECTOR = {
   ron: ".btn--ron",
   tsumo: ".btn--ron",
   skill: ".btn--skill",
+  card: ".cf-chip--ready",
 } as const;
 
 /**

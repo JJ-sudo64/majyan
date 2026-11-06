@@ -165,6 +165,9 @@ export interface Character {
   /** 宣言カットインのフラッシュ・光・重ねる文字の色（CSSの色）。絵の色調に
       合わせる。未指定なら紫。 */
   declarationAccent?: string;
+  /** trueなら、親の和了連荘で次の局の配牌時パッシブが働いても、必殺技のカットインとボイスを出さない。
+      親の時に弱体化する能力（メビウス）で、不利になる局の頭に派手な演出が出るのを防ぐ。 */
+  noDealerRenchanCutin?: boolean;
   /** 対局で1位（最終順位トップ）になった時に表示する勝利台詞。 */
   winQuote: string;
   /** ゲージの上限。これに達するとonActivateが発動可能になる。 */

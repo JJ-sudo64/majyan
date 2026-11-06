@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CHARACTERS, TUTORIAL_SCENARIOS, M_LEAGUE_RULE, matchPoints, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
+import { CHARACTERS, hasCard, TUTORIAL_SCENARIOS, M_LEAGUE_RULE, matchPoints, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useOnlineStore } from "../online/onlineLink.js";
 import { playVoiceQueue } from "../sound.js";
@@ -110,6 +110,9 @@ function limitLabel(han: number, limitName: string): string {
   return limitName === "役満" && han >= 13 ? "数え役満" : limitName;
 }
 
+/** 満貫・跳満・倍満・三倍満・役満の読み上げの直前に空ける間（ms）。 */
+const LIMIT_VOICE_PAUSE_MS = 1200;
+
 function resultTitle(round: RoundState): string {
   const r = round.result!;
   if (r.type === "tsumo") return `${PLAYER_NAMES[r.winners[0]!]} のツモ和了`;
@@ -137,7 +140,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
   // （ツモ/ロンの掛け声はuseGameSounds側で既に鳴っているため、ここでは
   //   役名・翻数帯のみを対象にする）。ボイス未収録の役は無音でスキップする。
   const voiceQueue = useMemo(() => {
-    const queue: string[] = [];
+    const queue: (string | number)[] = [];
     for (const [playerStr, { analysis, score }] of winnerEntries) {
       const player = Number(playerStr) as PlayerIndex;
       const character = CHARACTERS[round.characterIds[player]!];
@@ -151,7 +154,8 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
         const clip =
           character.yakuVoiceClips?.[score.limitName] ??
           (score.limitName.endsWith("役満") ? character.yakuVoiceClips?.["役満"] : undefined);
-        if (clip) queue.push(clip);
+        // 役の読み上げと満貫・跳満・役満などの間に、少し溜めを入れる。
+        if (clip) queue.push(LIMIT_VOICE_PAUSE_MS, clip);
       }
     }
     return queue;
@@ -210,6 +214,9 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
             <div key={player} className="win-detail">
               <div className="win-detail__player">{PLAYER_NAMES[player]}</div>
               <WinningHandView round={round} player={player} />
+              {player === round.dealerSeat && round.honba > 0 && hasCard(round, player, "dealer-honba-boost") && (
+                <div className="score-card-notes">カード「親孝行」：本場の点が2倍（{round.honba}本場）</div>
+              )}
               <div className="win-detail__dora">
                 <span className="hud__dora-label">ドラ表示</span>
                 <div className="hud__dora">
@@ -311,6 +318,15 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
         {match?.finished ? (
           <div>
             <h3>対局終了</h3>
+            {match.finalBonusNotes && match.finalBonusNotes.length > 0 && (
+              <ul className="score-card-notes">
+                {match.finalBonusNotes.map((n, i) => (
+                  <li key={i}>
+                    カード「{n.title}」 {PLAYER_NAMES[n.seat]}：<strong className={n.delta >= 0 ? "delta-positive" : "delta-negative"}>{n.delta >= 0 ? "+" : ""}{n.delta}点</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
             {rankResult && (
               <div className="score-rank-result">
                 <div className="score-rank-result__place">

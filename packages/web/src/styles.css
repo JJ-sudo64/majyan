@@ -9680,6 +9680,31 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .cf-chip--btn {
   cursor: pointer;
 }
+/* 使えない間は邪魔にならないよう、小さく半透明にして補足文字も隠す
+   （カーソルを乗せると元の濃さに戻り、補足が出る）。使える時(--ready)だけ目立たせる。 */
+.cf-chip--idle {
+  gap: 5px;
+  padding: 2px 8px 2px 5px;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+.cf-chip--idle svg {
+  width: 16px;
+  height: 16px;
+}
+.cf-chip--idle b {
+  font-size: 12px;
+}
+.cf-chip--idle small,
+.cf-chip--idle .cf-seal {
+  display: none;
+}
+.cf-chip--idle:hover {
+  opacity: 1;
+}
+.cf-chip--idle:hover small {
+  display: inline;
+}
 .cf-chip--ready {
   animation: cf-chip-ready 1.6s ease-in-out infinite;
 }
@@ -9972,4 +9997,67 @@ button.oh-player__rank:hover .oh-player__rank-help {
 }
 .cardloadout__done {
   align-self: center;
+}
+
+/* 無効化カードに必殺技を打ち消された時: 絵を白黒にして沈ませ、文字を赤くする。 */
+.skill-activation-overlay--nullified .skill-activation-overlay__cutin-wrap {
+  filter: grayscale(1) brightness(0.7);
+}
+.skill-activation-overlay--nullified .skill-activation-overlay__skill {
+  color: #ff6b6b;
+}
+
+/* カード・キャラの自動効果が働いた時の札（CardTriggerToast）。操作を邪魔しない。 */
+.card-trigger-toast {
+  position: fixed;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 22px;
+  border-radius: 10px;
+  color: #f2eee2;
+  background: rgba(20, 24, 32, 0.88);
+  box-shadow: 0 0 0 2px #d9b45a, 0 4px 14px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  animation: card-trigger-toast 2.2s ease both;
+}
+.card-trigger-toast b {
+  font-size: 18px;
+  color: #ffd86b;
+}
+.card-trigger-toast span {
+  font-size: 13px;
+}
+@keyframes card-trigger-toast {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  12%,
+  80% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-trigger-toast {
+    animation: none;
+  }
+}
+
+/* 結果画面のカード効果の内訳 */
+.score-card-notes {
+  margin: 4px 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: #ffd86b;
 }

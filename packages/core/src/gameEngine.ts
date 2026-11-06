@@ -31,7 +31,7 @@ import {
 import { analyzeWin, type WinAnalysis, type WinContext } from "./yaku/index.js";
 import { scoreWin, applyHonba, type PaymentBreakdown, type ScoreResult } from "./scoring.js";
 import { CHARACTERS } from "./characters.js";
-import { CARDS, cardUsesLeft, hasCard, hasLiveCard, seatCardIds, spendCardUse } from "./cards.js";
+import { CARDS, cardUsesLeft, hasCard, hasLiveCard, seatCardIds, spendCardUse, withCardTrigger } from "./cards.js";
 import { globalRoundIndex, maxGlobalRoundIndex } from "./matchFormat.js";
 import type {
   GameAction,
@@ -77,7 +77,7 @@ function updatePlayer(
 function clearAllIppatsu(
   round: RoundState,
   players: RoundState["players"],
-): { players: RoundState["players"]; cardUsesRemaining: RoundState["cardUsesRemaining"]; cardUsesRemaining2: RoundState["cardUsesRemaining2"] } {
+): { players: RoundState["players"]; cardUsesRemaining: RoundState["cardUsesRemaining"]; cardUsesRemaining2: RoundState["cardUsesRemaining2"]; cardTrigger: RoundState["cardTrigger"] } {
   let spent = round;
   const next = players.map((p, i) => {
     if (!p.ippatsuActive) return p;
@@ -87,7 +87,7 @@ function clearAllIppatsu(
     }
     return { ...p, ippatsuActive: false };
   }) as RoundState["players"];
-  return { players: next, cardUsesRemaining: spent.cardUsesRemaining, cardUsesRemaining2: spent.cardUsesRemaining2 };
+  return { players: next, cardUsesRemaining: spent.cardUsesRemaining, cardUsesRemaining2: spent.cardUsesRemaining2, cardTrigger: spent.cardTrigger };
 }
 
 /** 「狙い撃ち」で立直した人には和了牌を引かせない（引いてもツモ和了できず、
@@ -185,7 +185,7 @@ function findNegatingCardOwner(round: RoundState, activatingPlayer: PlayerIndex)
 function disarmNegate(round: RoundState, seat: PlayerIndex): RoundState {
   const next = [...round.cardNegateArmed] as RoundState["cardNegateArmed"];
   next[seat] = false;
-  return { ...round, cardNegateArmed: next };
+  return { ...round, cardNegateArmed: next, nullifyCount: round.nullifyCount + 1 };
 }
 
 export { getWaitingTiles };
@@ -580,6 +580,7 @@ function buildExhaustiveDrawResult(round: RoundState): RoundState {
     ...round,
     cardUsesRemaining: spent.cardUsesRemaining,
     cardUsesRemaining2: spent.cardUsesRemaining2,
+    cardTrigger: spent.cardTrigger,
     phase: "round-over",
     result: {
       type: "exhaustive-draw",
@@ -719,7 +720,12 @@ function consumeBettaoriShieldIfItJustSaved(round: RoundState, discarder: Player
   if (!round.players[discarder]!.bettaoriShield) return round;
   const wouldHaveDealtIn = otherPlayers(discarder).some((p) => analyzeRonForPlayer(round, p, tile, chankan) !== null);
   if (!wouldHaveDealtIn) return round;
-  return { ...round, players: updatePlayer(round.players, discarder, (pl) => ({ ...pl, bettaoriShield: false })) };
+  return withCardTrigger(
+    { ...round, players: updatePlayer(round.players, discarder, (pl) => ({ ...pl, bettaoriShield: false })) },
+    discarder,
+    "アトミックベタ降り",
+    "盾が当たり牌のロンを防いだ",
+  );
 }
 
 /** カード「一閃の盾」を、実際に守った瞬間（＝盾が無ければ誰かにロンされて
@@ -858,6 +864,7 @@ function applyAnkanAction(round: RoundState, action: AnkanAction): RoundState {
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
     cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
+    cardTrigger: ippatsuResult.cardTrigger,
     wall: resolved.wall,
     lastDrawnTile: resolved.tile,
     phase: "awaiting-discard",
@@ -937,6 +944,7 @@ function finalizeKakanAfterChankanWindow(round: RoundState, player: PlayerIndex)
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
     cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
+    cardTrigger: ippatsuResult.cardTrigger,
     wall: resolved.wall,
     lastDrawnTile: resolved.tile,
     phase: "awaiting-discard",
@@ -1164,6 +1172,7 @@ function executeMeldCall(round: RoundState, window: PendingCallWindow, call: Dec
       players,
       cardUsesRemaining: ippatsuResult.cardUsesRemaining,
     cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
+    cardTrigger: ippatsuResult.cardTrigger,
       wall: resolved.wall,
       lastDrawnTile: resolved.tile,
       currentTurn: caller,
@@ -1180,6 +1189,7 @@ function executeMeldCall(round: RoundState, window: PendingCallWindow, call: Dec
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
     cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
+    cardTrigger: ippatsuResult.cardTrigger,
     // チー/ポンでは自分はツモっていない（鳴く前の別プレイヤーのツモ牌を残さない）。
     lastDrawnTile: null,
     currentTurn: caller,

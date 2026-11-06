@@ -65,7 +65,7 @@ function makeRound(overrides: Partial<RoundState> & { players: RoundState["playe
     wallReadRevealedTo: null,
     dealerRenchanByWin: false,
     riichiLockedBy: null,
-    tomohiroGuardCount: 0,
+    tomohiroGuardCount: 0, nullifyCount: 0, cardTrigger: null,
     cardIds: [null, null, null, null],
     cardUsesRemaining: [0, 0, 0, 0],
     cardIds2: [null, null, null, null],

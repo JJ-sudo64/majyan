@@ -129,7 +129,7 @@ export function CardChip({ cardId, note, ready, onClick }: { cardId: string; not
   if (!card) return null;
   const rarity = cardRarity(cardId);
   const kind = card.kind === "passive" ? "passive" : "active";
-  const classes = ["cf-chip", ready ? "cf-chip--ready" : "", onClick ? "cf-chip--btn" : ""].filter(Boolean).join(" ");
+  const classes = ["cf-chip", ready ? "cf-chip--ready" : "cf-chip--idle", onClick ? "cf-chip--btn" : ""].filter(Boolean).join(" ");
   const body = (
     <>
       <CardIcon cardId={cardId} />

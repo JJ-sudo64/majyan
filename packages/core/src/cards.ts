@@ -87,15 +87,33 @@ export function hasLiveCard(round: RoundState, seat: PlayerIndex, cardId: string
   return cardUsesLeft(round, seat, cardId) > 0;
 }
 
-/** そのカードの使用回数を1減らしたRoundStateを返す（持っていなければそのまま）。 */
+/** 持っているだけで条件を満たした瞬間に自動で消費されるカードの、画面に出す一言。 */
+const AUTO_TRIGGER_DETAIL: Record<string, string> = {
+  "houjuu-guard": "当たり牌のロンを防いだ",
+  "tenpai-insurance": "テンパイ扱いになった",
+  "furiten-clear": "フリテンでもロンできる",
+  "uncallable-yakuhai": "役牌を鳴かせなかった",
+  "ippatsu-extend": "一発が続く",
+  "no-cost-riichi": "リーチ棒を払わずに済んだ",
+  "bust-guard": "持ち点が0点で止まった",
+};
+
+/** 自動効果が働いたことを画面へ知らせる札を立てる（RoundState.cardTrigger）。 */
+export function withCardTrigger(round: RoundState, seat: PlayerIndex, title: string, detail: string): RoundState {
+  return { ...round, cardTrigger: { seq: (round.cardTrigger?.seq ?? 0) + 1, seat, title, detail } };
+}
+
+/** そのカードの使用回数を1減らしたRoundStateを返す（持っていなければそのまま）。
+    自動で消費されるカードは、働いたことを知らせる札（cardTrigger）も立てる。 */
 export function spendCardUse(round: RoundState, seat: PlayerIndex, cardId: string): RoundState {
+  let next = round;
   if (round.cardIds[seat] === cardId) {
-    return { ...round, cardUsesRemaining: setAt(round.cardUsesRemaining, seat, round.cardUsesRemaining[seat] - 1) };
+    next = { ...round, cardUsesRemaining: setAt(round.cardUsesRemaining, seat, round.cardUsesRemaining[seat] - 1) };
+  } else if (round.cardIds2[seat] === cardId) {
+    next = { ...round, cardUsesRemaining2: setAt(round.cardUsesRemaining2, seat, round.cardUsesRemaining2[seat] - 1) };
   }
-  if (round.cardIds2[seat] === cardId) {
-    return { ...round, cardUsesRemaining2: setAt(round.cardUsesRemaining2, seat, round.cardUsesRemaining2[seat] - 1) };
-  }
-  return round;
+  const detail = AUTO_TRIGGER_DETAIL[cardId];
+  return next !== round && detail ? withCardTrigger(next, seat, CARDS[cardId]!.name, detail) : next;
 }
 
 /** 対局開始時の残り回数の初期値（カードごとのmaxUses、未指定なら1、カード無しは0）。 */
@@ -1225,14 +1243,28 @@ export function applyCardMatchEndBonuses(
   round: RoundState,
   scores: [number, number, number, number],
 ): [number, number, number, number] {
+  return applyCardMatchEndBonusesWithNotes(round, scores).scores;
+}
+
+/** applyCardMatchEndBonusesと同じ計算で、どのカードが何点動かしたかの内訳も返す
+    （点が動かなかったカードは含めない）。 */
+export function applyCardMatchEndBonusesWithNotes(
+  round: RoundState,
+  scores: [number, number, number, number],
+): { scores: [number, number, number, number]; notes: { seat: PlayerIndex; title: string; delta: number }[] } {
   let next = scores;
+  const notes: { seat: PlayerIndex; title: string; delta: number }[] = [];
   for (const seat of [0, 1, 2, 3] as PlayerIndex[]) {
     for (const cardId of seatCardIds(round, seat)) {
       const onMatchEnd = CARDS[cardId]?.hooks.onMatchEnd;
-      if (onMatchEnd) next = onMatchEnd({ scores: next, owner: seat });
+      if (!onMatchEnd) continue;
+      const after = onMatchEnd({ scores: next, owner: seat });
+      const delta = after[seat]! - next[seat]!;
+      if (delta !== 0) notes.push({ seat, title: CARDS[cardId]!.name, delta });
+      next = after;
     }
   }
-  return next;
+  return { scores: next, notes };
 }
 
 /** カード「供託回収」の判定。対局終了時、まだ場に残っている供託の行き先を

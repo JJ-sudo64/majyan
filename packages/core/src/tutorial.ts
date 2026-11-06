@@ -10,6 +10,7 @@ import type { GameAction, PlayerIndex } from "./actions.js";
 import type { MatchState, RoundState } from "./gameState.js";
 import { dealNewRound } from "./matchFormat.js";
 import { pendingDecision } from "./matchController.js";
+import { initialCardUses } from "./cards.js";
 import { sortTiles, type Tile, type TileCode } from "./tiles.js";
 
 const HUMAN = 0 as const;
@@ -21,7 +22,8 @@ export type TutorialAllow =
   | { kind: "pon" }
   | { kind: "ron" }
   | { kind: "tsumo" }
-  | { kind: "skill" };
+  | { kind: "skill" }
+  | { kind: "card" };
 
 export interface TutorialStep {
   id: string;
@@ -38,7 +40,7 @@ export interface TutorialStep {
   allow?: TutorialAllow;
   /** 光らせる手牌・ボタン。 */
   hintTile?: TileCode;
-  hintButton?: "riichi" | "pon" | "ron" | "tsumo" | "skill";
+  hintButton?: "riichi" | "pon" | "ron" | "tsumo" | "skill" | "card";
 }
 
 export interface TutorialScenario {
@@ -60,6 +62,8 @@ interface Layout {
   /** 人間のキャラと、最初から満タンにしておく必殺技ゲージ。 */
   humanCharacterId?: string;
   humanSkillGauge?: number;
+  /** 人間が付けるカード（[パッシブ枠, アクティブ枠]）。 */
+  humanCards?: [string | null, string | null];
 }
 
 /** 決めた配牌・山の並びのとおりの対局（東1局・人間が親）を作る。 */
@@ -107,6 +111,14 @@ function buildMatch(layout: Layout): MatchState {
     players,
     wall: { liveTiles: [...draws, ...rest], deadWall, revealedDoraCount: 1, rinshanDrawn: 0 },
     points: [25000, 25000, 25000, 25000],
+    ...(layout.humanCards
+      ? {
+          cardIds: [layout.humanCards[0], null, null, null] as RoundState["cardIds"],
+          cardIds2: [layout.humanCards[1], null, null, null] as RoundState["cardIds2"],
+          cardUsesRemaining: initialCardUses([layout.humanCards[0], null, null, null]),
+          cardUsesRemaining2: initialCardUses([layout.humanCards[1], null, null, null]),
+        }
+      : {}),
   };
   return {
     format: "tonpuusen",
@@ -318,13 +330,76 @@ const SKILL_SCENARIO: TutorialScenario = {
     {
       id: "skill-result",
       advance: "result",
-      text: "ドラ2枚ぶん、点数が上がりました。必殺技は、キャラクターによって効果がまったく違います。ガチャで集めて、好みのキャラクターで戦ってみてください。以上でチュートリアルは終わりです。",
+      text: "ドラ2枚ぶん、点数が上がりました。必殺技は、キャラクターによって効果がまったく違います。ガチャで集めて、好みのキャラクターで戦ってみてください。最後に、「カード」の使い方を体験します。",
       when: (round) => round.phase === "round-over",
     },
   ],
 };
 
-export const TUTORIAL_SCENARIOS: TutorialScenario[] = [RIICHI_SCENARIO, PON_SCENARIO, SKILL_SCENARIO];
+/** 4局目: カード（パッシブ1枚＋アクティブ1枚）。 */
+const CARD_SCENARIO: TutorialScenario = {
+  id: "card",
+  build: () =>
+    buildMatch({
+      hands: [
+        // 3局目と同じ手牌。6索か9索を引けばあがり（6索でツモ）。
+        ["3m", "4m", "5m", "6p", "7p", "8p", "2s", "3s", "4s", "5p", "5p", "7s", "8s"],
+        ["1m", "4m", "7m", "1p", "8p", "2s", "5s", "9s", "1z", "2z", "3z", "6z", "7z"],
+        ["2m", "5m", "8m", "2p", "7p", "1s", "4s", "9s", "1z", "2z", "3z", "6z", "7z"],
+        ["3m", "6m", "9m", "1p", "9p", "3s", "5s", "8s", "1z", "2z", "3z", "6z", "7z"],
+      ],
+      draws: ["1z", "4z", "5z", "4z", "6s"],
+      doraIndicator: "9s",
+      uraIndicator: "6z",
+      humanCards: ["tsumo-boon", "han-up-1"],
+    }),
+  steps: [
+    {
+      id: "card-welcome",
+      advance: "next",
+      text: "最後は「カード」です。キャラクターには、カードを2枚まで付けられます。「パッシブ」（青緑の札）と「アクティブ」（紫の札）の1枚ずつです。付けたカードは、手牌の上に並びます。",
+      when: (round) => round.phase === "awaiting-draw" && round.players[HUMAN].discards.length === 0,
+    },
+    {
+      id: "card-passive",
+      advance: "next",
+      text: "青緑の札は「パッシブ」。付けているだけで、条件を満たすと自動で効きます。いまは「ツモの加護」で、ツモであがると+1翻です。使える回数は、札に出ています。",
+      when: (round) => round.phase === "awaiting-draw" && round.players[HUMAN].discards.length === 0,
+    },
+    {
+      id: "card-use",
+      advance: "action",
+      allow: { kind: "card" },
+      hintButton: "card",
+      text: "紫の札は「アクティブ」。自分の番に、自分で押して使います。光っている「小手先の一翻」を押しましょう。この局の次のあがりが、+1翻になります。",
+      when: (round) => humanTurnToDiscard(round) && lastDrawnCode(round) === "1z" && round.cardBonusHan[HUMAN] === 0,
+    },
+    {
+      id: "card-discard",
+      advance: "action",
+      allow: { kind: "discard", code: "1z" },
+      hintTile: "1z",
+      text: "カードを使いました。使ったアクティブカードは、札が暗くなります。使えない「東」を捨てましょう。",
+      when: (round) => humanTurnToDiscard(round) && lastDrawnCode(round) === "1z" && round.cardBonusHan[HUMAN] === 1,
+    },
+    {
+      id: "card-tsumo",
+      advance: "action",
+      allow: { kind: "tsumo" },
+      hintButton: "tsumo",
+      text: "6索を引きました。あがれます！ 「ツモ」を押しましょう。",
+      when: (round) => humanTurnToDiscard(round) && lastDrawnCode(round) === "6s",
+    },
+    {
+      id: "card-result",
+      advance: "result",
+      text: "役の一覧に「カード効果」が出ています。「ツモの加護」と「小手先の一翻」で、あわせて+2翻です。ほかにも、あがらなくても自動で働くカード（ロンを1度だけ防ぐ盾など）があります。働いた時は画面に札が出ます。カードは、ガチャで集めて、キャラクターに付けて使います。以上でチュートリアルは終わりです。",
+      when: (round) => round.phase === "round-over",
+    },
+  ],
+};
+
+export const TUTORIAL_SCENARIOS: TutorialScenario[] = [RIICHI_SCENARIO, PON_SCENARIO, SKILL_SCENARIO, CARD_SCENARIO];
 
 /** 人間の操作が、台本の許した操作か。 */
 export function tutorialAllows(allow: TutorialAllow | undefined, action: GameAction, round: RoundState): boolean {
@@ -344,6 +419,8 @@ export function tutorialAllows(allow: TutorialAllow | undefined, action: GameAct
       return action.type === "tsumo";
     case "skill":
       return action.type === "useSkill";
+    case "card":
+      return action.type === "useCard";
   }
 }
 

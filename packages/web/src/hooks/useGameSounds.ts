@@ -153,6 +153,7 @@ export function useGameSounds(round: RoundState | undefined) {
     if (!round || prevKey === passiveRoundKey || !round.dealerRenchanByWin) return;
     const character = CHARACTERS[round.characterIds[round.dealerSeat]!];
     if (!character || typeof character.skill.hooks.onDealHand !== "function") return;
+    if (character.noDealerRenchanCutin) return;
     const fallback = `${character.voiceName ?? character.name} ${character.skill.voiceName ?? character.skill.name}`;
     speakVoice(character.voiceClips?.skillActivate, fallback);
   }, [passiveRoundKey]);
