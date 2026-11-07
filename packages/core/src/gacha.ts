@@ -71,7 +71,7 @@ export const CARD_RARITY: Record<string, Rarity> = {
   nullify: 3,
   "dora-guarantee": 3,
   // ★2: 毎局効く、または狙った場面で確実に得をする
-  "meld-guarantee": 2,
+  "meld-guarantee": 3,
   "han-up-1": 2,
   "future-sight": 2,
   insight: 2,

@@ -34,6 +34,7 @@ import {
   canSwapStartingTile,
   canUseCard,
   canUseSkill,
+  isRonBlockedByShield,
   kakanOptions,
   reclaimableDiscardTileIds,
   riichiCandidateTileIds,
@@ -175,7 +176,7 @@ export interface SeatOptions {
   /** 自分の手番でなければnull。 */
   turn: TurnOptions | null;
   /** 応答すべき呼び出しウィンドウが無ければnull。 */
-  call: (CallOptions & { ronAnalysis: WinAnalysis | null }) | null;
+  call: (CallOptions & { ronAnalysis: WinAnalysis | null; ronBlockedByShield?: boolean }) | null;
   /** ルナの「運命の采配」による配牌交換がいま使えるか（手番に関係なく使える）。 */
   canSwapStartingTile: boolean;
 }
@@ -211,7 +212,8 @@ export function computeSeatOptions(round: RoundState, seat: PlayerIndex): SeatOp
     const ronAnalysis = options.canRon
       ? canDeclareRon(round, seat, window.discardTile.code, window.discarderIndex, window.isChankan)
       : null;
-    call = { ...options, ronAnalysis };
+    const ronBlockedByShield = !options.canRon && isRonBlockedByShield(round, seat, window.discardTile.code, window.discarderIndex, window.isChankan);
+    call = { ...options, ronAnalysis, ronBlockedByShield };
   }
   return { turn: computeTurnOptions(round, seat), call, canSwapStartingTile: canSwapStartingTile(round, seat) };
 }

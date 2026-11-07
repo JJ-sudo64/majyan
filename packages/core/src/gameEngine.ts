@@ -321,6 +321,14 @@ export function canDeclareRon(round: RoundState, player: PlayerIndex, discardTil
   return analyzeRonForPlayer(round, player, discardTile, chankan);
 }
 
+/** 本来ならロンできる牌なのに、切った人の盾（タカノリの「アトミックベタ降り」や
+    カード「一閃の盾」）に防がれてロンできない状態か。画面に「盾で防がれた」と
+    その場で知らせるために使う（実際の消費は応答が終わった時に別途行われる）。 */
+export function isRonBlockedByShield(round: RoundState, player: PlayerIndex, discardTile: TileCode, discarder: PlayerIndex, chankan = false): boolean {
+  const shielded = round.players[discarder]!.bettaoriShield || hasLiveCard(round, discarder, "houjuu-guard");
+  return shielded && analyzeRonForPlayer(round, player, discardTile, chankan) !== null;
+}
+
 export function canRiichi(round: RoundState, player: PlayerIndex): boolean {
   if (round.currentTurn !== player || round.phase !== "awaiting-discard") return false;
   const p = round.players[player];
@@ -1380,7 +1388,12 @@ function applyUseCardAction(round: RoundState, player: PlayerIndex): RoundState 
   if (!canUseCard(round, player)) throw new Error("useCard: 現在カードを使用できません");
   const cardId = usableCardId(round, player)!;
   const activated = CARDS[cardId]!.hooks.onUse!({ round, owner: player });
-  return spendCardUse(activated, player, cardId);
+  const spent = spendCardUse(activated, player, cardId);
+  // 使った人にしか分からない効果のカードでも、他の人に「使われた」ことが分かるよう、
+  // 自動効果の札（spendCardUseが立てるもの）が無ければここで立てる。説明の1文目を添える。
+  if (spent.cardTrigger?.seq !== round.cardTrigger?.seq) return spent;
+  const firstSentence = CARDS[cardId]!.description.split(/[。.]/)[0] ?? "";
+  return withCardTrigger(spent, player, CARDS[cardId]!.name, firstSentence || "カードを使った", { cardId, kind: "use" });
 }
 
 function applySwapTilesAction(round: RoundState, action: SwapTilesAction): RoundState {

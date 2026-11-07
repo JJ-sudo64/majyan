@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import { holdFreezeSource, setFreezeThaw, THAW_TOTAL_MS } from "../freezeWave.js";
 import { CHARACTERS, type Meld, type RoundState, type VoiceEvent } from "@majyan/core";
-import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, playSkillReadySound, playSkillActivateSfx, speakVoice } from "../sound.js";
+import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, playVoiceClipThen, playSkillReadySound, playSkillActivateSfx, speakVoice } from "../sound.js";
 import { winDeclarationSchedule } from "../components/DeclarationCutinOverlay.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
@@ -23,6 +24,10 @@ const CALL_EVENT: Partial<Record<Meld["type"], VoiceEvent>> = {
 function speakPlayerVoice(round: RoundState | undefined, player: number, event: VoiceEvent, fallbackText: string) {
   const character = round ? CHARACTERS[round.characterIds[player]!] : undefined;
   speakVoice(character?.voiceClips?.[event], fallbackText);
+}
+
+function passiveRoundKeyForTimeStop(round: RoundState | undefined): string {
+  return round ? `${round.roundWind}-${round.roundNumber}-${round.honba}` : "";
 }
 
 /**
@@ -142,6 +147,45 @@ export function useGameSounds(round: RoundState | undefined) {
     }
     prevSkillGaugesRef.current = skillGauges;
   }, [skillGaugeSignature]);
+
+  // 時間停止（ゼノ）が解けて灰色が戻る瞬間（timeStopTurnsRemainingが正から0になる）に
+  // 終了ボイスを鳴らす。局が切り替わって0に戻っただけの時は鳴らさない。
+  const timeStopSignature = round ? round.players.map((p) => p.timeStopTurnsRemaining > 0 ? 1 : 0).join(",") : "";
+  const prevTimeStopRef = useRef(timeStopSignature);
+  const prevTimeStopRoundKeyRef = useRef(passiveRoundKeyForTimeStop(round));
+  // useLayoutEffect: 効果が終わった描画のまま画面に出る前に「灰色を保つ」指示を入れる
+  // （useEffectだと1フレーム灰色が外れ、すぐ灰色が広がり直してしまう）。
+  useLayoutEffect(() => {
+    const prev = prevTimeStopRef.current.split(",");
+    const roundKey = passiveRoundKeyForTimeStop(round);
+    const sameRound = roundKey === prevTimeStopRoundKeyRef.current;
+    prevTimeStopRef.current = timeStopSignature;
+    prevTimeStopRoundKeyRef.current = roundKey;
+    if (!sameRound) {
+      holdFreezeSource(undefined);
+      setFreezeThaw(false);
+    }
+    if (!round || !sameRound) return;
+    const now = timeStopSignature.split(",");
+    for (let i = 0; i < now.length; i++) {
+      if (prev[i] === "1" && now[i] === "0") {
+        const clip = CHARACTERS[round.characterIds[i]!]?.voiceClips?.skillEnd;
+        if (clip) {
+          // 終了ボイスが鳴り終わるまで灰色を保ち、鳴り終わってから戻す。
+          holdFreezeSource(i);
+          // 鳴り終わったら、発動者の席に向かって灰色が縮む演出（遠い席から順に色が戻る）を
+          // 見せてから、灰色のクラスそのものを外す。
+          playVoiceClipThen(clip, () => {
+            setFreezeThaw(true);
+            setTimeout(() => {
+              holdFreezeSource(undefined);
+              setFreezeThaw(false);
+            }, THAW_TOTAL_MS);
+          });
+        }
+      }
+    }
+  }, [timeStopSignature]);
 
   // ナオトの「クマクマタイム」等、配牌時に自動発動するパッシブ。ゲージを使わないので上の検知に
   // 乗らない。SkillActivationOverlayと同じく、局が切り替わって親の和了連荘になった瞬間に発声する。

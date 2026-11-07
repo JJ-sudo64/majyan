@@ -170,6 +170,7 @@ export function DiscardPile({
   direction,
   callTargetTileId,
   frozen,
+  freezeDelay,
   onTileClick,
   selectedTileId,
 }: {
@@ -181,6 +182,8 @@ export function DiscardPile({
   /** 必殺技「時間停止」発動中、発動者以外の河をグレーアウトする演出用。
       発動者本人の河はfalse（通常表示のまま）のまま渡される。 */
   frozen?: boolean;
+  /** frozenの時のグレー化の遅れ。発動者から外へ広がる演出用（freezeWave.ts）。 */
+  freezeDelay?: CSSProperties;
   /** ミオの必殺技「取り返し」選択中: 河の牌をクリック可能にする（自分の河のみ渡される）。 */
   onTileClick?: (tileId: string) => void;
   /** 「取り返し」選択中に既に選んだ牌のid（選択中の見た目強調用）。 */
@@ -290,7 +293,7 @@ export function DiscardPile({
   }, [latestId, latestTsumogiri, direction, isSideSeat]);
 
   return (
-    <div className={`discard-pile${frozen ? " table__frozen" : ""}`}>
+    <div className={`discard-pile${frozen ? " table__frozen" : ""}`} style={frozen ? freezeDelay : undefined}>
       {visible.map((d, i) => {
         const isLatest = d.tile.id === trueLatestId;
         const isLatestTsumogiri = isLatest && d.isTsumogiri;

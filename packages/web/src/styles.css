@@ -1805,7 +1805,8 @@ button {
 .hand-area--frozen,
 .tile3d-hand-portal-inner--frozen {
   filter: grayscale(1) brightness(0.55);
-  transition: filter 0.5s ease;
+  /* 発動者の席から外へ順に灰色が広がる（遅れはfreezeWave.tsがstyleで渡す）。 */
+  transition: filter 0.6s ease var(--freeze-delay, 0s);
   /* filterはかかった要素のサブツリー全体（回転させた河・点数バッジ・
      手牌側を含む）をまとめてラスタライズし直す。will-changeで専用の
      レイヤーへ昇格させておくことで、フィルタ適用中・トランジション中も
@@ -1954,9 +1955,22 @@ button {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 22px 5px rgba(255, 110, 70, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
+/* 時間停止が終わる時、灰色が発動者の席に向かって縮んでいく演出。
+   終了ボイスが鳴り終わるとhtmlにdata-freeze-thawが付き、灰色のクラスを付けたまま
+   フィルターだけを外す（遅れ--thaw-delayは発動者から遠い席ほど短い。freezeWave.ts参照）。
+   遷移が終わってからクラスそのものを外す。 */
+:root[data-freeze-thaw] .table__frozen,
+:root[data-freeze-thaw] .opponent-area--frozen,
+:root[data-freeze-thaw] .hand-area--frozen,
+:root[data-freeze-thaw] .tile3d-hand-portal-inner--frozen,
+:root[data-freeze-thaw] .character-panel--frozen {
+  filter: none;
+  transition: filter 0.6s ease var(--thaw-delay, 0s);
+}
 .character-panel--frozen {
   filter: grayscale(1) brightness(0.55);
-  transition: filter 0.5s ease;
+  /* 発動者の席から外へ順に灰色が広がる（遅れはfreezeWave.tsがstyleで渡す）。 */
+  transition: filter 0.6s ease var(--freeze-delay, 0s);
 }
 /* 目標にした参考画像と同じく、キャラパネルを卓上下中央の帯ではなく
    四隅に寄せる。これにより画面上下中央の帯が完全に空くため、卓自体を
@@ -4016,6 +4030,18 @@ body:has(.character-panel--bottom .character-panel__player-name) .hand-top-statu
 }
 
 /* ミオの必殺技「取り返し」選択中、河から選ぶ段階であることを示す案内文。 */
+/* ロンできる牌なのに、切った人の盾に防がれた時の案内（フリテン表示と同じ赤系）。 */
+.call-actions__blocked {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #ff5a5a;
+  background: rgba(255, 60, 60, 0.2);
+  color: #ffb0b0;
+  font-size: 0.85em;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .call-actions__hint {
   color: #eee;
   font-size: 0.85em;
@@ -10050,6 +10076,128 @@ button.oh-player__rank:hover .oh-player__rank-help {
 @media (prefers-reduced-motion: reduce) {
   .card-trigger-toast {
     animation: none;
+  }
+}
+
+/* カードを使った・カードの効果が働いた時の演出（CardTriggerToast.tsx）。
+   「カード使用」の文字とカードの絵を、使った人の席の方向から画面中央へ飛ばして見せる。
+   他の人が使った時も、誰が何を使ったか分かる。クリックは通す。 */
+.card-use-stage {
+  --from-x: 0px;
+  --from-y: 0px;
+  position: fixed;
+  left: 50%;
+  top: 47%;
+  z-index: 62;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  animation: card-use-stage 2.8s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.card-use-stage--seat0 {
+  --from-y: 260px;
+}
+.card-use-stage--seat1 {
+  --from-x: 340px;
+}
+.card-use-stage--seat2 {
+  --from-y: -260px;
+}
+.card-use-stage--seat3 {
+  --from-x: -340px;
+}
+/* 後ろをうっすら暗くして、カードに目が行くようにする。 */
+.card-use-stage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 760px;
+  height: 460px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.35) 45%, rgba(0, 0, 0, 0) 72%);
+  z-index: -1;
+}
+.card-use-stage__label {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  padding-left: 0.2em;
+  color: #ffe08a;
+  text-shadow: 0 0 14px rgba(255, 200, 80, 0.85), 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+.card-use-stage--auto .card-use-stage__label {
+  color: #a8e6ff;
+  text-shadow: 0 0 14px rgba(110, 200, 255, 0.85), 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+.card-use-stage__who {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f2eee2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.card-use-stage__card {
+  width: 168px;
+  border-radius: 12px;
+  filter: drop-shadow(0 0 18px rgba(255, 210, 100, 0.8)) drop-shadow(0 8px 14px rgba(0, 0, 0, 0.6));
+}
+.card-use-stage--auto .card-use-stage__card {
+  filter: drop-shadow(0 0 18px rgba(110, 200, 255, 0.8)) drop-shadow(0 8px 14px rgba(0, 0, 0, 0.6));
+}
+.card-use-stage__detail {
+  max-width: 420px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fffbe8;
+  padding: 7px 18px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(92, 70, 26, 0.94), rgba(58, 42, 14, 0.94));
+  box-shadow: 0 0 0 1.5px #e8c46a, 0 4px 12px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.card-use-stage--auto .card-use-stage__detail {
+  background: linear-gradient(180deg, rgba(24, 66, 96, 0.94), rgba(14, 40, 62, 0.94));
+  box-shadow: 0 0 0 1.5px #7fd0ff, 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+/* 使った人の席の方向から飛んできて、くるっと表を向け、少し止まってから消える。 */
+@keyframes card-use-stage {
+  0% {
+    opacity: 0;
+    transform: perspective(900px) translate(-50%, -50%) translate(var(--from-x), var(--from-y)) scale(0.45) rotateY(100deg);
+  }
+  20% {
+    opacity: 1;
+    transform: perspective(900px) translate(-50%, -50%) scale(1.08) rotateY(0deg);
+  }
+  28% {
+    transform: perspective(900px) translate(-50%, -50%) scale(1) rotateY(0deg);
+  }
+  82% {
+    opacity: 1;
+    transform: perspective(900px) translate(-50%, -50%) scale(1) rotateY(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: perspective(900px) translate(-50%, -50%) scale(1.06) rotateY(0deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-use-stage {
+    animation: card-use-fade 2.8s ease both;
+    transform: translate(-50%, -50%);
+  }
+  @keyframes card-use-fade {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    15%,
+    80% {
+      opacity: 1;
+    }
   }
 }
 

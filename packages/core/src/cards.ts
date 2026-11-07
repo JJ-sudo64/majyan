@@ -99,8 +99,15 @@ const AUTO_TRIGGER_DETAIL: Record<string, string> = {
 };
 
 /** 自動効果が働いたことを画面へ知らせる札を立てる（RoundState.cardTrigger）。 */
-export function withCardTrigger(round: RoundState, seat: PlayerIndex, title: string, detail: string): RoundState {
-  return { ...round, cardTrigger: { seq: (round.cardTrigger?.seq ?? 0) + 1, seat, title, detail } };
+export function withCardTrigger(
+  round: RoundState,
+  seat: PlayerIndex,
+  title: string,
+  detail: string,
+  /** カードの絵つきの演出に使う（無ければ小さな札だけ）。kind: use=自分で使った / auto=自動で働いた。 */
+  extra?: { cardId?: string; kind?: "use" | "auto" },
+): RoundState {
+  return { ...round, cardTrigger: { seq: (round.cardTrigger?.seq ?? 0) + 1, seat, title, detail, ...extra } };
 }
 
 /** そのカードの使用回数を1減らしたRoundStateを返す（持っていなければそのまま）。
@@ -113,7 +120,7 @@ export function spendCardUse(round: RoundState, seat: PlayerIndex, cardId: strin
     next = { ...round, cardUsesRemaining2: setAt(round.cardUsesRemaining2, seat, round.cardUsesRemaining2[seat] - 1) };
   }
   const detail = AUTO_TRIGGER_DETAIL[cardId];
-  return next !== round && detail ? withCardTrigger(next, seat, CARDS[cardId]!.name, detail) : next;
+  return next !== round && detail ? withCardTrigger(next, seat, CARDS[cardId]!.name, detail, { cardId, kind: "auto" }) : next;
 }
 
 /** 対局開始時の残り回数の初期値（カードごとのmaxUses、未指定なら1、カード無しは0）。 */

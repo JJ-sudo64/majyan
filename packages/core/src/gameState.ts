@@ -220,7 +220,7 @@ export interface RoundState {
   /** カードやキャラの自動効果が働いた直近の1件（画面に短い札を出すためだけの
       一発イベント）。seqは局内で1から増える。局が変わるとnullに戻る。
       座席はこの局面を見る人から見た番号（seatView.tsで回す）。 */
-  cardTrigger: { seq: number; seat: PlayerIndex; title: string; detail: string } | null;
+  cardTrigger: { seq: number; seat: PlayerIndex; title: string; detail: string; cardId?: string; kind?: "use" | "auto" } | null;
   /** 各座席が持っているカード（cards.tsのCARDSのキー）。null=カード無し。人間(0)は
       MatchSetupでの選択、CPU(1-3)は対局開始時にランダム抽選される。対局を通して固定
       （キャラクターと同様、半荘/東風戦をまたいでも変わらない。matchFormat.tsの

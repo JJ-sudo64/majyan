@@ -3,6 +3,7 @@ import { CHARACTERS, WIND_NAMES, seatWindOf, type PlayerIndex, type RoundState }
 import { TIME_STOP_FAKE_TURN_STEP_MS, useGameStore } from "../store/gameStore.js";
 import { SkillGauge } from "./SkillGauge.js";
 import { TileView } from "./TileView.js";
+import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
 
 const SEAT_LABELS: Record<number, string> = { 1: "下家CPU", 2: "対面CPU", 3: "上家CPU" };
 
@@ -79,7 +80,7 @@ export function CharacterPanel({
 
   // 必殺技「時間停止」発動中の演出。OpponentArea.tsx/Hand.tsxに元々
   // あったのと同じ判定をこちらへ移設した（ロジックの計算式自体は変更なし）。
-  const timeStopSource = ([0, 1, 2, 3] as const).find((seat) => round.players[seat]!.timeStopTurnsRemaining > 0);
+  const timeStopSource = useFreezeSource(round);
   const isTimeStopped = timeStopSource !== undefined;
   const frozen = isTimeStopped && timeStopSource !== player;
   const fakeTurnWindow = isTimeStopped && round.phase === "awaiting-draw" && round.currentTurn === timeStopSource;
@@ -88,7 +89,7 @@ export function CharacterPanel({
   return (
     <div
       className={`character-panel character-panel--${corner}${isCurrent ? " character-panel--active" : ""}${frozen ? " character-panel--frozen" : ""}${p.riichi ? " character-panel--riichi" : ""}${editable ? " character-panel--editable" : ""}${editActive ? " character-panel--edit-active" : ""}`}
-      style={style}
+      style={frozen ? { ...style, ...freezeDelayStyle(timeStopSource, player) } : style}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

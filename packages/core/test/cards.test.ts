@@ -3,7 +3,7 @@ import type { TileCode } from "../src/tiles.js";
 import type { Hand, Meld } from "../src/hand.js";
 import { calcShanten } from "../src/shanten.js";
 import type { RoundState } from "../src/gameState.js";
-import { applyAction, canDeclareRon, canDeclareTsumo, canUseCard, computeRoundScoreOutcome } from "../src/gameEngine.js";
+import { applyAction, canDeclareRon, canDeclareTsumo, canUseCard, computeRoundScoreOutcome, isRonBlockedByShield } from "../src/gameEngine.js";
 import {
   applyCardBustGuards,
   applyCardMatchEndBonuses,
@@ -272,6 +272,21 @@ describe("future-sight card (未来視)", () => {
     expect(next.cardUsesRemaining[0]).toBe(CARDS["future-sight"]!.maxUses! - 1);
   });
 
+  it("posts a card-trigger notice when used, so other players can tell it was used", () => {
+    const round = makeRound({
+      players: [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])],
+      cardIds: ["future-sight", null, null, null],
+      cardUsesRemaining: [CARDS["future-sight"]!.maxUses!, 1, 1, 1],
+      currentTurn: 0,
+      phase: "awaiting-discard",
+      wall: wall(),
+    });
+    const next = applyAction(round, { type: "useCard", player: 0 });
+    expect(next.cardTrigger?.seat).toBe(0);
+    expect(next.cardTrigger?.title).toBe(CARDS["future-sight"]!.name);
+    expect(next.cardTrigger?.seq).toBe((round.cardTrigger?.seq ?? 0) + 1);
+  });
+
   it("can be used up to 3 times total across the match, becoming unusable once exhausted", () => {
     expect(CARDS["future-sight"]!.maxUses).toBe(3);
     let round = makeRound({
@@ -492,6 +507,18 @@ describe("houjuu-guard card (一閃の盾)", () => {
 
     const withoutGuard = { ...round, cardUsesRemaining: [0, 1, 1, 1] as RoundState["cardUsesRemaining"] };
     expect(canDeclareRon(withoutGuard, 1, "9m", 0)).not.toBeNull(); // 盾が無ければ普通にロンできる状況であることの確認
+  });
+
+  it("reports isRonBlockedByShield only when the guard is what stops a real ron", () => {
+    const base = makeRound({
+      players: [emptyPlayer([]), emptyPlayer(tenpaiWaitingOn9m), emptyPlayer([]), emptyPlayer([])],
+      characterIds: ["", "hiiragi", "", ""],
+      cardIds: ["houjuu-guard", null, null, null],
+    });
+    expect(isRonBlockedByShield(base, 1, "9m", 0)).toBe(true); // 盾のせいでロンできない
+    expect(isRonBlockedByShield(base, 1, "6z", 0)).toBe(false); // 当たり牌ではない
+    const withoutGuard = { ...base, cardUsesRemaining: [0, 1, 1, 1] as RoundState["cardUsesRemaining"] };
+    expect(isRonBlockedByShield(withoutGuard, 1, "9m", 0)).toBe(false); // 盾が無ければ普通にロンできる
   });
 
   it("stays armed through the call window and is only consumed once it resolves with no ron", () => {

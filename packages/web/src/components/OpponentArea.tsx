@@ -9,6 +9,7 @@ import { HAND_GROUP_SLOT_COUNT, MELD_SLOT_COUNT, toimenHandSlotIndex, toimenMeld
 import { useSettingsStore } from "../store/settingsStore.js";
 import type { MeldSlotConfig } from "../store/tile3dDebugStore.js";
 import { viewRect } from "../orientation.js";
+import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
 
 /** 副露どうしの「自然な(手で動かす前の)」間隔(px)。実際の副露の実寸
     (種類によって3〜4枚で幅が変わる)には依存しない固定値——固定値にする
@@ -664,7 +665,7 @@ export function OpponentArea({
   // ネームプレート側の「空振りの光り演出」（fakeTurnStepIndex）は
   // CharacterPanel.tsxへ移設したため、ここでは手牌グレーアウト用の
   // frozen判定だけ残す。
-  const timeStopSource = ([0, 1, 2, 3] as const).find((seat) => round.players[seat]!.timeStopTurnsRemaining > 0);
+  const timeStopSource = useFreezeSource(round);
   const isTimeStopped = timeStopSource !== undefined;
   const frozen = isTimeStopped && timeStopSource !== player;
 
@@ -999,6 +1000,7 @@ export function OpponentArea({
   return (
     <div
       className={`opponent-area opponent-area--${player}${isCurrent ? " opponent-area--active" : ""}${frozen ? " opponent-area--frozen" : ""}${isEditingThisSeat || isEditingHandThisSeat || isEditingToimenHand || isEditingToimenMeld ? " opponent-area--editing-melds" : ""}`}
+      style={frozen ? freezeDelayStyle(timeStopSource, player) : undefined}
     >
       {callAnnounce && <div className="call-announce">{callAnnounce}</div>}
       <div className="opponent-hand-row">
@@ -1067,7 +1069,7 @@ export function OpponentArea({
           createPortal(
             <div
               className={`tile3d-hand-portal-inner${isEditingHandThisSeat ? " tile3d-hand-portal-inner--editable" : ""}${frozen ? " tile3d-hand-portal-inner--frozen" : ""}`}
-              style={{ transform: tile3dGroupTransform }}
+              style={frozen ? { transform: tile3dGroupTransform, ...freezeDelayStyle(timeStopSource, player) } : { transform: tile3dGroupTransform }}
               onPointerDown={isEditingHandThisSeat ? handleHandGroupPointerDown : undefined}
               onPointerMove={isEditingHandThisSeat ? handleHandGroupPointerMove : undefined}
               onPointerUp={isEditingHandThisSeat ? handleHandGroupPointerUp : undefined}

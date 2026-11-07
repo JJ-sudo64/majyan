@@ -60,6 +60,9 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
           ロン {analysis && (analysis.isYakuman ? "(役満)" : `(${analysis.han}翻${analysis.fu}符)`)}
         </button>
       )}
+      {options!.ronBlockedByShield && (
+        <span className="call-actions__blocked">盾で防がれた（この牌ではロンできません）</span>
+      )}
       {!passCalls && options!.canPon && (
         <button
           className="btn btn--call btn--call-tiles"

@@ -96,6 +96,7 @@ export type VoiceEvent =
   | "tsumo"
   | "ron"
   | "skillActivate"
+  | "skillEnd"
   | "winQuote"
   | "greeting"
   | "tenpai"

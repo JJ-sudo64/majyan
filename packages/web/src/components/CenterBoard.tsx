@@ -5,6 +5,7 @@ import { SeatBadge } from "./SeatBadge.js";
 import { ScoreStandings } from "./ScoreStandings.js";
 import { useGameStore } from "../store/gameStore.js";
 import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
+import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
 
 /** カード「点棒吸収」等の即時点数増減演出を表示しておく時間。 */
 const SCORE_ADJUSTMENT_DISPLAY_MS = 1800;
@@ -33,8 +34,10 @@ export function CenterBoard({
   // 必殺技「時間停止」発動中は発動者の手牌・河・副露以外の画面全体をグレー
   // アウトする演出の一部。中央の点数表示・局情報は誰の持ち物でもないため、
   // 発動中は誰が発動者かに関わらず一律でグレーアウトする。
-  const frozen = round.players.some((p) => p.timeStopTurnsRemaining > 0);
+  const timeStopSource = useFreezeSource(round);
+  const frozen = timeStopSource !== undefined;
   const frozenClass = frozen ? " table__frozen" : "";
+  const frozenStyle = frozen ? freezeDelayStyle(timeStopSource, "center") : undefined;
 
   // カード「点棒吸収」等、RoundState側から即座の点数増減が起きた瞬間だけ
   // 「吸収した」演出を出す。gameStore.tsのlastScoreAdjustment.keyが増える
@@ -68,7 +71,7 @@ export function CenterBoard({
   } as CSSProperties;
 
   return (
-    <div className={`center-board${frozenClass}`} style={centerBoardStyle} onClick={() => setStandingsOpen(true)}>
+    <div className={`center-board${frozenClass}`} style={frozen ? { ...centerBoardStyle, ...frozenStyle } : centerBoardStyle} onClick={() => setStandingsOpen(true)}>
       {standingsOpen && (
         <ScoreStandings round={round} scores={scores} startingDealer={startingDealer} onClose={() => setStandingsOpen(false)} />
       )}
@@ -88,19 +91,19 @@ export function CenterBoard({
           含まれている。4人分の点数はその4つの枠の位置（実測した%座標）に
           重ねて表示する。以前のように河との間に別枠として離して置く
           のではなく、この1枚の画像の中に収める。 */}
-      <div className={`center-board__seat center-board__seat--top${frozenClass}`}>
+      <div className={`center-board__seat center-board__seat--top${frozenClass}`} style={frozenStyle}>
         <SeatBadge round={round} player={2} score={scores[2]} />
         <ScoreDeltaPop delta={deltaFor(2)} />
       </div>
-      <div className={`center-board__seat center-board__seat--bottom${frozenClass}`}>
+      <div className={`center-board__seat center-board__seat--bottom${frozenClass}`} style={frozenStyle}>
         <SeatBadge round={round} player={0} score={scores[0]} />
         <ScoreDeltaPop delta={deltaFor(0)} />
       </div>
-      <div className={`center-board__seat center-board__seat--left${frozenClass}`}>
+      <div className={`center-board__seat center-board__seat--left${frozenClass}`} style={frozenStyle}>
         <SeatBadge round={round} player={3} score={scores[3]} />
         <ScoreDeltaPop delta={deltaFor(3)} />
       </div>
-      <div className={`center-board__seat center-board__seat--right${frozenClass}`}>
+      <div className={`center-board__seat center-board__seat--right${frozenClass}`} style={frozenStyle}>
         <SeatBadge round={round} player={1} score={scores[1]} />
         <ScoreDeltaPop delta={deltaFor(1)} />
       </div>

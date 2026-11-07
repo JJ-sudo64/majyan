@@ -54,6 +54,28 @@ export function playVoiceClip(url: string, gain = 1) {
   void audio.play().catch(() => {});
 }
 
+/** 収録ボイスを再生し、鳴り終わったら（再生できなかった時・鳴り終わらない時も一定時間後に）onDoneを1回呼ぶ。 */
+export function playVoiceClipThen(url: string, onDone: () => void, maxMs = 5000) {
+  const audio = getVoiceClip(url);
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    audio?.removeEventListener("ended", finish);
+    onDone();
+  };
+  const timer = setTimeout(finish, maxMs);
+  if (!audio) {
+    finish();
+    return;
+  }
+  audio.addEventListener("ended", finish);
+  audio.currentTime = 0;
+  audio.volume = getSeVolume();
+  void audio.play().catch(finish);
+}
+
 const DISCARD_SFX = "/sfx/discard.mp3";
 const DRAW_SFX = "/sfx/draw.mp3";
 const DEAL_SFX = "/sfx/deal.mp3";

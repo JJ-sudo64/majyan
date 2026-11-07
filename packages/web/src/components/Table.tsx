@@ -34,6 +34,7 @@ import { CardTriggerToast } from "./CardTriggerToast.js";
 import { DeclarationCutinOverlay } from "./DeclarationCutinOverlay.js";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 import { viewRect, portalRoot } from "../orientation.js";
+import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
 
 /**
  * 画面全体のレイヤー構造（View再設計）:
@@ -346,6 +347,8 @@ export function Table() {
     };
   }, []);
 
+  // フックはreturnより前に呼ぶ（試合の有無でフックの数が変わらないように）。
+  const timeStopSource = useFreezeSource(match?.round);
   if (!match) return null;
   const round = match.round;
 
@@ -360,7 +363,7 @@ export function Table() {
   // 必殺技「時間停止」発動中は、発動者本人の河以外をグレーアウトする
   // （OpponentArea.tsx/Hand.tsxが自分自身の手牌・副露側は自前で判定する
   // ため、ここでは河ぶんだけ座席ごとに渡す）。
-  const timeStopSource = ([0, 1, 2, 3] as PlayerIndex[]).find((seat) => round.players[seat].timeStopTurnsRemaining > 0);
+  const riverFreezeDelay = (seat: PlayerIndex) => freezeDelayStyle(timeStopSource, seat);
   const riverFrozen = (seat: PlayerIndex) => timeStopSource !== undefined && seat !== timeStopSource;
 
   // ミオの必殺技「取り返し」選択中: 自分の河から取り返す1枚を選ぶ段階
@@ -465,7 +468,7 @@ export function Table() {
                     onPointerUp={riverEditOpen ? handleRiverPointerUp : undefined}
                     onPointerCancel={riverEditOpen ? handleRiverPointerUp : undefined}
                   >
-                    <DiscardPile discards={round.players[2].discards} direction="top" callTargetTileId={callTargetTileId} frozen={riverFrozen(2)} />
+                    <DiscardPile discards={round.players[2].discards} direction="top" callTargetTileId={callTargetTileId} frozen={riverFrozen(2)} freezeDelay={riverFreezeDelay(2)} />
                   </div>
                   <div
                     className={`river river--left${riverEditOpen ? ` river--editable${riverEditActiveSeat === 3 ? " river--editable-active" : ""}` : ""}`}
@@ -475,7 +478,7 @@ export function Table() {
                     onPointerUp={riverEditOpen ? handleRiverPointerUp : undefined}
                     onPointerCancel={riverEditOpen ? handleRiverPointerUp : undefined}
                   >
-                    <DiscardPile discards={round.players[3].discards} direction="left" callTargetTileId={callTargetTileId} frozen={riverFrozen(3)} />
+                    <DiscardPile discards={round.players[3].discards} direction="left" callTargetTileId={callTargetTileId} frozen={riverFrozen(3)} freezeDelay={riverFreezeDelay(3)} />
                   </div>
                   <div
                     className={`river river--right${riverEditOpen ? ` river--editable${riverEditActiveSeat === 1 ? " river--editable-active" : ""}` : ""}`}
@@ -485,7 +488,7 @@ export function Table() {
                     onPointerUp={riverEditOpen ? handleRiverPointerUp : undefined}
                     onPointerCancel={riverEditOpen ? handleRiverPointerUp : undefined}
                   >
-                    <DiscardPile discards={round.players[1].discards} direction="right" callTargetTileId={callTargetTileId} frozen={riverFrozen(1)} />
+                    <DiscardPile discards={round.players[1].discards} direction="right" callTargetTileId={callTargetTileId} frozen={riverFrozen(1)} freezeDelay={riverFreezeDelay(1)} />
                   </div>
                   <div
                     className={`river river--human${riverEditOpen ? ` river--editable${riverEditActiveSeat === 0 ? " river--editable-active" : ""}` : ""}`}
@@ -500,6 +503,7 @@ export function Table() {
                       direction="human"
                       callTargetTileId={callTargetTileId}
                       frozen={riverFrozen(0)}
+                      freezeDelay={riverFreezeDelay(0)}
                       onTileClick={riverEditOpen ? undefined : humanRiverClickable ? selectRetrieveReclaimTile : undefined}
                       selectedTileId={retrieveReclaimTileId ?? undefined}
                     />
@@ -528,7 +532,7 @@ export function Table() {
                         className={`riichi-stick riichi-stick--${cls}${riverFrozen(player) ? " table__frozen" : ""}${isMock ? " riichi-stick--mock" : ""}${
                           riichiStickEditOpen ? ` riichi-stick--editable${riichiStickEditActiveSeat === player ? " riichi-stick--editable-active" : ""}` : ""
                         }`}
-                        style={riichiStickOffsetStyle(player)}
+                        style={riverFrozen(player) ? { ...riichiStickOffsetStyle(player), ...riverFreezeDelay(player) } : riichiStickOffsetStyle(player)}
                         onPointerDown={riichiStickEditOpen ? handleRiichiStickPointerDown(player) : undefined}
                         onPointerMove={riichiStickEditOpen ? handleRiichiStickPointerMove : undefined}
                         onPointerUp={riichiStickEditOpen ? handleRiichiStickPointerUp : undefined}

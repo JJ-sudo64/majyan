@@ -16,6 +16,7 @@ import { useSettingsStore } from "../store/settingsStore.js";
 import { useRetrieveDiscardStore } from "../store/retrieveDiscardStore.js";
 import { TileView } from "./TileView.js";
 import { CallPrompt } from "./CallPrompt.js";
+import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
 
 /** 自動ツモ切りが実際に切るまでの待ち時間。0だと切られたことに気付く前に
     河へ飛んでしまい、リーチ・カン等の選択肢に気付いて手を止める余地が
@@ -206,7 +207,7 @@ export function Hand({ round }: { round: RoundState }) {
   // 発動者以外は手牌ごと丸ごとグレーアウトする。ネームプレート側の
   // 「空振りの光り演出」はCharacterPanel.tsxへ移設したため、ここでは
   // 手牌グレーアウト用のfrozen判定だけ残す。
-  const timeStopSource = ([0, 1, 2, 3] as const).find((seat) => round.players[seat]!.timeStopTurnsRemaining > 0);
+  const timeStopSource = useFreezeSource(round);
   const isTimeStopped = timeStopSource !== undefined;
   const frozen = isTimeStopped && timeStopSource !== HUMAN;
 
@@ -414,7 +415,7 @@ export function Hand({ round }: { round: RoundState }) {
   const showTopStatus = waitingTiles.length > 0;
 
   return (
-    <div className={`hand-area${frozen ? " hand-area--frozen" : ""}`}>
+    <div className={`hand-area${frozen ? " hand-area--frozen" : ""}`} style={frozen ? freezeDelayStyle(timeStopSource, HUMAN) : undefined}>
       {showTopStatus && (
         <div className="hand-top-status">
           {waitingTiles.length > 0 && (
