@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { onlineLink } from "../online/onlineLink.js";
+import { holdFreezeSource } from "../freezeWave.js";
 import {
+  CHARACTERS,
   advanceToNextRound,
   applyMatchAction,
   autoActionForHuman,
@@ -610,7 +612,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       humanOptions,
       humanCallOptions: humanOptions.call,
       pendingRoundEnd: view.pendingRoundEnd,
-      lastRoundOutcome: view.lastRoundOutcome,
+      // 届くたびに新しいオブジェクトになるため、中身が同じなら前回のものを使い回す。
+      // そうしないと、他の人が「次へ」を押して状態が届くたびに、結果画面が「結果が変わった」と
+      // 判断して役の読み上げを最初からやり直し、その間ボタンも押せなくなる。
+      lastRoundOutcome: shareUnchanged(state.online ? state.lastRoundOutcome : null, view.lastRoundOutcome),
       // keyが変わった時だけ差し替える（同じ増減の演出を状態が届くたびに出さないため）。
       lastScoreAdjustment: view.lastScoreAdjustment && view.lastScoreAdjustment.key !== prev?.key ? view.lastScoreAdjustment : prev,
       onlineSeats: view.seats,
@@ -797,3 +802,22 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     scheduleTick(get, set);
   },
 }));
+
+/**
+ * 時間停止（ゼノ）が解けた瞬間に、灰色の「居残り」を入れる。
+ * 描画が済んでから入れる（useGameSoundsの効果）と、効果が終わった最初の描画で灰色のクラスが
+ * いったん外れ、灰色が一瞬で消えてから付け直されて「明るい→また灰色→ゆっくり明るい」に見えてしまう。
+ * 状態が入る時点（描画より前）に入れておけば、その描画から灰色が途切れない。
+ * 終了ボイスを鳴らして灰色を戻す処理は、これまで通りuseGameSounds側で行う。
+ */
+useGameStore.subscribe((state, prev) => {
+  const round = state.match?.round;
+  const before = prev.match?.round;
+  if (!round || !before || round === before) return;
+  if (round.roundWind !== before.roundWind || round.roundNumber !== before.roundNumber || round.honba !== before.honba) return;
+  for (const seat of [0, 1, 2, 3] as const) {
+    const wasStopped = (before.players[seat]?.timeStopTurnsRemaining ?? 0) > 0;
+    const isStopped = (round.players[seat]?.timeStopTurnsRemaining ?? 0) > 0;
+    if (wasStopped && !isStopped && CHARACTERS[round.characterIds[seat]!]?.voiceClips?.skillEnd) holdFreezeSource(seat);
+  }
+});
