@@ -109,10 +109,17 @@ export function CharacterPanel({
         {/* キャラクター名は出さない（アイコンを押すと名前と能力が見られる）。キャラ未設定の席だけ、席の呼び名を出す。 */}
         {!character && <div className="character-panel__name character-panel__name--split">{SEAT_LABELS[player]}</div>}
         {onlineSeat && (
-          <div className="character-panel__player-name">
-            {onlineSeat.name}
-            {onlineSeat.rankLabel && <span className="character-panel__rank">{onlineSeat.rankLabel}</span>}
-            {onlineSeat.disconnected ? "（切断中）" : ""}
+          <div className="character-panel__player">
+            {/* 名前は最長12文字。切らずに全部見せる（幅に入らなければ2行に折り返す）。
+                段位・切断中は、名前と同じ行に入ればその行、入らなければ次の行に出す
+                （長い名前に押し出されて見えなくならない）。 */}
+            <span className="character-panel__player-name">{onlineSeat.name}</span>
+            {(onlineSeat.rankLabel || onlineSeat.disconnected) && (
+              <span className="character-panel__player-sub">
+                {onlineSeat.rankLabel && <span className="character-panel__rank">{onlineSeat.rankLabel}</span>}
+                {onlineSeat.disconnected ? "（切断中）" : ""}
+              </span>
+            )}
           </div>
         )}
         <div className="character-panel__meta">
