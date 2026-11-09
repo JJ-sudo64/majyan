@@ -11,6 +11,7 @@ import {
   SUSPENDED_FOREVER,
   jstDate,
   type AdminStats,
+  type LiveStats,
   type AdminUser,
   type GachaItem,
 } from "@majyan/core";
@@ -43,7 +44,7 @@ export interface AdminApiOptions {
   moderation?: ModerationService;
   /** サーバーのADMIN_TOKEN。空なら管理APIは無効（常に404）。 */
   token: string | undefined;
-  liveStats?: () => { liveRooms: number; liveMatches: number };
+  liveStats?: () => LiveStats;
   clientIp: (req: IncomingMessage) => string;
   readJson: (req: IncomingMessage) => Promise<unknown>;
   sendJson: (res: ServerResponse, status: number, body: unknown) => void;
@@ -92,7 +93,7 @@ export function createAdminHandler(options: AdminApiOptions) {
       ),
       paidJadeOutstanding: count("SELECT SUM(paid_jade) AS n FROM wallets"),
       openReports: options.moderation?.openCount() ?? 0,
-      ...(options.liveStats?.() ?? { liveRooms: 0, liveMatches: 0 }),
+      ...(options.liveStats?.() ?? { liveRooms: 0, liveMatches: 0, livePlayers: 0, liveSpectators: 0, liveConnections: 0, peakPlayersToday: 0, peakConnectionsToday: 0 }),
     };
   }
 

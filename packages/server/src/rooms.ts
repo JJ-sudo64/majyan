@@ -186,11 +186,17 @@ export class RoomManager {
     return this.roomOf(client) !== undefined;
   }
 
-  /** 管理画面用: 今ある部屋の数と、対局中の卓の数。 */
-  liveStats(): { liveRooms: number; liveMatches: number } {
+  /** 管理画面用: 今ある部屋の数、対局中の卓の数、いま部屋につながっている人数（待合室・対局中・観戦）。 */
+  liveStats(): { liveRooms: number; liveMatches: number; livePlayers: number; liveSpectators: number } {
     let liveMatches = 0;
-    for (const room of this.rooms.values()) if (room.session && !room.session.finished) liveMatches++;
-    return { liveRooms: this.rooms.size, liveMatches };
+    let livePlayers = 0;
+    let liveSpectators = 0;
+    for (const room of this.rooms.values()) {
+      if (room.session && !room.session.finished) liveMatches++;
+      for (const m of room.members) if (m.client) livePlayers++;
+      liveSpectators += room.spectators.length;
+    }
+    return { liveRooms: this.rooms.size, liveMatches, livePlayers, liveSpectators };
   }
 
   /** そのアカウントが座っている、まだ終わっていない段位戦の卓の合言葉。 */

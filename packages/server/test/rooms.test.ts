@@ -159,6 +159,22 @@ describe("lobby", () => {
   });
 });
 
+describe("liveStats (管理画面の同時人数)", () => {
+  it("部屋につながっている人数を数え、切断すると減る", () => {
+    const rooms = makeRooms({ rng: makeRng(1), timing: FAST });
+    expect(rooms.liveStats()).toMatchObject({ liveRooms: 0, livePlayers: 0, liveSpectators: 0 });
+    const a = new TestClient("a");
+    const b = new TestClient("b");
+    const c = new TestClient("c");
+    join(rooms, a, "あゆむ", "abc");
+    join(rooms, b, "さくら", "abc");
+    join(rooms, c, "はると", "xyz");
+    expect(rooms.liveStats()).toMatchObject({ liveRooms: 2, livePlayers: 3 });
+    rooms.disconnect(b);
+    expect(rooms.liveStats().livePlayers).toBe(2);
+  });
+});
+
 describe("match over the network", () => {
   function startTwoPlayers(seed: number) {
     const rooms = makeRooms({ rng: makeRng(seed), timing: FAST });

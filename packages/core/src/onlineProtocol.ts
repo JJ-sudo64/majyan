@@ -491,7 +491,20 @@ export interface AdminStats {
   /** 今つながっている卓・対局中の卓。 */
   liveRooms: number;
   liveMatches: number;
+  /** いま部屋につながっている人数（待合室・対局中）と観戦者、サーバーへの接続の総数。 */
+  livePlayers: number;
+  liveSpectators: number;
+  liveConnections: number;
+  /** 今日（日本時間）の最大値。サーバーを再起動すると数え直す。 */
+  peakPlayersToday: number;
+  peakConnectionsToday: number;
 }
+
+/** 管理画面の「いま何人いるか」の部分（AdminStatsのうち、サーバーのメモリから取る項目）。 */
+export type LiveStats = Pick<
+  AdminStats,
+  "liveRooms" | "liveMatches" | "livePlayers" | "liveSpectators" | "liveConnections" | "peakPlayersToday" | "peakConnectionsToday"
+>;
 
 export interface AdminAnnouncement extends Announcement {
   endsAt: number | null;

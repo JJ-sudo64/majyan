@@ -31,7 +31,8 @@ import { randomInt, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { dirname, resolve } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
-import { ONLINE_DEFAULT_PORT, ONLINE_WS_PATH, sellerInfoComplete, type ServerMessage } from "@majyan/core";
+import { jstDate, ONLINE_DEFAULT_PORT, ONLINE_WS_PATH, sellerInfoComplete, type LiveStats, type ServerMessage } from "@majyan/core";
+import { LivePeak } from "./livePeak.js";
 import { RoomManager, type Client } from "./rooms.js";
 import { AccountService } from "./accounts.js";
 import { openDatabase } from "./db.js";
@@ -161,13 +162,20 @@ const handleApi = createApiHandler({
     accounts,
     moderation,
     token: process.env.ADMIN_TOKEN || undefined,
-    liveStats: () => rooms.liveStats(),
+    liveStats: (): LiveStats => {
+      const live = rooms.liveStats();
+      const liveConnections = wss.clients.size;
+      livePeak.record(Date.now(), live.livePlayers, liveConnections);
+      return { ...live, liveConnections, ...livePeak.peaks(Date.now()) };
+    },
   },
   clientIp,
   devTools,
   // 開発中は「新しいアカウントで始める」で何度も作り直すため、制限をゆるめる。
   ...(devTools ? { guestsPerHourPerIp: 1000 } : {}),
 });
+// 今日の最大の同時人数を覚えるため、管理画面を見ていない間も定期的に人数を記録する。
+const livePeak = new LivePeak((ms) => jstDate(ms));
 const serveStatic = createStaticHandler(staticDir);
 const httpServer = createServer(async (req, res) => {
   if (req.url === "/healthz") {
@@ -244,6 +252,11 @@ const heartbeat = setInterval(() => {
   }
 }, HEARTBEAT_MS);
 wss.on("close", () => clearInterval(heartbeat));
+const peakSampler = setInterval(() => {
+  const live = rooms.liveStats();
+  livePeak.record(Date.now(), live.livePlayers, wss.clients.size);
+}, 15_000);
+peakSampler.unref();
 
 httpServer.listen(port, () => {
   console.log(`[majyan-server] http://localhost:${port} で待ち受け中（WebSocket: ${ONLINE_WS_PATH}）`);

@@ -176,6 +176,11 @@ function StatsTab({ token, run }: { token: string; run: Run }) {
     ["今月の売上（円）", stats.salesYenMonth],
     ["残っている有償の雀玉", stats.paidJadeOutstanding],
     ["対応していない通報", stats.openReports],
+    ["いま遊んでいる人（部屋につながっている人）", stats.livePlayers],
+    ["いま観戦している人", stats.liveSpectators],
+    ["いまの接続の総数（タイトル画面なども含む）", stats.liveConnections],
+    ["今日の最大の同時人数（遊んでいる人）", stats.peakPlayersToday],
+    ["今日の最大の接続数", stats.peakConnectionsToday],
     ["今ある部屋", stats.liveRooms],
     ["対局中の卓", stats.liveMatches],
   ];
@@ -194,7 +199,7 @@ function StatsTab({ token, run }: { token: string; run: Run }) {
       <button type="button" onClick={load}>
         読み直す
       </button>
-      <p className="admin-note">「今日」は日本時間の0時から。</p>
+      <p className="admin-note">「今日」は日本時間の0時から。「今日の最大」はサーバーを再起動すると数え直します。同時人数が増えてきたら、サーバーを上のプランに切り替える目安にしてください。</p>
     </>
   );
 }
