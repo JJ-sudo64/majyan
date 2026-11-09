@@ -3,7 +3,11 @@ import { create } from "zustand";
 const STORAGE_KEY = "majyan.bgmVolume";
 // 以前は0.35固定だったが「音量がデカすぎる」との指摘を受けて控えめな値に
 // 下げつつ、ユーザーが自分で調整できるようにする（下のuseSettingsStore参照）。
-const DEFAULT_BGM_VOLUME = 0.16;
+// 0.16では小さすぎるとの指摘（2026-11-10）で0.30に上げた。BGMのファイルは-20 LUFSなので
+// 0.30で約-30 LUFS、ボイス・効果音（-18 LUFS×0.86）の約-19 LUFSより約11dB下になる
+// （0.16だと約17dB下で、BGMがほとんど聞こえなかった）。
+// 保存済みの値は上書きしない（既定値の改訂番号は変えない）ので、新しく始める人にだけ効く。
+const DEFAULT_BGM_VOLUME = 0.3;
 const SE_STORAGE_KEY = "majyan.seVolume";
 // 打牌/ツモ/リーチ棒等の効果音、キャラのボイス・掛け声のTTSが対象。
 // BGMより前面で聞こえてほしいのでBGMのデフォルトより高めにしておく。
