@@ -16,6 +16,9 @@ beforeAll(async () => {
   writeFileSync(join(dir, "index.html"), "<html>top</html>");
   writeFileSync(join(dir, "assets", "app-123.js"), "console.log(1)");
   writeFileSync(join(dir, "secret-sibling.txt"), "x");
+  mkdirSync(join(dir, "voices"));
+  writeFileSync(join(dir, "voices", "a.mp3"), "audio");
+  writeFileSync(join(dir, "sw.js"), "self.x=1");
   const handler = createStaticHandler(dir)!;
   server = createServer(handler);
   await new Promise<void>((r) => server.listen(0, r));
@@ -40,6 +43,12 @@ describe("createStaticHandler", () => {
     const js = await fetch(`${base}/assets/app-123.js`);
     expect(await js.text()).toBe("console.log(1)");
     expect(js.headers.get("cache-control")).toContain("immutable");
+  });
+
+  it("lets media (images/audio) be cached for a day, but never scripts outside assets or HTML", async () => {
+    const mp3 = await fetch(`${base}/voices/a.mp3`);
+    expect(mp3.headers.get("cache-control")).toBe("public, max-age=86400");
+    expect((await fetch(`${base}/sw.js`)).headers.get("cache-control")).toBe("no-cache");
   });
 
   it("falls back to index.html for extensionless paths and 404s missing files", async () => {

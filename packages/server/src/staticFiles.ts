@@ -32,6 +32,12 @@ const CONTENT_TYPES: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 
+/** 画像・音声・動画・フォント。素材は差し替えることがあるのでハッシュ付きの名前ではないが、
+    HTMLや設定ファイルと違い、少しの間は古いものが出ても困らない。CDN（Cloudflare等）にも覚えてもらい、
+    配信元（このサーバー）の通信量を減らすため、1日は保存してよいと伝える。 */
+const MEDIA_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".ico", ".mp3", ".ogg", ".wav", ".mp4", ".webm", ".woff", ".woff2", ".ttf"]);
+const MEDIA_CACHE_CONTROL = "public, max-age=86400";
+
 export function createStaticHandler(rootDir: string): ((req: IncomingMessage, res: ServerResponse) => void) | null {
   const root = resolve(rootDir);
   if (!existsSync(join(root, "index.html"))) return null;
@@ -41,10 +47,11 @@ export function createStaticHandler(rootDir: string): ((req: IncomingMessage, re
     // Viteがファイル名にハッシュを付けるassets/配下は長くキャッシュさせ、
     // index.html等は毎回確認させる（更新がすぐ届くように）。
     const immutable = filePath.startsWith(join(root, "assets") + sep);
+    const media = !immutable && MEDIA_EXTENSIONS.has(extname(filePath).toLowerCase());
     res.writeHead(status, {
       "Content-Type": type,
       "Content-Length": statSync(filePath).size,
-      "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "no-cache",
+      "Cache-Control": immutable ? "public, max-age=31536000, immutable" : media ? MEDIA_CACHE_CONTROL : "no-cache",
       "X-Content-Type-Options": "nosniff",
     });
     createReadStream(filePath).pipe(res);
