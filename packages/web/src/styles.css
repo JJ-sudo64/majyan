@@ -6379,7 +6379,8 @@ button.dev-account-tools__toggle.dev-account-tools {
 .online-stamps {
   position: absolute; /* 卓のキャンバス（.stage__canvas）の右下 */
   right: 16px;
-  bottom: 92px;
+  /* 下の秒読み（自分の手番だと高さ約84px＋下の余白16px）に被らないよう、その上に10px空ける。 */
+  bottom: 110px;
   z-index: 900;
   display: flex;
   flex-direction: column;
