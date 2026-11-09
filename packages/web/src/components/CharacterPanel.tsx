@@ -7,22 +7,6 @@ import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
 
 const SEAT_LABELS: Record<number, string> = { 1: "下家CPU", 2: "対面CPU", 3: "上家CPU" };
 
-// キャラ名は「異名・名前」形式（例:「開花の巫女・ヒイラギ」）。自分/対面/
-// 上家/下家とも「・」の位置できっちり2行に分け、異名・名前とも1段ずつ
-// 見せる（指摘により、自分だけ1行に詰めて表示していた例外を廃止し
-// 全員統一）。行が増えてパネルが縦に伸びるのは許容する。
-function splitCharacterName(name: string | undefined): [string, string] {
-  if (!name) return ["", ""];
-  const i = name.indexOf("・");
-  return i === -1 ? [name, ""] : [name.slice(0, i), name.slice(i + 1)];
-}
-
-/** 異名（例:「卓上のてんこしゃんこ」）が長すぎるとプレート幅で折り返され、
-    パネルが縦に伸びて.hand-top-status（自分の待ち表示）と被る一因になって
-    いた。折り返させる代わりに、この長さを超える段だけ文字を少し縮めて
-    1行に収める。 */
-const LONG_NAME_LINE_THRESHOLD = 8;
-
 export type PanelCorner = "top" | "right" | "left" | "bottom";
 
 /**
@@ -106,38 +90,24 @@ export function CharacterPanel({
             : undefined
         }
       >
-        <img className="character-panel__avatar" src={character?.avatar ?? `/avatars/seat${player}.svg`} alt="" />
-      </div>
-      <div className="character-panel__body">
         {onShowSkillInfo && character ? (
+          // アイコンを押すと、キャラクター名と能力（必殺技・パッシブ）を見られる。
           <button
             type="button"
-            className="character-panel__name character-panel__name--split character-panel__name--clickable"
+            className="character-panel__portrait-btn"
             onClick={onShowSkillInfo}
+            aria-label={`${character.name}の能力を見る`}
+            title="タップでキャラクターの能力を見る"
           >
-            {splitCharacterName(character.name).map((line, i) => (
-              <span
-                key={i}
-                className={`character-panel__name-line${line.length > LONG_NAME_LINE_THRESHOLD ? " character-panel__name-line--long" : ""}`}
-                style={{ "--name-chars": line.length } as CSSProperties}
-              >
-                {line}
-              </span>
-            ))}
+            <img className="character-panel__avatar" src={character.avatar ?? `/avatars/seat${player}.svg`} alt="" />
           </button>
         ) : (
-          <div className="character-panel__name character-panel__name--split">
-            {splitCharacterName(character?.name ?? SEAT_LABELS[player]).map((line, i) => (
-              <span
-                key={i}
-                className={`character-panel__name-line${line.length > LONG_NAME_LINE_THRESHOLD ? " character-panel__name-line--long" : ""}`}
-                style={{ "--name-chars": line.length } as CSSProperties}
-              >
-                {line}
-              </span>
-            ))}
-          </div>
+          <img className="character-panel__avatar" src={character?.avatar ?? `/avatars/seat${player}.svg`} alt="" />
         )}
+      </div>
+      <div className="character-panel__body">
+        {/* キャラクター名は出さない（アイコンを押すと名前と能力が見られる）。キャラ未設定の席だけ、席の呼び名を出す。 */}
+        {!character && <div className="character-panel__name character-panel__name--split">{SEAT_LABELS[player]}</div>}
         {onlineSeat && (
           <div className="character-panel__player-name">
             {onlineSeat.name}
