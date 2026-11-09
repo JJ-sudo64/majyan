@@ -1975,7 +1975,7 @@ button {
   }
 }
 /* 時間停止が終わる時、灰色が発動者の席に向かって縮んでいく演出。
-   終了ボイスが鳴り終わるとhtmlにdata-freeze-thawが付き、灰色のクラスを付けたまま
+   終了ボイスが鳴り始めるとhtmlにdata-freeze-thawが付き、灰色のクラスを付けたまま
    フィルターだけを外す（遅れ--thaw-delayは発動者から遠い席ほど短い。freezeWave.ts参照）。
    遷移が終わってからクラスそのものを外す。 */
 :root[data-freeze-thaw] .table__frozen,
@@ -1984,7 +1984,7 @@ button {
 :root[data-freeze-thaw] .tile3d-hand-portal-inner--frozen,
 :root[data-freeze-thaw] .character-panel--frozen {
   filter: none;
-  transition: filter 0.6s ease var(--thaw-delay, 0s);
+  transition: filter 0.5s ease var(--thaw-delay, 0s);
 }
 .character-panel--frozen {
   filter: grayscale(1) brightness(0.55);

@@ -31,13 +31,13 @@ export function freezeDelayStyle(source: number | undefined, seat: number | "cen
  */
 export function thawDelaySeconds(source: number | undefined, seat: number | "center"): number {
   if (source === undefined) return 0;
-  if (seat === "center") return 0.8;
+  if (seat === "center") return 0.5;
   const rel = (seat - source + 4) % 4;
-  return rel === 2 || rel === 0 ? 0 : 0.4;
+  return rel === 2 || rel === 0 ? 0 : 0.25;
 }
 
-/** 色が戻る演出を始めてから、灰色のクラスを外すまでの時間（最後の遅れ0.8s＋transition0.6s＋余裕）。 */
-export const THAW_TOTAL_MS = 1600;
+/** 色が戻る演出を始めてから、灰色のクラスを外すまでの時間（最後の遅れ0.5s＋transition0.5s＋余裕）。 */
+export const THAW_TOTAL_MS = 1200;
 
 /** 色が戻る演出の開始・終了。実体はhtmlのdata-freeze-thaw属性で、styles.cssが灰色を外す。 */
 export function setFreezeThaw(on: boolean) {

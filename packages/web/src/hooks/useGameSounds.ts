@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { holdFreezeSource, setFreezeThaw, THAW_TOTAL_MS } from "../freezeWave.js";
 import { CHARACTERS, type Meld, type RoundState, type VoiceEvent } from "@majyan/core";
-import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, playVoiceClipThen, playSkillReadySound, playSkillActivateSfx, speakVoice } from "../sound.js";
+import { playDealSound, playDiscardSound, playDrawSound, playRiichiSound, playWinSound, playVoiceClip, playSkillReadySound, playSkillActivateSfx, speakVoice } from "../sound.js";
 import { winDeclarationSchedule } from "../components/DeclarationCutinOverlay.js";
 
 const CALL_VOICE: Partial<Record<Meld["type"], string>> = {
@@ -171,17 +171,16 @@ export function useGameSounds(round: RoundState | undefined) {
       if (prev[i] === "1" && now[i] === "0") {
         const clip = CHARACTERS[round.characterIds[i]!]?.voiceClips?.skillEnd;
         if (clip) {
-          // 終了ボイスが鳴り終わるまで灰色を保ち、鳴り終わってから戻す。
+          // 終了ボイスを鳴らし始めると同時に、発動者の席に向かって灰色が縮む演出
+          // （遠い席から順に色が戻る）を始める。終わったら灰色のクラスそのものを外す。
+          // （ボイスが鳴り終わるのを待つと、色が戻るまで3秒以上かかって遅すぎた）
           holdFreezeSource(i);
-          // 鳴り終わったら、発動者の席に向かって灰色が縮む演出（遠い席から順に色が戻る）を
-          // 見せてから、灰色のクラスそのものを外す。
-          playVoiceClipThen(clip, () => {
-            setFreezeThaw(true);
-            setTimeout(() => {
-              holdFreezeSource(undefined);
-              setFreezeThaw(false);
-            }, THAW_TOTAL_MS);
-          });
+          playVoiceClip(clip);
+          setFreezeThaw(true);
+          setTimeout(() => {
+            holdFreezeSource(undefined);
+            setFreezeThaw(false);
+          }, THAW_TOTAL_MS);
         }
       }
     }
