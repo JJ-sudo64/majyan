@@ -1526,8 +1526,11 @@ button {
    見た目は.hudと揃えるため配色/枠は同じにし、位置だけ変える。 */
 .settings-panel {
   position: absolute;
-  top: 44px;
-  right: 8px;
+  /* 左端、上家のネームプレート（y≈120〜310、名前が2行になっても収まる）の下。
+     上家の副露は最大4つで左下に並ぶ（y≈420〜）ので、その上に収める。
+     左下の角だと副露に被るため、ここにした。 */
+  top: 326px;
+  left: 8px;
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -1667,11 +1670,16 @@ button {
    跨いでも意図が分かるよう、押している間だけでなくON/OFFの状態が常に
    ラベル文字と縁色で見える形にする（ホバー中しか分からないtitle属性等では
    なく、いつでも一目で現在の設定が分かるようにするため）。 */
-/* 右上の狭い隙間に収めるため縦に積む。 */
+/* 左端に縦に積んで、細く収める。 */
 .hud__auto-toggles {
   flex-direction: column;
   align-items: stretch;
   gap: 2px;
+}
+.hud__auto-label {
+  font-size: 11px;
+  opacity: 0.7;
+  white-space: nowrap;
 }
 .hud__toggle-btn {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));

@@ -58,27 +58,35 @@ export function SettingsPanel() {
     <>
       {/* 牌譜の再生中は自分で打たないので、自動ツモ切り・自動和了は出さない。 */}
       {!replaying && <div className="settings-panel">
+        {/* 「ON/OFF」の文字は出さず、色（緑）と●○で状態を見せる。ラベルは短く。 */}
         <div className="hud__row hud__auto-toggles">
+          <span className="hud__auto-label">自動</span>
           <button
             type="button"
+            aria-pressed={autoTsumogiri}
+            title="自動ツモ切り：引いた牌を自動で切る"
             className={`hud__toggle-btn${autoTsumogiri ? " hud__toggle-btn--on" : ""}`}
             onClick={() => setAutoTsumogiri(!autoTsumogiri)}
           >
-            自動ツモ切り{autoTsumogiri ? " ON" : " OFF"}
+            {autoTsumogiri ? "●" : "○"} ツモ切り
           </button>
           <button
             type="button"
+            aria-pressed={autoWin}
+            title="自動和了：和了できる時に自動で和了する"
             className={`hud__toggle-btn${autoWin ? " hud__toggle-btn--on" : ""}`}
             onClick={() => setAutoWin(!autoWin)}
           >
-            自動和了{autoWin ? " ON" : " OFF"}
+            {autoWin ? "●" : "○"} 和了
           </button>
           <button
             type="button"
+            aria-pressed={autoPassCalls}
+            title="鳴きなし：ポン・チー・カンを自動で見送る"
             className={`hud__toggle-btn${autoPassCalls ? " hud__toggle-btn--on" : ""}`}
             onClick={() => setAutoPassCalls(!autoPassCalls)}
           >
-            鳴きなし{autoPassCalls ? " ON" : " OFF"}
+            {autoPassCalls ? "●" : "○"} 鳴きなし
           </button>
         </div>
       </div>}
