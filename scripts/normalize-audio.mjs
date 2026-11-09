@@ -30,7 +30,9 @@ const TOLERANCE = 0.7;
 
 /** そろえ方の決まり（上から順に最初に当てはまったもの）。targetがnullならそろえない。 */
 const RULES = [
-  { match: /^sfx\/(deal|discard|draw)\./, target: null },
+  // 打牌・ツモ・配牌は短いカチッという音で、ラウドネスでそろえると大きくなりすぎる。かわりに
+  // 山（ピーク）を -7dB にそろえる（元は 0dB に近く、ボイス（山 -2〜-6dB）より大きく聞こえた）。
+  { match: /^sfx\/(deal|discard|draw)\./, target: null, peak: -7 },
   // ガチャ演出・メニューのボタンの音は scripts/synth-sfx.py が音ごとに大きさを決めて書き出す。
   { match: /^sfx\/(gacha|ui|skill)-/, target: null },
   { match: /^sfx\//, target: -18 },
@@ -101,6 +103,8 @@ function normalize(file, target, m, linear) {
 }
 
 const check = process.argv.includes("--check");
+// --only=sfx/ のように指定すると、そのパスで始まるファイルだけを対象にする。
+const only = process.argv.find((a) => a.startsWith("--only="))?.slice("--only=".length) ?? "";
 const files = ["sfx", "voices", "bgm"].flatMap((d) => walk(join(PUBLIC, d))).filter((f) => /\.(wav|mp3)$/i.test(f));
 const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15);
 const backupDir = join(ROOT, "asset-backups", `audio-${stamp}`);
@@ -108,7 +112,28 @@ let changed = 0;
 
 for (const file of files) {
   const rel = relative(PUBLIC, file).replace(/\\/g, "/");
+  if (only && !rel.startsWith(only)) continue;
   const rule = RULES.find((r) => r.match.test(rel));
+  if (rule && rule.peak !== undefined) {
+    // 山を目標にそろえる音: 音の形は変えず、音量を上げ下げするだけ。
+    const out = ffmpeg(["-i", file, "-af", "volumedetect", "-f", "null", "-"]);
+    const maxDb = Number(out.match(/max_volume: (-?[\d.]+) dB/)?.[1]);
+    if (!Number.isFinite(maxDb)) continue;
+    const gain = rule.peak - maxDb;
+    if (Math.abs(gain) <= TOLERANCE) continue;
+    console.log(`${check ? "?" : "*"} ${rel}: 山 ${maxDb.toFixed(1)} → ${rule.peak} dB（${gain > 0 ? "+" : ""}${gain.toFixed(1)}）`);
+    if (check) continue;
+    mkdirSync(dirname(join(backupDir, rel)), { recursive: true });
+    copyFileSync(file, join(backupDir, rel));
+    const info = probe(file);
+    const ext = extname(file).toLowerCase();
+    const codecArgs = ext === ".wav" ? ["-c:a", "pcm_s16le"] : ["-c:a", "libmp3lame", "-b:a", `${Math.max(128, Math.round(Number(info.bit_rate || 192000) / 1000))}k`];
+    const tmp = `${file}.normalizing${ext}`;
+    ffmpeg(["-y", "-i", file, "-af", `volume=${gain.toFixed(2)}dB`, "-ar", String(info.sample_rate), "-ac", String(info.channels), ...codecArgs, tmp]);
+    renameSync(tmp, file);
+    changed++;
+    continue;
+  }
   if (!rule || rule.target === null) continue;
   const m = measure(file, rule.target);
   const input = Number(m.input_i);

@@ -22,6 +22,7 @@ function isValidAction(a: unknown): a is GameAction {
     case "discard":
       return isStr(a.tileId) && typeof a.tsumogiri === "boolean";
     case "riichi":
+      return isStr(a.tileId) && (a.borrowTarget === undefined || isSeat(a.borrowTarget));
     case "kakan":
       return isStr(a.tileId);
     case "ankan":

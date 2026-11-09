@@ -241,7 +241,7 @@ interface GameStoreState {
   debugSetSpeed: (speed: "fast" | "normal") => void;
   debugTogglePause: () => void;
   humanDiscard: (tileId: string) => void;
-  humanRiichi: (tileId: string) => void;
+  humanRiichi: (tileId: string, borrowTarget?: PlayerIndex) => void;
   humanTsumo: () => void;
   humanAnkan: (tileCode: TileCode) => void;
   humanKakan: (tileId: string) => void;
@@ -686,7 +686,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     dispatch(get, set, { type: "discard", player: HUMAN, tileId, tsumogiri: tileId === round.lastDrawnTile?.id });
   },
 
-  humanRiichi: (tileId) => dispatch(get, set, { type: "riichi", player: HUMAN, tileId }),
+  humanRiichi: (tileId, borrowTarget) =>
+    dispatch(get, set, { type: "riichi", player: HUMAN, tileId, ...(borrowTarget !== undefined ? { borrowTarget } : {}) }),
 
   humanTsumo: () => dispatch(get, set, { type: "tsumo", player: HUMAN }),
 

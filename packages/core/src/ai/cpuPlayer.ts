@@ -1,4 +1,4 @@
-import { pickBorrowTarget, shouldUseSkillNow } from "./skillTiming.js";
+import { pickBorrowTarget, pickRiichiBorrowTarget, shouldUseSkillNow } from "./skillTiming.js";
 import type { RoundState } from "../gameState.js";
 import type { GameAction, PlayerIndex } from "../actions.js";
 import { calcShanten } from "../shanten.js";
@@ -7,6 +7,8 @@ import {
   applyAction,
   borrowableSkillTargets,
   canDeclareTsumo,
+  canRiichi,
+  riichiBorrowTargets,
   canUseCard,
   canUseSkill,
   reclaimableDiscardTileIds,
@@ -85,6 +87,11 @@ export function decideCpuTurnAction(
       // カリンの「借り物競争」: 借りられるなら選べる中の先頭の相手から借りる。
       (() => {
         const targets = borrowableSkillTargets(round, seat);
+        // 今リーチできて、リーチ宣言の時に借りたい技がある（アトミックリーチ等）なら、
+        // ゲージをここで手動の技に使わず、リーチ宣言（simpleAi.ts）のために残す。
+        if (canRiichi(round, seat) && pickRiichiBorrowTarget(round, riichiBorrowTargets(round, seat), difficulty >= 4) !== undefined) {
+          return null;
+        }
         return targets.length > 0
           ? { type: "borrowSkill", player: seat, target: difficulty >= 4 ? pickBorrowTarget(round, targets) : targets[0]! }
           : null;

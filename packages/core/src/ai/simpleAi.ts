@@ -15,7 +15,9 @@ import {
   ankanOptions,
   kakanOptions,
   getWaitingTiles,
+  riichiBorrowTargets,
 } from "../gameEngine.js";
+import { pickRiichiBorrowTarget } from "./skillTiming.js";
 
 /**
  * CPUの強さ。1が最弱、5が最強。5段階とも「機械学習ではなくルールベースの
@@ -263,7 +265,9 @@ export function decideTurnAction(round: RoundState, player: PlayerIndex, difficu
           bestTileId = tileId;
         }
       }
-      return { type: "riichi", player, tileId: bestTileId };
+      // カリン: ゲージ満タンなら、リーチ時に発動する他家の技を借りる。
+      const borrowTarget = pickRiichiBorrowTarget(round, riichiBorrowTargets(round, player), difficulty >= 4);
+      return { type: "riichi", player, tileId: bestTileId, ...(borrowTarget !== undefined ? { borrowTarget } : {}) };
     }
   }
 

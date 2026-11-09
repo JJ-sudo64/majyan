@@ -7,6 +7,7 @@ import {
   applyAction,
   borrowableSkillTargets,
   borrowSkillBlockReason,
+  riichiBorrowTargets,
   canBorrowSkill,
   canDeclareRon,
   canDeclareTsumo,
@@ -400,6 +401,7 @@ describe("skill gauge", () => {
 
     expect(next.lastDrawnTile!.id).toBe(drawn.id); // 不発なので自摸牌は変わらない
     expect(next.players[0]!.skillGauge).toBe(0); // 不発でもゲージは消費される
+    expect(next.cardTrigger).toMatchObject({ seat: 0, title: "一閃は不発", kind: "auto" }); // 不発が画面に出る
   });
 
   it("raiko's onBeforeDraw auto-activates on her own ippatsu draw (no useSkill action needed)", () => {
@@ -444,6 +446,7 @@ describe("skill gauge", () => {
 
     expect(next.lastDrawnTile!.id).toBe(expectedId); // 不発なので元々の先頭牌をそのまま引く
     expect(next.players[0]!.skillGauge).toBe(0); // 不発でもゲージは消費される
+    expect(next.cardTrigger).toMatchObject({ seat: 0, title: "一閃は不発", detail: "山に待ち牌がありません" });
   });
 
   it("raiko's onBeforeDraw does not trigger outside ippatsu, even with a full gauge", () => {
@@ -529,6 +532,7 @@ describe("skill gauge", () => {
     expect(next.lastDrawnTile!.code).toBe("5s"); // 山に埋まっていた待ち牌を強制的に嶺上ツモにした
     expect(next.isRinshanTurn).toBe(true);
     expect(next.players[0]!.guaranteedRinshan).toBe(false); // 権利は消費される
+    expect(next.cardTrigger?.title ?? "").not.toContain("不発"); // 成功した時は不発の札を出さない
   });
 
   it("ankan while NOT tenpai leaves the guarantee untouched for a future kan", () => {
@@ -569,6 +573,7 @@ describe("skill gauge", () => {
 
     expect(next.lastDrawnTile!.code).toBe("1z"); // makeWallのdeadWall[0]は"1z"なので不発時はそのまま
     expect(next.players[0]!.guaranteedRinshan).toBe(false); // 不発でも聴牌でのカンなので権利は消費される
+    expect(next.cardTrigger).toMatchObject({ seat: 0, title: "嶺上顕現は不発", kind: "auto" }); // 不発が画面に出る
   });
 
   it("kagerou's onActivate reveals hands to the owner and resets gauge", () => {
@@ -2192,6 +2197,57 @@ describe("kagami", () => {
       lastActivatedSkill: { owner: 0, characterId: "koki" },
     });
     expect(canUseSkill(round, 1)).toBe(false);
+  });
+});
+
+describe("karin's 借り物競争 (borrow an onRiichi skill when declaring riichi)", () => {
+  const tenpaiHand = ["1m", "2m", "3m", "4p", "5p", "6p", "7s", "8s", "9s", "1z", "1z", "1z", "2z"] as TileCode[];
+  const otherTenpaiHand = ["1m", "1m", "1m", "2p", "2p", "2p", "3s", "3s", "3s", "4z", "4z", "4z", "9m"] as TileCode[];
+  const karinRound = (gauge: number) =>
+    makeRound({
+      players: [
+        { ...emptyPlayer(tenpaiHand), skillGauge: gauge },
+        emptyPlayer(otherTenpaiHand),
+        emptyPlayer([]),
+        emptyPlayer([]),
+      ],
+      characterIds: ["karin", "nyanjiro", "hiiragi", ""],
+      wall: makeWall(["5z", "9m", "8m", "6m", "9p"]),
+    });
+
+  it("lists the onRiichi tablemates only when the gauge is full, and explains it on the borrow button", () => {
+    expect(riichiBorrowTargets(karinRound(CHARACTERS.karin!.gaugeMax), 0)).toEqual([1]);
+    expect(riichiBorrowTargets(karinRound(10), 0)).toEqual([]);
+    const turn = { ...karinRound(100), currentTurn: 0 as PlayerIndex, phase: "awaiting-discard" as const };
+    expect(borrowSkillBlockReason(turn, 0, 1)).toBe("リーチを宣言する時に選べます");
+  });
+
+  it("riichi with borrowTarget fires nyanjiro's atomic riichi on karin and empties the gauge", () => {
+    let round = karinRound(CHARACTERS.karin!.gaugeMax);
+    round = applyAction(round, { type: "draw", player: 0 });
+    round = applyAction(round, { type: "riichi", player: 0, tileId: round.lastDrawnTile!.id, borrowTarget: 1 });
+    expect(round.players[0]!.atomicRiichi).toBe(true);
+    expect(round.players[0]!.skillGauge).toBe(0);
+    expect(round.riichiLockedBy).toBe(0);
+  });
+
+  it("a CPU karin with a full gauge borrows the atomic riichi when it declares riichi", () => {
+    let round = karinRound(CHARACTERS.karin!.gaugeMax);
+    round = applyAction(round, { type: "draw", player: 0 });
+    for (const difficulty of [1, 4, 5] as const) {
+      const action = decideCpuTurnAction(round, 0, difficulty);
+      expect(action).toMatchObject({ type: "riichi", borrowTarget: 1 });
+      expect(applyAction(round, action).players[0]!.atomicRiichi).toBe(true);
+    }
+  });
+
+  it("plain riichi without borrowTarget leaves the gauge alone, and a non-borrowable target is rejected", () => {
+    let round = karinRound(CHARACTERS.karin!.gaugeMax);
+    round = applyAction(round, { type: "draw", player: 0 });
+    const plain = applyAction(round, { type: "riichi", player: 0, tileId: round.lastDrawnTile!.id });
+    expect(plain.players[0]!.atomicRiichi).toBe(false);
+    expect(plain.players[0]!.skillGauge).toBeGreaterThanOrEqual(CHARACTERS.karin!.gaugeMax);
+    expect(() => applyAction(round, { type: "riichi", player: 0, tileId: round.lastDrawnTile!.id, borrowTarget: 2 })).toThrow();
   });
 });
 

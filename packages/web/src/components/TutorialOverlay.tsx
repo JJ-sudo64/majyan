@@ -44,7 +44,7 @@ export function TutorialOverlay() {
         チュートリアルをやめる
       </button>
       {tutorial.visible && step && (
-        <div key={`${tutorial.scenarioIndex}-${tutorial.stepIndex}-${shake}`} className={`tutorial-panel${step.advance === "result" ? " tutorial-panel--top" : ""}${shake > 0 ? " tutorial-panel--nudge" : ""}`}>
+        <div key={`${tutorial.scenarioIndex}-${tutorial.stepIndex}-${shake}`} className={`tutorial-panel${step.advance === "result" || step.panelTop ? " tutorial-panel--top" : ""}${shake > 0 ? " tutorial-panel--nudge" : ""}`}>
           <div className="tutorial-panel__head">
             チュートリアル {tutorial.scenarioIndex + 1}/{TUTORIAL_SCENARIOS.length}
           </div>

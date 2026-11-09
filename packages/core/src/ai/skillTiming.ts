@@ -86,6 +86,18 @@ const BORROW_PREFERENCE = [
   "masato",
 ];
 
+/** カリンがリーチ宣言の時に借りる技の優先順位（上ほど得）。ツモ和了ができなくなる
+    デアガリの「狙い撃ち」は、強い難易度では借りない。 */
+const RIICHI_BORROW_PREFERENCE = ["nyanjiro", "ren", "jin"];
+
+/** リーチ宣言で借りる相手を選ぶ（借りないならundefined）。弱い難易度は先頭の相手から借りる。 */
+export function pickRiichiBorrowTarget(round: RoundState, targets: PlayerIndex[], strong: boolean): PlayerIndex | undefined {
+  if (targets.length === 0) return undefined;
+  if (!strong) return targets[0];
+  const rank = (t: PlayerIndex) => RIICHI_BORROW_PREFERENCE.indexOf(round.characterIds[t] ?? "");
+  return targets.filter((t) => rank(t) !== -1).sort((a, b) => rank(a) - rank(b))[0];
+}
+
 /** 借りられる相手のうち、一番得な技の持ち主を選ぶ。優先順位に無いキャラは最後。 */
 export function pickBorrowTarget(round: RoundState, targets: PlayerIndex[]): PlayerIndex {
   const rank = (t: PlayerIndex) => {

@@ -289,7 +289,8 @@ export function Table() {
 
   // 対局中に自キャラの必殺技を確認するポップアップ。画面全体を覆う
   // 演出レイヤー側（.game-screen直下）に置き、確実に画面内に収まるようにする。
-  const [showOwnSkillInfo, setShowOwnSkillInfo] = useState(false);
+  // 名前を押した席（自分も他家も）。nullなら閉じている。
+  const [skillInfoSeat, setSkillInfoSeat] = useState<PlayerIndex | null>(null);
 
   // ドラ表示牌そのものではなく「実際にドラとして数えられる牌」の集合。
   // TileView側でこの集合に含まれる牌を点滅させ、どれがドラか一目で
@@ -370,7 +371,7 @@ export function Table() {
   // （reclaimTileIdがまだnull）の間だけ、自分の河をクリック可能にする。
   const humanRiverClickable = retrieveActive && !retrieveReclaimTileId;
 
-  const selfCharacter = CHARACTERS[round.characterIds[0]];
+  const skillInfoCharacter = skillInfoSeat === null ? undefined : CHARACTERS[round.characterIds[skillInfoSeat]];
 
   return (
     <DoraProvider doraCodes={doraCodes}>
@@ -571,16 +572,37 @@ export function Table() {
         {/* キャラクターレイヤー: 卓の外に独立した4枚のパネル。河・手牌の
             伸縮とは一切連動しない固定位置のため、以前のようなクリック
             優先度の奪い合いが起きない。 */}
-        <CharacterPanel round={round} player={2 as PlayerIndex} score={match.scores[2]} corner="top" {...nameplateEditProps(2)} />
-        <CharacterPanel round={round} player={1 as PlayerIndex} score={match.scores[1]} corner="right" {...nameplateEditProps(1)} />
-        <CharacterPanel round={round} player={3 as PlayerIndex} score={match.scores[3]} corner="left" {...nameplateEditProps(3)} />
+        <CharacterPanel
+          round={round}
+          player={2 as PlayerIndex}
+          score={match.scores[2]}
+          corner="top"
+          onShowSkillInfo={() => setSkillInfoSeat(2)}
+          {...nameplateEditProps(2)}
+        />
+        <CharacterPanel
+          round={round}
+          player={1 as PlayerIndex}
+          score={match.scores[1]}
+          corner="right"
+          onShowSkillInfo={() => setSkillInfoSeat(1)}
+          {...nameplateEditProps(1)}
+        />
+        <CharacterPanel
+          round={round}
+          player={3 as PlayerIndex}
+          score={match.scores[3]}
+          corner="left"
+          onShowSkillInfo={() => setSkillInfoSeat(3)}
+          {...nameplateEditProps(3)}
+        />
         <CharacterPanel
           round={round}
           player={0 as PlayerIndex}
           score={match.scores[0]}
           corner="bottom"
           isSelf
-          onShowSkillInfo={() => setShowOwnSkillInfo(true)}
+          onShowSkillInfo={() => setSkillInfoSeat(0)}
           {...nameplateEditProps(0)}
         />
 
@@ -597,15 +619,15 @@ export function Table() {
         {createPortal(<CardTriggerToast round={round} />, portalRoot())}
         {createPortal(<DeclarationCutinOverlay round={round} />, portalRoot())}
 
-        {showOwnSkillInfo && selfCharacter && (
-          <div className="modal-overlay" onClick={() => setShowOwnSkillInfo(false)}>
+        {skillInfoCharacter && (
+          <div className="modal-overlay" onClick={() => setSkillInfoSeat(null)}>
             <div className="skill-info-card" onClick={(e) => e.stopPropagation()}>
-              <img className="skill-info-card__avatar" src={selfCharacter.avatar} alt="" />
-              <div className="skill-info-card__name">{selfCharacter.name}</div>
+              <img className="skill-info-card__avatar" src={skillInfoCharacter.avatar} alt="" />
+              <div className="skill-info-card__name">{skillInfoCharacter.name}</div>
               <div className="skill-info-card__skill">
-                必殺技「{selfCharacter.skill.name}」: {selfCharacter.skill.description}
+                必殺技「{skillInfoCharacter.skill.name}」: {skillInfoCharacter.skill.description}
               </div>
-              <button className="btn btn--primary" onClick={() => setShowOwnSkillInfo(false)}>
+              <button className="btn btn--primary" onClick={() => setSkillInfoSeat(null)}>
                 閉じる
               </button>
             </div>

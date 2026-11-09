@@ -52,6 +52,9 @@ export interface RiichiAction {
   player: PlayerIndex;
   /** リーチ宣言と同時に切る牌 */
   tileId: string;
+  /** カリンの「借り物競争」: ゲージ満タンのリーチ宣言で、この席の「リーチ時に
+      発動する技」を借りて発動する。未指定なら借りない。 */
+  borrowTarget?: PlayerIndex;
 }
 
 export interface TsumoAction {

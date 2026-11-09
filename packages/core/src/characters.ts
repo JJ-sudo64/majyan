@@ -8,6 +8,7 @@
 import type { Character, SkillContext } from "./skills/types.js";
 import type { RoundState } from "./gameState.js";
 import type { PlayerIndex } from "./actions.js";
+import { withSkillFizzle } from "./skillNotice.js";
 import { revealNextDora, drawFromLive, doraIndicators, type WallState } from "./wall.js";
 import { addTileToHand, getWaitingTiles, removeTileFromHand, type Hand } from "./hand.js";
 import { calcShanten, bestShantenAfterDiscard } from "./shanten.js";
@@ -560,7 +561,7 @@ export const CHARACTERS: Record<string, Character> = {
           const players = updatePlayer(round, owner, (pl) => ({ ...pl, skillGauge: 0 }));
           const waits = new Set(getWaitingTiles(p.hand));
           const wallIndex = round.wall.liveTiles.findIndex((t) => waits.has(t.code));
-          if (wallIndex === -1) return { ...round, players }; // 不発
+          if (wallIndex === -1) return withSkillFizzle({ ...round, players }, owner, "一閃", "山に待ち牌がありません"); // 不発
           const liveTiles = [...round.wall.liveTiles];
           const target = liveTiles[wallIndex]!;
           liveTiles[wallIndex] = liveTiles[0]!;
@@ -583,7 +584,7 @@ export const CHARACTERS: Record<string, Character> = {
           const { hand: handWithoutDrawn } = removeTileFromHand(p.hand, drawn.id);
           const waits = new Set(getWaitingTiles(handWithoutDrawn));
           const wallIndex = round.wall.liveTiles.findIndex((t) => waits.has(t.code));
-          if (wallIndex === -1) return round;
+          if (wallIndex === -1) return withSkillFizzle(round, owner, "一閃", "山に待ち牌がありません");
           const target = round.wall.liveTiles[wallIndex]!;
           const liveTiles = [
             ...round.wall.liveTiles.slice(0, wallIndex),
@@ -1255,7 +1256,7 @@ export const CHARACTERS: Record<string, Character> = {
             const candidate: Hand = { concealed: [...handWithoutDrawn.concealed, t], melds: handWithoutDrawn.melds };
             return bestShantenAfterDiscard(candidate) < currentShanten;
           });
-          if (wallIndex === -1) return round;
+          if (wallIndex === -1) return withSkillFizzle(round, owner, "手ほどき", "山に手が良くなる牌がありません");
           const target = round.wall.liveTiles[wallIndex]!;
           const liveTiles = [
             ...round.wall.liveTiles.slice(0, wallIndex),
@@ -1925,7 +1926,7 @@ export const CHARACTERS: Record<string, Character> = {
           // 「山の並び順で最初に見つかった対象牌」を引くだけで結果的にランダムな
           // 1枚を引くのと同じ（ナギ/ライコ/カエデと同じ考え方）。
           const wallIndex = round.wall.liveTiles.findIndex((t) => doraCodes.has(t.code) || t.isRed);
-          if (wallIndex === -1) return { ...round, players }; // 不発
+          if (wallIndex === -1) return withSkillFizzle({ ...round, players }, owner, "特技ドラ引き", "山にドラがありません"); // 不発
           const liveTiles = [...round.wall.liveTiles];
           const target = liveTiles[wallIndex]!;
           liveTiles[wallIndex] = liveTiles[0]!;
@@ -2210,7 +2211,7 @@ export const CHARACTERS: Record<string, Character> = {
           const nextTile = liveTiles[0];
           if (!nextTile || !waits.has(nextTile.code)) return round; // 次のツモが当たり牌でなければ何もしない
           const safeIndex = liveTiles.findIndex((t, i) => i > 0 && !waits.has(t.code));
-          if (safeIndex === -1) return round; // 山に当たり牌以外が残っていなければ不発
+          if (safeIndex === -1) return withSkillFizzle(round, owner, "手牌が一枚しかない人", "山に当たり牌以外が残っていません"); // 不発
           const newLiveTiles = [...liveTiles];
           newLiveTiles[0] = liveTiles[safeIndex]!;
           newLiveTiles[safeIndex] = nextTile;
@@ -2385,7 +2386,8 @@ export const CHARACTERS: Record<string, Character> = {
             ? (() => { const waits = new Set(getWaitingTiles(p.hand)); return (t: Tile) => waits.has(t.code); })()
             : (t: Tile) => bestShantenAfterDiscard({ concealed: [...p.hand.concealed, t], melds: p.hand.melds }) < currentShanten;
           const usefulIndex = liveTiles.findIndex(isUseful);
-          if (usefulIndex <= 0) return { ...round, players }; // 不発、または既に次が有効牌
+          if (usefulIndex === -1) return withSkillFizzle({ ...round, players }, owner, "太っ腹", "山に有効牌がありません"); // 不発
+          if (usefulIndex === 0) return { ...round, players }; // 既に次が有効牌
           const newLiveTiles = [...liveTiles];
           newLiveTiles[0] = liveTiles[usefulIndex]!;
           newLiveTiles[usefulIndex] = liveTiles[0]!;
@@ -2539,7 +2541,7 @@ export const CHARACTERS: Record<string, Character> = {
     id: "nyanjiro",
     name: "怪鳥・にゃん次郎",
     description: "必殺技「アトミックリーチ」: ゲージ満タンでリーチすると、その局は他の3人がリーチできなくなる。",
-    winQuote: "鳴くのはオレだけでいい。お前らの声は、もう聞こえなくなる。",
+    winQuote: "鳴くのはオレだけでいいニャ。お前らの声は、もう聞こえなくなるピヨ。",
     avatar: "/avatars/characters/nyanjiro.webp",
     cutin: "/avatars/characters/nyanjiro-cutin.webp",
     topArt: "/avatars/characters/nyanjiro-top.webp",
@@ -3603,7 +3605,7 @@ export const CHARACTERS: Record<string, Character> = {
     skill: {
       id: "karin-karimono-kyousou",
       name: "借り物競争",
-      description: "他の1人を選んで、その人の必殺技をそのまま使う。",
+      description: "他の1人を選んで、その人の必殺技をそのまま使う。リーチ時に発動する技は、リーチ宣言の時に選ぶ。",
       // 実際の発動処理はborrowSkillアクション経由（gameEngine.tsの
       // canBorrowSkill/applyBorrowSkillAction）で行われ、karin自身は
       // onActivateを持たない（skills/types.tsのCharacter.borrowsSkill参照）。

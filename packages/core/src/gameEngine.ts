@@ -32,6 +32,7 @@ import { analyzeWin, type WinAnalysis, type WinContext } from "./yaku/index.js";
 import { scoreWin, applyHonba, type PaymentBreakdown, type ScoreResult } from "./scoring.js";
 import { CHARACTERS } from "./characters.js";
 import { CARDS, cardUsesLeft, hasCard, hasLiveCard, seatCardIds, spendCardUse, withCardTrigger } from "./cards.js";
+import { withSkillFizzle } from "./skillNotice.js";
 import { globalRoundIndex, maxGlobalRoundIndex } from "./matchFormat.js";
 import type {
   GameAction,
@@ -110,6 +111,19 @@ interface RinshanResolution {
   tile: Tile;
   wall: WallState;
   clearGuarantee: boolean;
+  /** 聴牌でカンしたのに山に待ち牌が無く、保証が不発になった。 */
+  fizzled: boolean;
+}
+
+/** 嶺上顕現が不発だった時だけ、画面に知らせる札（cardTrigger）を立てる。それ以外は元のまま。 */
+function rinshanTrigger(
+  round: RoundState,
+  base: RoundState["cardTrigger"],
+  resolved: RinshanResolution,
+  player: PlayerIndex,
+): RoundState["cardTrigger"] {
+  if (!resolved.fizzled) return base;
+  return withSkillFizzle({ ...round, cardTrigger: base }, player, "嶺上顕現", "山に待ち牌がありません").cardTrigger;
 }
 
 /** トキの必殺技で予約された「次に聴牌中でカンしたら嶺上開花」の保証を、
@@ -125,16 +139,16 @@ function resolveGuaranteedRinshan(
   wall: WallState,
 ): RinshanResolution {
   if (!players[player].guaranteedRinshan || calcShanten(meldedHand) !== 0) {
-    return { tile: rinshanTile, wall, clearGuarantee: false };
+    return { tile: rinshanTile, wall, clearGuarantee: false, fizzled: false };
   }
   const waits = new Set(getWaitingTiles(meldedHand));
   const wallIndex = wall.liveTiles.findIndex((t) => waits.has(t.code));
   if (wallIndex === -1) {
-    return { tile: rinshanTile, wall, clearGuarantee: true };
+    return { tile: rinshanTile, wall, clearGuarantee: true, fizzled: true };
   }
   const target = wall.liveTiles[wallIndex]!;
   const liveTiles = [...wall.liveTiles.slice(0, wallIndex), ...wall.liveTiles.slice(wallIndex + 1), rinshanTile];
-  return { tile: target, wall: { ...wall, liveTiles }, clearGuarantee: true };
+  return { tile: target, wall: { ...wall, liveTiles }, clearGuarantee: true, fizzled: false };
 }
 
 /** 必殺技ゲージを加算する（キャラのgaugeMaxで頭打ち）。キャラ未設定なら何もしない。
@@ -384,6 +398,7 @@ export function borrowSkillBlockReason(round: RoundState, player: PlayerIndex, t
   const targetHooks = targetSkill?.hooks;
   // 手動発動の処理（onActivate）を持たない技は、状況に関わらず借りられない。
   if (!targetSkill || !targetHooks?.onActivate) {
+    if (targetHooks?.onRiichi) return "リーチを宣言する時に選べます";
     return targetCharacter?.borrowsSkill || targetCharacter?.retrievesDiscard
       ? "特殊な技のため借りられません"
       : "自動発動・常時効果の技のため借りられません";
@@ -397,6 +412,17 @@ export function borrowSkillBlockReason(round: RoundState, player: PlayerIndex, t
     return targetSkill.activationCondition ?? "今は発動条件を満たしていません";
   }
   return null;
+}
+
+/** カリンの「借り物競争」で、リーチ宣言の時に借りられる相手の一覧。ゲージ満タンで、
+    相手の技が「リーチ時に発動する技」（onRiichi。アトミックリーチ・捲る運命等）の席。
+    手動発動の技と違い、リーチ宣言そのものがトリガーになるのでここで選ぶ。 */
+export function riichiBorrowTargets(round: RoundState, player: PlayerIndex): PlayerIndex[] {
+  const character = CHARACTERS[round.characterIds[player]];
+  if (!character?.borrowsSkill || round.players[player]!.skillGauge < character.gaugeMax) return [];
+  return ([0, 1, 2, 3] as PlayerIndex[]).filter(
+    (seat) => seat !== player && !!CHARACTERS[round.characterIds[seat]]?.skill.hooks.onRiichi,
+  );
 }
 
 /** カリンが今借りられる相手の一覧（自分以外で条件を満たす席）。UI側の選択肢表示用。 */
@@ -783,7 +809,15 @@ function applyRiichiAction(round: RoundState, action: RiichiAction): RoundState 
   // リーチ宣言」そのものが自動発動のトリガーになるキャラ用。判定は
   // リーチを宣言する前の時点でゲージが満タンだったかどうかで行う
   // （この立直の打牌で得るgaugePerTurn分の増加はカウントしない）。
-  const onRiichi = character?.skill.hooks.onRiichi;
+  // カリンの「借り物競争」: 借りる相手を指定していれば、その人のonRiichiを自分の
+  // ものとして発動する（フックはctx.ownerに対して働くので、カリン自身に効く）。
+  let onRiichi = character?.skill.hooks.onRiichi;
+  if (action.borrowTarget !== undefined) {
+    if (!riichiBorrowTargets(round, action.player).includes(action.borrowTarget)) {
+      throw new Error("riichi: その技は借りられません");
+    }
+    onRiichi = CHARACTERS[round.characterIds[action.borrowTarget]]!.skill.hooks.onRiichi;
+  }
   if (onRiichi && p.skillGauge >= character!.gaugeMax) {
     // カード「無効化」の対象: 敵（カード所持者以外）の自動発動も対象に含む。
     // 効果そのものは無かったことにする（普通のリーチのまま）が、ゲージは
@@ -872,7 +906,7 @@ function applyAnkanAction(round: RoundState, action: AnkanAction): RoundState {
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
     cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
-    cardTrigger: ippatsuResult.cardTrigger,
+    cardTrigger: rinshanTrigger(round, ippatsuResult.cardTrigger, resolved, action.player),
     wall: resolved.wall,
     lastDrawnTile: resolved.tile,
     phase: "awaiting-discard",
@@ -952,7 +986,7 @@ function finalizeKakanAfterChankanWindow(round: RoundState, player: PlayerIndex)
     players,
     cardUsesRemaining: ippatsuResult.cardUsesRemaining,
     cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
-    cardTrigger: ippatsuResult.cardTrigger,
+    cardTrigger: rinshanTrigger(round, ippatsuResult.cardTrigger, resolved, player),
     wall: resolved.wall,
     lastDrawnTile: resolved.tile,
     phase: "awaiting-discard",
@@ -1179,8 +1213,8 @@ function executeMeldCall(round: RoundState, window: PendingCallWindow, call: Dec
       ...round,
       players,
       cardUsesRemaining: ippatsuResult.cardUsesRemaining,
-    cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
-    cardTrigger: ippatsuResult.cardTrigger,
+      cardUsesRemaining2: ippatsuResult.cardUsesRemaining2,
+      cardTrigger: rinshanTrigger(round, ippatsuResult.cardTrigger, resolved, caller),
       wall: resolved.wall,
       lastDrawnTile: resolved.tile,
       currentTurn: caller,

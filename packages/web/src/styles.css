@@ -593,6 +593,25 @@ button {
   animation: none;
   cursor: not-allowed;
 }
+/* カリンの「借り物競争」: ボタンを開くと、他家の技を縦に並べる。 */
+.borrow-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: flex-end;
+  gap: 6px;
+}
+.borrow-group__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.borrow-group__list .btn {
+  text-align: left;
+}
+.btn--skill-open {
+  filter: brightness(1.15);
+}
 .btn__block-reason {
   display: block;
   font-size: 11px;
@@ -2134,6 +2153,13 @@ button {
 }
 .character-panel__name--clickable:hover {
   text-decoration: underline;
+}
+/* 他家の名前も押せる。相手側のプレートは中央そろえのまま（<button>のtext-align: leftに負けない）。 */
+.character-panel--left .character-panel__name--clickable,
+.character-panel--right .character-panel__name--clickable,
+.character-panel--top .character-panel__name--clickable {
+  text-align: center;
+  align-items: center;
 }
 .character-panel__meta {
   display: flex;

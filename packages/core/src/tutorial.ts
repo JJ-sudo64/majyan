@@ -41,6 +41,8 @@ export interface TutorialStep {
   /** 光らせる手牌・ボタン。 */
   hintTile?: TileCode;
   hintButton?: "riichi" | "pon" | "ron" | "tsumo" | "skill" | "card";
+  /** 案内を画面の上に出す（手牌の上に並ぶカードの札など、下の案内と重なる所を見せたい時）。 */
+  panelTop?: boolean;
 }
 
 export interface TutorialScenario {
@@ -356,18 +358,21 @@ const CARD_SCENARIO: TutorialScenario = {
   steps: [
     {
       id: "card-welcome",
+      panelTop: true,
       advance: "next",
       text: "最後は「カード」です。キャラクターには、カードを2枚まで付けられます。「パッシブ」（青緑の札）と「アクティブ」（紫の札）の1枚ずつです。付けたカードは、手牌の上に並びます。",
       when: (round) => round.phase === "awaiting-draw" && round.players[HUMAN].discards.length === 0,
     },
     {
       id: "card-passive",
+      panelTop: true,
       advance: "next",
       text: "青緑の札は「パッシブ」。付けているだけで、条件を満たすと自動で効きます。いまは「ツモの加護」で、ツモであがると+1翻です。使える回数は、札に出ています。",
       when: (round) => round.phase === "awaiting-draw" && round.players[HUMAN].discards.length === 0,
     },
     {
       id: "card-use",
+      panelTop: true,
       advance: "action",
       allow: { kind: "card" },
       hintButton: "card",
@@ -376,6 +381,7 @@ const CARD_SCENARIO: TutorialScenario = {
     },
     {
       id: "card-discard",
+      panelTop: true,
       advance: "action",
       allow: { kind: "discard", code: "1z" },
       hintTile: "1z",
@@ -384,6 +390,7 @@ const CARD_SCENARIO: TutorialScenario = {
     },
     {
       id: "card-tsumo",
+      panelTop: true,
       advance: "action",
       allow: { kind: "tsumo" },
       hintButton: "tsumo",

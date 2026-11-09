@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Meld, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
+import type { Meld, PlayerIndex, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
 import { meldDisplaySlots } from "../meldDisplay.js";
 import {
   CARDS,
@@ -137,6 +137,10 @@ export function Hand({ round }: { round: RoundState }) {
   const humanUseCard = useGameStore((s) => s.humanUseCard);
   const humanSwapTiles = useGameStore((s) => s.humanSwapTiles);
   const [riichiMode, setRiichiMode] = useState(false);
+  // カリンの「借り物競争」: 3人の選択肢を開いているか。
+  const [borrowOpen, setBorrowOpen] = useState(false);
+  // リーチ選択中に、借り物競争で借りる「リーチ時に発動する技」の持ち主（未選択ならnull）。
+  const [riichiBorrow, setRiichiBorrow] = useState<PlayerIndex | null>(null);
   // ルナの必殺技で得た配牌入れ替え権を使っている間のモード。手番かどうかに
   // 関わらず（配牌直後、自分の手番が来る前でも）使えるようにするため、
   // isMyTurnとは独立したトグルにしてある。交換は1枚ずつ即時ではなく、
@@ -250,8 +254,9 @@ export function Hand({ round }: { round: RoundState }) {
     if (!isMyTurn) return;
     if (riichiMode) {
       if (riichiTileIds.has(tileId)) {
-        humanRiichi(tileId);
+        humanRiichi(tileId, riichiBorrow ?? undefined);
         setRiichiMode(false);
+        setRiichiBorrow(null);
       }
       return;
     }
@@ -594,21 +599,42 @@ export function Hand({ round }: { round: RoundState }) {
                 必殺技: {character.skill.name}
               </button>
             )}
-            {borrowTargets.map(({ target, blockReason }) => {
-              const targetCharacter = CHARACTERS[round.characterIds[target]]!;
-              return (
+            {borrowTargets.length > 0 && (
+              // いきなり3人ぶんを横に並べると見にくいため、まず「借り物競争」の
+              // 1ボタンだけを出し、開くと3人を縦に並べる（.action-stackは下端基準
+              // なので、開いた分は上へ伸びて手牌には影響しない）。
+              <div className="borrow-group">
+                {borrowOpen && (
+                  <div className="borrow-group__list">
+                    {borrowTargets.map(({ target, blockReason }) => {
+                      const targetCharacter = CHARACTERS[round.characterIds[target]]!;
+                      return (
+                        <button
+                          key={target}
+                          className="btn btn--skill"
+                          disabled={blockReason !== null}
+                          onClick={() => {
+                            setBorrowOpen(false);
+                            humanBorrowSkill(target);
+                          }}
+                          title={targetCharacter.skill.description}
+                        >
+                          {targetCharacter.name}の「{targetCharacter.skill.name}」
+                          {blockReason !== null && <span className="btn__block-reason">{blockReason}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 <button
-                  key={target}
-                  className="btn btn--skill"
-                  disabled={blockReason !== null}
-                  onClick={() => humanBorrowSkill(target)}
-                  title={targetCharacter.skill.description}
+                  className={`btn btn--skill${borrowOpen ? " btn--skill-open" : ""}`}
+                  onClick={() => setBorrowOpen((v) => !v)}
+                  title={character?.skill.description}
                 >
-                  借り物: {targetCharacter.name}の「{targetCharacter.skill.name}」
-                  {blockReason !== null && <span className="btn__block-reason">{blockReason}</span>}
+                  必殺技: {character?.skill.name ?? "借り物競争"} {borrowOpen ? "▲" : "▼"}
                 </button>
-              );
-            })}
+              </div>
+            )}
             {retrieveReady && !retrieveActive && character && (
               <button className="btn btn--skill" onClick={() => startRetrieve()} title={character.skill.description}>
                 必殺技: {character.skill.name}
@@ -636,8 +662,35 @@ export function Hand({ round }: { round: RoundState }) {
                 リーチ{riichiAutoSkillName}
               </button>
             )}
+            {riichiMode && (turnOptions?.riichiBorrowTargets ?? []).length > 0 && (
+              // カリン: リーチ時に発動する技（アトミックリーチ・捲る運命等）は、
+              // リーチ宣言の時にここで借りる相手を選ぶ（再度押すと選択解除）。
+              <div className="borrow-group__list">
+                <span className="call-actions__hint">借り物競争で借りる技（切る牌を選ぶと発動）</span>
+                {(turnOptions?.riichiBorrowTargets ?? []).map((target) => {
+                  const c = CHARACTERS[round.characterIds[target]]!;
+                  return (
+                    <button
+                      key={target}
+                      className={`btn btn--skill${riichiBorrow === target ? " btn--skill-open" : ""}`}
+                      onClick={() => setRiichiBorrow(riichiBorrow === target ? null : target)}
+                      title={c.skill.description}
+                    >
+                      {riichiBorrow === target ? "✔ " : ""}
+                      {c.name}の「{c.skill.name}」
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {riichiMode && (
-              <button className="btn btn--skip" onClick={() => setRiichiMode(false)}>
+              <button
+                className="btn btn--skip"
+                onClick={() => {
+                  setRiichiMode(false);
+                  setRiichiBorrow(null);
+                }}
+              >
                 リーチ取消
               </button>
             )}

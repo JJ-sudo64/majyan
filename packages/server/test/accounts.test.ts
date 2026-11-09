@@ -8,6 +8,7 @@ import {
   DAILY_LOGIN_JADE,
   TERMS_VERSION,
   STARTING_JADE,
+  CARDS,
   formatTransferCode,
   type GachaRollResponse,
   type GuestAccountResponse,
@@ -230,7 +231,9 @@ describe("account HTTP API", () => {
     if (cardId) {
       const unit = withCard.units.find((u) => u.cardId === null)!;
       const equipped = (await (await post("/api/units/equip", { unitId: unit.unitId, cardId }, token)).json()) as MeResponse;
-      expect(equipped.units.find((u) => u.unitId === unit.unitId)?.cardId).toBe(cardId);
+      // パッシブはcardId枠、アクティブはcardId2枠に入る（ガチャで出るカードはランダムなので両方ありうる）。
+      const equippedUnit = equipped.units.find((u) => u.unitId === unit.unitId);
+      expect(CARDS[cardId]!.kind === "passive" ? equippedUnit?.cardId : equippedUnit?.cardId2).toBe(cardId);
       expect(equipped.cards[cardId] ?? 0).toBe(withCard.cards[cardId]! - 1);
       expect((await post("/api/units/equip", { unitId: unit.unitId, cardId }, token)).status).toBe(409);
     }

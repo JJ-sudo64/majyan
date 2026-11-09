@@ -109,13 +109,13 @@ export function CharacterPanel({
         <img className="character-panel__avatar" src={character?.avatar ?? `/avatars/seat${player}.svg`} alt="" />
       </div>
       <div className="character-panel__body">
-        {isSelf && onShowSkillInfo ? (
+        {onShowSkillInfo && character ? (
           <button
             type="button"
             className="character-panel__name character-panel__name--split character-panel__name--clickable"
             onClick={onShowSkillInfo}
           >
-            {splitCharacterName(character?.name ?? "あなた").map((line, i) => (
+            {splitCharacterName(character.name).map((line, i) => (
               <span
                 key={i}
                 className={`character-panel__name-line${line.length > LONG_NAME_LINE_THRESHOLD ? " character-panel__name-line--long" : ""}`}

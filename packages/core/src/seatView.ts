@@ -27,6 +27,7 @@ import { CHARACTERS } from "./characters.js";
 import {
   ankanOptions,
   borrowSkillBlockReason,
+  riichiBorrowTargets,
   canDeclareRon,
   canDeclareTsumo,
   canKyushuKyuhai,
@@ -167,6 +168,8 @@ export interface TurnOptions {
   /** カリンの「借り物競争」でゲージ満タンの時の相手一覧。今借りられない相手も
       理由付きで含める（黙って消すと不具合に見えるとの指摘により）。 */
   borrowTargets: { target: PlayerIndex; blockReason: string | null }[];
+  /** カリンがリーチ宣言の時に借りられる相手（リーチ時に発動する技を持つ席）。 */
+  riichiBorrowTargets: PlayerIndex[];
   /** ミオの「取り返し」が使えるか（ゲージ満タン・リーチ前・取り返せる牌がある）。 */
   retrieve: boolean;
   card: boolean;
@@ -199,6 +202,7 @@ export function computeTurnOptions(round: RoundState, seat: PlayerIndex): TurnOp
       character?.borrowsSkill && gaugeFull
         ? SEATS.filter((s) => s !== seat).map((target) => ({ target, blockReason: borrowSkillBlockReason(round, seat, target) }))
         : [],
+    riichiBorrowTargets: riichiOk ? riichiBorrowTargets(round, seat) : [],
     retrieve: !!character?.retrievesDiscard && !player.riichi && gaugeFull && reclaimableDiscardTileIds(round, seat).length > 0,
     card: canUseCard(round, seat),
   };
@@ -343,6 +347,7 @@ export function rotateSeatOptionsForViewer(options: SeatOptions, viewer: PlayerI
     turn: options.turn && {
       ...options.turn,
       borrowTargets: options.turn.borrowTargets.map((b) => ({ target: toViewerSeat(b.target, viewer), blockReason: b.blockReason })),
+      riichiBorrowTargets: options.turn.riichiBorrowTargets.map((t) => toViewerSeat(t, viewer)),
     },
     call: options.call,
     canSwapStartingTile: options.canSwapStartingTile,
@@ -353,5 +358,8 @@ export function rotateSeatOptionsForViewer(options: SeatOptions, viewer: PlayerI
 export function actionFromViewer(action: GameAction, viewer: PlayerIndex): GameAction {
   const player = fromViewerSeat(action.player, viewer);
   if (action.type === "borrowSkill") return { ...action, player, target: fromViewerSeat(action.target, viewer) };
+  if (action.type === "riichi" && action.borrowTarget !== undefined) {
+    return { ...action, player, borrowTarget: fromViewerSeat(action.borrowTarget, viewer) };
+  }
   return { ...action, player };
 }
