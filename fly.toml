@@ -1,0 +1,40 @@
+# Fly.io 用の設定。手順は README の「Fly.io に公開する」を参照。
+# app 名は世界で1つだけの名前にする必要があるので、`fly launch --no-deploy --copy-config` で
+# 空いている名前に書き換えてもらってよい。
+app = "majyan"
+primary_region = "nrt" # 東京
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8787"
+  NODE_ENV = "production"
+  # Fly のプロキシの後ろに置くので、接続元は X-Forwarded-For で判定する。
+  TRUST_PROXY = "1"
+  # ALLOWED_ORIGINS / PUBLIC_URL / ADMIN_TOKEN は URL・秘密の値なので、
+  # このファイルには書かず `fly secrets set` で入れる（README参照）。
+
+# DB（アカウント・雀玉・牌譜）と定期バックアップを置く場所。マシンを作り直しても消えない。
+[mounts]
+  source = "majyan_data"
+  destination = "/app/packages/server/data"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # 部屋・対局はサーバーのメモリ上にあるので、止まる・増えると対局が消える。常に1台だけ動かす。
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/healthz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

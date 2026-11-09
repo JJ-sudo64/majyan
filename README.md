@@ -57,6 +57,23 @@ docker run -p 8787:8787 -v majyan-data:/data -e DATABASE_PATH=/data/majyan.db -e
 アカウントはデータベースに残るが、部屋・対局はメモリ上だけにあるので、サーバーを再起動すると消える。
 HTTPS は前段（ホスティングサービスやリバースプロキシ）で終端する想定。
 
+### Fly.io に公開する
+
+リポジトリ直下の `fly.toml`（東京・512MB・DB用ボリューム付き）を使う。初回だけ:
+
+```
+fly auth login
+fly launch --no-deploy --copy-config      # app名が重なっていたら別の名前に書き換わる
+fly volumes create majyan_data --region nrt --size 1
+fly secrets set ALLOWED_ORIGINS=https://<app名>.fly.dev PUBLIC_URL=https://<app名>.fly.dev ADMIN_TOKEN=<長いランダム文字列>
+fly deploy
+```
+
+2回目以降の更新は `fly deploy` だけ。確認は `https://<app名>.fly.dev/healthz`。
+台数は1台のまま増やさない（部屋・対局がメモリ上にあり、台数が増えると別々の世界になるため）。
+独自ドメインを使う時は `fly certs add <ドメイン>` のあと、`ALLOWED_ORIGINS` と `PUBLIC_URL` を新しいURLに直す。
+Stripe（雀玉の販売）は、本物の鍵を入れるまで売られない。
+
 ## 実装済みのスコープ
 
 - 四人打ち、東風戦／半荘戦選択制
