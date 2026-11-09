@@ -32,6 +32,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/me/name {displayName} (Bearer)   → MeResponse            名前を変える
 //   GET  /api/me/transfer         (Bearer)     → TransferCodeResponse  引き継ぎコード（未設定ならnull）
 //   POST /api/me/transfer {password} (Bearer)  → TransferCodeResponse  引き継ぎのパスワードを決める（変える）
+//   POST /api/me/transfer/code (Bearer)        → TransferCodeResponse  引き継ぎコードを作り直す（古いコードは使えなくなる）
 //   POST /api/transfer {code, password}        → GuestAccountResponse  引き継ぎコードで別の端末から入る
 //   POST /api/first-gacha/roll    (Bearer)     → MeResponse            最初の10連を引く（確定するまで何度でも引き直せる）
 //   POST /api/first-gacha/confirm (Bearer)     → MeResponse            今の結果で確定してキャラを受け取る

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ACCOUNT_DELETE_CONFIRM, TRANSFER_PASSWORD_MAX_LENGTH, TRANSFER_PASSWORD_MIN_LENGTH, formatTransferCode } from "@majyan/core";
-import { deleteAccount, fetchTransferCode, loginWithTransfer, setTransferPassword, useAccountStore } from "../online/account.js";
+import { deleteAccount, fetchTransferCode, loginWithTransfer, regenerateTransferCode, setTransferPassword, useAccountStore } from "../online/account.js";
 
 /**
  * 引き継ぎ。今のアカウントに引き継ぎのパスワードを決める（コードはサーバーが作る）のと、
@@ -15,6 +15,7 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
   const [password2, setPassword2] = useState("");
   const [setupError, setSetupError] = useState<string | null>(null);
   const [justSet, setJustSet] = useState(false);
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [loginCode, setLoginCode] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -49,6 +50,21 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
       setPassword("");
       setPassword2("");
       setJustSet(true);
+    } catch (err) {
+      setSetupError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitRegenerate() {
+    if (busy) return;
+    setBusy(true);
+    setSetupError(null);
+    try {
+      setCode(await regenerateTransferCode());
+      setJustSet(true);
+      setConfirmRegenerate(false);
     } catch (err) {
       setSetupError((err as Error).message);
     } finally {
@@ -107,6 +123,29 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
             )}
             {code && justSet && (
               <p className="transfer-screen__note">コードとパスワードを、メモやスクリーンショットで控えておいてください。パスワードはあとから表示できません。</p>
+            )}
+            {code && (
+              <div className="transfer-screen__regenerate">
+                {!confirmRegenerate ? (
+                  <button type="button" className="btn btn--secondary" onClick={() => setConfirmRegenerate(true)}>
+                    コードを作り直す
+                  </button>
+                ) : (
+                  <>
+                    <p className="transfer-screen__note">
+                      新しいコードに変わり、今のコードはすぐ使えなくなります（パスワードはそのままです）。コードを他人に知られたかもしれない時に使ってください。すでにログインしている端末は、そのまま遊べます。
+                    </p>
+                    <div className="setup-buttons">
+                      <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void submitRegenerate()}>
+                        {busy ? "作り直しています…" : "作り直す"}
+                      </button>
+                      <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => setConfirmRegenerate(false)}>
+                        やめる
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
             {code !== undefined && (
               <div className="online-lobby__form">

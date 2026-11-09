@@ -349,6 +349,14 @@ export function createApiHandler(options: HttpApiOptions) {
           sendJson(res, 200, { code } satisfies TransferCodeResponse);
           return true;
         }
+        case "POST /me/transfer/code": {
+          const profile = authed(req, res);
+          if (!profile) return true;
+          const code = accounts.regenerateTransferCode(profile.id);
+          if (!code) return fail(res, 409, "先に引き継ぎのパスワードを決めてください"), true;
+          sendJson(res, 200, { code } satisfies TransferCodeResponse);
+          return true;
+        }
         case "POST /transfer": {
           const ip = clientIp(req);
           if (!underHourlyLimit(transferFailures, ip, transferFailureLimit, false)) {

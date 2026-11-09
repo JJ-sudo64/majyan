@@ -105,6 +105,23 @@ describe("transfer code", () => {
     expect(accounts.setTransferPassword(accounts.createGuest("B").profile.id, "password1")).not.toBe(code);
   });
 
+  it("regenerates only the code: the old code stops working, the password and sessions stay", () => {
+    const accounts = new AccountService(openDatabase(":memory:"));
+    const { profile, token } = accounts.createGuest("A");
+    // パスワードをまだ決めていなければ作り直せない。
+    expect(accounts.regenerateTransferCode(profile.id)).toBeNull();
+    const oldCode = accounts.setTransferPassword(profile.id, "password1");
+    const newCode = accounts.regenerateTransferCode(profile.id)!;
+    expect(newCode).toMatch(/^[A-HJKMNP-Z2-9]{12}$/);
+    expect(newCode).not.toBe(oldCode);
+    expect(accounts.transferCode(profile.id)).toBe(newCode);
+    expect(accounts.loginWithTransfer(oldCode, "password1")).toBeNull();
+    expect(accounts.loginWithTransfer(newCode, "password1")?.profile.id).toBe(profile.id);
+    // すでにログインしている端末はそのまま。パスワードを変えても新しいコードのまま。
+    expect(accounts.authenticate(token)).toEqual(profile);
+    expect(accounts.setTransferPassword(profile.id, "another-pass")).toBe(newCode);
+  });
+
   it("serves the transfer API and stops guessing after repeated failures", async () => {
     const db = openDatabase(":memory:");
     const accounts = new AccountService(db);
@@ -147,6 +164,13 @@ describe("transfer code", () => {
       for (let i = 0; i < 3; i++) statuses.push((await post("/api/transfer", { code, password: `wrong-${i}-pass` })).status);
       expect(statuses).toEqual([401, 401, 401]);
       expect((await post("/api/transfer", { code, password: "password1" })).status).toBe(429);
+
+      // コードの作り直し: ログインが必要・パスワード未設定なら409・設定済みなら新しいコードが返る。
+      expect((await post("/api/me/transfer/code", {})).status).toBe(401);
+      expect((await post("/api/me/transfer/code", {}, accounts.createGuest("C").token)).status).toBe(409);
+      const regenerated = (await (await post("/api/me/transfer/code", {}, token)).json()) as TransferCodeResponse;
+      expect(regenerated.code).not.toBe(code);
+      expect(regenerated.code).toBe(accounts.transferCode(profile.id));
     } finally {
       await new Promise<void>((r) => server.close(() => r()));
     }

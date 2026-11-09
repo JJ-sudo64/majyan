@@ -5658,6 +5658,17 @@ body:has(.character-panel--bottom .character-panel__player) .hand-top-status {
   color: #ffd27a;
   text-align: center;
 }
+/* 引き継ぎコードを作り直すボタン（と、押した後の確認）。下のパスワード欄との間を空ける。 */
+.transfer-screen__regenerate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 14px;
+}
+.transfer-screen__regenerate .setup-buttons {
+  justify-content: center;
+}
 
 /* 開発用のアカウント操作（DevAccountTools） */
 .dev-account-tools {

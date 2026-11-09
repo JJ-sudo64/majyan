@@ -161,6 +161,21 @@ export class AccountService {
   }
 
   /**
+   * 引き継ぎコードだけを新しく作り直す（パスワードはそのまま）。古いコードはその場で使えなくなる。
+   * コードを他人に知られたかもしれない時のため。まだ引き継ぎのパスワードを決めていなければ null。
+   * すでにログインしている端末（鍵）には影響しない。
+   */
+  regenerateTransferCode(userId: string): string | null {
+    return transaction(this.db, () => {
+      if (!this.transferCode(userId)) return null;
+      let code = newTransferCode();
+      while (this.db.prepare("SELECT 1 FROM transfer_credentials WHERE code = ?").get(code)) code = newTransferCode();
+      this.db.prepare("UPDATE transfer_credentials SET code = ?, updated_at = ? WHERE user_id = ?").run(code, this.now(), userId);
+      return code;
+    });
+  }
+
+  /**
    * 引き継ぎコードとパスワードでアカウントに入り、この端末用の鍵を発行する。
    * 違っていればnull（コードとパスワードのどちらが違うかは教えない）。
    * 元の端末の鍵はそのまま使える（両方の端末で遊べる）。

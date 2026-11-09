@@ -410,6 +410,13 @@ export async function setTransferPassword(password: string): Promise<string> {
   return code;
 }
 
+/** 引き継ぎコードを作り直して、新しいコードを返す（古いコードはその場で使えなくなる）。失敗したら例外。 */
+export async function regenerateTransferCode(): Promise<string> {
+  const { code } = await api<TransferCodeResponse>("/me/transfer/code", { method: "POST", body: "{}" });
+  if (!code) throw new Error("引き継ぎコードを作り直せませんでした");
+  return code;
+}
+
 /**
  * 引き継ぎコードとパスワードでアカウントに入る。このブラウザに今のアカウントが
  * あれば、それとは入れ替わる（今のアカウントの鍵は消える）。失敗したら例外。
