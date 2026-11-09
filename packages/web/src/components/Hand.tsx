@@ -408,7 +408,17 @@ export function Hand({ round }: { round: RoundState }) {
   // 手牌下の待ち表示にそのまま添える。coreHandが13枚相当に正規化できていない
   // 間はこちらも計算せず、待ち表示ごと隠す。
   const actualWaitingTiles = isResolvedCoreHand ? (previewHand ? getWaitingTiles(coreHand) : waitingTiles) : [];
-  const furiten = actualWaitingTiles.length > 0 && isFuriten({ ...player, hand: coreHand });
+  // ただし「○切りなら」と待ちを切り替えて見せている間は、フリテンもその牌を切った場合で見せる
+  // （切る牌が待ちに入っていれば、その牌を河に置いた時点でフリテンになる）。
+  // 待ちだけ切り替えてフリテンはツモ切りの手のままだと、表示が食い違う。
+  const furiten = previewHand && hoveredCandidate
+    ? waitingTiles.length > 0 &&
+      isFuriten({
+        ...player,
+        hand: previewHand,
+        discards: [...player.discards, { tile: hoveredCandidate, calledAway: false, isRiichiDeclaration: false, isTsumogiri: false }],
+      })
+    : actualWaitingTiles.length > 0 && isFuriten({ ...player, hand: coreHand });
 
   // キャラ表示・必殺技ゲージはCharacterPanel.tsx（卓の外の独立レイヤー）へ
   // 移設したため、ここに残る状態表示（未来視・待ち・カード・ベタ降り）を
