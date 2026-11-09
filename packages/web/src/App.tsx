@@ -32,10 +32,12 @@ export default function App() {
         <Stage>
           <Table />
           <OnlineStampBubbles />
+          {/* 秒読みとスタンプのボタンも卓のキャンバスの中に置く（ウィンドウの隅に固定すると、
+              画面の大きさ・比率によって卓との位置関係が変わり、大きさも縮まない）。 */}
+          {online && !spectating && <OnlineTurnTimer />}
+          {!replaying && <OnlineStamps canSend={!spectating} />}
         </Stage>
-        {online && !spectating && <OnlineTurnTimer />}
         {online && !spectating && <OnlineConnectionOverlay />}
-        {!replaying && <OnlineStamps canSend={!spectating} />}
         {spectating && <SpectatorBanner />}
         {replaying && <ReplayControls />}
       </>

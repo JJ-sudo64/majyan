@@ -5170,7 +5170,7 @@ body:has(.character-panel--bottom .character-panel__player) .hand-top-status {
 .character-panel--right .character-panel__player,
 .character-panel--top .character-panel__player { justify-content: center; }
 .online-turn-timer {
-  position: fixed;
+  position: absolute; /* 卓のキャンバス（.stage__canvas）の右下 */
   right: 16px;
   bottom: 16px;
   z-index: 900;
@@ -6377,7 +6377,7 @@ button.dev-account-tools__toggle.dev-account-tools {
 
 /* ---- ネット対戦のスタンプ ---- */
 .online-stamps {
-  position: fixed;
+  position: absolute; /* 卓のキャンバス（.stage__canvas）の右下 */
   right: 16px;
   bottom: 92px;
   z-index: 900;
