@@ -119,12 +119,17 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
           <button type="button" className="oh-ghost setup-tutorial-btn" onClick={startTutorial}>
             チュートリアル
           </button>
-          <a className="oh-ghost" href="?cutin-gallery" target="_blank" rel="noreferrer">
-            カットイン一覧
-          </a>
-          <a className="oh-ghost" href="?quote-gallery" target="_blank" rel="noreferrer">
-            勝利台詞一覧
-          </a>
+          {/* 確認用ページへのリンクは開発者用。本番のビルドには出さない。 */}
+          {import.meta.env.DEV && (
+            <>
+              <a className="oh-ghost" href="?cutin-gallery" target="_blank" rel="noreferrer">
+                カットイン一覧
+              </a>
+              <a className="oh-ghost" href="?quote-gallery" target="_blank" rel="noreferrer">
+                勝利台詞一覧
+              </a>
+            </>
+          )}
           <a className="oh-ghost" href="/about/" target="_blank" rel="noreferrer">
             公式サイト
           </a>
@@ -245,10 +250,13 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
               <input type="checkbox" checked={continueBelowZero} onChange={(e) => setContinueBelowZero(e.target.checked)} />
               箱下続行（オフだと、誰かが0点未満になった時点で終了）
             </label>
-            <label className="setup-debug-toggle">
-              <input type="checkbox" checked={debugMode} onChange={(e) => setDebugMode(e.target.checked)} />
-              デバッグモード（CPUは和了しない・早送り・巻き戻し可能）
-            </label>
+            {/* 開発者用。本番のビルドには出さない（import.meta.env.DEVは開発サーバーでだけtrue）。 */}
+            {import.meta.env.DEV && (
+              <label className="setup-debug-toggle">
+                <input type="checkbox" checked={debugMode} onChange={(e) => setDebugMode(e.target.checked)} />
+                デバッグモード（CPUは和了しない・早送り・巻き戻し可能）
+              </label>
+            )}
           </div>
         </section>
       </main>

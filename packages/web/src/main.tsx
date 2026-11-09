@@ -13,11 +13,12 @@ if (params.has("admin")) {
   import("./components/AdminPage.js").then(({ AdminPage }) => {
     ReactDOM.createRoot(document.getElementById("root")!).render(<AdminPage />);
   });
-} else if (params.has("quote-gallery")) {
+} else if (import.meta.env.DEV && params.has("quote-gallery")) {
+  // 確認用のページ（開発サーバーでだけ開ける。本番では通常のゲームが開く）。
   import("./components/QuoteGallery.js").then(({ QuoteGallery }) => {
     ReactDOM.createRoot(document.getElementById("root")!).render(<QuoteGallery />);
   });
-} else if (params.has("cutin-gallery") || params.has("cutin-frame")) {
+} else if (import.meta.env.DEV && (params.has("cutin-gallery") || params.has("cutin-frame"))) {
   import("./components/CutinGallery.js").then(({ CutinGallery, CutinFrame }) => {
     const frameCharacter = params.get("cutin-frame");
     ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -147,6 +147,10 @@ export function SettingsPanel() {
                 立体牌{tile3dEnabled ? " ON" : " OFF"}
               </button>
             </div>
+            {/* ここから「背景の調整」までは開発者用の調整項目。本番のビルドには出さない
+                （import.meta.env.DEVは、開発サーバーでだけtrue）。 */}
+            {import.meta.env.DEV && (
+            <>
             {/* 立体牌(Tile3D)の調整パネルは、スライダーの数が多く常時
                 画面に出しておくと邪魔になる・左下固定だと上家の手牌が
                 隠れるとの指摘のため、この設定メニューから開くモーダルに
@@ -314,6 +318,8 @@ export function SettingsPanel() {
                 背景の調整
               </button>
             </div>
+            </>
+            )}
             {/* 卓面背景画像そのものの切り替え。今後も背景素材を追加していく
                 想定のため、選択肢はtableBackgroundStore.tsのリストに追加
                 するだけで増やせる。切り替えた直後だけ「元に戻す」で
