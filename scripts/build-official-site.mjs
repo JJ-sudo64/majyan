@@ -13,6 +13,7 @@
  *   2. ページが実際に使う画像・動画だけを public/ から集めて並べる（使わない素材は載せない）。
  *   3. robots.txt と sitemap.xml、キャッシュの指定（_headers）を作る。
  */
+import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,6 +24,10 @@ const out = join(root, "official-site");
 const SITE_URL = (process.env.SITE_URL ?? "https://janshin.maxplantlabs.com").replace(/\/$/, "");
 const GAME_URL = (process.env.GAME_URL ?? "https://play-janshin.maxplantlabs.com").replace(/\/$/, "");
 const MAX_FILE_BYTES = 25 * 1024 * 1024; // Cloudflare Pages は1ファイル25MBまで
+
+// 先に、ページに埋め込んであるゲームのデータ（キャラ・カード・段位）をいまのゲームに合わせる。
+const sync = spawnSync(process.execPath, [join(root, "scripts/sync-official-page.mjs")], { stdio: "inherit" });
+if (sync.status !== 0) throw new Error("scripts/sync-official-page.mjs が失敗しました（先に npm run build -w @majyan/core が必要です）");
 
 const src = readFileSync(join(pub, "about/index.html"), "utf8");
 
