@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, SHOP_RETURN_PARAM, suspensionMessage, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
-import { createGuestAccount, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
+import { createGuestAccount, fetchTransferCode, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
 import { GachaScreen } from "./GachaScreen.js";
 import { UnitsScreen } from "./UnitsScreen.js";
@@ -138,6 +138,25 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     // 段位戦の後に戻ってきた時などに段位を最新にするため、開くたびに読み直す。
     void loadAccount();
   }, []);
+
+  // 引き継ぎのパスワードをまだ決めていないか（決めていないと、ブラウザのデータが消えた時にアカウントへ戻れない）。
+  // 引き継ぎ画面を閉じるたびに読み直す。読めない時は注意書きを出さない（null）。
+  const [needsBackupNotice, setNeedsBackupNotice] = useState<boolean | null>(null);
+  const [backupNoticeLater, setBackupNoticeLater] = useState(false);
+  useEffect(() => {
+    if (accountStatus !== "ready" || !profile || showTransfer) return;
+    let cancelled = false;
+    fetchTransferCode()
+      .then((code) => {
+        if (!cancelled) setNeedsBackupNotice(code === null);
+      })
+      .catch(() => {
+        if (!cancelled) setNeedsBackupNotice(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accountStatus, profile?.id, showTransfer]);
 
   useEffect(() => {
     // 覚えていたキャラが手持ちに無い時（別のアカウントに替えた等）はおまかせに戻す。
@@ -535,6 +554,22 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {dailyBonusNotice !== null && (
             <div className="online-lobby__notice" onClick={() => useAccountStore.setState({ dailyBonusNotice: null })}>
               ログインボーナス：雀玉 {dailyBonusNotice} を受け取りました（タップで閉じる）
+            </div>
+          )}
+          {needsBackupNotice && !backupNoticeLater && !needsFirstGacha && (
+            <div className="online-lobby__backup-notice">
+              <p>
+                <strong>引き継ぎコードを作って、控えておいてください。</strong>
+                ブラウザのデータを消した時や、端末を替えた時に、コードがないとこのアカウント（雀玉・キャラ・段位）に戻れなくなります。
+              </p>
+              <div className="online-lobby__backup-notice-buttons">
+                <button type="button" className="oh-cta" onClick={() => setShowTransfer(true)}>
+                  コードを作る
+                </button>
+                <button type="button" className="oh-ghost" onClick={() => setBackupNoticeLater(true)}>
+                  あとで
+                </button>
+              </div>
             </div>
           )}
 

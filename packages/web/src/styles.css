@@ -5341,6 +5341,27 @@ body:has(.character-panel--bottom .character-panel__player) .hand-top-status {
   font-size: 14px;
   cursor: pointer;
 }
+/* 引き継ぎコードをまだ作っていない人への注意書き（OnlineLobby）。 */
+.online-lobby__backup-notice {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 210, 122, 0.6);
+  background: linear-gradient(90deg, rgba(90, 64, 12, 0.85), rgba(56, 40, 10, 0.8));
+  font-size: 13px;
+  line-height: 1.5;
+}
+.online-lobby__backup-notice p {
+  margin: 0 0 8px;
+}
+.online-lobby__backup-notice strong {
+  display: block;
+  color: #ffd27a;
+  font-size: 14px;
+}
+.online-lobby__backup-notice-buttons {
+  display: flex;
+  gap: 8px;
+}
 .gacha-screen {
   display: flex;
   flex-direction: column;
