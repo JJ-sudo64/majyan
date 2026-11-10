@@ -280,25 +280,19 @@ const initialSide2dHandSlots = (): Record<Side2dSeat, Side2dSlotConfig[]> => {
 /** 下家・上家の2D表示での副露1個ごとの個別位置（1〜4番目、並び順だけで決まる）。
     副露全体の位置(side2dMeldSlot)に重ねて足される。toimenMeldEachIndexの番号(8個)は
     ポン用・カン用に同じ値を入れる。 */
-const SIDE2D_MELD_EACH_BY_ORDER: Record<Side2dSeat, Side2dSlotConfig[]> = {
+const SIDE2D_MELD_EACH: Record<Side2dSeat, Side2dSlotConfig[]> = {
+  // 偶数番=ポン、奇数番=カン（toimenMeldEachIndex: 並び順*2 + カンなら1）
   shimocha: [
-    { offsetX: -1, offsetY: 5, scale: 1, rotate: 0 },
-    { offsetX: 1, offsetY: 16, scale: 1, rotate: 0 },
-    { offsetX: 6, offsetY: 2, scale: 1, rotate: 0 },
-    { offsetX: 10, offsetY: 15, scale: 1, rotate: 0 },
-  ],
+    [-1, 5], [0, 0], [1, 16], [0, 0], [6, 2], [0, 0], [10, 15], [0, 0],
+  ].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY!, scale: 1, rotate: 0 })),
   kamicha: [
-    { offsetX: 43, offsetY: -53, scale: 1, rotate: 0 },
-    { offsetX: 37, offsetY: -39, scale: 1, rotate: 0 },
-    { offsetX: 47, offsetY: -49, scale: 1, rotate: 0 },
-    { offsetX: 45, offsetY: -38, scale: 1, rotate: 0 },
-  ],
+    [43, -53], [-16, -16], [37, -39], [119, -62], [47, -49], [116, -17], [45, -38], [237, -48],
+  ].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY!, scale: 1, rotate: 0 })),
 };
-const initialSide2dMeldEach = (): Record<Side2dSeat, Side2dSlotConfig[]> => {
-  const build = (seat: Side2dSeat): Side2dSlotConfig[] =>
-    Array.from({ length: TOIMEN_MELD_EACH_COUNT }, (_, i) => ({ ...SIDE2D_MELD_EACH_BY_ORDER[seat][Math.floor(i / 2)]! }));
-  return { shimocha: build("shimocha"), kamicha: build("kamicha") };
-};
+const initialSide2dMeldEach = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
+  shimocha: SIDE2D_MELD_EACH.shimocha.map((v) => ({ ...v })),
+  kamicha: SIDE2D_MELD_EACH.kamicha.map((v) => ({ ...v })),
+});
 const initialSide2dMeldSlot = (): Record<Side2dSeat, Side2dSlotConfig> => ({
   shimocha: { ...INITIAL_SIDE2D_SLOT },
   kamicha: { offsetX: -42, offsetY: -85, scale: 1, rotate: 3 },

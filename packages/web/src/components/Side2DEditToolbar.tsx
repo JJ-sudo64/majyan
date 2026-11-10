@@ -32,7 +32,7 @@ export function Side2DEditToolbar() {
   const active = isHand ? handSlots[seat][toimenHandSlotIndex(meldCount, 0)]! : meldSlots[seat];
   const setActive = isHand ? setHandSlot : setMeldSlot;
   const resetActive = isHand ? resetHandSlot : resetMeldSlot;
-  const eachIndex = toimenMeldEachIndex(activeMeld, false);
+  const eachIndex = toimenMeldEachIndex(activeMeld, ankanSlots[activeMeld] ?? false);
   const each = meldEach[seat][eachIndex]!;
   const seatName = seat === "shimocha" ? "下家" : "上家";
 
