@@ -746,14 +746,14 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
         set((state) => {
           const seat = state.side2dEditSeat;
           if (!seat) return {};
-          const at = toimenHandSlotIndex(state.side2dEditMeldCount, state.side2dEditAnkanSlots.slice(0, state.side2dEditMeldCount).filter(Boolean).length);
+          const at = toimenHandSlotIndex(state.side2dEditMeldCount, 0);
           return { side2dHandSlots: { ...state.side2dHandSlots, [seat]: state.side2dHandSlots[seat].map((slot, i) => (i === at ? { ...slot, ...patch } : slot)) } };
         }),
       resetSide2dHandSlot: () =>
         set((state) => {
           const seat = state.side2dEditSeat;
           if (!seat) return {};
-          const at = toimenHandSlotIndex(state.side2dEditMeldCount, state.side2dEditAnkanSlots.slice(0, state.side2dEditMeldCount).filter(Boolean).length);
+          const at = toimenHandSlotIndex(state.side2dEditMeldCount, 0);
           return { side2dHandSlots: { ...state.side2dHandSlots, [seat]: state.side2dHandSlots[seat].map((slot, i) => (i === at ? { ...INITIAL_SIDE2D_SLOT } : slot)) } };
         }),
       setSide2dMeldSlot: (patch) =>

@@ -29,8 +29,7 @@ export function Side2DEditToolbar() {
 
   if (!seat) return null;
   const isHand = target === "hand";
-  const kanCount = ankanSlots.slice(0, meldCount).filter(Boolean).length;
-  const active = isHand ? handSlots[seat][toimenHandSlotIndex(meldCount, kanCount)]! : meldSlots[seat];
+  const active = isHand ? handSlots[seat][toimenHandSlotIndex(meldCount, 0)]! : meldSlots[seat];
   const setActive = isHand ? setHandSlot : setMeldSlot;
   const resetActive = isHand ? resetHandSlot : resetMeldSlot;
   const eachIndex = toimenMeldEachIndex(activeMeld, ankanSlots[activeMeld] ?? false);
@@ -54,7 +53,7 @@ export function Side2DEditToolbar() {
           副露
         </button>
       </div>
-      <div className="meld-edit-toolbar__row" role="group" aria-label="鳴いた副露の数（手牌の枚数と副露の仮表示が連動し、手牌の位置はこの副露数ごとに保存される）">
+      <div className="meld-edit-toolbar__row" role="group" aria-label="鳴いた副露の数（手牌の位置は副露の数ごとに保存。ポン/カンの違いでは変わらない）">
         {[0, 1, 2, 3, 4].map((n) => (
           <button
             key={n}
@@ -66,9 +65,9 @@ export function Side2DEditToolbar() {
           </button>
         ))}
       </div>
-      {(!isHand || meldCount > 0) && (
-        <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類（押すとポン/暗槓が切り替わる。手牌の位置は暗槓の数ごとに保存される）">
-          {ankanSlots.slice(0, isHand ? meldCount : ankanSlots.length).map((isAnkan, i) => (
+      {!isHand && (
+        <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類（押すとポン/暗槓が切り替わる）">
+          {ankanSlots.map((isAnkan, i) => (
             <button
               key={i}
               type="button"

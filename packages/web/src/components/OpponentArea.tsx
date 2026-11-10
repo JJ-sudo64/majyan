@@ -510,7 +510,7 @@ export function OpponentArea({
       ? edit2dAnkanSlots.slice(0, toimenPreviewMeldCount).filter(Boolean).length
       : round.players[player].hand.melds.filter((m) => m.tiles.length === 4).length;
   const hand2dSlots = player === 2 || !side2dKey ? toimenHandSlots : side2dHandSlots[side2dKey];
-  const toimenHandSlot = hand2dSlots[toimenHandSlotIndex(toimenSlotMelds, toimenSlotKans)]!;
+  const toimenHandSlot = hand2dSlots[toimenHandSlotIndex(toimenSlotMelds, player === 2 ? toimenSlotKans : 0)]!;
   const toimenMeldSlot = player === 2 || !side2dKey ? toimenMeldSlotStore : side2dMeldSlots[side2dKey];
   // 副露配置編集モード(下家・上家)中も、仮表示する副露の数ぶん手牌を短くして、
   // 副露した状態で手牌がどう見えるかを一緒に確かめられるようにする。
