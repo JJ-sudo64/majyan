@@ -165,35 +165,35 @@ export interface ToimenSlotConfig {
  */
 /** 下家の副露4スロット（配列index=副露の順番）。 */
 const INITIAL_MELD_SLOTS: MeldSlotConfig[] = [
-  { offsetX: 731, offsetY: -75, rotate: -12 },
-  { offsetX: 689, offsetY: -122, rotate: -12 },
-  { offsetX: 534, offsetY: -46, rotate: -11 },
-  { offsetX: 494, offsetY: -92, rotate: -12 },
+  { offsetX: 731, offsetY: -72, rotate: -12 },
+  { offsetX: 689, offsetY: -116, rotate: -12 },
+  { offsetX: 535, offsetY: -45, rotate: -11 },
+  { offsetX: 496, offsetY: -90, rotate: -12 },
 ];
 /** 下家の手牌列、副露0〜4個の各状態。 */
 const INITIAL_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
   { offsetX: 26, offsetY: 4, rotate: -3 },
   { offsetX: 37, offsetY: 64, rotate: -3 },
-  { offsetX: 34, offsetY: 30, rotate: -3 },
-  { offsetX: 43, offsetY: 91, rotate: -3 },
-  { offsetX: 43, offsetY: 91, rotate: -3 },
-  { offsetX: 41, offsetY: 52, rotate: -3 },
+  { offsetX: 35, offsetY: 62, rotate: -3 },
+  { offsetX: 46, offsetY: 87, rotate: -3 },
+  { offsetX: 45, offsetY: 91, rotate: -3 },
+  { offsetX: 42, offsetY: 88, rotate: -3 },
+  { offsetX: 51, offsetY: 111, rotate: -3 },
+  { offsetX: 52, offsetY: 112, rotate: -3 },
   { offsetX: 52, offsetY: 116, rotate: -3 },
-  { offsetX: 52, offsetY: 116, rotate: -3 },
-  { offsetX: 52, offsetY: 116, rotate: -3 },
-  { offsetX: 50, offsetY: 78, rotate: -3 },
-  { offsetX: 61, offsetY: 146, rotate: -3 },
-  { offsetX: 61, offsetY: 146, rotate: -3 },
-  { offsetX: 61, offsetY: 146, rotate: -3 },
-  { offsetX: 52, offsetY: 102, rotate: -3 },
-  { offsetX: 61, offsetY: 146, rotate: -3 },
+  { offsetX: 47, offsetY: 109, rotate: -3 },
+  { offsetX: 57, offsetY: 132, rotate: -3 },
+  { offsetX: 59, offsetY: 130, rotate: -3 },
+  { offsetX: 60, offsetY: 129, rotate: -3 },
+  { offsetX: 54, offsetY: 130, rotate: -3 },
+  { offsetX: 59, offsetY: 134, rotate: -3 },
 ];
 /** 上家の副露4スロット。 */
 const INITIAL_KAMICHA_MELD_SLOTS: MeldSlotConfig[] = [
-  { offsetX: -59, offsetY: 54, rotate: 9 },
-  { offsetX: -16, offsetY: 9, rotate: 9 },
-  { offsetX: -138, offsetY: 27, rotate: 10 },
-  { offsetX: -97, offsetY: -17, rotate: 10 },
+  { offsetX: -114, offsetY: 51, rotate: 12 },
+  { offsetX: -72, offsetY: 6, rotate: 12 },
+  { offsetX: -190, offsetY: 22, rotate: 12 },
+  { offsetX: -147, offsetY: -23, rotate: 12 },
 ];
 /** 上家の手牌列、副露0〜4個の各状態。 */
 const INITIAL_KAMICHA_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
@@ -355,7 +355,7 @@ const INITIAL_KAMICHA_SCALARS = {
   kamichaThickness: 16,
   kamichaWhiteWidth: 11.6,
   kamichaAspectX: 1.3,
-  kamichaAspectY: 1.55,
+  kamichaAspectY: 1.3,
   kamichaSpacing: -30,
   kamichaFanOffsetX: 0,
   kamichaFrontIsLast: true,
