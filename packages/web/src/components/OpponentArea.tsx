@@ -429,7 +429,8 @@ export function OpponentArea({
   const handleToimenMeldEachPointerDown = (slot: number, isKan: boolean) => (e: ReactPointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
-    const key = toimenMeldEachIndex(slot, isKan);
+    // 下家・上家は、ポンが加槓でカンになっても位置が飛ばないよう、種類に関わらず並び順だけで決める。
+    const key = toimenMeldEachIndex(slot, player === 2 ? isKan : false);
     const current = (player === 2 ? toimenMeldEach[key] : side2dKey ? side2dMeldEachAll[side2dKey][key] : undefined) ?? { offsetX: 0, offsetY: 0 };
     if (player === 2) setToimenEditActiveMeld(Math.min(slot, MELD_SLOT_COUNT - 1));
     else setSide2dEditActiveMeld(Math.min(slot, MELD_SLOT_COUNT - 1));
@@ -1232,7 +1233,7 @@ export function OpponentArea({
                 // 2D(立体牌OFF)でも土台は3D用の初期位置と同じ（卓の上に収まる位置）にし、
                 // 2D用の個別値(eachForSlot)をその上に足す。
                 const slotConfig: MeldSlotConfig | undefined = floatMeldSeat ? tile3dMeldSlots[Math.min(i, tile3dMeldSlots.length - 1)] : undefined;
-                const eachForSlot = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, m.tiles.length === 4)] : undefined;
+                const eachForSlot = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, false)] : undefined;
                 // 自然な(ユーザーがドラッグする前の)位置は、flexの自動配置
                 // ではなくposition:absoluteの明示的なleftで指定する
                 // （固定値MELD_NATURAL_STEPのみに依存し、実際の副露の
@@ -1284,7 +1285,7 @@ export function OpponentArea({
                     : "";
                 // 対面の副露1個ごとの個別位置（副露全体の位置に重ねて足される）。
                 const toimenEach = player === 2 ? toimenMeldEach[toimenMeldEachIndex(i, isKan)] : undefined;
-                const side2dEach = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, isKan)] : undefined;
+                const side2dEach = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, false)] : undefined;
                 const eachStyle: CSSProperties | undefined = toimenEach
                   ? { transform: `translate(${toimenEach.offsetX}px, ${toimenEach.offsetY}px)` }
                   : side2dEach
