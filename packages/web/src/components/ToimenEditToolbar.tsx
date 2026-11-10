@@ -1,4 +1,5 @@
-import { toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { TOIMEN_MELD_EACH_COUNT, kakanKeyOf, slotAtKey, toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { applyMeldKind, MELD_KIND_LABEL, meldKindOf, nextMeldKind } from "../meldKind.js";
 
 /**
  * 対面(player2)の手牌・副露の位置・大きさを、実際の卓の上で直接ドラッグ
@@ -20,17 +21,23 @@ export function ToimenEditToolbar() {
   const meldCount = useTile3DDebugStore((s) => s.toimenEditMeldCount);
   const setMeldCount = useTile3DDebugStore((s) => s.setToimenEditMeldCount);
   const meldEach = useTile3DDebugStore((s) => s.toimenMeldEach);
+  const kakanEach = useTile3DDebugStore((s) => s.toimenKakanEach);
   const setMeldEach = useTile3DDebugStore((s) => s.setToimenMeldEach);
   const resetMeldEach = useTile3DDebugStore((s) => s.resetToimenMeldEach);
   const activeMeld = useTile3DDebugStore((s) => s.toimenEditActiveMeld);
   const setActiveMeld = useTile3DDebugStore((s) => s.setToimenEditActiveMeld);
   const ankanSlots = useTile3DDebugStore((s) => s.toimenEditAnkanSlots);
   const setAnkanSlot = useTile3DDebugStore((s) => s.setToimenEditAnkanSlot);
+  const kakanSlots = useTile3DDebugStore((s) => s.editKakanSlots);
+  const setKakanSlot = useTile3DDebugStore((s) => s.setEditKakanSlot);
 
   if (!target) return null;
   const isHand = target === "hand";
-  const kanCount = ankanSlots.slice(0, meldCount).filter(Boolean).length;
-  const eachIndex = toimenMeldEachIndex(activeMeld, !!ankanSlots[activeMeld]);
+  const kanCount = ankanSlots.slice(0, meldCount).filter((on, i) => on || kakanSlots[i]).length;
+  // 選んでいる副露が加槓の仮表示なら、加槓専用の位置を編集する。
+  const isKakanActive = !ankanSlots[activeMeld] && !!kakanSlots[activeMeld];
+  const eachIndex = isKakanActive ? kakanKeyOf(TOIMEN_MELD_EACH_COUNT, activeMeld) : toimenMeldEachIndex(activeMeld, !!ankanSlots[activeMeld]);
+  const eachCfg = slotAtKey(meldEach, kakanEach, eachIndex) ?? { offsetX: 0, offsetY: 0 };
   const handSlot = handSlots[toimenHandSlotIndex(meldCount, 0)]!;
   const active = isHand ? handSlot : meldSlot;
   const setActive = isHand ? setHandSlot : setMeldSlot;
@@ -66,17 +73,20 @@ export function ToimenEditToolbar() {
         ))}
       </div>
       {(!isHand || meldCount > 0) && (
-        <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類（押すとポン/暗槓が切り替わる。手牌の位置は暗槓の数ごとに保存される）">
-          {ankanSlots.slice(0, isHand ? meldCount : ankanSlots.length).map((isAnkan, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`tile3d-debug-panel__btn${isAnkan ? " tile3d-debug-panel__btn--active" : ""}`}
-              onClick={() => setAnkanSlot(i, !isAnkan)}
-            >
-              副露{i + 1}: {isAnkan ? "暗槓" : "ポン"}
-            </button>
-          ))}
+        <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類（押すとポン→暗槓→加槓の順に切り替わる。加槓は見え方の確認だけで、位置はポンのまま）">
+          {ankanSlots.slice(0, isHand ? meldCount : ankanSlots.length).map((isAnkan, i) => {
+            const kind = meldKindOf(isAnkan, kakanSlots[i]);
+            return (
+              <button
+                key={i}
+                type="button"
+                className={`tile3d-debug-panel__btn${kind !== "pon" ? " tile3d-debug-panel__btn--active" : ""}`}
+                onClick={() => applyMeldKind(nextMeldKind(kind), i, setAnkanSlot, setKakanSlot)}
+              >
+                副露{i + 1}: {MELD_KIND_LABEL[kind]}
+              </button>
+            );
+          })}
         </div>
       )}
       <label className="meld-edit-toolbar__row meld-edit-toolbar__row--rotate">
@@ -94,7 +104,7 @@ export function ToimenEditToolbar() {
       {!isHand && (
         <>
           <div className="meld-edit-toolbar__hint">
-            卓上の副露そのものをドラッグすると、その副露だけ動きます（ポンと暗槓は別々に記憶）。副露の外側をドラッグすると全体が動きます
+            卓上の副露そのものをドラッグすると、その副露だけ動きます（ポン・暗槓・加槓は別々に記憶）。副露の外側をドラッグすると全体が動きます
           </div>
           <div className="meld-edit-toolbar__row" role="group" aria-label="個別に動かす副露">
             {ankanSlots.map((isAnkan, i) => (
@@ -104,13 +114,13 @@ export function ToimenEditToolbar() {
                 className={`tile3d-debug-panel__btn${activeMeld === i ? " tile3d-debug-panel__btn--active" : ""}`}
                 onClick={() => setActiveMeld(i)}
               >
-                {i + 1}{isAnkan ? "(暗槓)" : "(ポン)"}
+                {i + 1}({MELD_KIND_LABEL[meldKindOf(isAnkan, kakanSlots[i])]})
               </button>
             ))}
           </div>
           <div className="meld-edit-toolbar__row">
             <span className="meld-edit-toolbar__hint">
-              副露{activeMeld + 1}の個別: 横{Math.round(meldEach[eachIndex]!.offsetX)}px・縦{Math.round(meldEach[eachIndex]!.offsetY)}px
+              副露{activeMeld + 1}の個別: 横{Math.round(eachCfg.offsetX)}px・縦{Math.round(eachCfg.offsetY)}px
             </span>
             <button type="button" className="tile3d-debug-panel__btn" onClick={() => resetMeldEach(eachIndex)}>
               副露{activeMeld + 1}をリセット

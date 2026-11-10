@@ -23,6 +23,7 @@ import { Tile3DDebugPanel } from "./Tile3DDebugPanel.js";
 import { BackgroundDebugPanel } from "./BackgroundDebugPanel.js";
 import { MeldEditToolbar } from "./MeldEditToolbar.js";
 import { AnkanPreviewPanel } from "./AnkanPreviewPanel.js";
+import { SelfMeldPreviewPanel } from "./SelfMeldPreviewPanel.js";
 import { HandEditToolbar } from "./HandEditToolbar.js";
 import { RiverEditToolbar } from "./RiverEditToolbar.js";
 import { NameplateEditToolbar } from "./NameplateEditToolbar.js";
@@ -81,6 +82,7 @@ export function Table() {
   const handEditSeat = useTile3DDebugStore((s) => s.handEditSeat);
   // 暗槓表示確認モード（AnkanPreviewPanel.tsx参照）。
   const ankanPreviewPanelOpen = useTile3DDebugStore((s) => s.ankanPreviewPanelOpen);
+  const selfMeldPreviewOpen = useTile3DDebugStore((s) => s.selfMeldPreviewOpen);
   // 河・ネームプレートの配置編集モード（RiverEditToolbar/
   // NameplateEditToolbar.tsx参照）。座席ごとの位置・角度はriverSlots/
   // nameplateSlotsにpersistされ、編集モードOFF中もその値がそのまま
@@ -444,6 +446,7 @@ export function Table() {
         {meldEditSeat && createPortal(<MeldEditToolbar />, portalRoot())}
         {handEditSeat && createPortal(<HandEditToolbar />, portalRoot())}
         {ankanPreviewPanelOpen && createPortal(<AnkanPreviewPanel />, portalRoot())}
+        {selfMeldPreviewOpen && createPortal(<SelfMeldPreviewPanel />, portalRoot())}
         {riverEditOpen && createPortal(<RiverEditToolbar />, portalRoot())}
         {nameplateEditOpen && createPortal(<NameplateEditToolbar />, portalRoot())}
         {riichiStickEditOpen && createPortal(<RiichiStickEditToolbar />, portalRoot())}

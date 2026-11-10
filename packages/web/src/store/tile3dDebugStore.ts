@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { sharedTuningStorage } from "./sharedTuningStorage.js";
+import type { MeldKind } from "../meldKind.js";
 
 /**
  * Tile3D（上家・下家の手牌に使っている立体牌）の角度・拡大率・厚み・
@@ -89,6 +90,26 @@ export interface ToimenMeldEachConfig {
   offsetY: number;
 }
 
+/**
+ * 加槓専用の位置。加槓は元の牌の上に4枚目を重ねるぶん、ポンと同じ位置では隣に被ることがあるため、
+ * ポン・カン用の値(meldSlots / *MeldEach)とは別の配列(*Kakan*)に持つ。初期値はポンと同じ。
+ * 呼ぶ側は番号（キー）だけで扱えるよう、「通常の配列の長さ以上のキー＝加槓用の配列の(キー−長さ)番目」と決める
+ * （3D: キー0〜3=通常、4〜7=加槓／2D・対面: 0〜7=通常(ポン・カン)、8〜11=加槓）。
+ */
+export function kakanKeyOf(normalCount: number, slot: number): number {
+  return normalCount + Math.min(Math.max(slot, 0), MELD_SLOT_COUNT - 1);
+}
+/** キーから、通常の配列か加槓用の配列のどちらかの値を取り出す。 */
+export function slotAtKey<T>(normal: T[], kakan: T[], key: number): T | undefined {
+  return key >= normal.length ? kakan[key - normal.length] : normal[key];
+}
+/** キーに合う方の配列を、そのキーの要素だけ入れ替えた新しい配列の組にする。 */
+export function updateSlotAtKey<T>(normal: T[], kakan: T[], key: number, fn: (v: T) => T): { normal: T[]; kakan: T[] } {
+  return key >= normal.length
+    ? { normal, kakan: kakan.map((v, i) => (i === key - normal.length ? fn(v) : v)) }
+    : { normal: normal.map((v, i) => (i === key ? fn(v) : v)), kakan };
+}
+
 /** 副露数ごと(5つ)の値を、副露数×カンの数(15)の並びに広げる（同じ副露数の
     スロットには同じ値を写す）。下家・上家の手牌位置の初期値と移行に使う。 */
 function expandHandGroupByKan<T>(byMeldCount: readonly T[]): T[] {
@@ -166,9 +187,16 @@ export interface ToimenSlotConfig {
 /** 下家の副露4スロット（配列index=副露の順番）。 */
 const INITIAL_MELD_SLOTS: MeldSlotConfig[] = [
   { offsetX: 731, offsetY: -72, rotate: -12 },
-  { offsetX: 689, offsetY: -116, rotate: -12 },
+  { offsetX: 692, offsetY: -127, rotate: -12 },
   { offsetX: 535, offsetY: -45, rotate: -11 },
-  { offsetX: 496, offsetY: -90, rotate: -12 },
+  { offsetX: 496, offsetY: -103, rotate: -12 },
+];
+/** 下家の加槓した副露の専用位置（2026-11-11に実機で調整した値）。 */
+const INITIAL_KAKAN_MELD_SLOTS: MeldSlotConfig[] = [
+  { offsetX: 730, offsetY: -77, rotate: -12 },
+  { offsetX: 688, offsetY: -140, rotate: -12 },
+  { offsetX: 535, offsetY: -45, rotate: -11 },
+  { offsetX: 492, offsetY: -110, rotate: -12 },
 ];
 /** 下家の手牌列、副露0〜4個の各状態。 */
 const INITIAL_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
@@ -191,9 +219,16 @@ const INITIAL_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
 /** 上家の副露4スロット。 */
 const INITIAL_KAMICHA_MELD_SLOTS: MeldSlotConfig[] = [
   { offsetX: -114, offsetY: 51, rotate: 12 },
-  { offsetX: -72, offsetY: 6, rotate: 12 },
+  { offsetX: -70, offsetY: -3, rotate: 12 },
   { offsetX: -190, offsetY: 22, rotate: 12 },
-  { offsetX: -147, offsetY: -23, rotate: 12 },
+  { offsetX: -142, offsetY: -28, rotate: 12 },
+];
+/** 上家の加槓した副露の専用位置（2026-11-11に実機で調整した値）。 */
+const INITIAL_KAMICHA_KAKAN_MELD_SLOTS: MeldSlotConfig[] = [
+  { offsetX: -114, offsetY: 51, rotate: 12 },
+  { offsetX: -71, offsetY: -13, rotate: 12 },
+  { offsetX: -190, offsetY: 22, rotate: 12 },
+  { offsetX: -144, offsetY: -42, rotate: 12 },
 ];
 /** 上家の手牌列、副露0〜4個の各状態。 */
 const INITIAL_KAMICHA_HAND_GROUP_SLOTS: HandGroupSlotConfig[] = [
@@ -249,32 +284,25 @@ const INITIAL_MELD_EDIT_PREVIEW_COUNT = 4;
 type Side2dSeat = "shimocha" | "kamicha";
 export type Side2dSlotConfig = ToimenSlotConfig & { rotate?: number };
 const INITIAL_SIDE2D_SLOT: Side2dSlotConfig = { offsetX: 0, offsetY: 0, scale: 1, rotate: 0 };
-/** 調整済みの初期値（2D編集モードで決めた値）。手牌は副露の数n(0〜4)だけで決まり、
-    ポン/カンの違いでは変わらない（toimenHandSlotIndex(n, k)のkはどれも同じ値にする）。 */
-const SIDE2D_HAND_BY_MELD_COUNT: Record<Side2dSeat, Side2dSlotConfig[]> = {
+/** 調整済みの初期値（2D編集モードで決めた値、2026-11-11の実機の値をそのまま固定）。
+    toimenHandSlotIndex(n, k)の15個。実際に使うのはk=0（副露の数nだけで決まり、ポン/カンの違いでは
+    変わらない）で、k>0は調整していない（0のまま）か、試しに動かした値がそのまま残っている。 */
+const SIDE2D_HAND_SLOTS: Record<Side2dSeat, [number, number, number][]> = {
+  // [offsetX, offsetY, rotate]
   shimocha: [
-    { offsetX: -26, offsetY: 20, scale: 1, rotate: -12 },
-    { offsetX: -15, offsetY: 70, scale: 1, rotate: -12 },
-    { offsetX: -6, offsetY: 117, scale: 1, rotate: -12 },
-    { offsetX: 5, offsetY: 169, scale: 1, rotate: -12 },
-    { offsetX: 14, offsetY: 218, scale: 1, rotate: -12 },
+    [-26, 20, -12], [-15, 70, -12], [0, 0, 0], [-6, 117, -12], [0, 0, 0],
+    [0, 0, 0], [5, 169, -12], [0, 0, 0], [0, 0, 0], [0, 0, 0],
+    [14, 218, -12], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0],
   ],
   kamicha: [
-    { offsetX: 26, offsetY: -98, scale: 1, rotate: 12 },
-    { offsetX: 38, offsetY: -146, scale: 1, rotate: 12 },
-    { offsetX: 49, offsetY: -198, scale: 1, rotate: 12 },
-    { offsetX: 58, offsetY: -245, scale: 1, rotate: 12 },
-    { offsetX: 66, offsetY: -293, scale: 1, rotate: 12 },
+    [26, -98, 12], [38, -146, 12], [40, -122, 12], [49, -198, 12], [48, -164, 12],
+    [49, -167, 12], [58, -245, 12], [60, -220, 12], [0, 0, 0], [0, 0, 0],
+    [66, -293, 12], [70, -266, 12], [0, 0, 0], [0, 0, 0], [0, 0, 0],
   ],
 };
 const initialSide2dHandSlots = (): Record<Side2dSeat, Side2dSlotConfig[]> => {
-  const build = (seat: Side2dSeat): Side2dSlotConfig[] => {
-    const slots: Side2dSlotConfig[] = Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT }));
-    SIDE2D_HAND_BY_MELD_COUNT[seat].forEach((v, n) => {
-      for (let k = 0; k <= n; k++) slots[toimenHandSlotIndex(n, k)] = { ...v };
-    });
-    return slots;
-  };
+  const build = (seat: Side2dSeat): Side2dSlotConfig[] =>
+    SIDE2D_HAND_SLOTS[seat].map(([offsetX, offsetY, rotate]) => ({ offsetX, offsetY, scale: 1, ...(rotate ? { rotate } : {}) }));
   return { shimocha: build("shimocha"), kamicha: build("kamicha") };
 };
 /** 下家・上家の2D表示での副露1個ごとの個別位置（1〜4番目、並び順だけで決まる）。
@@ -293,6 +321,19 @@ const initialSide2dMeldEach = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
   shimocha: SIDE2D_MELD_EACH.shimocha.map((v) => ({ ...v })),
   kamicha: SIDE2D_MELD_EACH.kamicha.map((v) => ({ ...v })),
 });
+/** 加槓専用の個別位置（1〜4番目、2026-11-11に実機で調整した値）。 */
+const SIDE2D_KAKAN_EACH: Record<Side2dSeat, Side2dSlotConfig[]> = {
+  shimocha: [
+    [-1, 5], [0, 2], [6, 2], [7, 1],
+  ].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY!, scale: 1, rotate: 0 })),
+  kamicha: [
+    [103, -52, -3], [96, -54, -3], [109, -40, -4], [102, -42, -3],
+  ].map(([offsetX, offsetY, rotate]) => ({ offsetX: offsetX!, offsetY: offsetY!, scale: 1, rotate: rotate ?? 0 })),
+};
+const initialSide2dKakanEach = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
+  shimocha: SIDE2D_KAKAN_EACH.shimocha.map((v) => ({ ...v })),
+  kamicha: SIDE2D_KAKAN_EACH.kamicha.map((v) => ({ ...v })),
+});
 const initialSide2dMeldSlot = (): Record<Side2dSeat, Side2dSlotConfig> => ({
   shimocha: { ...INITIAL_SIDE2D_SLOT },
   kamicha: { offsetX: -42, offsetY: -85, scale: 1, rotate: 3 },
@@ -300,23 +341,21 @@ const initialSide2dMeldSlot = (): Record<Side2dSeat, Side2dSlotConfig> => ({
 /** 対面の副露全体。 */
 const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: 7, offsetY: -26, scale: 0.85 };
 /** 対面の手牌、副露の数nとカンの数kの組ごと(toimenHandSlotIndexの番号順:
-    0副露; 1副露(k=0,1); 2副露(k=0..2); …; 4副露(k=0..4))。2026-10-21に実機で調整した値。 */
-const TOIMEN_HAND_BY_MELD_COUNT: ToimenSlotConfig[] = [
-  { offsetX: -33, offsetY: 1, scale: 0.9 },
-  { offsetX: 16, offsetY: 1, scale: 0.9 },
-  { offsetX: 63, offsetY: 1, scale: 0.9 },
-  { offsetX: 108, offsetY: -1, scale: 0.9 },
-  { offsetX: 153, offsetY: -3, scale: 0.9 },
-];
-/** 副露を絶対配置にしたため手牌は副露の数nだけで決まる（ポン/カンの違いでは変わらない）。 */
-const INITIAL_TOIMEN_HAND_SLOTS: ToimenSlotConfig[] = Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...TOIMEN_HAND_BY_MELD_COUNT[0]! }));
-for (let n = 0; n <= 4; n++) {
-  for (let k = 0; k <= n; k++) INITIAL_TOIMEN_HAND_SLOTS[toimenHandSlotIndex(n, k)] = { ...TOIMEN_HAND_BY_MELD_COUNT[n]! };
-}
+    0副露; 1副露(k=0,1); 2副露(k=0..2); …; 4副露(k=0..4))。2026-11-11の実機の値をそのまま固定。
+    実際に使うのはk=0（副露の数nだけで決まる）。k>0は試しに動かした値がそのまま残っている。 */
+const INITIAL_TOIMEN_HAND_SLOTS: ToimenSlotConfig[] = [
+  [-33, 1], [16, 1], [-54, 2], [63, 1], [-66, 1],
+  [-77, 1], [108, -1], [-80, 3], [-86, 3], [-103, 3],
+  [153, -3], [-92, 1], [-101, 1], [-113, -1], [-123, 0],
+].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY!, scale: 0.9 }));
 /** 対面の副露1個ごとの個別位置(toimenMeldEachIndexの番号順:
     副露1のポン・カン、副露2のポン・カン、…)。同上。 */
 const INITIAL_TOIMEN_MELD_EACH: ToimenMeldEachConfig[] = [
-  [12, -4], [12, -6], [-105, 42], [-105, 44], [-90, -6], [-92, -5], [-207, 43], [-208, 42],
+  [12, -4], [12, -6], [-105, 47], [-106, 50], [-90, -6], [-92, -5], [-208, 45], [-209, 50],
+].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY! }));
+/** 対面の加槓専用の個別位置（1〜4番目）。同上。 */
+const INITIAL_TOIMEN_KAKAN_EACH: ToimenMeldEachConfig[] = [
+  [12, -4], [-103, 64], [-90, -6], [-206, 61],
 ].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY! }));
 /** 下家の牌形状・並べ方パラメータ(配列以外のスカラー値)。初期状態と
     v4→v6 migrate(下の「全ブラウザ統一」処理参照)の両方から参照する
@@ -453,6 +492,11 @@ export interface Tile3DDebugState {
       フラグなので、meldEditSeat等と同じく永続化しない。 */
   meldEditAnkanSlots: boolean[];
   setMeldEditAnkanSlot: (slot: number, v: boolean) => void;
+  /** 全ての配置編集モード共通: 仮表示のポンに「加槓」(4枚目を重ねる)の見え方を付けるか。
+      位置はポンのまま（加槓専用の位置は持たず、個別にも動かさない）。見え方の確認だけが
+      目的なので、暗槓のフラグとは別に持ち、永続化しない。 */
+  editKakanSlots: boolean[];
+  setEditKakanSlot: (slot: number, v: boolean) => void;
   /** 対面の副露編集モード(ToimenEditToolbar)用の同じ設定。下家・上家の
       設定とは独立（対面は塊ごと動かすが、並びの確認は1個ずつ切り替えたい）。
       永続化しない。 */
@@ -482,6 +526,15 @@ export interface Tile3DDebugState {
       確認用フラグなので、meldEditSeat等と同じく永続化しない。 */
   ankanPreview: { shimocha: boolean; toimen: boolean; kamicha: boolean };
   setAnkanPreview: (seat: "shimocha" | "toimen" | "kamicha", v: boolean) => void;
+  /** 自分の副露の見え方の確認（SelfMeldPreviewPanel.tsx）。開いている間、自分の手牌の横に
+      仮の副露（種類はselfMeldPreviewKindsで選ぶ）を、実際の副露の後ろへ数(selfMeldPreviewCount)になるまで補う。
+      見た目の確認だけで、対局の実データには触らない。永続化しない。 */
+  selfMeldPreviewOpen: boolean;
+  setSelfMeldPreviewOpen: (v: boolean) => void;
+  selfMeldPreviewCount: number;
+  setSelfMeldPreviewCount: (v: number) => void;
+  selfMeldPreviewKinds: MeldKind[];
+  setSelfMeldPreviewKind: (slot: number, kind: MeldKind) => void;
   ankanPreviewPanelOpen: boolean;
   setAnkanPreviewPanelOpen: (v: boolean) => void;
 
@@ -529,6 +582,9 @@ export interface Tile3DDebugState {
   /** 対面の副露1個ごとの個別位置（toimenMeldEachIndexの番号）。副露全体の
       位置の上にさらに足される。 */
   toimenMeldEach: ToimenMeldEachConfig[];
+  /** 対面の加槓専用の個別位置（並び順0〜3）。キーはkakanKeyOf(8, 並び順)。 */
+  toimenKakanEach: ToimenMeldEachConfig[];
+  /** indexが8以上なら加槓専用(toimenKakanEach)の(index-8)番目を指す。 */
   setToimenMeldEach: (index: number, patch: Partial<ToimenMeldEachConfig>) => void;
   resetToimenMeldEach: (index: number) => void;
   /** 対面の副露編集で、個別位置を調整している副露の並び順(0〜3)。永続化しない。 */
@@ -548,6 +604,8 @@ export interface Tile3DDebugState {
   side2dHandSlots: Record<Side2dSeat, Side2dSlotConfig[]>;
   side2dMeldSlot: Record<Side2dSeat, Side2dSlotConfig>;
   side2dMeldEach: Record<Side2dSeat, Side2dSlotConfig[]>;
+  /** 加槓専用の個別位置（並び順0〜3）。キーはkakanKeyOf(8, 並び順)。 */
+  side2dKakanEach: Record<Side2dSeat, Side2dSlotConfig[]>;
   side2dEditActiveMeld: number;
   setSide2dEditActiveMeld: (v: number) => void;
   setSide2dMeldEach: (index: number, patch: Partial<Side2dSlotConfig>) => void;
@@ -606,6 +664,10 @@ export interface Tile3DDebugState {
       渡す想定。 */
   setMeldSlot: (isKamicha: boolean, index: number, patch: Partial<MeldSlotConfig>) => void;
   resetMeldSlot: (isKamicha: boolean, index: number) => void;
+  /** 3Dの加槓専用の副露位置（並び順0〜3。キーはkakanKeyOf(4, 並び順)＝setMeldSlot等のindexが
+      4以上ならこちらの(index-4)番目）。初期値は通常の副露位置と同じ。 */
+  kakanMeldSlots: MeldSlotConfig[];
+  kamichaKakanMeldSlots: MeldSlotConfig[];
   /** isKamicha=falseなら下家、trueなら上家のhandGroupByMeldCount[meldCount]
       をpatchで部分更新する。 */
   setHandGroupSlot: (isKamicha: boolean, index: number, patch: Partial<HandGroupSlotConfig>) => void;
@@ -631,6 +693,9 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
     (set) => ({
       ...INITIAL_SCALARS,
       meldSlots: INITIAL_MELD_SLOTS.map((slot) => ({ ...slot })),
+      // 加槓専用の位置（初期値は通常の副露位置と同じ。見た目は変わらず、加槓だけ別に動かせる）。
+      kakanMeldSlots: INITIAL_KAKAN_MELD_SLOTS.map((slot) => ({ ...slot })),
+      kamichaKakanMeldSlots: INITIAL_KAMICHA_KAKAN_MELD_SLOTS.map((slot) => ({ ...slot })),
       handGroupByMeldCount: INITIAL_HAND_GROUP_SLOTS.map((slot) => ({ ...slot })),
 
       // 上家は下家の値の流用ではなく、実機で座席ごとに個別に詰めた確定値。
@@ -650,6 +715,8 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       meldEditActiveSlot: 0,
       setMeldEditActiveSlot: (meldEditActiveSlot) => set({ meldEditActiveSlot }),
       meldEditAnkanSlots: [false, false, false, false],
+      editKakanSlots: [false, false, false, false],
+      setEditKakanSlot: (slot, v) => set((state) => ({ editKakanSlots: state.editKakanSlots.map((on, i) => (i === slot ? v : on)) })),
       toimenEditAnkanSlots: [false, false, false, false],
       toimenEditMeldCount: 0,
       setToimenEditMeldCount: (toimenEditMeldCount) => set({ toimenEditMeldCount }),
@@ -667,6 +734,12 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       setAnkanPreview: (seat, v) => set((state) => ({ ankanPreview: { ...state.ankanPreview, [seat]: v } })),
       ankanPreviewPanelOpen: false,
       setAnkanPreviewPanelOpen: (ankanPreviewPanelOpen) => set({ ankanPreviewPanelOpen }),
+      selfMeldPreviewOpen: false,
+      setSelfMeldPreviewOpen: (selfMeldPreviewOpen) => set({ selfMeldPreviewOpen }),
+      selfMeldPreviewCount: 4,
+      setSelfMeldPreviewCount: (selfMeldPreviewCount) => set({ selfMeldPreviewCount }),
+      selfMeldPreviewKinds: ["pon", "pon", "pon", "pon"],
+      setSelfMeldPreviewKind: (slot, kind) => set((state) => ({ selfMeldPreviewKinds: state.selfMeldPreviewKinds.map((k, i) => (i === slot ? kind : k)) })),
 
       riverSlots: INITIAL_RIVER_SLOTS.map((slot) => ({ ...slot })) as Tile3DDebugState["riverSlots"],
       setRiverSlot: (player, patch) =>
@@ -735,10 +808,19 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
         }),
       toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },
       toimenMeldEach: INITIAL_TOIMEN_MELD_EACH.map((slot) => ({ ...slot })),
+      toimenKakanEach: INITIAL_TOIMEN_KAKAN_EACH.map((slot) => ({ ...slot })),
       setToimenMeldEach: (index, patch) =>
-        set((state) => ({ toimenMeldEach: state.toimenMeldEach.map((slot, i) => (i === index ? { ...slot, ...patch } : slot)) })),
+        set((state) => {
+          const r = updateSlotAtKey(state.toimenMeldEach, state.toimenKakanEach ?? INITIAL_TOIMEN_KAKAN_EACH, index, (slot) => ({ ...slot, ...patch }));
+          return { toimenMeldEach: r.normal, toimenKakanEach: r.kakan };
+        }),
       resetToimenMeldEach: (index) =>
-        set((state) => ({ toimenMeldEach: state.toimenMeldEach.map((slot, i) => (i === index ? { ...INITIAL_TOIMEN_MELD_EACH[i]! } : slot)) })),
+        set((state) => {
+          const r = updateSlotAtKey(state.toimenMeldEach, state.toimenKakanEach ?? INITIAL_TOIMEN_KAKAN_EACH, index, () => ({
+            ...(slotAtKey(INITIAL_TOIMEN_MELD_EACH, INITIAL_TOIMEN_KAKAN_EACH, index) ?? { offsetX: 0, offsetY: 0 }),
+          }));
+          return { toimenMeldEach: r.normal, toimenKakanEach: r.kakan };
+        }),
       toimenEditActiveMeld: 0,
       setToimenEditActiveMeld: (toimenEditActiveMeld) => set({ toimenEditActiveMeld }),
       setToimenMeldSlot: (patch) => set((state) => ({ toimenMeldSlot: { ...state.toimenMeldSlot, ...patch } })),
@@ -746,19 +828,27 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       side2dHandSlots: initialSide2dHandSlots(),
       side2dMeldSlot: initialSide2dMeldSlot(),
       side2dMeldEach: initialSide2dMeldEach(),
+      side2dKakanEach: initialSide2dKakanEach(),
       side2dEditActiveMeld: 0,
       setSide2dEditActiveMeld: (side2dEditActiveMeld) => set({ side2dEditActiveMeld }),
       setSide2dMeldEach: (index, patch) =>
         set((state) => {
           const seat = state.side2dEditSeat;
           if (!seat) return {};
-          return { side2dMeldEach: { ...state.side2dMeldEach, [seat]: state.side2dMeldEach[seat].map((slot, i) => (i === index ? { ...slot, ...patch } : slot)) } };
+          const kakanAll = state.side2dKakanEach ?? initialSide2dKakanEach();
+          const r = updateSlotAtKey(state.side2dMeldEach[seat], kakanAll[seat], index, (slot) => ({ ...slot, ...patch }));
+          return { side2dMeldEach: { ...state.side2dMeldEach, [seat]: r.normal }, side2dKakanEach: { ...kakanAll, [seat]: r.kakan } };
         }),
       resetSide2dMeldEach: (index) =>
         set((state) => {
           const seat = state.side2dEditSeat;
           if (!seat) return {};
-          return { side2dMeldEach: { ...state.side2dMeldEach, [seat]: state.side2dMeldEach[seat].map((slot, i) => (i === index ? { ...INITIAL_SIDE2D_SLOT } : slot)) } };
+          const kakanAll = state.side2dKakanEach ?? initialSide2dKakanEach();
+          // 通常の副露は0に戻す（従来どおり）。加槓専用は、ポンと同じ初期値に戻す。
+          const r = updateSlotAtKey(state.side2dMeldEach[seat], kakanAll[seat], index, () => ({
+            ...(index >= state.side2dMeldEach[seat].length ? (initialSide2dKakanEach()[seat][index - state.side2dMeldEach[seat].length] ?? INITIAL_SIDE2D_SLOT) : INITIAL_SIDE2D_SLOT),
+          }));
+          return { side2dMeldEach: { ...state.side2dMeldEach, [seat]: r.normal }, side2dKakanEach: { ...kakanAll, [seat]: r.kakan } };
         }),
       side2dEditSeat: null,
       side2dEditTarget: "hand",
@@ -845,19 +935,24 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       setFrontIsLast: (frontIsLast) => set({ frontIsLast }),
       setDrawnOffsetX: (drawnOffsetX) => set({ drawnOffsetX }),
       setDrawnOffsetY: (drawnOffsetY) => set({ drawnOffsetY }),
+      // indexがMELD_SLOT_COUNT(4)以上なら、加槓専用の位置((index-4)番目)を指す。
       setMeldSlot: (isKamicha, index, patch) =>
         set((state) => {
           const key = isKamicha ? "kamichaMeldSlots" : "meldSlots";
-          const slots = state[key].slice();
-          slots[index] = { ...slots[index]!, ...patch };
-          return { [key]: slots } as Partial<Tile3DDebugState>;
+          const kakanKey = isKamicha ? "kamichaKakanMeldSlots" : "kakanMeldSlots";
+          const r = updateSlotAtKey(state[key], state[kakanKey] ?? (isKamicha ? INITIAL_KAMICHA_KAKAN_MELD_SLOTS : INITIAL_KAKAN_MELD_SLOTS), index, (slot) => ({ ...slot, ...patch }));
+          return { [key]: r.normal, [kakanKey]: r.kakan } as Partial<Tile3DDebugState>;
         }),
       resetMeldSlot: (isKamicha, index) =>
         set((state) => {
           const key = isKamicha ? "kamichaMeldSlots" : "meldSlots";
-          const slots = state[key].slice();
-          slots[index] = { ...(isKamicha ? INITIAL_KAMICHA_MELD_SLOTS : INITIAL_MELD_SLOTS)[index]! };
-          return { [key]: slots } as Partial<Tile3DDebugState>;
+          const kakanKey = isKamicha ? "kamichaKakanMeldSlots" : "kakanMeldSlots";
+          const initial = isKamicha ? INITIAL_KAMICHA_MELD_SLOTS : INITIAL_MELD_SLOTS;
+          const initialKakan = isKamicha ? INITIAL_KAMICHA_KAKAN_MELD_SLOTS : INITIAL_KAKAN_MELD_SLOTS;
+          const r = updateSlotAtKey(state[key], state[kakanKey] ?? initialKakan, index, () => ({
+            ...(slotAtKey(initial, initialKakan, index) ?? initial[0]!),
+          }));
+          return { [key]: r.normal, [kakanKey]: r.kakan } as Partial<Tile3DDebugState>;
         }),
       // indexはtoimenHandSlotIndex(副露の数, カンの数)の番号（下家・上家の
       // 手牌位置も、対面と同じく副露数×カンの数ごとに持つ）。
@@ -920,6 +1015,8 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
           setMeldEditActiveSlot,
           meldEditAnkanSlots,
           setMeldEditAnkanSlot,
+          editKakanSlots,
+          setEditKakanSlot,
           toimenEditAnkanSlots,
           setToimenEditAnkanSlot,
           toimenEditMeldCount,
@@ -934,6 +1031,12 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
           setAnkanPreview,
           ankanPreviewPanelOpen,
           setAnkanPreviewPanelOpen,
+          selfMeldPreviewOpen,
+          setSelfMeldPreviewOpen,
+          selfMeldPreviewCount,
+          setSelfMeldPreviewCount,
+          selfMeldPreviewKinds,
+          setSelfMeldPreviewKind,
           riverEditOpen,
           setRiverEditOpen,
           riverEditActiveSeat,

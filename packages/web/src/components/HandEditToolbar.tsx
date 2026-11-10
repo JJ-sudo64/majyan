@@ -1,4 +1,5 @@
 import { HAND_GROUP_SLOT_COUNT, toimenHandSlotIndex, useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { applyMeldKind, MELD_KIND_LABEL, meldKindOf, nextMeldKind } from "../meldKind.js";
 
 /**
  * 手牌配置編集モードの操作パネル。副露配置編集(MeldEditToolbar.tsx)と
@@ -22,6 +23,8 @@ export function HandEditToolbar() {
   const resetHandGroupSlot = useTile3DDebugStore((s) => s.resetHandGroupSlot);
   const ankanSlots = useTile3DDebugStore((s) => s.meldEditAnkanSlots);
   const setAnkanSlot = useTile3DDebugStore((s) => s.setMeldEditAnkanSlot);
+  const kakanSlots = useTile3DDebugStore((s) => s.editKakanSlots);
+  const setKakanSlot = useTile3DDebugStore((s) => s.setEditKakanSlot);
   const shimochaGroups = useTile3DDebugStore((s) => s.handGroupByMeldCount);
   const kamichaGroups = useTile3DDebugStore((s) => s.kamichaHandGroupByMeldCount);
 
@@ -30,7 +33,8 @@ export function HandEditToolbar() {
   const groups = isKamicha ? kamichaGroups : shimochaGroups;
   // 手牌位置は副露の数と、そのうちカン(4枚の副露)の数の組ごとに持つ。
   // どの副露を暗槓にするかは、副露配置編集モードと共通のトグル(meldEditAnkanSlots)。
-  const kanCount = ankanSlots.slice(0, handEditMeldCount).filter(Boolean).length;
+  // 加槓の見え方(editKakanSlots)も槓として数える（OpponentArea.tsxのkansOfと同じ数え方）。
+  const kanCount = ankanSlots.slice(0, handEditMeldCount).filter((on, i) => on || kakanSlots[i]).length;
   const slotIndex = toimenHandSlotIndex(handEditMeldCount, kanCount);
   const active = groups[slotIndex]!;
 
@@ -72,17 +76,20 @@ export function HandEditToolbar() {
         ))}
       </div>
       {handEditMeldCount > 0 && (
-        <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類（押すとポン/暗槓が切り替わる。手牌の位置は暗槓の数ごとに保存される）">
-          {ankanSlots.slice(0, handEditMeldCount).map((isAnkan, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`tile3d-debug-panel__btn${isAnkan ? " tile3d-debug-panel__btn--active" : ""}`}
-              onClick={() => setAnkanSlot(i, !isAnkan)}
-            >
-              副露{i + 1}: {isAnkan ? "暗槓" : "ポン"}
-            </button>
-          ))}
+        <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類（押すとポン→暗槓→加槓の順に切り替わる。手牌の位置は槓の数ごとに保存される）">
+          {ankanSlots.slice(0, handEditMeldCount).map((isAnkan, i) => {
+            const kind = meldKindOf(isAnkan, kakanSlots[i]);
+            return (
+              <button
+                key={i}
+                type="button"
+                className={`tile3d-debug-panel__btn${kind !== "pon" ? " tile3d-debug-panel__btn--active" : ""}`}
+                onClick={() => applyMeldKind(nextMeldKind(kind), i, setAnkanSlot, setKakanSlot)}
+              >
+                副露{i + 1}: {MELD_KIND_LABEL[kind]}
+              </button>
+            );
+          })}
         </div>
       )}
       <label className="meld-edit-toolbar__row meld-edit-toolbar__row--rotate">

@@ -1,4 +1,5 @@
-import { useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { kakanKeyOf, slotAtKey, useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { applyMeldKind, MELD_KIND_LABEL, meldKindOf } from "../meldKind.js";
 
 /**
  * 副露配置編集モードの操作パネル。以前は別画面の縮小プレビュー(ミニ
@@ -24,15 +25,23 @@ export function MeldEditToolbar() {
   const setActiveSlot = useTile3DDebugStore((s) => s.setMeldEditActiveSlot);
   const ankanSlots = useTile3DDebugStore((s) => s.meldEditAnkanSlots);
   const setAnkanSlot = useTile3DDebugStore((s) => s.setMeldEditAnkanSlot);
+  const kakanSlots = useTile3DDebugStore((s) => s.editKakanSlots);
+  const setKakanSlot = useTile3DDebugStore((s) => s.setEditKakanSlot);
   const setMeldSlot = useTile3DDebugStore((s) => s.setMeldSlot);
   const resetMeldSlot = useTile3DDebugStore((s) => s.resetMeldSlot);
   const shimochaSlots = useTile3DDebugStore((s) => s.meldSlots);
   const kamichaSlots = useTile3DDebugStore((s) => s.kamichaMeldSlots);
+  const shimochaKakanSlots = useTile3DDebugStore((s) => s.kakanMeldSlots);
+  const kamichaKakanSlots = useTile3DDebugStore((s) => s.kamichaKakanMeldSlots);
 
   if (!meldEditSeat) return null;
   const isKamicha = meldEditSeat === "kamicha";
   const slots = isKamicha ? kamichaSlots : shimochaSlots;
-  const active = slots[activeSlot]!;
+  const kakanMeldSlots = (isKamicha ? kamichaKakanSlots : shimochaKakanSlots) ?? slots;
+  // 選んでいる副露が加槓の仮表示なら、加槓専用の位置を編集する（キーはkakanKeyOf、setMeldSlot等がキーで振り分ける）。
+  const isKakanActive = !ankanSlots[activeSlot] && !!kakanSlots[activeSlot];
+  const activeKey = isKakanActive ? kakanKeyOf(slots.length, activeSlot) : activeSlot;
+  const active = slotAtKey(slots, kakanMeldSlots, activeKey)!;
 
   return (
     <div className="meld-edit-toolbar">
@@ -78,30 +87,26 @@ export function MeldEditToolbar() {
       </div>
       <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類">
         <span className="meld-edit-toolbar__hint">副露{activeSlot + 1}の仮表示</span>
-        <button
-          type="button"
-          className={`tile3d-debug-panel__btn${!ankanSlots[activeSlot] ? " tile3d-debug-panel__btn--active" : ""}`}
-          onClick={() => setAnkanSlot(activeSlot, false)}
-        >
-          ポン
-        </button>
-        <button
-          type="button"
-          className={`tile3d-debug-panel__btn${ankanSlots[activeSlot] ? " tile3d-debug-panel__btn--active" : ""}`}
-          onClick={() => setAnkanSlot(activeSlot, true)}
-        >
-          暗槓
-        </button>
+        {(["pon", "ankan", "kakan"] as const).map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            className={`tile3d-debug-panel__btn${meldKindOf(ankanSlots[activeSlot], kakanSlots[activeSlot]) === kind ? " tile3d-debug-panel__btn--active" : ""}`}
+            onClick={() => applyMeldKind(kind, activeSlot, setAnkanSlot, setKakanSlot)}
+          >
+            {MELD_KIND_LABEL[kind]}
+          </button>
+        ))}
       </div>
       <label className="meld-edit-toolbar__row meld-edit-toolbar__row--rotate">
-        <span>副露{activeSlot + 1}・傾き</span>
+        <span>副露{activeSlot + 1}{isKakanActive ? "（加槓）" : ""}・傾き</span>
         <input
           type="range"
           min={-45}
           max={45}
           step={1}
           value={active.rotate}
-          onChange={(e) => setMeldSlot(isKamicha, activeSlot, { rotate: Number(e.target.value) })}
+          onChange={(e) => setMeldSlot(isKamicha, activeKey, { rotate: Number(e.target.value) })}
         />
         <output>{active.rotate}°</output>
       </label>
@@ -109,8 +114,8 @@ export function MeldEditToolbar() {
         <span className="meld-edit-toolbar__hint">
           横{Math.round(active.offsetX)}px・縦{Math.round(active.offsetY)}px
         </span>
-        <button type="button" className="tile3d-debug-panel__btn" onClick={() => resetMeldSlot(isKamicha, activeSlot)}>
-          副露{activeSlot + 1}をリセット
+        <button type="button" className="tile3d-debug-panel__btn" onClick={() => resetMeldSlot(isKamicha, activeKey)}>
+          副露{activeSlot + 1}{isKakanActive ? "（加槓）" : ""}をリセット
         </button>
       </div>
     </div>

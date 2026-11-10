@@ -1,4 +1,5 @@
-import { toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { TOIMEN_MELD_EACH_COUNT, kakanKeyOf, slotAtKey, toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { applyMeldKind, MELD_KIND_LABEL, meldKindOf, nextMeldKind } from "../meldKind.js";
 
 /**
  * 立体牌をOFF（2D表示）にした時の、下家・上家の手牌・副露の位置・大きさを、
@@ -21,7 +22,10 @@ export function Side2DEditToolbar() {
   const setMeldCount = useTile3DDebugStore((s) => s.setSide2dEditMeldCount);
   const ankanSlots = useTile3DDebugStore((s) => s.side2dEditAnkanSlots);
   const setAnkanSlot = useTile3DDebugStore((s) => s.setSide2dEditAnkanSlot);
+  const kakanSlots = useTile3DDebugStore((s) => s.editKakanSlots);
+  const setKakanSlot = useTile3DDebugStore((s) => s.setEditKakanSlot);
   const meldEach = useTile3DDebugStore((s) => s.side2dMeldEach);
+  const kakanEach = useTile3DDebugStore((s) => s.side2dKakanEach);
   const setMeldEach = useTile3DDebugStore((s) => s.setSide2dMeldEach);
   const resetMeldEach = useTile3DDebugStore((s) => s.resetSide2dMeldEach);
   const activeMeld = useTile3DDebugStore((s) => s.side2dEditActiveMeld);
@@ -32,8 +36,10 @@ export function Side2DEditToolbar() {
   const active = isHand ? handSlots[seat][toimenHandSlotIndex(meldCount, 0)]! : meldSlots[seat];
   const setActive = isHand ? setHandSlot : setMeldSlot;
   const resetActive = isHand ? resetHandSlot : resetMeldSlot;
-  const eachIndex = toimenMeldEachIndex(activeMeld, ankanSlots[activeMeld] ?? false);
-  const each = meldEach[seat][eachIndex]!;
+  // 選んでいる副露が加槓の仮表示なら、加槓専用の位置を編集する。
+  const isKakanActive = !ankanSlots[activeMeld] && !!kakanSlots[activeMeld];
+  const eachIndex = isKakanActive ? kakanKeyOf(TOIMEN_MELD_EACH_COUNT, activeMeld) : toimenMeldEachIndex(activeMeld, ankanSlots[activeMeld] ?? false);
+  const each = slotAtKey(meldEach[seat], kakanEach[seat], eachIndex) ?? { offsetX: 0, offsetY: 0, scale: 1, rotate: 0 };
   const seatName = seat === "shimocha" ? "下家" : "上家";
 
   return (
@@ -66,17 +72,20 @@ export function Side2DEditToolbar() {
         ))}
       </div>
       {!isHand && (
-        <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類（押すとポン/暗槓が切り替わる）">
-          {ankanSlots.map((isAnkan, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`tile3d-debug-panel__btn${isAnkan ? " tile3d-debug-panel__btn--active" : ""}`}
-              onClick={() => setAnkanSlot(i, !isAnkan)}
-            >
-              副露{i + 1}: {isAnkan ? "暗槓" : "ポン"}
-            </button>
-          ))}
+        <div className="meld-edit-toolbar__row" role="group" aria-label="仮表示の副露の種類（押すとポン→暗槓→加槓の順に切り替わる。加槓は見え方の確認だけで、位置はポンのまま）">
+          {ankanSlots.map((isAnkan, i) => {
+            const kind = meldKindOf(isAnkan, kakanSlots[i]);
+            return (
+              <button
+                key={i}
+                type="button"
+                className={`tile3d-debug-panel__btn${kind !== "pon" ? " tile3d-debug-panel__btn--active" : ""}`}
+                onClick={() => applyMeldKind(nextMeldKind(kind), i, setAnkanSlot, setKakanSlot)}
+              >
+                副露{i + 1}: {MELD_KIND_LABEL[kind]}
+              </button>
+            );
+          })}
         </div>
       )}
       <label className="meld-edit-toolbar__row meld-edit-toolbar__row--rotate">

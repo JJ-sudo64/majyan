@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Meld, PlayerIndex, RoundState, TileCode, Hand as HandShape } from "@majyan/core";
-import { meldDisplaySlots } from "../meldDisplay.js";
+import { KAKAN_STACK_OFFSET, KAKAN_STACK_OVERLAP_FLAT, meldDisplaySlots } from "../meldDisplay.js";
+import { makeMockMeld } from "../mockMeld.js";
+import { useTile3DDebugStore } from "../store/tile3dDebugStore.js";
 import {
   CARDS,
   CHARACTERS,
@@ -83,6 +85,9 @@ function computeSanshokuHintCodes(hand: HandShape): Set<TileCode> {
   return new Set(bestCodes);
 }
 
+/** 自分の副露の確認で、仮の副露ごとに牌の種類を変える（見分けやすくするため）。 */
+const SELF_PREVIEW_CODES: TileCode[] = ["3m", "5p", "7s", "2p"];
+
 function MeldView({ meld }: { meld: Meld }) {
   const slots = meldDisplaySlots(meld);
   return (
@@ -97,23 +102,20 @@ function MeldView({ meld }: { meld: Meld }) {
               small
               rotated
               red={slot.base.isRed}
-              // 4枚目(added)と重ならないよう、台座側も少し下へずらす
-              // （added側だけを上にずらす量を増やすと、他の牌との横一列の
-              // 位置から浮いて見えてしまうため、双方を逆向きに少しずつ
-              // ずらして重なりを解消する）。
-              style={{ position: "relative", top: 16 }}
+              // 4枚目(added)と上下に隣り合うよう、台座は下へ、4枚目は上へずらす。
+              // 台座を手前(z-index大)にして、4枚目の厚みの帯を台座の面の下に隠す
+              // （上家・下家の河の牌の列と同じ「厚みが重なる」見え方。帯が見えるのは
+              // 一番下の台座だけ）。
+              style={{ position: "relative", top: KAKAN_STACK_OFFSET - KAKAN_STACK_OVERLAP_FLAT, zIndex: 6 }}
             />
             <TileView
               code={slot.added.code}
               small
               rotated
               red={slot.added.isRed}
-              // 上に重なるだけの牌は卓に接地していないため、他の牌と同じ
-              // 「厚み」の帯(box-shadow、白+緑の2層)をそのまま出すと、
-              // 台座にしている牌の帯とほぼ同じ位置に別の帯がもう一つ乗って
-              // 二重に見えてしまう（指摘の原因）。厚みの帯は消し、浮いている
-              // ことが分かる程度の柔らかい影だけに差し替える。
-              style={{ position: "absolute", top: -16, left: 0, zIndex: 5, boxShadow: "0 2px 3px rgba(0, 0, 0, 0.5)" }}
+              // 4枚目にも普通の牌と同じ厚みの帯(box-shadow)を付けたまま（上書きしない）。
+              // 台座(zIndex 6)より奥(5)なので、帯は台座の面に隠れる。
+              style={{ position: "absolute", top: -KAKAN_STACK_OFFSET, left: 0, zIndex: 5 }}
             />
           </span>
         ) : (
@@ -281,6 +283,20 @@ export function Hand({ round }: { round: RoundState }) {
   const drawnTileId = round.currentTurn === HUMAN ? round.lastDrawnTile?.id : undefined;
   const restTiles = drawnTileId ? player.hand.concealed.filter((t) => t.id !== drawnTileId) : player.hand.concealed;
   const drawnTile = drawnTileId ? player.hand.concealed.find((t) => t.id === drawnTileId) : undefined;
+  // 自分の副露の見え方の確認（SelfMeldPreviewPanel.tsx）。開いている間だけ、実際の副露の後ろへ仮の副露を
+  // 指定の数になるまで足し、手牌もその数ぶん(13-3n枚)に短くして描く。表示だけで、対局の実データや
+  // 待ち・和了の判定には使わない（下のrestTiles等は実際の手牌のまま）。
+  const selfPreviewOpen = useTile3DDebugStore((s) => s.selfMeldPreviewOpen);
+  const selfPreviewCount = useTile3DDebugStore((s) => s.selfMeldPreviewCount);
+  const selfPreviewKinds = useTile3DDebugStore((s) => s.selfMeldPreviewKinds);
+  const realMeldCount = player.hand.melds.length;
+  const previewMelds = selfPreviewOpen
+    ? Array.from({ length: Math.max(0, selfPreviewCount - realMeldCount) }, (_, k) =>
+        makeMockMeld(realMeldCount + k, selfPreviewKinds[realMeldCount + k] ?? "pon", SELF_PREVIEW_CODES[(realMeldCount + k) % SELF_PREVIEW_CODES.length]),
+      )
+    : [];
+  const displayMelds = previewMelds.length > 0 ? [...player.hand.melds, ...previewMelds] : player.hand.melds;
+  const shownRestTiles = selfPreviewOpen ? restTiles.slice(0, Math.max(1, 13 - 3 * Math.max(selfPreviewCount, realMeldCount))) : restTiles;
 
   // じゃんたま等の「自動ツモ切り」「自動和了」相当。設定はlocalStorageに
   // 保存され対局をまたいで覚えている（settingsStore.ts参照）。
@@ -468,7 +484,7 @@ export function Hand({ round }: { round: RoundState }) {
       <div className="hand-row">
         <div className="hand-tiles">
           <div className="hand-tiles__real" data-hand-anchor={HUMAN}>
-            {restTiles.map((t) => (
+            {shownRestTiles.map((t) => (
               <TileView
                 key={t.id}
                 code={t.code}
@@ -518,7 +534,7 @@ export function Hand({ round }: { round: RoundState }) {
         <div className="melds-row">
           {/* 最初に鳴いた組を画面右端に、以降は鳴くたびにその左へ付け足す
               （じゃんたま等の一般的な並び）ので、配列を新しい順に描画する。 */}
-          {[...player.hand.melds].reverse().map((m, i) => (
+          {[...displayMelds].reverse().map((m, i) => (
             <MeldView key={i} meld={m} />
           ))}
         </div>

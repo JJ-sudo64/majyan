@@ -2,10 +2,11 @@ import { useKyushuPreview } from "../store/kyushuPreview.js";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Meld, PlayerIndex, RoundState, Tile, TileCode } from "@majyan/core";
-import { meldDisplaySlots } from "../meldDisplay.js";
+import { KAKAN_STACK_OFFSET, KAKAN_STACK_OVERLAP_FLAT, meldDisplaySlots } from "../meldDisplay.js";
+import { makeMockMeld } from "../mockMeld.js";
 import { TileView } from "./TileView.js";
 import { Tile3D } from "./Tile3D.js";
-import { HAND_GROUP_SLOT_COUNT, MELD_SLOT_COUNT, toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore, usePlayerTile3DParam } from "../store/tile3dDebugStore.js";
+import { HAND_GROUP_SLOT_COUNT, MELD_SLOT_COUNT, TOIMEN_MELD_EACH_COUNT, kakanKeyOf, slotAtKey, toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore, usePlayerTile3DParam } from "../store/tile3dDebugStore.js";
 import { useSettingsStore } from "../store/settingsStore.js";
 import type { MeldSlotConfig, Side2dSeatKey } from "../store/tile3dDebugStore.js";
 import { viewRect } from "../orientation.js";
@@ -30,20 +31,9 @@ const TOIMEN_MELD_STEP = 118;
 // 実機で発覚した（指摘により判明）。上家側だけこの分を差し引く。
 const KAMICHA_MELDS_ANCHOR_CORRECTION = -395;
 
-/** 副露配置編集モードで、実際の副露がまだ足りない時に卓上へ仮で表示する
-    ダミーの副露（見た目確認・ドラッグ操作用、対局の実データには一切
-    影響しない）。孤立したidを使い、実データのidと衝突しないようにする。 */
-/** 副露配置編集モードの仮表示は常にポン(3枚)。暗槓表示確認モード
-    (AnkanPreviewPanel.tsx)だけ、実際にCPUが暗槓するのを待たずに見た目を
-    確認したいとの指摘のため、暗槓(4枚、両端伏せ・鳴き元なし)も作れる
-    ようにする。 */
-function makeMockMeld(index: number, type: "pon" | "ankan" = "pon"): Meld {
-  const tile = (i: number): Tile => ({ id: `mock-meld-${index}-${i}`, code: "5p", isRed: false });
-  if (type === "ankan") {
-    return { type: "ankan", tiles: [tile(0), tile(1), tile(2), tile(3)] };
-  }
-  return { type: "pon", tiles: [tile(0), tile(1), tile(2)], calledFromRelative: 1, calledTile: tile(0) };
-}
+/** 副露1個ごとの位置（個別調整値）を「槓用」のスロットで持つか（4枚の暗槓・大明槓）。
+    加槓は専用の位置（kakanKeyOf）を別に持つので、ここでは槓用に数えない。 */
+const usesKanSlot = (m: Meld): boolean => m.type !== "kakan" && m.tiles.length === 4;
 
 /** .table祖先のzoom（Stageのレターボックスscaleと.tableのCSS zoom:1.46を
     合成した「画面px÷ローカルpx」の倍率）。Tile3D側のPortal同期(sync())と
@@ -215,6 +205,8 @@ export function OpponentArea({
   // 副露を1つ鳴くごと(1番目〜4番目)の個別配置。各副露は完全に独立して
   // 位置・角度を持つ（MeldEditToolbar.tsx＋卓上での直接ドラッグで調整）。
   const tile3dMeldSlots = usePlayerTile3DParam((s) => s.meldSlots, (s) => s.kamichaMeldSlots, isKamicha);
+  // 加槓した副露は、通常の副露とは別の専用の位置を使う（隣に被らないよう個別に置くため）。
+  const tile3dKakanMeldSlots = usePlayerTile3DParam((s) => s.kakanMeldSlots, (s) => s.kamichaKakanMeldSlots, isKamicha) ?? tile3dMeldSlots;
   const tile3dShrinkReversed = usePlayerTile3DParam(() => false, (s) => s.kamichaShrinkReversed, isKamicha);
   // 副露配置編集モード（MeldEditToolbar.tsx参照）。実際の卓の上で副露を
   // 直接ドラッグして位置・角度を決める——別画面の縮小プレビューは実際の
@@ -223,9 +215,11 @@ export function OpponentArea({
   const meldEditPreviewCount = useTile3DDebugStore((s) => s.meldEditPreviewCount);
   const meldEditActiveSlot = useTile3DDebugStore((s) => s.meldEditActiveSlot);
   const meldEditAnkanSlots = useTile3DDebugStore((s) => s.meldEditAnkanSlots);
+  const editKakanSlots = useTile3DDebugStore((s) => s.editKakanSlots);
   const toimenEditAnkanSlots = useTile3DDebugStore((s) => s.toimenEditAnkanSlots);
   const toimenEditMeldCount = useTile3DDebugStore((s) => s.toimenEditMeldCount);
   const toimenMeldEach = useTile3DDebugStore((s) => s.toimenMeldEach);
+  const toimenKakanEach = useTile3DDebugStore((s) => s.toimenKakanEach);
   const setToimenMeldEach = useTile3DDebugStore((s) => s.setToimenMeldEach);
   const toimenEditActiveMeld = useTile3DDebugStore((s) => s.toimenEditActiveMeld);
   const setToimenEditActiveMeld = useTile3DDebugStore((s) => s.setToimenEditActiveMeld);
@@ -278,14 +272,16 @@ export function OpponentArea({
   // で「実際に左ボタンが押され続けているか(e.buttons)」を都度確認し、
   // 押されていなければ即座にドラッグを中断する多重の安全策にする。
   const isPrimaryButtonDown = (e: ReactPointerEvent<HTMLDivElement>) => (e.buttons & 1) === 1;
-  const handleMeldPointerDown = (index: number) => (e: ReactPointerEvent<HTMLDivElement>) => {
+  const handleMeldPointerDown = (index: number, isKakan: boolean) => (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!isEditingThisSeat) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
     const clampedIndex = Math.min(index, tile3dMeldSlots.length - 1);
     setMeldEditActiveSlot(clampedIndex);
-    const current = tile3dMeldSlots[clampedIndex]!;
-    meldDragRef.current = { index: clampedIndex, startX: e.clientX, startY: e.clientY, baseX: current.offsetX, baseY: current.offsetY };
+    // 加槓の副露は、専用の位置のキー(通常の数＋番号)でつかむ（setMeldSlotがキーで振り分ける）。
+    const key = isKakan ? kakanKeyOf(tile3dMeldSlots.length, clampedIndex) : clampedIndex;
+    const current = slotAtKey(tile3dMeldSlots, tile3dKakanMeldSlots, key)!;
+    meldDragRef.current = { index: key, startX: e.clientX, startY: e.clientY, baseX: current.offsetX, baseY: current.offsetY };
   };
   const handleMeldPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = meldDragRef.current;
@@ -315,7 +311,8 @@ export function OpponentArea({
   const setHandGroupSlotStore = useTile3DDebugStore((s) => s.setHandGroupSlot);
   // 仮表示の副露のうち、最初のn個に含まれる暗槓(4枚の副露)の数。手牌位置は
   // 副露の数と、このカンの数の組ごとに持つ（ポンとカンで副露の幅が違うため）。
-  const kansOf = (n: number) => meldEditAnkanSlots.slice(0, n).filter(Boolean).length;
+  // 仮表示の加槓も、実際の対局と同じく槓(4枚の副露)として数える。
+  const kansOf = (n: number) => meldEditAnkanSlots.slice(0, n).filter((on, i) => on || editKakanSlots[i]).length;
   const isEditingHandThisSeat = (handEditSeat === "shimocha" && player === 1) || (handEditSeat === "kamicha" && player === 3);
   const handGroupDragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   useEffect(() => {
@@ -372,6 +369,7 @@ export function OpponentArea({
   const setSide2dHandSlot = useTile3DDebugStore((s) => s.setSide2dHandSlot);
   const setSide2dMeldSlot = useTile3DDebugStore((s) => s.setSide2dMeldSlot);
   const side2dMeldEachAll = useTile3DDebugStore((s) => s.side2dMeldEach);
+  const side2dKakanEachAll = useTile3DDebugStore((s) => s.side2dKakanEach);
   const setSide2dMeldEach = useTile3DDebugStore((s) => s.setSide2dMeldEach);
   const side2dEditActiveMeld = useTile3DDebugStore((s) => s.side2dEditActiveMeld);
   const setSide2dEditActiveMeld = useTile3DDebugStore((s) => s.setSide2dEditActiveMeld);
@@ -428,11 +426,16 @@ export function OpponentArea({
     setSlot({ offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
   };
   // 副露1個そのものをつかんだ時（副露の外側＝全体のつかみより優先）。
-  const handleToimenMeldEachPointerDown = (slot: number, isKan: boolean) => (e: ReactPointerEvent<HTMLDivElement>) => {
+  // keyはtoimenMeldEachIndex(ポン・カン用)かkakanKeyOf(加槓専用)で作った番号。
+  const handleToimenMeldEachPointerDown = (slot: number, key: number) => (e: ReactPointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
-    const key = toimenMeldEachIndex(slot, isKan);
-    const current = (player === 2 ? toimenMeldEach[key] : side2dKey ? side2dMeldEachAll[side2dKey][key] : undefined) ?? { offsetX: 0, offsetY: 0 };
+    const current =
+      (player === 2
+        ? slotAtKey(toimenMeldEach, toimenKakanEach, key)
+        : side2dKey
+          ? slotAtKey(side2dMeldEachAll[side2dKey], side2dKakanEachAll[side2dKey], key)
+          : undefined) ?? { offsetX: 0, offsetY: 0 };
     if (player === 2) setToimenEditActiveMeld(Math.min(slot, MELD_SLOT_COUNT - 1));
     else setSide2dEditActiveMeld(Math.min(slot, MELD_SLOT_COUNT - 1));
     toimenDragRef.current = { target: "each", key, startX: e.clientX, startY: e.clientY, baseX: current.offsetX, baseY: current.offsetY };
@@ -509,7 +512,7 @@ export function OpponentArea({
   const toimenSlotMelds = toimenPreviewMeldCount ?? round.players[player].hand.melds.length;
   const toimenSlotKans =
     toimenPreviewMeldCount !== null
-      ? edit2dAnkanSlots.slice(0, toimenPreviewMeldCount).filter(Boolean).length
+      ? edit2dAnkanSlots.slice(0, toimenPreviewMeldCount).filter((on, i) => on || editKakanSlots[i]).length
       : round.players[player].hand.melds.filter((m) => m.tiles.length === 4).length;
   const hand2dSlots = player === 2 || !side2dKey ? toimenHandSlots : side2dHandSlots[side2dKey];
   const toimenHandSlot = hand2dSlots[toimenHandSlotIndex(toimenSlotMelds, 0)]!;
@@ -1213,7 +1216,9 @@ export function OpponentArea({
               const ponMocks = Array.from({ length: mockCount }, (_, k) => {
                 const slot = realMeldCount + k;
                 const asAnkan = ((isEditingThisSeat || isEditingHandThisSeat) && meldEditAnkanSlots[slot]) || ((isEditingToimenMeld || isEditingToimenHand) && edit2dAnkanSlots[slot]);
-                return makeMockMeld(slot, asAnkan ? "ankan" : "pon");
+                // 加槓の見え方（どの編集モードでも共通。位置はポンのまま）。
+                const asKakan = !asAnkan && (isEditingThisSeat || isEditingHandThisSeat || isEditingToimenMeld || isEditingToimenHand) && editKakanSlots[slot];
+                return makeMockMeld(slot, asAnkan ? "ankan" : asKakan ? "kakan" : "pon");
               });
               // 暗槓表示確認モード: 副露配置編集モードとは独立に、末尾へ
               // 仮の暗槓を1つだけ追加する（CPUが実際に暗槓するのを待たずに
@@ -1233,8 +1238,13 @@ export function OpponentArea({
                 // 以外(player===2)は対象外なのでbaseのまま。
                 // 2D(立体牌OFF)でも土台は3D用の初期位置と同じ（卓の上に収まる位置）にし、
                 // 2D用の個別値(eachForSlot)をその上に足す。
-                const slotConfig: MeldSlotConfig | undefined = floatMeldSeat ? tile3dMeldSlots[Math.min(i, tile3dMeldSlots.length - 1)] : undefined;
-                const eachForSlot = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, m.tiles.length === 4)] : undefined;
+                // 加槓の副露は専用の位置を使う（通常はポン/カンの位置）。keyは配列を問わず同じ作りの番号。
+                const isKakanMeld = m.type === "kakan";
+                const slotConfig: MeldSlotConfig | undefined = floatMeldSeat
+                  ? (isKakanMeld ? tile3dKakanMeldSlots : tile3dMeldSlots)[Math.min(i, tile3dMeldSlots.length - 1)]
+                  : undefined;
+                const eachKey = isKakanMeld ? kakanKeyOf(TOIMEN_MELD_EACH_COUNT, i) : toimenMeldEachIndex(i, usesKanSlot(m));
+                const eachForSlot = is2dSide && side2dKey ? slotAtKey(side2dMeldEachAll[side2dKey], side2dKakanEachAll[side2dKey], eachKey) : undefined;
                 // 自然な(ユーザーがドラッグする前の)位置は、flexの自動配置
                 // ではなくposition:absoluteの明示的なleftで指定する
                 // （固定値MELD_NATURAL_STEPのみに依存し、実際の副露の
@@ -1278,15 +1288,14 @@ export function OpponentArea({
                       transform: `translate(${slotConfig.offsetX + (eachForSlot?.offsetX ?? 0)}px, ${slotConfig.offsetY + (eachForSlot?.offsetY ?? 0)}px) rotate(${slotConfig.rotate + (eachForSlot?.rotate ?? 0)}deg)`,
                     }
                   : undefined;
-                const isKan = m.tiles.length === 4;
                 const editableClass = isEditingThisSeat
                   ? ` meld--editable${meldEditActiveSlot === Math.min(i, tile3dMeldSlots.length - 1) ? " meld--editable-active" : ""}`
                   : isEditingToimenMeld
                     ? ` meld--editable${(player === 2 ? toimenEditActiveMeld : side2dEditActiveMeld) === Math.min(i, MELD_SLOT_COUNT - 1) ? " meld--editable-active" : ""}`
                     : "";
                 // 対面の副露1個ごとの個別位置（副露全体の位置に重ねて足される）。
-                const toimenEach = player === 2 ? toimenMeldEach[toimenMeldEachIndex(i, isKan)] : undefined;
-                const side2dEach = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, m.tiles.length === 4)] : undefined;
+                const toimenEach = player === 2 ? slotAtKey(toimenMeldEach, toimenKakanEach, eachKey) : undefined;
+                const side2dEach = is2dSide && side2dKey ? slotAtKey(side2dMeldEachAll[side2dKey], side2dKakanEachAll[side2dKey], eachKey) : undefined;
                 const eachStyle: CSSProperties | undefined = toimenEach
                   ? {
                       // 対面も絶対配置: 並び順×幅の位置に、1個ごとの調整値を足す。
@@ -1304,7 +1313,7 @@ export function OpponentArea({
                     className={`meld meld--small${editableClass}${isMock ? " meld--mock" : ""}`}
                     style={slotStyle ?? eachStyle}
                     onPointerDown={
-                      isEditingThisSeat ? handleMeldPointerDown(i) : isEditingToimenMeld ? handleToimenMeldEachPointerDown(i, isKan) : undefined
+                      isEditingThisSeat ? handleMeldPointerDown(i, isKakanMeld) : isEditingToimenMeld ? handleToimenMeldEachPointerDown(i, eachKey) : undefined
                     }
                     onPointerMove={isEditingThisSeat ? handleMeldPointerMove : undefined}
                     onPointerUp={isEditingThisSeat ? handleMeldPointerUp : undefined}
@@ -1327,6 +1336,11 @@ export function OpponentArea({
                       const zIndexStyle: CSSProperties | undefined =
                         player === 1 || player === 3 ? { zIndex: withinMeldSign * j } : undefined;
                       if (slot.kind === "stack") {
+                        // 対面（平面の牌）は、自分と同じく上家・下家の河と同じ「厚みの重なり」に見せる:
+                        // 台座を手前にして、4枚目の厚みの帯を台座の面の下に隠す（Hand.tsxのMeldViewと同じ）。
+                        // 下家・上家は、調整した位置が従来の見せ方を前提にしているのでそのまま。
+                        const stackOffset = KAKAN_STACK_OFFSET;
+                        const flatStack = player === 2;
                         // 加槓：元のポンで横向きにした牌の上に4枚目を重ねて
                         // 見せる（以前は単に横一列へ並べていたため大明槓と
                         // 見分けがつかない見た目になっていた）。
@@ -1337,28 +1351,23 @@ export function OpponentArea({
                               small
                               rotated
                               red={slot.base.isRed}
-                              // 4枚目(added)と重ならないよう、台座側も少し下へ
-                              // ずらす（Hand.tsxのMeldViewと同じ理由）。
-                              style={{ position: "relative", top: 16 }}
+                              // 4枚目(added)と上下に隣り合うよう、台座側は下へずらす
+                              // （Hand.tsxのMeldViewと同じ）。対面は台座を手前(z-index 6)にする。
+                              style={{ position: "relative", top: flatStack ? stackOffset - KAKAN_STACK_OVERLAP_FLAT : stackOffset, ...(flatStack ? { zIndex: 6 } : {}) }}
                             />
                             <TileView
                               code={slot.added.code}
                               small
                               rotated
                               red={slot.added.isRed}
-                              // 台座にしている牌と同じ「厚み」の帯(box-shadow)を
-                              // 重ねて出すと二重に見えるため、浮いている程度の
-                              // 柔らかい影に差し替える（Hand.tsxのMeldViewと同じ理由）。
-                              // ただし下家・上家は帯の向きが台座と重ならない横向き
-                              // （画面上は2枚が隣り合って並ぶだけで二重にならない）
-                              // ため、差し替えると4枚目だけ厚みが欠けて見えていた
-                              // （指摘により）。下家・上家では通常の帯のままにする。
+                              // 4枚目にも普通の牌と同じ厚みの帯(box-shadow)を付けたまま（上書きしない）。
+                              // 対面は台座(zIndex 6)より奥(5)にして、帯を台座の面に隠す。
+                              // 下家・上家は従来どおり手前(999)で通常の帯のまま。
                               style={{
                                 position: "absolute",
-                                top: -16,
+                                top: -stackOffset,
                                 left: 0,
-                                zIndex: 999,
-                                ...(player === 1 || player === 3 ? {} : { boxShadow: "0 2px 3px rgba(0, 0, 0, 0.5)" }),
+                                zIndex: flatStack ? 5 : 999,
                               }}
                             />
                           </span>

@@ -29,6 +29,7 @@ export function SettingsPanel() {
   const setMeldEditSeat = useTile3DDebugStore((s) => s.setMeldEditSeat);
   const setHandEditSeat = useTile3DDebugStore((s) => s.setHandEditSeat);
   const setAnkanPreviewPanelOpen = useTile3DDebugStore((s) => s.setAnkanPreviewPanelOpen);
+  const setSelfMeldPreviewOpen = useTile3DDebugStore((s) => s.setSelfMeldPreviewOpen);
   const setRiverEditOpen = useTile3DDebugStore((s) => s.setRiverEditOpen);
   const setRiichiStickEditOpen = useTile3DDebugStore((s) => s.setRiichiStickEditOpen);
   const setNameplateEditOpen = useTile3DDebugStore((s) => s.setNameplateEditOpen);
@@ -229,6 +230,20 @@ export function SettingsPanel() {
                 }}
               >
                 暗槓表示確認
+              </button>
+            </div>
+            {/* 自分の副露（ポン・暗槓・加槓）が、手牌の横にどう見えるかの確認用
+                （SelfMeldPreviewPanel.tsx参照）。位置の調整はできない。 */}
+            <div className="hud__row volume-popover__tile3d-row">
+              <button
+                type="button"
+                className="hud__toggle-btn"
+                onClick={() => {
+                  setSelfMeldPreviewOpen(true);
+                  setVolumeOpen(false);
+                }}
+              >
+                自分の副露の確認
               </button>
             </div>
             {/* 河・ネームプレートの位置・角度を、自分含む4人全員分、実際の
