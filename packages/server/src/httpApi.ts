@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   ACCOUNT_DELETE_CONFIRM,
   ONLINE_API_PREFIX,
+  RENAME_PRICE,
   TERMS_VERSION,
   suspensionMessage,
   type AccountProfile,
@@ -226,6 +227,15 @@ export function createApiHandler(options: HttpApiOptions) {
           const name = normalizeDisplayName(body.displayName);
           if (!name) return fail(res, 400, "名前を入力してください"), true;
           if (isNameBlocked(name)) return fail(res, 400, BLOCKED_NAME_MESSAGE), true;
+          // 今と同じ名前なら何も起きず無料。変える時は雀玉が要る（足りなければ409）。
+          if (name !== profile.displayName) {
+            try {
+              wallet.spend(profile.id, RENAME_PRICE, "rename");
+            } catch (err) {
+              if (err instanceof InsufficientJadeError) return fail(res, 409, `名前を変えるには雀玉が${RENAME_PRICE}個必要です`), true;
+              throw err;
+            }
+          }
           sendJson(res, 200, me(accounts.rename(profile.id, name)));
           return true;
         }

@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { describe, expect, it } from "vitest";
 import type { AdminReport, AdminStats, AdminUser, RankedHistoryResponse } from "@majyan/core";
+import { RENAME_PRICE } from "@majyan/core";
 import { AccountService } from "../src/accounts.js";
 import { runAdmin } from "../src/admin.js";
 import { CollectionService } from "../src/collection.js";
@@ -106,6 +107,7 @@ describe("moderation over HTTP", () => {
     const wallet = new WalletService(db, now);
     const collections = new CollectionService(db, Math.random, now, wallet);
     const inbox = new InboxService(db, collections, wallet, now);
+    wallet.grantFree(a.profile.id, RENAME_PRICE, "test");
     const TOKEN = "admin-token-for-tests";
     const handleApi = createApiHandler({
       accounts,

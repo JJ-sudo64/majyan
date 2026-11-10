@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import {
   DAILY_LOGIN_JADE,
+  RENAME_PRICE,
   TERMS_VERSION,
   STARTING_JADE,
   CARDS,
@@ -219,6 +220,9 @@ describe("account HTTP API", () => {
 
     const renamed = await post("/api/me/name", { displayName: "新しい名前" }, token);
     expect(((await renamed.json()) as MeResponse).profile.displayName).toBe("新しい名前");
+    // 名前を変えると雀玉がかかる。足りなければ変えられず、同じ名前なら無料。
+    expect((await post("/api/me/name", { displayName: "もう一回" }, token)).status).toBe(409);
+    expect((await post("/api/me/name", { displayName: "新しい名前" }, token)).status).toBe(200);
 
     // 最初の10連: 引き直せて、確定するとキャラ・カードが増え、もう引けなくなる。
     const fresh = (await (await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${token}` } })).json()) as MeResponse;
@@ -241,7 +245,7 @@ describe("account HTTP API", () => {
 
     // 雀玉: 最初は0で、ログインボーナスは1日1回。通常のガチャで減る。
     // （このテストの最初の /api/me で今日のログインボーナスは受け取り済み）
-    expect(fresh.jade.free).toBe(STARTING_JADE + DAILY_LOGIN_JADE);
+    expect(fresh.jade.free).toBe(STARTING_JADE + DAILY_LOGIN_JADE - RENAME_PRICE);
     expect(fresh.dailyBonus).toBeNull();
     // 最初の雀玉は0なので、通常のガチャを引くテストのために10連ぶん（1500）を渡しておく。
     walletService.grantFree(profile.id, 1500, "test");

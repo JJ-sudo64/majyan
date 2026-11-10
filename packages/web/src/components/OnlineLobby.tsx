@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, ROOM_CODE_MAX_LENGTH, SHOP_RETURN_PARAM, suspensionMessage, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, RENAME_PRICE, ROOM_CODE_MAX_LENGTH, SHOP_RETURN_PARAM, suspensionMessage, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { createGuestAccount, fetchTransferCode, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
@@ -120,6 +120,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const [now, setNow] = useState(() => performance.now());
   const [name, setName] = useState("");
   const [renaming, setRenaming] = useState(false);
+  const jadeTotal = (jade?.free ?? 0) + (jade?.paid ?? 0);
   const [roomCode, setRoomCode] = useState(() => loadSaved(ROOM_KEY));
   /** 対局に出す手持ちのキャラ（付いているカードごと出る）。null=おまかせ。 */
   const [unitId, setUnitId] = useState<string | null>(() => loadSaved(UNIT_KEY) || null);
@@ -357,6 +358,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                   }}
                 />
               </label>
+              {profile && (
+                <p className="oh-note">
+                  名前を変えるには雀玉が{RENAME_PRICE}個かかります（今の所持: {jadeTotal}個）。同じ名前のままなら無料です。
+                </p>
+              )}
               {!profile && (
                 <label className="online-lobby__agree">
                   <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
@@ -369,8 +375,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 </label>
               )}
               <div className="oh-card__actions">
-                <button type="button" className="oh-cta" disabled={!name.trim() || (!profile && !agreed)} onClick={() => void submitName()}>
-                  {profile ? "変更する" : "はじめる"}
+                <button type="button" className="oh-cta" disabled={!name.trim() || (!profile && !agreed) || (!!profile && name.trim() !== profile.displayName && jadeTotal < RENAME_PRICE)} onClick={() => void submitName()}>
+                  {profile ? (name.trim() === profile.displayName ? "変更する" : `変更する（雀玉${RENAME_PRICE}）`) : "はじめる"}
                 </button>
                 {renaming && (
                   <button type="button" className="oh-ghost" onClick={() => setRenaming(false)}>
