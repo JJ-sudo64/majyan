@@ -24,7 +24,6 @@ export function SettingsPanel() {
   const replaying = useGameStore((s) => s.replay !== null || s.spectating);
   const setAutoWin = useSettingsStore((s) => s.setAutoWin);
   const tile3dEnabled = useSettingsStore((s) => s.tile3dEnabled);
-  const setTile3dEnabled = useSettingsStore((s) => s.setTile3dEnabled);
   const setActiveTile3DPanel = useTile3DDebugStore((s) => s.setActivePanel);
   const setMeldEditSeat = useTile3DDebugStore((s) => s.setMeldEditSeat);
   const setHandEditSeat = useTile3DDebugStore((s) => s.setHandEditSeat);
@@ -132,20 +131,6 @@ export function SettingsPanel() {
                 onChange={(e) => setSeVolume(Number(e.target.value))}
               />
               <span className="hud__bgm-volume__value">{Math.round(seVolume * 100)}%</span>
-            </div>
-            {/* 立体牌(Tile3D)はCSS 3Dの合成負荷が高く、GPUが弱い/実質
-                ハードウェアアクセラレーションが効かない環境では画面が
-                真っ白のまま固まって開けなくなる不具合が実機で発覚した
-                （ブラウザのGPUプロセスがCPUを食い尽くす）。設定側で
-                いつでも2D表示に戻せるようにする。 */}
-            <div className="hud__row volume-popover__tile3d-row">
-              <button
-                type="button"
-                className={`hud__toggle-btn${tile3dEnabled ? " hud__toggle-btn--on" : ""}`}
-                onClick={() => setTile3dEnabled(!tile3dEnabled)}
-              >
-                立体牌{tile3dEnabled ? " ON" : " OFF"}
-              </button>
             </div>
             {/* ここから「背景の調整」までは開発者用の調整項目。本番のビルドには出さない
                 （import.meta.env.DEVは、開発サーバーでだけtrue）。 */}
