@@ -302,7 +302,7 @@ const SKILL_SCENARIO: TutorialScenario = {
     {
       id: "skill-welcome",
       advance: "next",
-      text: "3局目です。キャラクターごとの「必殺技」を体験します。今回はヒイラギです。必殺技は、局を重ねて溜まるゲージが満タンになると使えます。今回は最初から満タンです。",
+      text: "キャラクターごとの「必殺技」を体験します。今回はヒイラギです。必殺技は、局を重ねて溜まるゲージが満タンになると使えます。今回は最初から満タンです。",
       when: (round) => round.phase === "awaiting-draw" && round.players[HUMAN].discards.length === 0,
     },
     {
@@ -400,13 +400,24 @@ const CARD_SCENARIO: TutorialScenario = {
     {
       id: "card-result",
       advance: "result",
-      text: "役の一覧に「カード効果」が出ています。「ツモの加護」と「小手先の一翻」で、あわせて+2翻です。ほかにも、あがらなくても自動で働くカード（ロンを1度だけ防ぐ盾など）があります。働いた時は画面に札が出ます。カードは、ガチャで集めて、キャラクターに付けて使います。以上でチュートリアルは終わりです。",
+      text: "役の一覧に「カード効果」が出ています。「ツモの加護」と「小手先の一翻」で、あわせて+2翻です。ほかにも、あがらなくても自動で働くカード（ロンを1度だけ防ぐ盾など）があります。働いた時は画面に札が出ます。カードは、ガチャで集めて、キャラクターに付けて使います。付け方は、ホームの「手持ち・カード」にある「カードの付け方を体験」で、練習用のキャラとカードを使って試せます。以上でチュートリアルは終わりです。",
       when: (round) => round.phase === "round-over",
     },
   ],
 };
 
 export const TUTORIAL_SCENARIOS: TutorialScenario[] = [RIICHI_SCENARIO, PON_SCENARIO, SKILL_SCENARIO, CARD_SCENARIO];
+
+/**
+ * 最初に選ぶコース。beginner=麻雀を知らない人（打牌・リーチ・ツモ→鳴き→必殺技→カード、4局）、
+ * experienced=麻雀を知っている人（このゲームならではの必殺技→カードだけ、2局）。
+ * 値は、TUTORIAL_SCENARIOSのどの局から始めるか。
+ */
+export type TutorialCourse = "beginner" | "experienced";
+export const TUTORIAL_COURSE_START: Record<TutorialCourse, number> = {
+  beginner: 0,
+  experienced: TUTORIAL_SCENARIOS.findIndex((scenario) => scenario.id === SKILL_SCENARIO.id),
+};
 
 /** 人間の操作が、台本の許した操作か。 */
 export function tutorialAllows(allow: TutorialAllow | undefined, action: GameAction, round: RoundState): boolean {

@@ -5182,6 +5182,84 @@ body:has(.character-panel--bottom .character-panel__player) .hand-top-status {
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
 }
+/* アカウントを作った直後の、最初のチュートリアルの案内（TutorialIntro.tsx）。 */
+.tutorial-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(760px, calc(calc(var(--app-vw, 1vw) * 100) - 32px));
+  padding: 22px 24px 18px;
+  border-radius: 14px;
+  background: rgba(16, 12, 8, 0.97);
+  border: 1px solid #d4af37;
+  color: #fff;
+  text-align: center;
+}
+.tutorial-intro__title {
+  margin: 0;
+  font-size: 24px;
+  color: #ffe08a;
+}
+.tutorial-intro__lead {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.tutorial-intro__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+.tutorial-intro__option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.tutorial-intro__option:hover {
+  border-color: #ffd34d;
+  background: rgba(255, 211, 77, 0.1);
+}
+.tutorial-intro__option--primary {
+  border-color: #d4af37;
+}
+.tutorial-intro__option-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffe08a;
+}
+.tutorial-intro__option-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  opacity: 0.9;
+}
+.tutorial-intro__option-meta {
+  font-size: 12px;
+  color: #b8f0ff;
+}
+.tutorial-intro__skip {
+  padding: 6px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tutorial-intro__note {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.7;
+}
 /* 前にここで作ったアカウントの鍵が見つからない時の案内（OnlineLobby、アカウント作成の欄）。 */
 .online-lobby__lost {
   margin: 0;
@@ -5537,6 +5615,42 @@ body:has(.character-panel--bottom .character-panel__player) .hand-top-status {
 }
 
 /* 手持ち（UnitsScreen.tsx） */
+/* カードの付け方の練習の案内（UnitsScreen.tsx / CardSlotPicker）。各画面の見出しの下に出す。 */
+.practice-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 12px 10px;
+  border-radius: 10px;
+  border: 1px solid #d4af37;
+  background: rgba(212, 175, 55, 0.16);
+  color: #fff;
+  text-align: left;
+  box-sizing: border-box;
+}
+.practice-banner__head {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #e9c46a;
+}
+.practice-banner__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.practice-banner__finish {
+  align-self: flex-end;
+}
+/* カード選択画面は縦に余裕が少ないので、案内を少しコンパクトにする。 */
+.cs-picker .practice-banner {
+  padding: 6px 10px 7px;
+  gap: 2px;
+}
+.cs-picker .practice-banner__text {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
 /* 並び替え・絞り込み。キャラが多くてスクロールしても、操作できるよう上に固定する。 */
 .units-screen__controls {
   position: sticky;
@@ -7789,6 +7903,105 @@ button.oh-player__rank:hover .oh-player__rank-help {
   background: rgba(230, 195, 106, 0.24);
 }
 /* オンラインへの入口。カード全体が1つのボタン。 */
+/* ---- プレイを押した後の選択画面（ModeSelect.tsx）: オンライン／CPU戦 ---- */
+.mode-select__main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  min-height: 0;
+  padding: 16px 40px 32px;
+}
+.mode-select__heading {
+  margin: 0;
+  font-family: var(--oh-serif);
+  font-size: 24px;
+  font-weight: normal;
+  letter-spacing: 0.2em;
+  color: var(--oh-gold);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+.mode-select__cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  width: min(900px, 100%);
+}
+.mode-select__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 250px;
+  padding: 26px 56px 24px 28px;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid var(--oh-line);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(4px);
+  transition: transform 0.12s ease, border-color 0.12s ease, filter 0.12s ease;
+}
+.mode-select__card:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.12);
+}
+.mode-select__card--online {
+  border-color: rgba(140, 220, 240, 0.6);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(95, 211, 238, 0.26), transparent 55%),
+    linear-gradient(160deg, rgba(16, 40, 52, 0.94), var(--oh-ink));
+}
+.mode-select__card--online:hover {
+  border-color: #7fe3f7;
+}
+.mode-select__card--cpu {
+  border-color: rgba(230, 195, 106, 0.7);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(230, 195, 106, 0.24), transparent 55%),
+    linear-gradient(160deg, rgba(48, 33, 16, 0.94), var(--oh-ink));
+}
+.mode-select__card--cpu:hover {
+  border-color: var(--oh-gold);
+}
+.mode-select__en {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: var(--oh-gold);
+}
+.mode-select__card--online .mode-select__en {
+  color: #9be8f8;
+}
+.mode-select__title {
+  font-family: var(--oh-serif);
+  font-size: 34px;
+  letter-spacing: 0.12em;
+  color: #fff;
+}
+.mode-select__lead {
+  font-size: 15px;
+  line-height: 1.7;
+  opacity: 0.92;
+}
+.mode-select__note {
+  margin-top: auto;
+  font-size: 13px;
+  color: #ffe9a8;
+}
+.mode-select__card--online .mode-select__note {
+  color: #b8f0ff;
+}
+.mode-select__arrow {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 40px;
+  opacity: 0.7;
+}
 .oh-card--online {
   width: 100%;
   padding-right: 52px;

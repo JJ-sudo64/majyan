@@ -3,7 +3,7 @@ import type { GameAction } from "../src/actions.js";
 import type { MatchState } from "../src/gameState.js";
 import { applyMatchAction, pendingDecision, settleRound } from "../src/matchController.js";
 import { canDeclareTsumo } from "../src/gameEngine.js";
-import { TUTORIAL_SCENARIOS, tutorialAllows, tutorialCpuAction, type TutorialAllow, type TutorialStep } from "../src/tutorial.js";
+import { TUTORIAL_COURSE_START, TUTORIAL_SCENARIOS, tutorialAllows, tutorialCpuAction, type TutorialAllow, type TutorialStep } from "../src/tutorial.js";
 
 /** 台本のとおりに人間が操作する時の、その操作（allowから作る）。 */
 function humanActionFor(allow: TutorialAllow, match: MatchState): GameAction {
@@ -113,5 +113,17 @@ describe("tutorial scenarios", () => {
     );
     expect(pon!.build().round.dealerSeat).toBe(0);
     expect(canDeclareTsumo(riichi!.build().round, 0)).toBeNull();
+  });
+});
+
+describe("tutorial courses", () => {
+  it("beginners start from the first scenario; experienced players start from the skill scenario and then do the card scenario", () => {
+    expect(TUTORIAL_COURSE_START.beginner).toBe(0);
+    const from = TUTORIAL_COURSE_START.experienced;
+    expect(TUTORIAL_SCENARIOS.slice(from).map((s) => s.id)).toEqual(["skill", "card"]);
+  });
+  it("the first step of the experienced course does not refer to a round number from the full course", () => {
+    const first = TUTORIAL_SCENARIOS[TUTORIAL_COURSE_START.experienced]!.steps[0]!;
+    expect(first.text).not.toMatch(/\d局目/);
   });
 });

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { scoreWin, type WinAnalysis } from "@majyan/core";
-import { GUIDE_PAGES, YAKU_GROUPS } from "./rulesGuideData.js";
+import { GUIDE_GROUP_LABELS, GUIDE_PAGES, YAKU_GROUPS, type GuideGroup } from "./rulesGuideData.js";
 
 type Tab = "guide" | "yaku" | "points";
 
@@ -32,11 +32,24 @@ function pointCell(han: number, fu: number, isDealer: boolean, isTsumo: boolean,
   return isDealer ? `${payments.fromEachNonDealer}オール` : `${payments.fromEachNonDealer}/${payments.fromDealer}`;
 }
 
-function GuideTab() {
-  const [page, setPage] = useState(0);
+function GuideTab({ initialGroup }: { initialGroup?: GuideGroup }) {
+  const [page, setPage] = useState(() => (initialGroup ? Math.max(0, GUIDE_PAGES.findIndex((p) => p.group === initialGroup)) : 0));
   const current = GUIDE_PAGES[page]!;
   return (
     <div className="rules-guide__guide">
+      {/* 麻雀の基本／このゲームの特徴（必殺技・カード・ガチャ）の先頭へ飛べる。知っている人は、後ろから読める。 */}
+      <div className="rules-guide__chips" role="group" aria-label="ページの分類">
+        {(Object.keys(GUIDE_GROUP_LABELS) as GuideGroup[]).map((g) => (
+          <button
+            key={g}
+            type="button"
+            className={`rules-guide__chip${current.group === g ? " is-active" : ""}`}
+            onClick={() => setPage(Math.max(0, GUIDE_PAGES.findIndex((p) => p.group === g)))}
+          >
+            {GUIDE_GROUP_LABELS[g]}
+          </button>
+        ))}
+      </div>
       <h3 className="rules-guide__page-title">
         {page + 1}. {current.title}
       </h3>
@@ -165,7 +178,7 @@ function PointsTab() {
 }
 
 /** ルール＆ガイド。遊び方・役一覧・点数表を、スクロールなしで1画面ずつ見せる。 */
-export function RulesGuide({ onClose, initialTab = "guide" }: { onClose: () => void; initialTab?: Tab }) {
+export function RulesGuide({ onClose, initialTab = "guide", initialGroup }: { onClose: () => void; initialTab?: Tab; initialGroup?: GuideGroup }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -182,7 +195,7 @@ export function RulesGuide({ onClose, initialTab = "guide" }: { onClose: () => v
             ×
           </button>
         </div>
-        {tab === "guide" && <GuideTab />}
+        {tab === "guide" && <GuideTab initialGroup={initialGroup} />}
         {tab === "yaku" && <YakuTab />}
         {tab === "points" && <PointsTab />}
       </div>

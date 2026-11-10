@@ -41,7 +41,7 @@ const CPU_SEATS: { player: 1 | 2 | 3; label: string }[] = [
   { player: 3, label: "上家CPU" },
 ];
 
-export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline: () => void }) {
+export function MatchSetup({ onBack }: { onBack: () => void }) {
   const startMatch = useGameStore((s) => s.startMatch);
   const startTutorial = useGameStore((s) => s.startTutorial);
   const [debugMode, setDebugMode] = useState(false);
@@ -109,14 +109,14 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
     <div className="online-home match-setup" onClickCapture={playUiClickFor}>
       <header className="oh-top">
         <button type="button" className="oh-back" onClick={showLoadout ? () => setShowLoadout(false) : onBack}>
-          {showLoadout ? "← 戻る" : "← タイトルへ"}
+          ← 戻る
         </button>
         <div className="oh-top__title">{showLoadout ? "CARD" : "PLAY"}</div>
         <div className="oh-top__spacer" />
         {/* 何度も見返す確認用ページ（CutinGallery.tsx / QuoteGallery.tsx）。別タブで
             開くので、この画面で選んだキャラや設定はそのまま残る。 */}
         <div className="setup-gallery-links" style={showLoadout ? { display: "none" } : undefined}>
-          <button type="button" className="oh-ghost setup-tutorial-btn" onClick={startTutorial}>
+          <button type="button" className="oh-ghost setup-tutorial-btn" onClick={() => startTutorial()}>
             チュートリアル
           </button>
           {/* 確認用ページへのリンクは開発者用。本番のビルドには出さない。 */}
@@ -187,15 +187,6 @@ export function MatchSetup({ onBack, onOnline }: { onBack: () => void; onOnline:
         </section>
 
         <section className="oh-panel">
-          <button type="button" className="oh-card oh-card--online setup-online-btn" onClick={onOnline}>
-            <span className="oh-card__head">
-              <span className="oh-card__title">オンライン</span>
-              <span className="oh-card__en">ONLINE</span>
-            </span>
-            <span className="oh-card__lead">段位戦・友人戦・ガチャ。ほかの人と打つならこちら。</span>
-            <span className="oh-card__arrow">›</span>
-          </button>
-
           <div className="oh-card oh-card--ranked">
             <div className="oh-card__head">
               <span className="oh-card__title">CPU戦</span>

@@ -3,6 +3,7 @@ import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, RENAME_PRICE, ROOM_CODE_MAX_
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { createGuestAccount, fetchTransferCode, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
+import { TutorialIntro, introSeen } from "./TutorialIntro.js";
 import { GachaScreen } from "./GachaScreen.js";
 import { UnitsScreen } from "./UnitsScreen.js";
 import { UnitDetail } from "./UnitDetail.js";
@@ -143,6 +144,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
 
   // 引き継ぎのパスワードをまだ決めていないか（決めていないと、ブラウザのデータが消えた時にアカウントへ戻れない）。
   // 引き継ぎ画面を閉じるたびに読み直す。読めない時は注意書きを出さない（null）。
+  // アカウントを作った直後（最初の10連の前）に、最初のチュートリアルの案内を1度だけ出す（TutorialIntro.tsx）。
+  const [introClosed, setIntroClosed] = useState(false);
   const [needsBackupNotice, setNeedsBackupNotice] = useState<boolean | null>(null);
   const [backupNoticeLater, setBackupNoticeLater] = useState(false);
   useEffect(() => {
@@ -408,6 +411,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             </div>
           )}
           {needsFirstGacha && !renaming && <FirstGacha />}
+          {needsFirstGacha && !renaming && !!profile && !introClosed && !introSeen(profile.id) && (
+            <TutorialIntro accountId={profile.id} onDone={() => setIntroClosed(true)} />
+          )}
         </main>
         {overlays}
       </div>

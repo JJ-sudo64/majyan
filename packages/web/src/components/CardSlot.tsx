@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { CARDS, cardRarity } from "@majyan/core";
 import { KIND_LONG } from "../cardDesign.js";
 import { CardFace } from "./CardFace.js";
@@ -79,17 +79,26 @@ interface CardSlotPickerProps {
   /** 欄を空にする（外せる装着の時だけ渡す）。 */
   onClear?: () => void;
   onClose: () => void;
+  /** 見出しの下に出す案内（装着の練習の説明など）。 */
+  banner?: ReactNode;
+  /** 今どの段階か（browse=選んでいる／picked=1枚選んだ／confirm=「付けますか？」の確認中）を知らせる。練習の案内用。 */
+  onStage?: (stage: "browse" | "picked" | "confirm") => void;
 }
 
 /**
  * 欄を開いた時の選択画面。この欄に付けられる種類のカードだけを並べ、押すと下に効果が出る。
  * 決める時は「付ける」。外せない装着（permanent）では、もう一度確認してから付ける。
  */
-export function CardSlotPicker({ kind, title, candidates, counts, current, permanent, busy, emptyMessage, onConfirm, onClear, onClose }: CardSlotPickerProps) {
+export function CardSlotPicker({ kind, title, candidates, counts, current, permanent, busy, emptyMessage, onConfirm, onClear, onClose, banner, onStage }: CardSlotPickerProps) {
   const [rarity, setRarity] = useState<0 | 1 | 2 | 3>(0);
   const [picked, setPicked] = useState<string | null>(current ?? null);
   const [hover, setHover] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+
+  // 段階を親へ知らせる（練習の案内が、今やることを出し分けるため）。
+  useEffect(() => {
+    onStage?.(confirming ? "confirm" : picked ? "picked" : "browse");
+  }, [confirming, picked, onStage]);
 
   // レア度の高い順、同じレア度は渡された順。
   const sorted = [...candidates].sort((a, b) => cardRarity(b) - cardRarity(a));
@@ -108,6 +117,7 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
             ×
           </button>
         </div>
+        {banner}
         {permanent && <p className="cs-picker__note">一度付けたカードは外せません。</p>}
 
         {candidates.length === 0 ? (

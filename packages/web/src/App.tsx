@@ -3,6 +3,7 @@ import { SHOP_RETURN_PARAM } from "@majyan/core";
 import { useGameStore } from "./store/gameStore.js";
 import { TitleScreen } from "./components/TitleScreen.js";
 import { MatchSetup } from "./components/MatchSetup.js";
+import { ModeSelect } from "./components/ModeSelect.js";
 import { OnlineLobby } from "./components/OnlineLobby.js";
 import { OnlineConnectionOverlay } from "./components/OnlineConnectionOverlay.js";
 import { OnlineTurnTimer } from "./components/OnlineTurnTimer.js";
@@ -14,7 +15,8 @@ import { Stage } from "./components/Stage.js";
 import { UpdateNotice } from "./components/UpdateNotice.js";
 import { useTitleBgm } from "./hooks/useTitleBgm.js";
 
-type Screen = "title" | "setup" | "online";
+/** title→mode（オンラインかCPU戦かを選ぶ）→online（オンライン）／setup（CPU戦の設定）。 */
+type Screen = "title" | "mode" | "setup" | "online";
 
 export default function App() {
   return (
@@ -56,7 +58,7 @@ function AppBody() {
   if (screen === "title") {
     return (
       <>
-        <TitleScreen onPlay={() => setScreen("setup")} />
+        <TitleScreen onPlay={() => setScreen("mode")} />
       </>
     );
   }
@@ -64,10 +66,12 @@ function AppBody() {
   return (
     <>
       <Stage menu>
-        {screen === "online" ? (
-          <OnlineLobby onBack={() => setScreen("setup")} />
+        {screen === "mode" ? (
+          <ModeSelect onBack={() => setScreen("title")} onOnline={() => setScreen("online")} onCpu={() => setScreen("setup")} />
+        ) : screen === "online" ? (
+          <OnlineLobby onBack={() => setScreen("mode")} />
         ) : (
-          <MatchSetup onBack={() => setScreen("title")} onOnline={() => setScreen("online")} />
+          <MatchSetup onBack={() => setScreen("mode")} />
         )}
       </Stage>
     </>

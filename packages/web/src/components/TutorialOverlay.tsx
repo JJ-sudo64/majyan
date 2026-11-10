@@ -46,7 +46,7 @@ export function TutorialOverlay() {
       {tutorial.visible && step && (
         <div key={`${tutorial.scenarioIndex}-${tutorial.stepIndex}-${shake}`} className={`tutorial-panel${step.advance === "result" || step.panelTop ? " tutorial-panel--top" : ""}${shake > 0 ? " tutorial-panel--nudge" : ""}`}>
           <div className="tutorial-panel__head">
-            チュートリアル {tutorial.scenarioIndex + 1}/{TUTORIAL_SCENARIOS.length}
+            チュートリアル {tutorial.scenarioIndex - tutorial.firstScenario + 1}/{TUTORIAL_SCENARIOS.length - tutorial.firstScenario}
           </div>
           <p className="tutorial-panel__text">{step.text}</p>
           {step.advance === "next" && (

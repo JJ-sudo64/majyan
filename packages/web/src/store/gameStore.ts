@@ -73,6 +73,8 @@ export const TIME_STOP_FAKE_TURN_STEP_MS = 650;
 /** チュートリアルの進み具合（core/src/tutorial.tsの台本のどこまで来たか）。 */
 export interface TutorialRuntime {
   scenarioIndex: number;
+  /** このチュートリアルで最初にやった台本の番号（途中の局から始めるコースの「何局中何局」の数え方に使う）。 */
+  firstScenario: number;
   stepIndex: number;
   /** 今の台本の案内を出しているか（その局面になるまで出さない）。 */
   visible: boolean;
@@ -217,7 +219,8 @@ interface GameStoreState {
   replay: ReplayState | null;
   /** チュートリアル中なら、その進み具合。 */
   tutorial: TutorialRuntime | null;
-  startTutorial: () => void;
+  /** fromは、TUTORIAL_SCENARIOSのどの局から始めるか（省略は最初から。コースはTUTORIAL_COURSE_START）。 */
+  startTutorial: (from?: number) => void;
   tutorialNext: () => void;
   openReplay: (data: ReplayResponse) => void;
   /** 1手進める/戻す。局の端では隣の局へ移る。 */
@@ -515,10 +518,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   replay: null,
   tutorial: null,
 
-  startTutorial: () => {
+  startTutorial: (from = 0) => {
+    const first = Math.min(Math.max(Math.trunc(from) || 0, 0), TUTORIAL_SCENARIOS.length - 1);
     resetCutinHold();
     set({
-      ...viewStateFor(TUTORIAL_SCENARIOS[0]!.build()),
+      ...viewStateFor(TUTORIAL_SCENARIOS[first]!.build()),
       cutinHold: false,
       pendingRoundEnd: false,
       lastRoundOutcome: null,
@@ -527,7 +531,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       debugPaused: false,
       history: [],
       cpuDifficulty: DEFAULT_CPU_DIFFICULTY,
-      tutorial: { scenarioIndex: 0, stepIndex: 0, visible: false, nudge: 0 },
+      tutorial: { scenarioIndex: first, firstScenario: first, stepIndex: 0, visible: false, nudge: 0 },
     });
     syncTutorial(get, set);
     scheduleTick(get, set);
@@ -736,7 +740,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         ...viewStateFor(TUTORIAL_SCENARIOS[next]!.build()),
         pendingRoundEnd: false,
         lastRoundOutcome: null,
-        tutorial: { scenarioIndex: next, stepIndex: 0, visible: false, nudge: 0 },
+        tutorial: { scenarioIndex: next, firstScenario: state.tutorial.firstScenario, stepIndex: 0, visible: false, nudge: 0 },
       });
       syncTutorial(get, set);
       scheduleTick(get, set);
