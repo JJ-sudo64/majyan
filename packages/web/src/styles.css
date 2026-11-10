@@ -9881,6 +9881,17 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .units-screen__card-pick {
   width: 124px;
 }
+/* 10連の結果（最初の10連・通常のガチャ）: カードが5枚以上出ると2段ぶん縦に伸びて、
+   画面からはみ出してスクロールになっていた。カード面の幅を抑えて、10枚とも1画面に収める。 */
+.first-gacha__grid .gacha-cardface {
+  max-width: 106px;
+  margin: 0 auto;
+}
+.first-gacha__grid .cf-caption {
+  margin-top: 4px !important;
+  font-size: 11px;
+  line-height: 1.35;
+}
 /* ガチャ結果のカードのNEW札は、名前にかからないよう、カードの角の外側に出す。 */
 .gacha-cardface .gacha-card__new {
   top: -6px;
