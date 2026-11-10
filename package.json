@@ -13,6 +13,8 @@
     "typecheck": "npm run typecheck -w packages/core && npm run typecheck -w packages/web && npm run typecheck -w packages/server",
     "dev:server": "npm run dev -w packages/server",
     "admin": "npm run admin -w packages/server --",
+    "build:official": "npm run build -w @majyan/core && node scripts/build-official-site.mjs",
+    "publish:official": "npm run build:official && npx wrangler deploy",
     "normalize-audio": "node scripts/normalize-audio.mjs",
     "balance": "tsx scripts/balance-sim.mts",
     "difficulty-sim": "tsx scripts/difficulty-sim.mts",

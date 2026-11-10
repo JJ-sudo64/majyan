@@ -1,0 +1,8 @@
+{
+  // 公式ページ（静的サイト）を Cloudflare に載せるための設定。
+  // 使い方: node scripts/build-official-site.mjs で official-site/ を作ってから npx wrangler deploy
+  "name": "frosty-dream-b971",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./official-site" },
+  "routes": [{ "pattern": "janshin.maxplantlabs.com", "custom_domain": true }]
+}
