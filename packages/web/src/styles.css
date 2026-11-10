@@ -4817,6 +4817,22 @@ body:has(.character-panel--bottom .character-panel__player) .hand-top-status {
   bottom: 16px;
   transform: none;
 }
+/* 下家・上家の2D配置編集: 編集対象の席と反対側の端・縦中央に置き、
+   対象の手牌・副露を隠さない（下家=右側が対象→左、上家=左側が対象→右）。 */
+.side2d-edit-toolbar {
+  top: 50%;
+  bottom: auto;
+  width: 300px;
+}
+.side2d-edit-toolbar--shimocha {
+  left: 16px;
+  transform: translateY(-50%);
+}
+.side2d-edit-toolbar--kamicha {
+  left: auto;
+  right: 16px;
+  transform: translateY(-50%);
+}
 /* 四隅と左端中央が埋まっており、右端中央だと下家の手牌に被るため、
    公開手牌の角度は卓の中央（点数表示の上）に置く——調整対象の手牌は
    どれも卓の外周側にあるので、中央なら被らない。 */

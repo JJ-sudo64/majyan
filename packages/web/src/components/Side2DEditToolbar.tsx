@@ -31,7 +31,7 @@ export function Side2DEditToolbar() {
   const seatName = seat === "shimocha" ? "下家" : "上家";
 
   return (
-    <div className="meld-edit-toolbar toimen-edit-toolbar">
+    <div className={`meld-edit-toolbar side2d-edit-toolbar side2d-edit-toolbar--${seat}`}>
       <div className="meld-edit-toolbar__header">
         <span className="meld-edit-toolbar__title">{seatName}の2D配置編集（立体牌OFF用）</span>
         <button type="button" className="tile3d-debug-panel__close" aria-label="編集モードを終了" onClick={() => close(null)}>
