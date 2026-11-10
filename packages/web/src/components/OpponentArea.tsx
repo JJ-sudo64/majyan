@@ -369,6 +369,10 @@ export function OpponentArea({
   const side2dMeldSlots = useTile3DDebugStore((s) => s.side2dMeldSlot);
   const setSide2dHandSlot = useTile3DDebugStore((s) => s.setSide2dHandSlot);
   const setSide2dMeldSlot = useTile3DDebugStore((s) => s.setSide2dMeldSlot);
+  const side2dMeldEachAll = useTile3DDebugStore((s) => s.side2dMeldEach);
+  const setSide2dMeldEach = useTile3DDebugStore((s) => s.setSide2dMeldEach);
+  const side2dEditActiveMeld = useTile3DDebugStore((s) => s.side2dEditActiveMeld);
+  const setSide2dEditActiveMeld = useTile3DDebugStore((s) => s.setSide2dEditActiveMeld);
   const edit2dTarget: "hand" | "meld" | null =
     player === 2 ? toimenEditTarget : is2dSide && side2dEditSeat === side2dKey ? side2dEditTarget : null;
   const edit2dAnkanSlots = player === 2 ? toimenEditAnkanSlots : side2dEditAnkanSlots;
@@ -398,6 +402,16 @@ export function OpponentArea({
       // 個別位置は副露全体の拡大率(scale)の内側で適用されるため、カーソルに
       // 追従するようその分で割る。
       const s = toimenMeldSlot.scale || 1;
+      if (player !== 2) {
+        // 下家・上家: 副露全体の回転(角度)・拡大の内側、さらに親が±90度回転
+        // しているので、画面上の移動量を逆変換してローカル座標へ直す。
+        const th = (((toimenMeldSlot as { rotate?: number }).rotate ?? 0) * Math.PI) / 180;
+        const ux = (dx * Math.cos(th) + dy * Math.sin(th)) / s;
+        const uy = (-dx * Math.sin(th) + dy * Math.cos(th)) / s;
+        const local = screenDeltaToMeldLocal(ux, uy, player);
+        setSide2dMeldEach(drag.key!, { offsetX: Math.round(drag.baseX + local.dx), offsetY: Math.round(drag.baseY + local.dy) });
+        return;
+      }
       setToimenMeldEach(drag.key!, { offsetX: Math.round(drag.baseX + dx / s), offsetY: Math.round(drag.baseY + dy / s) });
       return;
     }
@@ -416,8 +430,9 @@ export function OpponentArea({
     e.currentTarget.setPointerCapture(e.pointerId);
     e.stopPropagation();
     const key = toimenMeldEachIndex(slot, isKan);
-    const current = toimenMeldEach[key]!;
-    setToimenEditActiveMeld(Math.min(slot, MELD_SLOT_COUNT - 1));
+    const current = (player === 2 ? toimenMeldEach[key] : side2dKey ? side2dMeldEachAll[side2dKey][key] : undefined) ?? { offsetX: 0, offsetY: 0 };
+    if (player === 2) setToimenEditActiveMeld(Math.min(slot, MELD_SLOT_COUNT - 1));
+    else setSide2dEditActiveMeld(Math.min(slot, MELD_SLOT_COUNT - 1));
     toimenDragRef.current = { target: "each", key, startX: e.clientX, startY: e.clientY, baseX: current.offsetX, baseY: current.offsetY };
   };
   const handleToimenPointerUp = () => {
@@ -1260,21 +1275,24 @@ export function OpponentArea({
                 const isKan = m.tiles.length === 4;
                 const editableClass = isEditingThisSeat
                   ? ` meld--editable${meldEditActiveSlot === Math.min(i, tile3dMeldSlots.length - 1) ? " meld--editable-active" : ""}`
-                  : isEditingToimenMeld && player === 2
-                    ? ` meld--editable${toimenEditActiveMeld === Math.min(i, MELD_SLOT_COUNT - 1) ? " meld--editable-active" : ""}`
+                  : isEditingToimenMeld
+                    ? ` meld--editable${(player === 2 ? toimenEditActiveMeld : side2dEditActiveMeld) === Math.min(i, MELD_SLOT_COUNT - 1) ? " meld--editable-active" : ""}`
                     : "";
                 // 対面の副露1個ごとの個別位置（副露全体の位置に重ねて足される）。
                 const toimenEach = player === 2 ? toimenMeldEach[toimenMeldEachIndex(i, isKan)] : undefined;
+                const side2dEach = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, isKan)] : undefined;
                 const eachStyle: CSSProperties | undefined = toimenEach
                   ? { transform: `translate(${toimenEach.offsetX}px, ${toimenEach.offsetY}px)` }
-                  : undefined;
+                  : side2dEach
+                    ? { transform: `translate(${side2dEach.offsetX}px, ${side2dEach.offsetY}px) rotate(${side2dEach.rotate ?? 0}deg)` }
+                    : undefined;
                 return (
                   <div
                     key={i}
                     className={`meld meld--small${editableClass}${isMock ? " meld--mock" : ""}`}
                     style={slotStyle ?? eachStyle}
                     onPointerDown={
-                      isEditingThisSeat ? handleMeldPointerDown(i) : isEditingToimenMeld && player === 2 ? handleToimenMeldEachPointerDown(i, isKan) : undefined
+                      isEditingThisSeat ? handleMeldPointerDown(i) : isEditingToimenMeld ? handleToimenMeldEachPointerDown(i, isKan) : undefined
                     }
                     onPointerMove={isEditingThisSeat ? handleMeldPointerMove : undefined}
                     onPointerUp={isEditingThisSeat ? handleMeldPointerUp : undefined}

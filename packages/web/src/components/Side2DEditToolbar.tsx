@@ -1,4 +1,4 @@
-import { toimenHandSlotIndex, useTile3DDebugStore } from "../store/tile3dDebugStore.js";
+import { toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore } from "../store/tile3dDebugStore.js";
 
 /**
  * 立体牌をOFF（2D表示）にした時の、下家・上家の手牌・副露の位置・大きさを、
@@ -21,6 +21,11 @@ export function Side2DEditToolbar() {
   const setMeldCount = useTile3DDebugStore((s) => s.setSide2dEditMeldCount);
   const ankanSlots = useTile3DDebugStore((s) => s.side2dEditAnkanSlots);
   const setAnkanSlot = useTile3DDebugStore((s) => s.setSide2dEditAnkanSlot);
+  const meldEach = useTile3DDebugStore((s) => s.side2dMeldEach);
+  const setMeldEach = useTile3DDebugStore((s) => s.setSide2dMeldEach);
+  const resetMeldEach = useTile3DDebugStore((s) => s.resetSide2dMeldEach);
+  const activeMeld = useTile3DDebugStore((s) => s.side2dEditActiveMeld);
+  const setActiveMeld = useTile3DDebugStore((s) => s.setSide2dEditActiveMeld);
 
   if (!seat) return null;
   const isHand = target === "hand";
@@ -28,6 +33,8 @@ export function Side2DEditToolbar() {
   const active = isHand ? handSlots[seat][toimenHandSlotIndex(meldCount, kanCount)]! : meldSlots[seat];
   const setActive = isHand ? setHandSlot : setMeldSlot;
   const resetActive = isHand ? resetHandSlot : resetMeldSlot;
+  const eachIndex = toimenMeldEachIndex(activeMeld, ankanSlots[activeMeld] ?? false);
+  const each = meldEach[seat][eachIndex]!;
   const seatName = seat === "shimocha" ? "下家" : "上家";
 
   return (
@@ -78,8 +85,40 @@ export function Side2DEditToolbar() {
         <input type="range" min={0.5} max={2} step={0.05} value={active.scale} onChange={(e) => setActive({ scale: Number(e.target.value) })} />
         <output>{active.scale.toFixed(2)}倍</output>
       </label>
+      {!isHand && (
+        <div className="meld-edit-toolbar__row" role="group" aria-label="個別に動かす副露（卓上の副露を直接ドラッグしても選べる）">
+          <span className="meld-edit-toolbar__hint">1個ずつ:</span>
+          {Array.from({ length: Math.max(meldCount, 1) }, (_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`tile3d-debug-panel__btn${activeMeld === i ? " tile3d-debug-panel__btn--active" : ""}`}
+              onClick={() => setActiveMeld(i)}
+            >
+              副露{i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+      {!isHand && (
+        <>
+          <label className="meld-edit-toolbar__row meld-edit-toolbar__row--rotate">
+            <span>副露{activeMeld + 1}・角度</span>
+            <input type="range" min={-45} max={45} step={1} value={each.rotate ?? 0} onChange={(e) => setMeldEach(eachIndex, { rotate: Number(e.target.value) })} />
+            <output>{(each.rotate ?? 0).toFixed(0)}°</output>
+          </label>
+          <div className="meld-edit-toolbar__row">
+            <span className="meld-edit-toolbar__hint">
+              副露{activeMeld + 1}: 横{Math.round(each.offsetX)}px・縦{Math.round(each.offsetY)}px（副露をドラッグで個別に移動）
+            </span>
+            <button type="button" className="tile3d-debug-panel__btn" onClick={() => resetMeldEach(eachIndex)}>
+              この副露をリセット
+            </button>
+          </div>
+        </>
+      )}
       <label className="meld-edit-toolbar__row meld-edit-toolbar__row--rotate">
-        <span>{isHand ? "手牌" : "副露"}・角度</span>
+        <span>{isHand ? "手牌" : "副露全体"}・角度</span>
         <input type="range" min={-45} max={45} step={1} value={active.rotate ?? 0} onChange={(e) => setActive({ rotate: Number(e.target.value) })} />
         <output>{(active.rotate ?? 0).toFixed(0)}°</output>
       </label>

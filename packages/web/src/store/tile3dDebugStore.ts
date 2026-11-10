@@ -253,6 +253,12 @@ const initialSide2dHandSlots = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
   shimocha: Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
   kamicha: Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
 });
+/** 下家・上家の2D表示での副露1個ごとの個別位置(toimenMeldEachIndexの番号、8個)。
+    副露全体の位置(side2dMeldSlot)に重ねて足される。 */
+const initialSide2dMeldEach = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
+  shimocha: Array.from({ length: TOIMEN_MELD_EACH_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
+  kamicha: Array.from({ length: TOIMEN_MELD_EACH_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
+});
 const initialSide2dMeldSlot = (): Record<Side2dSeat, Side2dSlotConfig> => ({
   shimocha: { ...INITIAL_SIDE2D_SLOT },
   kamicha: { ...INITIAL_SIDE2D_SLOT },
@@ -519,6 +525,11 @@ export interface Tile3DDebugState {
       (toimenHandSlotIndexの番号)、side2dMeldSlotは副露全体で1つ。 */
   side2dHandSlots: Record<Side2dSeat, Side2dSlotConfig[]>;
   side2dMeldSlot: Record<Side2dSeat, Side2dSlotConfig>;
+  side2dMeldEach: Record<Side2dSeat, Side2dSlotConfig[]>;
+  side2dEditActiveMeld: number;
+  setSide2dEditActiveMeld: (v: number) => void;
+  setSide2dMeldEach: (index: number, patch: Partial<Side2dSlotConfig>) => void;
+  resetSide2dMeldEach: (index: number) => void;
   /** 2D配置編集モード。nullならOFF。どちらの座席の、手牌/副露を動かしているか。 */
   side2dEditSeat: Side2dSeat | null;
   side2dEditTarget: "hand" | "meld";
@@ -712,6 +723,21 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       resetToimenMeldSlot: () => set({ toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT } }),
       side2dHandSlots: initialSide2dHandSlots(),
       side2dMeldSlot: initialSide2dMeldSlot(),
+      side2dMeldEach: initialSide2dMeldEach(),
+      side2dEditActiveMeld: 0,
+      setSide2dEditActiveMeld: (side2dEditActiveMeld) => set({ side2dEditActiveMeld }),
+      setSide2dMeldEach: (index, patch) =>
+        set((state) => {
+          const seat = state.side2dEditSeat;
+          if (!seat) return {};
+          return { side2dMeldEach: { ...state.side2dMeldEach, [seat]: state.side2dMeldEach[seat].map((slot, i) => (i === index ? { ...slot, ...patch } : slot)) } };
+        }),
+      resetSide2dMeldEach: (index) =>
+        set((state) => {
+          const seat = state.side2dEditSeat;
+          if (!seat) return {};
+          return { side2dMeldEach: { ...state.side2dMeldEach, [seat]: state.side2dMeldEach[seat].map((slot, i) => (i === index ? { ...INITIAL_SIDE2D_SLOT } : slot)) } };
+        }),
       side2dEditSeat: null,
       side2dEditTarget: "hand",
       side2dEditMeldCount: 0,
@@ -900,6 +926,10 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
           side2dEditTarget,
           side2dEditMeldCount,
           side2dEditAnkanSlots,
+          side2dEditActiveMeld,
+          setSide2dEditActiveMeld,
+          setSide2dMeldEach,
+          resetSide2dMeldEach,
           setSide2dHandSlot,
           resetSide2dHandSlot,
           setSide2dMeldSlot,
