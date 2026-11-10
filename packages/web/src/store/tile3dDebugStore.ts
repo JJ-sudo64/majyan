@@ -247,12 +247,13 @@ const INITIAL_MELD_EDIT_PREVIEW_COUNT = 4;
 /** 下家・上家を2D表示（立体牌OFF）にした時の手牌・副露の位置・大きさ。0,0,1倍＝何も動かさない
     （CSSの標準の並びのまま）。副露数nとカン数kの組ごと(toimenHandSlotIndexと同じ番号、15個)。 */
 type Side2dSeat = "shimocha" | "kamicha";
-const INITIAL_SIDE2D_SLOT: ToimenSlotConfig = { offsetX: 0, offsetY: 0, scale: 1 };
-const initialSide2dHandSlots = (): Record<Side2dSeat, ToimenSlotConfig[]> => ({
+export type Side2dSlotConfig = ToimenSlotConfig & { rotate?: number };
+const INITIAL_SIDE2D_SLOT: Side2dSlotConfig = { offsetX: 0, offsetY: 0, scale: 1, rotate: 0 };
+const initialSide2dHandSlots = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
   shimocha: Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
   kamicha: Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
 });
-const initialSide2dMeldSlot = (): Record<Side2dSeat, ToimenSlotConfig> => ({
+const initialSide2dMeldSlot = (): Record<Side2dSeat, Side2dSlotConfig> => ({
   shimocha: { ...INITIAL_SIDE2D_SLOT },
   kamicha: { ...INITIAL_SIDE2D_SLOT },
 });
@@ -516,17 +517,17 @@ export interface Tile3DDebugState {
       (handGroup/meldSlots等)とは完全に別枠で、OFFの人にだけ使われる。形と編集の
       しかたは対面(toimen*)と同じ。side2dHandSlotsは副露数n・カン数kごとの15個
       (toimenHandSlotIndexの番号)、side2dMeldSlotは副露全体で1つ。 */
-  side2dHandSlots: Record<Side2dSeat, ToimenSlotConfig[]>;
-  side2dMeldSlot: Record<Side2dSeat, ToimenSlotConfig>;
+  side2dHandSlots: Record<Side2dSeat, Side2dSlotConfig[]>;
+  side2dMeldSlot: Record<Side2dSeat, Side2dSlotConfig>;
   /** 2D配置編集モード。nullならOFF。どちらの座席の、手牌/副露を動かしているか。 */
   side2dEditSeat: Side2dSeat | null;
   side2dEditTarget: "hand" | "meld";
   side2dEditMeldCount: number;
   side2dEditAnkanSlots: boolean[];
   /** 編集中の座席・対象・副露数に対応するスロットを書き換える／初期値に戻す。 */
-  setSide2dHandSlot: (patch: Partial<ToimenSlotConfig>) => void;
+  setSide2dHandSlot: (patch: Partial<Side2dSlotConfig>) => void;
   resetSide2dHandSlot: () => void;
-  setSide2dMeldSlot: (patch: Partial<ToimenSlotConfig>) => void;
+  setSide2dMeldSlot: (patch: Partial<Side2dSlotConfig>) => void;
   resetSide2dMeldSlot: () => void;
   /** seatにnullを渡すと編集モードを閉じる。開く時、手牌なら「鳴かず」から、副露なら最大の4個から始める。 */
   openSide2dEdit: (seat: Side2dSeat | null, target?: "hand" | "meld") => void;

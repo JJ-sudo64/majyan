@@ -1055,7 +1055,7 @@ export function OpponentArea({
               // 用の位置・拡大率をここに直接乗せる（既定値offsetX/Y=0,
               // scale=1の時はtranslate(0,0) scale(1)でno-op）。
               ...(player === 2 || is2dSide
-                ? { transform: `translate(${toimenHandSlot.offsetX}px, ${toimenHandSlot.offsetY}px) scale(${toimenHandSlot.scale})` }
+                ? { transform: `translate(${toimenHandSlot.offsetX}px, ${toimenHandSlot.offsetY}px) scale(${toimenHandSlot.scale}) rotate(${(toimenHandSlot as { rotate?: number }).rotate ?? 0}deg)` }
                 : null),
             } as CSSProperties
           }
@@ -1118,7 +1118,7 @@ export function OpponentArea({
               // ここに乗せる（既定値の時はtranslate(0,0) scale(1)でno-op、
               // 下家/上家のfloating方式には一切触れない）。
               ...(player === 2 || is2dSide
-                ? { transform: `translate(${toimenMeldSlot.offsetX}px, ${toimenMeldSlot.offsetY}px) scale(${toimenMeldSlot.scale})` }
+                ? { transform: `translate(${toimenMeldSlot.offsetX}px, ${toimenMeldSlot.offsetY}px) scale(${toimenMeldSlot.scale}) rotate(${(toimenMeldSlot as { rotate?: number }).rotate ?? 0}deg)` }
                 : null),
               // 副露の位置決めは、手牌がTile3D表示中かrevealHandで2D表示に
               // 落ちているかに関わらず、この座席(下家/上家)であれば常に

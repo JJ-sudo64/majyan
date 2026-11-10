@@ -78,6 +78,11 @@ export function Side2DEditToolbar() {
         <input type="range" min={0.5} max={2} step={0.05} value={active.scale} onChange={(e) => setActive({ scale: Number(e.target.value) })} />
         <output>{active.scale.toFixed(2)}倍</output>
       </label>
+      <label className="meld-edit-toolbar__row meld-edit-toolbar__row--rotate">
+        <span>{isHand ? "手牌" : "副露"}・角度</span>
+        <input type="range" min={-45} max={45} step={1} value={active.rotate ?? 0} onChange={(e) => setActive({ rotate: Number(e.target.value) })} />
+        <output>{(active.rotate ?? 0).toFixed(0)}°</output>
+      </label>
       <div className="meld-edit-toolbar__row">
         <span className="meld-edit-toolbar__hint">
           横{Math.round(active.offsetX)}px・縦{Math.round(active.offsetY)}px
