@@ -44,6 +44,15 @@ function applyDefaultsRevision(): void {
 }
 applyDefaultsRevision();
 
+function loadInitialBooleanDefaultTrue(key: string): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw === null ? true : raw === "1";
+  } catch {
+    return true;
+  }
+}
 
 function loadInitialVolume(key: string, fallback: number): number {
   if (typeof window === "undefined") return fallback;
@@ -87,9 +96,14 @@ interface SettingsState {
       設定で、チュートリアル中は効かない。 */
   autoPassCalls: boolean;
   setAutoPassCalls: (value: boolean) => void;
-  /** 下家・上家の伏せ手牌を立体牌(Tile3D)で表示するか。常にtrue（2Dに戻すボタンは無くした）。
-      OpponentAreaなどが参照するので、値としては残してある。 */
+  /** ONの間、下家・上家の伏せ手牌をCSS 3D(Tile3D)の立体牌で表示する。
+      OFFの間は従来の2D（帯だけの表現）にフォールバックする。GPUの合成
+      負荷が高い環境（弱いGPU、ハードウェアアクセラレーションが実質使えない
+      ブラウザ等）でタブが真っ白のまま固まる/開けなくなる不具合が実機で
+      発覚したため、ユーザー自身がいつでも切り替えられるようにした。
+      既定はtrue（既存の見た目を維持）。 */
   tile3dEnabled: boolean;
+  setTile3dEnabled: (value: boolean) => void;
 }
 
 function persistBoolean(key: string, value: boolean): void {
@@ -139,6 +153,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set({ autoPassCalls: value });
     persistBoolean(AUTO_PASS_CALLS_KEY, value);
   },
-  // 立体牌は常にON（2Dに戻すボタンは無くした）。以前にOFFにして保存された値も使わない。
-  tile3dEnabled: true,
+  tile3dEnabled: loadInitialBooleanDefaultTrue(TILE3D_ENABLED_KEY),
+  setTile3dEnabled: (value) => {
+    set({ tile3dEnabled: value });
+    persistBoolean(TILE3D_ENABLED_KEY, value);
+  },
 }));
