@@ -13,10 +13,9 @@ import {
   CHARACTER_IDS,
   EXCHANGE_COST,
   EXCHANGE_POINTS_PER_PULL,
-  EXCHANGE_RARITY,
   FIRST_GACHA,
   GACHA_PRICE,
-  rarityOf,
+  rollExchange,
   rollGacha,
   rollFirstGacha,
   TEN_PULL_GUARANTEE,
@@ -322,15 +321,16 @@ export class CollectionService {
     });
   }
 
-  /** 交換ポイントで★3のキャラかカードを1つもらう（天井）。足りない・★3でなければGachaError。 */
-  exchange(userId: string, item: GachaItem): GachaOutcome {
-    if ((item.kind !== "character" && item.kind !== "card") || !isKnown(item) || rarityOf(item) !== EXCHANGE_RARITY) {
-      throw new GachaError(`交換できるのは★${EXCHANGE_RARITY}のキャラかカードだけです`);
-    }
+  /**
+   * 交換ポイントで★3のキャラかカードをランダムに1つもらう（天井。選べない）。
+   * 抽選は通常のガチャで★3に当たった時と同じ（ピックアップ中はその確率も含む）。
+   * ポイントが足りなければGachaError。
+   */
+  exchange(userId: string): GachaOutcome {
     return transaction(this.db, () => {
       if (this.exchangePoints(userId) < EXCHANGE_COST) throw new GachaError("交換ポイントが足りません");
       this.addExchangePoints(userId, -EXCHANGE_COST);
-      const results: GachaItem[] = [{ kind: item.kind, id: item.id }];
+      const results: GachaItem[] = [rollExchange(this.rng, this.activePickup())];
       const isNew = this.grant(userId, results, "exchange");
       this.log(userId, "exchange", results);
       return { results, isNew };

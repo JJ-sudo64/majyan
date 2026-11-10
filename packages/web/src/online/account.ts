@@ -273,10 +273,10 @@ export async function rollGacha(count: 1 | 10): Promise<GachaRollResponse | null
   }
 }
 
-/** 交換ポイントで★3のキャラかカードを1つもらう（天井）。 */
-export async function exchangeItem(item: GachaItem): Promise<GachaRollResponse | null> {
+/** 交換ポイントで★3のキャラかカードをランダムに1つもらう（天井。選べない）。 */
+export async function exchangeItem(): Promise<GachaRollResponse | null> {
   try {
-    const res = await api<GachaRollResponse>("/gacha/exchange", { method: "POST", body: JSON.stringify({ item }) });
+    const res = await api<GachaRollResponse>("/gacha/exchange", { method: "POST", body: "{}" });
     applyMe(res.me);
     return res;
   } catch (err) {

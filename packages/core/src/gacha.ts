@@ -236,6 +236,14 @@ function pickItem(rng: () => number, rarity: Rarity, kind?: GachaItem["kind"], p
   return pool[Math.floor(rng() * pool.length)]!;
 }
 
+/**
+ * 交換ポイントでの交換（EXCHANGE_COSTで★EXCHANGE_RARITYを1つ）。選ぶのではなくランダム:
+ * 通常のガチャで★3に当たった時と同じ抽選（ピックアップ中はその確率も含む）で、1つ引く。
+ */
+export function rollExchange(rng: () => number, pickup?: GachaPickup | null): GachaItem {
+  return pickItem(rng, EXCHANGE_RARITY, undefined, pickup);
+}
+
 const meets = (item: GachaItem, g: GachaGuarantee) => rarityOf(item) >= g.rarity && (!g.kind || item.kind === g.kind);
 
 /**

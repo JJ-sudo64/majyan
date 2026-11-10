@@ -400,14 +400,10 @@ export function createApiHandler(options: HttpApiOptions) {
         case "POST /gacha/exchange": {
           const profile = authed(req, res);
           if (!profile) return true;
-          const body = (await readJson(req)) as { item?: { kind?: unknown; id?: unknown } };
-          const item = body.item;
-          if (!item || (item.kind !== "character" && item.kind !== "card") || typeof item.id !== "string") {
-            return fail(res, 400, "交換するものを選んでください"), true;
-          }
+          // 交換はランダム（選べない）。リクエストの本文は使わない。
           let exchanged;
           try {
-            exchanged = collections.exchange(profile.id, { kind: item.kind, id: item.id });
+            exchanged = collections.exchange(profile.id);
           } catch (err) {
             if (err instanceof GachaError) return fail(res, 409, err.message), true;
             throw err;

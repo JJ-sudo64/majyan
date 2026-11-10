@@ -37,7 +37,7 @@ export const PLAYER_NAME_MAX_LENGTH = 12;
 //   POST /api/first-gacha/roll    (Bearer)     → MeResponse            最初の10連を引く（確定するまで何度でも引き直せる）
 //   POST /api/first-gacha/confirm (Bearer)     → MeResponse            今の結果で確定してキャラを受け取る
 //   POST /api/gacha/roll {count: 1|10} (Bearer) → GachaRollResponse    雀玉でガチャを引く
-//   POST /api/gacha/exchange {item} (Bearer)   → GachaRollResponse    交換ポイントで★3のキャラかカードを1つもらう（天井）
+//   POST /api/gacha/exchange (Bearer)          → GachaRollResponse    交換ポイントで★3のキャラかカードをランダムに1つもらう（天井。選べない）
 //   POST /api/units/equip {unitId, cardId} (Bearer) → MeResponse        手持ちのキャラにカードを付ける（外せない）
 //   GET  /api/me/history          (Bearer)     → RankedHistoryResponse 段位戦の戦績（通算の順位と最近の対局）
 //   GET  /api/inbox               (Bearer)     → InboxResponse         お知らせと、受け取れるプレゼント

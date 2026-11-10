@@ -5,13 +5,13 @@ import { CollectionService, GachaError } from "../src/collection.js";
 import { openDatabase } from "../src/db.js";
 import { WalletService } from "../src/wallet.js";
 
-function setup() {
+function setup(rng: () => number = Math.random) {
   const db = openDatabase(":memory:");
   let t = 1_000_000;
   const now = () => (t += 1000); // 呼ぶたびに1秒進む（引き直しの間隔制限に引っかからないように）
   const accounts = new AccountService(db, now);
   const wallet = new WalletService(db, now);
-  const collections = new CollectionService(db, Math.random, now, wallet);
+  const collections = new CollectionService(db, rng, now, wallet);
   const { profile } = accounts.createGuest("A");
   wallet.grantFree(profile.id, 1500, "test"); // 最初の雀玉は0なので、ガチャのテスト用に渡しておく
   /** テスト用にカードを直接持たせる。 */
@@ -42,11 +42,9 @@ describe("units and cards", () => {
   });
 
   it("keeps duplicate characters as separate units", () => {
-    const { collections, userId, setPoints } = setup();
+    const { collections, userId, giveUnits } = setup();
     const star3 = gachaPool(3, "character")[0]!;
-    setPoints(EXCHANGE_COST * 2);
-    collections.exchange(userId, star3);
-    collections.exchange(userId, star3);
+    giveUnits([star3.id, star3.id]);
     const same = collections.units(userId).filter((u) => u.characterId === star3.id);
     expect(same).toHaveLength(2);
     expect(same[0]!.unitId).not.toBe(same[1]!.unitId);
@@ -179,25 +177,35 @@ describe("pity exchange", () => {
     expect(collections.gachaHistory(userId)).toEqual([expect.objectContaining({ kind: "gacha-10", results: rolled.results })]);
   });
 
-  it("trades points for a chosen ★3 character or card, and only a ★3", () => {
-    const { collections, userId, setPoints } = setup();
-    const star3Card = gachaPool(3, "card")[0]!;
-    const star1Char = gachaPool(1, "character")[0]!;
-    expect(() => collections.exchange(userId, star3Card)).toThrow(GachaError); // ポイント不足
+  it("trades points for a random ★3 character or card (no choosing), and only with enough points", () => {
+    const { collections, userId, setPoints } = setup(() => 0); // 乱数が0なら★3の一覧の先頭
+    expect(() => collections.exchange(userId)).toThrow(GachaError); // ポイント不足
     setPoints(EXCHANGE_COST + 5);
-    expect(() => collections.exchange(userId, star1Char)).toThrow(GachaError);
-    expect(() => collections.exchange(userId, { kind: "card", id: "no-such-card" })).toThrow(GachaError);
-    expect(collections.exchange(userId, star3Card)).toEqual({ results: [star3Card], isNew: [true] });
-    expect(collections.cards(userId)[star3Card.id]).toBe(1);
+    const first = gachaPool(3)[0]!;
+    expect(collections.exchange(userId)).toEqual({ results: [first], isNew: [true] });
     expect(collections.exchangePoints(userId)).toBe(5);
+    expect(() => collections.exchange(userId)).toThrow(GachaError); // 残りが足りない
+  });
+
+  it("always gives a ★3 and varies with the random numbers", () => {
+    const pool = gachaPool(3);
+    const seen = new Set<string>();
+    for (const r of [0, 0.3, 0.6, 0.999]) {
+      const { collections, userId, setPoints } = setup(() => r);
+      setPoints(EXCHANGE_COST);
+      const { results } = collections.exchange(userId);
+      expect(results).toHaveLength(1);
+      expect(pool).toContainEqual(results[0]);
+      seen.add(results[0]!.kind + ":" + results[0]!.id);
+    }
+    expect(seen.size).toBeGreaterThan(1);
   });
 
   it("marks only first-time items as new", () => {
-    const { collections, userId, setPoints } = setup();
+    const { collections, userId, setPoints } = setup(() => 0); // 毎回同じものが出る
     setPoints(EXCHANGE_COST * 2);
-    const card = gachaPool(3, "card")[1]!;
-    expect(collections.exchange(userId, card).isNew).toEqual([true]);
-    expect(collections.exchange(userId, card).isNew).toEqual([false]);
+    expect(collections.exchange(userId).isNew).toEqual([true]);
+    expect(collections.exchange(userId).isNew).toEqual([false]);
   });
 });
 

@@ -42,8 +42,6 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
   const jade = useAccountStore((s) => s.jade);
   const error = useAccountStore((s) => s.error);
   const exchangePoints = useAccountStore((s) => s.exchangePoints);
-  const units = useAccountStore((s) => s.units);
-  const cards = useAccountStore((s) => s.cards);
   const pickup = useAccountStore((s) => s.pickup);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<GachaRollResponse | null>(null);
@@ -51,15 +49,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
   const [revealing, setRevealing] = useState(false);
   const [showRates, setShowRates] = useState(false);
   const [showRecords, setShowRecords] = useState(false);
-  const [showExchange, setShowExchange] = useState(false);
-  const [exchangeTarget, setExchangeTarget] = useState<GachaItem | null>(null);
   const total = jade ? jade.free + jade.paid : 0;
-
-  /** 交換の一覧に出す「いくつ持っているか」（キャラは体数、カードは付けていない枚数＋付けた枚数）。 */
-  function ownedCount(item: GachaItem): number {
-    if (item.kind === "character") return units.filter((u) => u.characterId === item.id).length;
-    return (cards[item.id] ?? 0) + units.filter((u) => u.cardId === item.id).length;
-  }
 
   async function run(fn: () => Promise<GachaRollResponse | null>, after?: () => void, reveal = false) {
     setBusy(true);
@@ -152,61 +142,12 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         <div className="gacha-screen__exchange">
           <span>
             交換ポイント <strong>{exchangePoints}</strong> / {EXCHANGE_COST}（1回引くごとに1ポイント。{EXCHANGE_COST}で★{EXCHANGE_RARITY}
-            のキャラかカードを1つ選んでもらえます）
+            のキャラかカードがランダムで1つもらえます）
           </span>
-          <button type="button" className="btn" disabled={busy || exchangePoints < EXCHANGE_COST} onClick={() => setShowExchange((v) => !v)}>
-            ★{EXCHANGE_RARITY}と交換
+          <button type="button" className="btn" disabled={busy || exchangePoints < EXCHANGE_COST} onClick={() => void run(() => exchangeItem(), undefined, true)}>
+            ★{EXCHANGE_RARITY}と交換（ランダム）
           </button>
         </div>
-        {showExchange && (
-          <div className="gacha-screen__exchange-list">
-            {gachaPool(EXCHANGE_RARITY).map((item) => {
-              const character = item.kind === "character" ? CHARACTERS[item.id] : undefined;
-              const owned = ownedCount(item);
-              return (
-                <button
-                  key={`${item.kind}-${item.id}`}
-                  type="button"
-                  className={`gacha-screen__exchange-item${sameItem(exchangeTarget, item) ? " gacha-screen__exchange-item--selected" : ""}`}
-                  onClick={() => setExchangeTarget(item)}
-                >
-                  {character ? <img src={character.avatar} alt="" /> : <span className="gacha-card__card-icon">カード</span>}
-                  <span>{fullName(item)}</span>
-                  <span className="gacha-screen__exchange-owned">{owned > 0 ? `${owned}つ所持` : "未所持"}</span>
-                </button>
-              );
-            })}
-            {exchangeTarget && (
-              <div className="first-gacha__confirm">
-                <p>
-                  {fullName(exchangeTarget)} と交換しますか？（交換ポイント {EXCHANGE_COST} を使います）
-                </p>
-                <div className="setup-buttons">
-                  <button
-                    type="button"
-                    className="btn btn--primary"
-                    disabled={busy}
-                    onClick={() =>
-                      void run(
-                        () => exchangeItem(exchangeTarget),
-                        () => {
-                          setShowExchange(false);
-                          setExchangeTarget(null);
-                        },
-                      )
-                    }
-                  >
-                    交換する
-                  </button>
-                  <button type="button" className="btn btn--secondary" onClick={() => setExchangeTarget(null)}>
-                    やめる
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         <div className="setup-buttons">
           <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRates((v) => !v)}>
             提供割合{showRates ? "を閉じる" : "を見る"}
