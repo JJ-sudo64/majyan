@@ -626,6 +626,9 @@ export function OpponentArea({
   // 決めは手牌の表示方式と無関係に、常にこの座席がTile3D対象かどうか
   // だけで決めるべきなので、専用のフラグに分離する。
   const isTile3DSeat = tile3dEnabled && TILE3D_PLAYERS.has(player);
+  // 副露の「絶対配置」(floating)は3D/2Dに関わらず下家・上家で使う。2D(立体牌OFF)で
+  // flexの自動配置のままだと、副露を増やすたびに既に置いた副露の位置がズレるため。
+  const floatMeldSeat = TILE3D_PLAYERS.has(player);
   // 公開手牌の角度・位置編集中で、この座席の手牌が実際に公開表示中なら
   // 卓上で直接ドラッグできるようにする。
   const isEditingReveal = revealEditOpen && revealHand;
@@ -1121,7 +1124,7 @@ export function OpponentArea({
             tile3dPortalTarget,
           )}
         <div
-          className={`opponent-melds${isTile3DSeat ? " opponent-melds--floating" : ""}${isEditingToimenMeld ? " opponent-melds--editable" : ""}`}
+          className={`opponent-melds${floatMeldSeat ? " opponent-melds--floating" : ""}${isEditingToimenMeld ? " opponent-melds--editable" : ""}`}
           onPointerDown={isEditingToimenMeld ? handleToimenPointerDown("meld") : undefined}
           onPointerMove={isEditingToimenMeld ? handleToimenPointerMove : undefined}
           onPointerUp={isEditingToimenMeld ? handleToimenPointerUp : undefined}
@@ -1226,9 +1229,10 @@ export function OpponentArea({
                 // ごとに個別指定した位置・角度。最大4副露までしか無いはず
                 // だが、念のため配列の最後の要素にクランプする。下家・上家
                 // 以外(player===2)は対象外なのでbaseのまま。
-                const slotConfig: MeldSlotConfig | undefined = isTile3DSeat
-                  ? tile3dMeldSlots[Math.min(i, tile3dMeldSlots.length - 1)]
-                  : undefined;
+                // 2D(立体牌OFF)でも土台は3D用の初期位置と同じ（卓の上に収まる位置）にし、
+                // 2D用の個別値(eachForSlot)をその上に足す。
+                const slotConfig: MeldSlotConfig | undefined = floatMeldSeat ? tile3dMeldSlots[Math.min(i, tile3dMeldSlots.length - 1)] : undefined;
+                const eachForSlot = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, m.tiles.length === 4)] : undefined;
                 // 自然な(ユーザーがドラッグする前の)位置は、flexの自動配置
                 // ではなくposition:absoluteの明示的なleftで指定する
                 // （固定値MELD_NATURAL_STEPのみに依存し、実際の副露の
@@ -1244,7 +1248,7 @@ export function OpponentArea({
                 // ——実測(getBoundingClientRect+手牌との距離)で確認し、
                 // 上家だけ符号を反転させている（下家は元から正しかったため
                 // 触れていない）。
-                const naturalLeft = isTile3DSeat
+                const naturalLeft = floatMeldSeat
                   ? (isKamicha ? 1 : -1) * (MELD_SLOT_COUNT - 1 - i) * MELD_NATURAL_STEP
                   : undefined;
                 // 副露どうしの重なり順は、.meld自身に明示のz-indexを
@@ -1262,14 +1266,14 @@ export function OpponentArea({
                 // 重なる向きは座席で逆：上家(3)は先に鳴いた副露(小さいi)が
                 // 手前、下家(1)は逆に後から鳴いた副露(大きいi)が手前——
                 // ユーザー指摘による座席ごとの正しい原則。
-                const meldOrderZIndex = isTile3DSeat ? (isKamicha ? MELD_SLOT_COUNT - i : i + 1) * 100 : undefined;
+                const meldOrderZIndex = floatMeldSeat ? (isKamicha ? MELD_SLOT_COUNT - i : i + 1) * 100 : undefined;
                 const slotStyle: CSSProperties | undefined = slotConfig
                   ? {
                       position: "absolute",
                       left: naturalLeft,
                       top: 0,
                       zIndex: meldOrderZIndex,
-                      transform: `translate(${slotConfig.offsetX}px, ${slotConfig.offsetY}px) rotate(${slotConfig.rotate}deg)`,
+                      transform: `translate(${slotConfig.offsetX + (eachForSlot?.offsetX ?? 0)}px, ${slotConfig.offsetY + (eachForSlot?.offsetY ?? 0)}px) rotate(${slotConfig.rotate + (eachForSlot?.rotate ?? 0)}deg)`,
                     }
                   : undefined;
                 const isKan = m.tiles.length === 4;
