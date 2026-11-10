@@ -148,7 +148,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
             ★{EXCHANGE_RARITY}と交換（ランダム）
           </button>
         </div>
-        <div className="setup-buttons">
+        <div className="setup-buttons gacha-screen__links">
           <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRates((v) => !v)}>
             提供割合{showRates ? "を閉じる" : "を見る"}
           </button>

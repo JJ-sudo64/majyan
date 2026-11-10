@@ -9961,22 +9961,25 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .first-gacha__grid {
   gap: 4px 8px;
 }
-/* ガチャ画面で結果（10枚）を出している間: 説明文を畳み、余白・ボタンを詰めて、
-   10枚と引くボタン・交換・提供割合までスクロール無しで見えるようにする。 */
+/* ガチャ画面で結果（10枚）を出している間: 説明文・ピックアップ・交換ポイント・提供割合・履歴の行を
+   出さず（ガチャを引く前の画面には、そのまま出る）、その分をカードに回して大きく見せる。
+   10枚と、もう一度引くボタンがスクロール無しで見える。 */
 .gacha-screen--result {
   gap: 4px;
   padding-top: 6px;
   padding-bottom: 8px;
 }
 .gacha-screen--result > .setup-lead,
-.gacha-screen--result > .gacha-screen__pickup {
+.gacha-screen--result > .gacha-screen__pickup,
+.gacha-screen--result > .gacha-screen__exchange,
+.gacha-screen--result > .gacha-screen__links {
   display: none;
 }
 .gacha-screen--result .first-gacha__grid .gacha-cardface {
-  max-width: 88px;
+  max-width: 112px;
 }
 .gacha-screen--result .first-gacha__grid .cf-caption {
-  font-size: 10px;
+  font-size: 11px;
 }
 .gacha-screen--result > .setup-picker-modal__header {
   padding-top: 0;
@@ -9993,14 +9996,6 @@ button.oh-player__rank:hover .oh-player__rank-help {
 .gacha-screen--result > .gacha-screen__pulls .btn--large {
   font-size: 16px;
   padding: 8px 22px;
-}
-.gacha-screen--result > .gacha-screen__exchange {
-  font-size: 11px;
-  gap: 6px;
-}
-.gacha-screen--result > .gacha-screen__exchange .btn {
-  padding: 4px 10px;
-  font-size: 12px;
 }
 .first-gacha .setup-lead {
   margin: 0;
