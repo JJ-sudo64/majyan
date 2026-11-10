@@ -253,18 +253,18 @@ const INITIAL_SIDE2D_SLOT: Side2dSlotConfig = { offsetX: 0, offsetY: 0, scale: 1
     ポン/カンの違いでは変わらない（toimenHandSlotIndex(n, k)のkはどれも同じ値にする）。 */
 const SIDE2D_HAND_BY_MELD_COUNT: Record<Side2dSeat, Side2dSlotConfig[]> = {
   shimocha: [
-    { offsetX: -22, offsetY: 19, scale: 1, rotate: -13 },
+    { offsetX: -26, offsetY: 20, scale: 1, rotate: -12 },
     { offsetX: -15, offsetY: 70, scale: 1, rotate: -12 },
     { offsetX: -6, offsetY: 117, scale: 1, rotate: -12 },
     { offsetX: 5, offsetY: 169, scale: 1, rotate: -12 },
     { offsetX: 14, offsetY: 218, scale: 1, rotate: -12 },
   ],
   kamicha: [
-    { offsetX: 30, offsetY: -79, scale: 1, rotate: 12 },
-    { offsetX: 41, offsetY: -116, scale: 1, rotate: 12 },
-    { offsetX: 48, offsetY: -166, scale: 1, rotate: 12 },
-    { offsetX: 56, offsetY: -218, scale: 1, rotate: 12 },
-    { offsetX: 63, offsetY: -269, scale: 1, rotate: 12 },
+    { offsetX: 26, offsetY: -98, scale: 1, rotate: 12 },
+    { offsetX: 38, offsetY: -146, scale: 1, rotate: 12 },
+    { offsetX: 49, offsetY: -198, scale: 1, rotate: 12 },
+    { offsetX: 58, offsetY: -245, scale: 1, rotate: 12 },
+    { offsetX: 66, offsetY: -293, scale: 1, rotate: 12 },
   ],
 };
 const initialSide2dHandSlots = (): Record<Side2dSeat, Side2dSlotConfig[]> => {
@@ -286,8 +286,8 @@ const SIDE2D_MELD_EACH: Record<Side2dSeat, Side2dSlotConfig[]> = {
     [-1, 5], [0, 0], [0, 2], [0, 0], [6, 2], [0, 0], [9, 3], [0, 0],
   ].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY!, scale: 1, rotate: 0 })),
   kamicha: [
-    [42, -40], [31, -42], [38, -42], [30, -44], [49, -44], [33, -44], [47, -44], [31, -43],
-  ].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY!, scale: 1, rotate: 0 })),
+    [103, -53, -3], [90, -50, -3], [96, -54, -3], [86, -51, -3], [109, -40, -4], [91, -42, -3], [102, -42, -3], [86, -43, -3],
+  ].map(([offsetX, offsetY, rotate]) => ({ offsetX: offsetX!, offsetY: offsetY!, scale: 1, rotate: rotate ?? 0 })),
 };
 const initialSide2dMeldEach = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
   shimocha: SIDE2D_MELD_EACH.shimocha.map((v) => ({ ...v })),
@@ -308,15 +308,15 @@ const INITIAL_TOIMEN_HAND_SLOTS: ToimenSlotConfig[] = [
   { offsetX: -64, offsetY: 1, scale: 0.9 },
   { offsetX: -66, offsetY: 1, scale: 0.9 },
   { offsetX: -77, offsetY: 1, scale: 0.9 },
-  { offsetX: -74, offsetY: 4, scale: 0.9 },
-  { offsetX: -74, offsetY: 4, scale: 0.9 },
+  { offsetX: -71, offsetY: 4, scale: 0.9 },
+  { offsetX: -80, offsetY: 3, scale: 0.9 },
   { offsetX: -86, offsetY: 3, scale: 0.9 },
   { offsetX: -103, offsetY: 3, scale: 0.9 },
   { offsetX: -80, offsetY: -1, scale: 0.9 },
   { offsetX: -92, offsetY: 1, scale: 0.9 },
   { offsetX: -101, offsetY: 1, scale: 0.9 },
   { offsetX: -113, offsetY: -1, scale: 0.9 },
-  { offsetX: -101, offsetY: 1, scale: 0.9 },
+  { offsetX: -123, offsetY: 0, scale: 0.9 },
 ];
 /** 対面の副露1個ごとの個別位置(toimenMeldEachIndexの番号順:
     副露1のポン・カン、副露2のポン・カン、…)。同上。 */
