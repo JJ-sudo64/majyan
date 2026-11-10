@@ -301,35 +301,15 @@ const initialSide2dMeldSlot = (): Record<Side2dSeat, Side2dSlotConfig> => ({
 const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: 7, offsetY: -26, scale: 0.85 };
 /** 対面の手牌、副露の数nとカンの数kの組ごと(toimenHandSlotIndexの番号順:
     0副露; 1副露(k=0,1); 2副露(k=0..2); …; 4副露(k=0..4))。2026-10-21に実機で調整した値。 */
-const INITIAL_TOIMEN_HAND_SLOTS: ToimenSlotConfig[] = [
-  { offsetX: -33, offsetY: 1, scale: 0.9 },
-  { offsetX: -54, offsetY: 2, scale: 0.9 },
-  { offsetX: -54, offsetY: 2, scale: 0.9 },
-  { offsetX: -64, offsetY: 1, scale: 0.9 },
-  { offsetX: -66, offsetY: 1, scale: 0.9 },
-  { offsetX: -77, offsetY: 1, scale: 0.9 },
-  { offsetX: -71, offsetY: 4, scale: 0.9 },
-  { offsetX: -80, offsetY: 3, scale: 0.9 },
-  { offsetX: -86, offsetY: 3, scale: 0.9 },
-  { offsetX: -103, offsetY: 3, scale: 0.9 },
-  { offsetX: -80, offsetY: -1, scale: 0.9 },
-  { offsetX: -92, offsetY: 1, scale: 0.9 },
-  { offsetX: -101, offsetY: 1, scale: 0.9 },
-  { offsetX: -113, offsetY: -1, scale: 0.9 },
-  { offsetX: -123, offsetY: 0, scale: 0.9 },
-];
+const INITIAL_TOIMEN_HAND_SLOTS: ToimenSlotConfig[] = Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ offsetX: 0, offsetY: 1, scale: 0.9 }));
+for (let n = 0; n <= 4; n++) {
+  // 副露を絶対配置にしたため、手牌は行の中央に置かれ、鳴くほど縮んで中心が動かない。
+  // 右端が動かないよう、縮んだ分（1副露=牌3枚≒129px、0.9倍・卓の拡大込みで実測し、1副露あたり約46px）右へ寄せる初期値。
+  for (let k = 0; k <= n; k++) INITIAL_TOIMEN_HAND_SLOTS[toimenHandSlotIndex(n, k)] = { offsetX: -33 + 46 * n, offsetY: 1, scale: 0.9 };
+}
 /** 対面の副露1個ごとの個別位置(toimenMeldEachIndexの番号順:
     副露1のポン・カン、副露2のポン・カン、…)。同上。 */
-const INITIAL_TOIMEN_MELD_EACH: ToimenMeldEachConfig[] = [
-  { offsetX: 0, offsetY: 0 },
-  { offsetX: 20, offsetY: 1 },
-  { offsetX: -115, offsetY: 51 },
-  { offsetX: -118, offsetY: 53 },
-  { offsetX: -94, offsetY: 0 },
-  { offsetX: -97, offsetY: 0 },
-  { offsetX: -232, offsetY: 49 },
-  { offsetX: -232, offsetY: 52 },
-];
+const INITIAL_TOIMEN_MELD_EACH: ToimenMeldEachConfig[] = Array.from({ length: TOIMEN_MELD_EACH_COUNT }, () => ({ offsetX: 0, offsetY: 0 }));
 /** 下家の牌形状・並べ方パラメータ(配列以外のスカラー値)。初期状態と
     v4→v6 migrate(下の「全ブラウザ統一」処理参照)の両方から参照する
     ので、値をここに集約して二重管理を避ける。 */
@@ -737,12 +717,12 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       toimenHandSlots: INITIAL_TOIMEN_HAND_SLOTS.map((slot) => ({ ...slot })),
       setToimenHandSlot: (patch) =>
         set((state) => {
-          const at = toimenHandSlotIndex(state.toimenEditMeldCount, state.toimenEditAnkanSlots.slice(0, state.toimenEditMeldCount).filter(Boolean).length);
+          const at = toimenHandSlotIndex(state.toimenEditMeldCount, 0);
           return { toimenHandSlots: state.toimenHandSlots.map((slot, i) => (i === at ? { ...slot, ...patch } : slot)) };
         }),
       resetToimenHandSlot: () =>
         set((state) => {
-          const at = toimenHandSlotIndex(state.toimenEditMeldCount, state.toimenEditAnkanSlots.slice(0, state.toimenEditMeldCount).filter(Boolean).length);
+          const at = toimenHandSlotIndex(state.toimenEditMeldCount, 0);
           return { toimenHandSlots: state.toimenHandSlots.map((slot, i) => (i === at ? { ...INITIAL_TOIMEN_HAND_SLOTS[i]! } : slot)) };
         }),
       toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT },

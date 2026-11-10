@@ -2873,8 +2873,23 @@ body:has(.modal-overlay) .tile3d-hand-layer {
      を使うのは、marginだとflexレイアウト上の占有幅が変わり、
      .opponent-hand-back側のmargin:auto中央寄せ計算に影響して手牌の位置
      まで動いてしまうため（見た目だけをずらし、手牌の位置は変えない）。 */
+  /* 副露を手牌の行から切り離し、位置は「何番目の副露か」だけで決まるようにする
+     （下家・上家と同じ。副露を増やしても既に置いた副露・手牌の中心が動かない）。
+     1個ごとの位置はOpponentArea.tsxのインラインstyle(left=並び順×幅)で決める。 */
+  position: absolute;
+  left: 108px;
+  top: 0;
+  width: 560px;
+  height: 46px;
+  transform-origin: 0 0;
+}
+.opponent-area--2 .opponent-melds__inner {
   position: relative;
-  left: 110px;
+  width: 560px;
+  height: 46px;
+}
+.opponent-area--2 .opponent-hand-row {
+  position: relative;
 }
 .opponent-area--2 .opponent-hand-back {
   margin-left: auto;

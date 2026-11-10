@@ -17,6 +17,8 @@ import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
     絶対にズレない（後述のtransform-originを使った固定端アンカーと
     組み合わせて実現）。 */
 const MELD_NATURAL_STEP = 30;
+/** 対面の副露1個の横幅(ポン、実測で画面136px≒元の約114px)＋すき間。並び順×この値が自然な位置。 */
+const TOIMEN_MELD_STEP = 118;
 // 上家(--3)と下家(--1)は見た目こそ左右対称だが、.opponent-hand-rowの
 // 実際の高さ・画面上の絶対位置は非対称（実測: 下家側の行は高さ708px・
 // 画面y=24開始、上家側は高さ624px・画面y=210開始——卓の3D傾き演出との
@@ -510,7 +512,7 @@ export function OpponentArea({
       ? edit2dAnkanSlots.slice(0, toimenPreviewMeldCount).filter(Boolean).length
       : round.players[player].hand.melds.filter((m) => m.tiles.length === 4).length;
   const hand2dSlots = player === 2 || !side2dKey ? toimenHandSlots : side2dHandSlots[side2dKey];
-  const toimenHandSlot = hand2dSlots[toimenHandSlotIndex(toimenSlotMelds, player === 2 ? toimenSlotKans : 0)]!;
+  const toimenHandSlot = hand2dSlots[toimenHandSlotIndex(toimenSlotMelds, 0)]!;
   const toimenMeldSlot = player === 2 || !side2dKey ? toimenMeldSlotStore : side2dMeldSlots[side2dKey];
   // 副露配置編集モード(下家・上家)中も、仮表示する副露の数ぶん手牌を短くして、
   // 副露した状態で手牌がどう見えるかを一緒に確かめられるようにする。
@@ -1168,7 +1170,7 @@ export function OpponentArea({
               // 可視範囲を超えていた）。「1番目が最も手牌から離れる」は
               // 下のleft(slotStyle参照、indexが増えるほど基準点に近づく
               // 側)だけで表現し、基準点自体は動かさない。
-              top: `calc(50% + ${HAND_MAX_HALF_TRACK + (isKamicha ? KAMICHA_MELDS_ANCHOR_CORRECTION : 0)}px)`,
+              ...(floatMeldSeat ? { top: `calc(50% + ${HAND_MAX_HALF_TRACK + (isKamicha ? KAMICHA_MELDS_ANCHOR_CORRECTION : 0)}px)` } : null),
             } as CSSProperties
           }
         >
@@ -1286,7 +1288,13 @@ export function OpponentArea({
                 const toimenEach = player === 2 ? toimenMeldEach[toimenMeldEachIndex(i, isKan)] : undefined;
                 const side2dEach = is2dSide && side2dKey ? side2dMeldEachAll[side2dKey][toimenMeldEachIndex(i, m.tiles.length === 4)] : undefined;
                 const eachStyle: CSSProperties | undefined = toimenEach
-                  ? { transform: `translate(${toimenEach.offsetX}px, ${toimenEach.offsetY}px)` }
+                  ? {
+                      // 対面も絶対配置: 並び順×幅の位置に、1個ごとの調整値を足す。
+                      position: "absolute",
+                      left: i * TOIMEN_MELD_STEP,
+                      top: 0,
+                      transform: `translate(${toimenEach.offsetX}px, ${toimenEach.offsetY}px)`,
+                    }
                   : side2dEach
                     ? { transform: `translate(${side2dEach.offsetX}px, ${side2dEach.offsetY}px) rotate(${side2dEach.rotate ?? 0}deg)` }
                     : undefined;

@@ -31,7 +31,7 @@ export function ToimenEditToolbar() {
   const isHand = target === "hand";
   const kanCount = ankanSlots.slice(0, meldCount).filter(Boolean).length;
   const eachIndex = toimenMeldEachIndex(activeMeld, !!ankanSlots[activeMeld]);
-  const handSlot = handSlots[toimenHandSlotIndex(meldCount, kanCount)]!;
+  const handSlot = handSlots[toimenHandSlotIndex(meldCount, 0)]!;
   const active = isHand ? handSlot : meldSlot;
   const setActive = isHand ? setHandSlot : setMeldSlot;
   const resetActive = isHand ? resetHandSlot : resetMeldSlot;
