@@ -7,7 +7,7 @@ import { TileView } from "./TileView.js";
 import { Tile3D } from "./Tile3D.js";
 import { HAND_GROUP_SLOT_COUNT, MELD_SLOT_COUNT, toimenHandSlotIndex, toimenMeldEachIndex, useTile3DDebugStore, usePlayerTile3DParam } from "../store/tile3dDebugStore.js";
 import { useSettingsStore } from "../store/settingsStore.js";
-import type { MeldSlotConfig } from "../store/tile3dDebugStore.js";
+import type { MeldSlotConfig, Side2dSeatKey } from "../store/tile3dDebugStore.js";
 import { viewRect } from "../orientation.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
 
@@ -353,10 +353,27 @@ export function OpponentArea({
   const toimenEditTarget = useTile3DDebugStore((s) => s.toimenEditTarget);
   const toimenHandSlots = useTile3DDebugStore((s) => s.toimenHandSlots);
   const setToimenHandSlot = useTile3DDebugStore((s) => s.setToimenHandSlot);
-  const toimenMeldSlot = useTile3DDebugStore((s) => s.toimenMeldSlot);
+  const toimenMeldSlotStore = useTile3DDebugStore((s) => s.toimenMeldSlot);
   const setToimenMeldSlot = useTile3DDebugStore((s) => s.setToimenMeldSlot);
-  const isEditingToimenHand = player === 2 && toimenEditTarget === "hand";
-  const isEditingToimenMeld = player === 2 && toimenEditTarget === "meld";
+  // 2D表示の座席の配置編集。対面は常に2D（toimen*の値）、下家・上家は立体牌を
+  // OFFにした時だけ2D（side2d*の値。3D用の値とは別枠）。編集のしかたは共通なので、
+  // 以降のisEditingToimen*・toimenHandSlot等は「2D表示の座席」全般を指す
+  // （名前が対面のままなのは、元々対面用に作った処理をそのまま広げたため）。
+  const side2dKey: Side2dSeatKey | null = player === 1 ? "shimocha" : player === 3 ? "kamicha" : null;
+  const is2dSide = side2dKey !== null && !tile3dEnabled;
+  const side2dEditSeat = useTile3DDebugStore((s) => s.side2dEditSeat);
+  const side2dEditTarget = useTile3DDebugStore((s) => s.side2dEditTarget);
+  const side2dEditMeldCount = useTile3DDebugStore((s) => s.side2dEditMeldCount);
+  const side2dEditAnkanSlots = useTile3DDebugStore((s) => s.side2dEditAnkanSlots);
+  const side2dHandSlots = useTile3DDebugStore((s) => s.side2dHandSlots);
+  const side2dMeldSlots = useTile3DDebugStore((s) => s.side2dMeldSlot);
+  const setSide2dHandSlot = useTile3DDebugStore((s) => s.setSide2dHandSlot);
+  const setSide2dMeldSlot = useTile3DDebugStore((s) => s.setSide2dMeldSlot);
+  const edit2dTarget: "hand" | "meld" | null =
+    player === 2 ? toimenEditTarget : is2dSide && side2dEditSeat === side2dKey ? side2dEditTarget : null;
+  const edit2dAnkanSlots = player === 2 ? toimenEditAnkanSlots : side2dEditAnkanSlots;
+  const isEditingToimenHand = edit2dTarget === "hand";
+  const isEditingToimenMeld = edit2dTarget === "meld";
   const toimenDragRef = useRef<{ target: "hand" | "meld" | "each"; key?: number; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   useEffect(() => {
     if (!isEditingToimenHand && !isEditingToimenMeld) toimenDragRef.current = null;
@@ -384,7 +401,14 @@ export function OpponentArea({
       setToimenMeldEach(drag.key!, { offsetX: Math.round(drag.baseX + dx / s), offsetY: Math.round(drag.baseY + dy / s) });
       return;
     }
-    const setSlot = drag.target === "hand" ? setToimenHandSlot : setToimenMeldSlot;
+    const setSlot =
+      player === 2
+        ? drag.target === "hand"
+          ? setToimenHandSlot
+          : setToimenMeldSlot
+        : drag.target === "hand"
+          ? setSide2dHandSlot
+          : setSide2dMeldSlot;
     setSlot({ offsetX: Math.round(drag.baseX + dx), offsetY: Math.round(drag.baseY + dy) });
   };
   // 副露1個そのものをつかんだ時（副露の外側＝全体のつかみより優先）。
@@ -462,15 +486,17 @@ export function OpponentArea({
       }
     : round.players[player];
   // 対面の編集モードで副露数(toimenEditMeldCount)を指定した時も同じ差し替え。
-  const toimenPreviewMeldCount = player === 2 && toimenEditTarget !== null ? toimenEditMeldCount : null;
+  const toimenPreviewMeldCount = edit2dTarget !== null ? (player === 2 ? toimenEditMeldCount : side2dEditMeldCount) : null;
   // 対面の手牌位置は、鳴いた副露の数とカン（4枚の副露）の数ごとのスロット。
   // 編集中は選んでいる副露数と、暗槓にした副露の数、それ以外は実際の副露。
-  const toimenSlotMelds = toimenPreviewMeldCount ?? round.players[2].hand.melds.length;
+  const toimenSlotMelds = toimenPreviewMeldCount ?? round.players[player].hand.melds.length;
   const toimenSlotKans =
     toimenPreviewMeldCount !== null
-      ? toimenEditAnkanSlots.slice(0, toimenPreviewMeldCount).filter(Boolean).length
-      : round.players[2].hand.melds.filter((m) => m.tiles.length === 4).length;
-  const toimenHandSlot = toimenHandSlots[toimenHandSlotIndex(toimenSlotMelds, toimenSlotKans)]!;
+      ? edit2dAnkanSlots.slice(0, toimenPreviewMeldCount).filter(Boolean).length
+      : round.players[player].hand.melds.filter((m) => m.tiles.length === 4).length;
+  const hand2dSlots = player === 2 || !side2dKey ? toimenHandSlots : side2dHandSlots[side2dKey];
+  const toimenHandSlot = hand2dSlots[toimenHandSlotIndex(toimenSlotMelds, toimenSlotKans)]!;
+  const toimenMeldSlot = player === 2 || !side2dKey ? toimenMeldSlotStore : side2dMeldSlots[side2dKey];
   // 副露配置編集モード(下家・上家)中も、仮表示する副露の数ぶん手牌を短くして、
   // 副露した状態で手牌がどう見えるかを一緒に確かめられるようにする。
   const previewHandMeldCount = isEditingHandThisSeatEarly
@@ -1028,7 +1054,7 @@ export function OpponentArea({
               // 対面(player2)は常に通常の2D牌のため、ToimenEditToolbar.tsx
               // 用の位置・拡大率をここに直接乗せる（既定値offsetX/Y=0,
               // scale=1の時はtranslate(0,0) scale(1)でno-op）。
-              ...(player === 2
+              ...(player === 2 || is2dSide
                 ? { transform: `translate(${toimenHandSlot.offsetX}px, ${toimenHandSlot.offsetY}px) scale(${toimenHandSlot.scale})` }
                 : null),
             } as CSSProperties
@@ -1091,7 +1117,7 @@ export function OpponentArea({
               // 対面(player2)はToimenEditToolbar.tsx用の位置・拡大率を
               // ここに乗せる（既定値の時はtranslate(0,0) scale(1)でno-op、
               // 下家/上家のfloating方式には一切触れない）。
-              ...(player === 2
+              ...(player === 2 || is2dSide
                 ? { transform: `translate(${toimenMeldSlot.offsetX}px, ${toimenMeldSlot.offsetY}px) scale(${toimenMeldSlot.scale})` }
                 : null),
               // 副露の位置決めは、手牌がTile3D表示中かrevealHandで2D表示に
@@ -1166,7 +1192,7 @@ export function OpponentArea({
               // 種類(ポン/暗槓)で仮表示する（対面の副露編集はtoimenEditAnkanSlots、手牌編集モードの仮表示は常にポン）。
               const ponMocks = Array.from({ length: mockCount }, (_, k) => {
                 const slot = realMeldCount + k;
-                const asAnkan = ((isEditingThisSeat || isEditingHandThisSeat) && meldEditAnkanSlots[slot]) || ((isEditingToimenMeld || isEditingToimenHand) && toimenEditAnkanSlots[slot]);
+                const asAnkan = ((isEditingThisSeat || isEditingHandThisSeat) && meldEditAnkanSlots[slot]) || ((isEditingToimenMeld || isEditingToimenHand) && edit2dAnkanSlots[slot]);
                 return makeMockMeld(slot, asAnkan ? "ankan" : "pon");
               });
               // 暗槓表示確認モード: 副露配置編集モードとは独立に、末尾へ
@@ -1234,7 +1260,7 @@ export function OpponentArea({
                 const isKan = m.tiles.length === 4;
                 const editableClass = isEditingThisSeat
                   ? ` meld--editable${meldEditActiveSlot === Math.min(i, tile3dMeldSlots.length - 1) ? " meld--editable-active" : ""}`
-                  : isEditingToimenMeld
+                  : isEditingToimenMeld && player === 2
                     ? ` meld--editable${toimenEditActiveMeld === Math.min(i, MELD_SLOT_COUNT - 1) ? " meld--editable-active" : ""}`
                     : "";
                 // 対面の副露1個ごとの個別位置（副露全体の位置に重ねて足される）。
@@ -1248,7 +1274,7 @@ export function OpponentArea({
                     className={`meld meld--small${editableClass}${isMock ? " meld--mock" : ""}`}
                     style={slotStyle ?? eachStyle}
                     onPointerDown={
-                      isEditingThisSeat ? handleMeldPointerDown(i) : isEditingToimenMeld ? handleToimenMeldEachPointerDown(i, isKan) : undefined
+                      isEditingThisSeat ? handleMeldPointerDown(i) : isEditingToimenMeld && player === 2 ? handleToimenMeldEachPointerDown(i, isKan) : undefined
                     }
                     onPointerMove={isEditingThisSeat ? handleMeldPointerMove : undefined}
                     onPointerUp={isEditingThisSeat ? handleMeldPointerUp : undefined}

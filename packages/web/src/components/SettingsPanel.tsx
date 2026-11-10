@@ -33,6 +33,7 @@ export function SettingsPanel() {
   const setRiichiStickEditOpen = useTile3DDebugStore((s) => s.setRiichiStickEditOpen);
   const setNameplateEditOpen = useTile3DDebugStore((s) => s.setNameplateEditOpen);
   const setToimenEditTarget = useTile3DDebugStore((s) => s.setToimenEditTarget);
+  const openSide2dEdit = useTile3DDebugStore((s) => s.openSide2dEdit);
   const setRevealEditOpen = useTile3DDebugStore((s) => s.setRevealEditOpen);
   const setIsBgPanelOpen = useBackgroundDebugStore((s) => s.setIsPanelOpen);
   const tableBackgroundId = useTableBackgroundStore((s) => s.backgroundId);
@@ -286,6 +287,35 @@ export function SettingsPanel() {
                 }}
               >
                 対面の配置編集モード
+              </button>
+            </div>
+            {/* 立体牌をOFF（2D表示）にした時の、下家・上家の手牌・副露の配置。
+                3D用の編集モードとは別枠の値で、立体牌がOFFの時だけ押せる
+                （Side2DEditToolbar.tsx参照）。 */}
+            <div className="hud__row volume-popover__tile3d-row">
+              <button
+                type="button"
+                className="hud__toggle-btn"
+                disabled={tile3dEnabled}
+                title={tile3dEnabled ? "立体牌をOFFにすると使えます" : undefined}
+                onClick={() => {
+                  openSide2dEdit("shimocha", "hand");
+                  setVolumeOpen(false);
+                }}
+              >
+                下家の2D配置編集
+              </button>
+              <button
+                type="button"
+                className="hud__toggle-btn"
+                disabled={tile3dEnabled}
+                title={tile3dEnabled ? "立体牌をOFFにすると使えます" : undefined}
+                onClick={() => {
+                  openSide2dEdit("kamicha", "hand");
+                  setVolumeOpen(false);
+                }}
+              >
+                上家の2D配置編集
               </button>
             </div>
             {/* 透視の術・大明立直で公開された他家の手牌(2D表示)の角度

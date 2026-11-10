@@ -27,6 +27,7 @@ import { HandEditToolbar } from "./HandEditToolbar.js";
 import { RiverEditToolbar } from "./RiverEditToolbar.js";
 import { NameplateEditToolbar } from "./NameplateEditToolbar.js";
 import { ToimenEditToolbar } from "./ToimenEditToolbar.js";
+import { Side2DEditToolbar } from "./Side2DEditToolbar.js";
 import { RiichiStickEditToolbar } from "./RiichiStickEditToolbar.js";
 import { RevealHandEditToolbar } from "./RevealHandEditToolbar.js";
 import { SkillActivationOverlay } from "./SkillActivationOverlay.js";
@@ -105,6 +106,8 @@ export function Table() {
   // ドラッグそのものはOpponentArea.tsx側（対面自身のコンポーネント）で
   // 完結しており、Table.tsxはツールバーの開閉状態を読んでPortalするだけ。
   const toimenEditTarget = useTile3DDebugStore((s) => s.toimenEditTarget);
+  // 立体牌OFF（2D表示）時の下家・上家の配置編集モード（Side2DEditToolbar.tsx参照）。
+  const side2dEditSeat = useTile3DDebugStore((s) => s.side2dEditSeat);
   // 公開手牌の角度編集モード（RevealHandEditToolbar.tsx参照）。
   const revealEditOpen = useTile3DDebugStore((s) => s.revealEditOpen);
   // 河・ネームプレートいずれも「今どの座席をドラッグ中か」だけを覚えれば
@@ -445,6 +448,7 @@ export function Table() {
         {nameplateEditOpen && createPortal(<NameplateEditToolbar />, portalRoot())}
         {riichiStickEditOpen && createPortal(<RiichiStickEditToolbar />, portalRoot())}
         {toimenEditTarget && createPortal(<ToimenEditToolbar />, portalRoot())}
+        {side2dEditSeat && createPortal(<Side2DEditToolbar />, portalRoot())}
         {revealEditOpen && createPortal(<RevealHandEditToolbar />, portalRoot())}
 
         <div className="table">

@@ -126,6 +126,7 @@ export interface RiverSlotConfig extends SeatSlotConfig {
     下家/上家と違いTile3D非表示（常に通常の2D牌）で、鳴き数ごとの状態分岐や
     副露スロット単位の個別配置も無いため、手牌全体・副露全体それぞれに
     1つの値（横/縦オフセット+拡大率）だけを持つ、より単純な形にする。 */
+export type Side2dSeatKey = "shimocha" | "kamicha";
 export type RevealSeat = "shimocha" | "toimen" | "kamicha";
 
 export interface ToimenSlotConfig {
@@ -243,6 +244,18 @@ const INITIAL_NAMEPLATE_SLOTS: SeatSlotConfig[] = [
 ];
 /** 副露配置編集モードで仮表示する副露の数。 */
 const INITIAL_MELD_EDIT_PREVIEW_COUNT = 4;
+/** 下家・上家を2D表示（立体牌OFF）にした時の手牌・副露の位置・大きさ。0,0,1倍＝何も動かさない
+    （CSSの標準の並びのまま）。副露数nとカン数kの組ごと(toimenHandSlotIndexと同じ番号、15個)。 */
+type Side2dSeat = "shimocha" | "kamicha";
+const INITIAL_SIDE2D_SLOT: ToimenSlotConfig = { offsetX: 0, offsetY: 0, scale: 1 };
+const initialSide2dHandSlots = (): Record<Side2dSeat, ToimenSlotConfig[]> => ({
+  shimocha: Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
+  kamicha: Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
+});
+const initialSide2dMeldSlot = (): Record<Side2dSeat, ToimenSlotConfig> => ({
+  shimocha: { ...INITIAL_SIDE2D_SLOT },
+  kamicha: { ...INITIAL_SIDE2D_SLOT },
+});
 /** 対面の副露全体。 */
 const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: 7, offsetY: -26, scale: 0.85 };
 /** 対面の手牌、副露の数nとカンの数kの組ごと(toimenHandSlotIndexの番号順:
@@ -499,6 +512,28 @@ export interface Tile3DDebugState {
   toimenEditTarget: "hand" | "meld" | null;
   setToimenEditTarget: (v: "hand" | "meld" | null) => void;
 
+  /** 立体牌をOFF（2D表示）にした時の、下家・上家の手牌・副露の配置。3D用の値
+      (handGroup/meldSlots等)とは完全に別枠で、OFFの人にだけ使われる。形と編集の
+      しかたは対面(toimen*)と同じ。side2dHandSlotsは副露数n・カン数kごとの15個
+      (toimenHandSlotIndexの番号)、side2dMeldSlotは副露全体で1つ。 */
+  side2dHandSlots: Record<Side2dSeat, ToimenSlotConfig[]>;
+  side2dMeldSlot: Record<Side2dSeat, ToimenSlotConfig>;
+  /** 2D配置編集モード。nullならOFF。どちらの座席の、手牌/副露を動かしているか。 */
+  side2dEditSeat: Side2dSeat | null;
+  side2dEditTarget: "hand" | "meld";
+  side2dEditMeldCount: number;
+  side2dEditAnkanSlots: boolean[];
+  /** 編集中の座席・対象・副露数に対応するスロットを書き換える／初期値に戻す。 */
+  setSide2dHandSlot: (patch: Partial<ToimenSlotConfig>) => void;
+  resetSide2dHandSlot: () => void;
+  setSide2dMeldSlot: (patch: Partial<ToimenSlotConfig>) => void;
+  resetSide2dMeldSlot: () => void;
+  /** seatにnullを渡すと編集モードを閉じる。開く時、手牌なら「鳴かず」から、副露なら最大の4個から始める。 */
+  openSide2dEdit: (seat: Side2dSeat | null, target?: "hand" | "meld") => void;
+  setSide2dEditTarget: (target: "hand" | "meld") => void;
+  setSide2dEditMeldCount: (n: number) => void;
+  setSide2dEditAnkanSlot: (slot: number, v: boolean) => void;
+
   /** カゲロウの「透視の術」やジンの「大明立直」(オープンリーチ)で手牌が
       公開された時(2D表示に切り替わった時)だけ、その手牌の列全体に追加で
       かける回転角(度、正=時計回り)。伏せ牌時の見た目には一切影響しない。
@@ -674,6 +709,48 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
       setToimenEditActiveMeld: (toimenEditActiveMeld) => set({ toimenEditActiveMeld }),
       setToimenMeldSlot: (patch) => set((state) => ({ toimenMeldSlot: { ...state.toimenMeldSlot, ...patch } })),
       resetToimenMeldSlot: () => set({ toimenMeldSlot: { ...INITIAL_TOIMEN_MELD_SLOT } }),
+      side2dHandSlots: initialSide2dHandSlots(),
+      side2dMeldSlot: initialSide2dMeldSlot(),
+      side2dEditSeat: null,
+      side2dEditTarget: "hand",
+      side2dEditMeldCount: 0,
+      side2dEditAnkanSlots: [false, false, false, false],
+      setSide2dHandSlot: (patch) =>
+        set((state) => {
+          const seat = state.side2dEditSeat;
+          if (!seat) return {};
+          const at = toimenHandSlotIndex(state.side2dEditMeldCount, state.side2dEditAnkanSlots.slice(0, state.side2dEditMeldCount).filter(Boolean).length);
+          return { side2dHandSlots: { ...state.side2dHandSlots, [seat]: state.side2dHandSlots[seat].map((slot, i) => (i === at ? { ...slot, ...patch } : slot)) } };
+        }),
+      resetSide2dHandSlot: () =>
+        set((state) => {
+          const seat = state.side2dEditSeat;
+          if (!seat) return {};
+          const at = toimenHandSlotIndex(state.side2dEditMeldCount, state.side2dEditAnkanSlots.slice(0, state.side2dEditMeldCount).filter(Boolean).length);
+          return { side2dHandSlots: { ...state.side2dHandSlots, [seat]: state.side2dHandSlots[seat].map((slot, i) => (i === at ? { ...INITIAL_SIDE2D_SLOT } : slot)) } };
+        }),
+      setSide2dMeldSlot: (patch) =>
+        set((state) => {
+          const seat = state.side2dEditSeat;
+          if (!seat) return {};
+          return { side2dMeldSlot: { ...state.side2dMeldSlot, [seat]: { ...state.side2dMeldSlot[seat], ...patch } } };
+        }),
+      resetSide2dMeldSlot: () =>
+        set((state) => {
+          const seat = state.side2dEditSeat;
+          if (!seat) return {};
+          return { side2dMeldSlot: { ...state.side2dMeldSlot, [seat]: { ...INITIAL_SIDE2D_SLOT } } };
+        }),
+      openSide2dEdit: (seat, target = "hand") =>
+        set({ side2dEditSeat: seat, side2dEditTarget: target, side2dEditMeldCount: target === "meld" ? 4 : 0 }),
+      setSide2dEditTarget: (target) =>
+        set((state) => ({
+          side2dEditTarget: target,
+          ...(target === "meld" && state.side2dEditMeldCount === 0 ? { side2dEditMeldCount: 4 } : null),
+        })),
+      setSide2dEditMeldCount: (side2dEditMeldCount) => set({ side2dEditMeldCount }),
+      setSide2dEditAnkanSlot: (slot, v) =>
+        set((state) => ({ side2dEditAnkanSlots: state.side2dEditAnkanSlots.map((on, i) => (i === slot ? v : on)) })),
       toimenEditTarget: null,
       // 編集モードを開く時は、手牌なら「鳴かず」から始める。副露を選んだ時に
       // 「鳴かず」のままだと動かす副露が1つも出ないため、最大の4個にする
@@ -818,6 +895,18 @@ export const useTile3DDebugStore = create<Tile3DDebugState>()(
           setNameplateEditActiveSeat,
           toimenEditTarget,
           setToimenEditTarget,
+          side2dEditSeat,
+          side2dEditTarget,
+          side2dEditMeldCount,
+          side2dEditAnkanSlots,
+          setSide2dHandSlot,
+          resetSide2dHandSlot,
+          setSide2dMeldSlot,
+          resetSide2dMeldSlot,
+          openSide2dEdit,
+          setSide2dEditTarget,
+          setSide2dEditMeldCount,
+          setSide2dEditAnkanSlot,
           riichiStickEditOpen,
           setRiichiStickEditOpen,
           riichiStickEditActiveSeat,
