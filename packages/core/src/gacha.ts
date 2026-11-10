@@ -264,7 +264,7 @@ export function rollFirstGacha(rng: () => number): GachaItem[] {
 // ---------------------------------------------------------------------------
 
 /** 名前を変える値段（雀玉）。最初に名前を決める時は無料。 */
-export const RENAME_PRICE = 100;
+export const RENAME_PRICE = 1000;
 
 /** 通常のガチャの値段（雀玉）。 */
 export const GACHA_PRICE = { single: 150, ten: 1500 } as const;
