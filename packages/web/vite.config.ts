@@ -18,8 +18,23 @@ function aboutPagePlugin(): Plugin {
   };
 }
 
+/** ビルドごとに変わる版番号。画面に埋め込み（__APP_BUILD__）、同じ値を version.json にも出す。
+    開きっぱなしの古い画面が、サーバー側の新しい版に気づいて更新を案内するために使う（UpdateNotice.tsx）。 */
+const APP_BUILD = Date.now().toString(36);
+
+function buildVersionPlugin(): Plugin {
+  return {
+    name: "build-version",
+    apply: "build",
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "version.json", source: JSON.stringify({ build: APP_BUILD }) });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [aboutPagePlugin(), react(), tuningFilePlugin()],
+  define: { __APP_BUILD__: JSON.stringify(APP_BUILD) },
+  plugins: [aboutPagePlugin(), react(), tuningFilePlugin(), buildVersionPlugin()],
   server: {
     port: 5173,
     // ポート5173が塞がっている時に黙って別ポートへ逃げると、その別

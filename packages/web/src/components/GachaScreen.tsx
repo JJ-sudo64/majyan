@@ -78,7 +78,8 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="gacha-screen" onClick={(e) => e.stopPropagation()}>
+      {/* 10連の結果を出している間は、説明文などを畳んで、10枚とボタンが1画面に収まるようにする（--result）。 */}
+      <div className={`gacha-screen${result && !revealing ? " gacha-screen--result" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
           <div className="setup-character-select__label">ガチャ</div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>

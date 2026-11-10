@@ -6207,6 +6207,33 @@ button.dev-account-tools__toggle.dev-account-tools {
   bottom: auto;
 }
 
+/* 開きっぱなしの画面が古くなった時の案内（UpdateNotice）。卓のキャンバスの外、画面の上に出す。 */
+.update-notice {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(20, 20, 30, 0.92);
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+.update-notice button {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #f0b429;
+  color: #222;
+  font-weight: bold;
+  cursor: pointer;
+}
+
 /* 運営用の管理画面（AdminPage, /?admin）。ゲームの見た目とは切り離した、読みやすさ優先の画面。 */
 .admin-page {
   min-height: calc(var(--app-vh, 1vh) * 100);
@@ -9915,13 +9942,75 @@ button.oh-player__rank:hover .oh-player__rank-help {
 /* 10連の結果（最初の10連・通常のガチャ）: カードが5枚以上出ると2段ぶん縦に伸びて、
    画面からはみ出してスクロールになっていた。カード面の幅を抑えて、10枚とも1画面に収める。 */
 .first-gacha__grid .gacha-cardface {
-  max-width: 106px;
+  max-width: 98px;
   margin: 0 auto;
 }
-.first-gacha__grid .cf-caption {
-  margin-top: 4px !important;
+/* 「はじめの10連」「ガチャ」の画面全体（title・説明・10枚・ボタン）が、固定キャンバス（1392×748）の
+   中で縦スクロール無しに収まるよう、上下の余白と説明文を詰める。ボタンが画面の下に隠れないように。 */
+.oh-gate:has(.first-gacha) {
+  padding-top: 6px;
+  padding-bottom: 8px;
+  gap: 6px;
+}
+.first-gacha {
+  gap: 6px;
+}
+.first-gacha__title {
+  font-size: 20px;
+}
+.first-gacha__grid {
+  gap: 4px 8px;
+}
+/* ガチャ画面で結果（10枚）を出している間: 説明文を畳み、余白・ボタンを詰めて、
+   10枚と引くボタン・交換・提供割合までスクロール無しで見えるようにする。 */
+.gacha-screen--result {
+  gap: 4px;
+  padding-top: 6px;
+  padding-bottom: 8px;
+}
+.gacha-screen--result > .setup-lead,
+.gacha-screen--result > .gacha-screen__pickup {
+  display: none;
+}
+.gacha-screen--result .first-gacha__grid .gacha-cardface {
+  max-width: 88px;
+}
+.gacha-screen--result .first-gacha__grid .cf-caption {
+  font-size: 10px;
+}
+.gacha-screen--result > .setup-picker-modal__header {
+  padding-top: 0;
+  padding-bottom: 0;
+  min-height: 0;
+}
+.gacha-screen--result > .gacha-screen__jade {
+  font-size: 14px;
+  line-height: 1.2;
+}
+.gacha-screen--result > .gacha-screen__jade strong {
+  font-size: 18px;
+}
+.gacha-screen--result > .gacha-screen__pulls .btn--large {
+  font-size: 16px;
+  padding: 8px 22px;
+}
+.gacha-screen--result > .gacha-screen__exchange {
   font-size: 11px;
-  line-height: 1.35;
+  gap: 6px;
+}
+.gacha-screen--result > .gacha-screen__exchange .btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.first-gacha .setup-lead {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.first-gacha__grid .cf-caption {
+  margin-top: 2px !important;
+  font-size: 11px;
+  line-height: 1.25;
 }
 /* ガチャ結果のカードのNEW札は、名前にかからないよう、カードの角の外側に出す。 */
 .gacha-cardface .gacha-card__new {

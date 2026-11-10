@@ -11,11 +11,21 @@ import { ReplayControls } from "./components/ReplayControls.js";
 import { SpectatorBanner } from "./components/SpectatorBanner.js";
 import { Table } from "./components/Table.js";
 import { Stage } from "./components/Stage.js";
+import { UpdateNotice } from "./components/UpdateNotice.js";
 import { useTitleBgm } from "./hooks/useTitleBgm.js";
 
 type Screen = "title" | "setup" | "online";
 
 export default function App() {
+  return (
+    <>
+      <AppBody />
+      <UpdateNotice />
+    </>
+  );
+}
+
+function AppBody() {
   const match = useGameStore((s) => s.match);
   const online = useGameStore((s) => s.online);
   const replaying = useGameStore((s) => s.replay !== null);
