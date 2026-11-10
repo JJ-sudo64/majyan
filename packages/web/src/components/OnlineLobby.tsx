@@ -84,6 +84,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const members = useOnlineStore((s) => s.members);
   const error = useOnlineStore((s) => s.error);
   const accountStatus = useAccountStore((s) => s.status);
+  const lostReason = useAccountStore((s) => s.lostReason);
   const profile = useAccountStore((s) => s.profile);
   const accountError = useAccountStore((s) => s.error);
   const rank = useAccountStore((s) => s.rank);
@@ -387,6 +388,15 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               {accountError && <p className="online-lobby__error">{accountError}</p>}
               {accountStatus === "none" && (
                 <>
+                  {/* 前にここでアカウントを作った形跡があるのに鍵が無い時の案内（新しく作る前に気づけるように）。 */}
+                  {lostReason && (
+                    <p className="online-lobby__lost" role="alert">
+                      {lostReason === "rejected"
+                        ? "保存されていたアカウントが、サーバーで見つかりませんでした。"
+                        : "前にこのブラウザで作ったアカウントの情報が見当たりません（ブラウザのデータを消した、別のURLやウィンドウで開いた、などの場合）。"}
+                      引き継ぎのパスワードを決めてあれば、下の「引き継ぎコードで戻る」から戻れます。新しく作ると、別のアカウントになります。
+                    </p>
+                  )}
                   <p className="oh-note">
                     アカウントはこのブラウザに保存されます。ブラウザのデータを消しても戻れるように、はじめた後で「引き継ぎ」からパスワードを決めておくのがおすすめです。
                   </p>

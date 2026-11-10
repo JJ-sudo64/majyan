@@ -36,6 +36,8 @@ import {
   type ReportReason,
 } from "@majyan/core";
 
+import { hasAccountMarker, mirrorToken, readMirroredToken, requestPersistentStorage, setAccountMarker } from "./tokenBackup.js";
+
 const TOKEN_KEY = "majyan.account.token";
 /** 最後に読んだお知らせのID（未読の印を消すため。ブラウザごとでよい）。 */
 const SEEN_NEWS_KEY = "majyan.news.seen";
@@ -96,6 +98,12 @@ interface AccountState {
   incomingFriendRequests: number;
   /** 途中で抜けたまま続いている段位戦の形式（無ければnull）。 */
   runningRanked: MatchFormat | null;
+  /**
+   * アカウントが無い(status none)のに、前にここでアカウントを作った形跡がある時の理由。画面で、引き継ぎコードで
+   * 戻れることを案内する。rejected=保存されていた鍵をサーバーが知らない／cleared=鍵がブラウザから消えている
+   * （ブラウザのデータ削除・別のURLやウィンドウで開いた等）。普通に開いている間はnull。
+   */
+  lostReason: "rejected" | "cleared" | null;
   error: string | null;
 }
 
@@ -117,6 +125,7 @@ export const useAccountStore = create<AccountState>(() => ({
   claimableMissions: 0,
   incomingFriendRequests: 0,
   runningRanked: null,
+  lostReason: null,
   error: null,
 }));
 
@@ -124,6 +133,7 @@ export const useAccountStore = create<AccountState>(() => ({
 function applyMe(me: MeResponse) {
   useAccountStore.setState({
     status: "ready",
+    lostReason: null,
     profile: me.profile,
     termsAccepted: me.termsAccepted,
     rank: me.rank,
@@ -158,6 +168,13 @@ function saveToken(token: string | null) {
   } catch {
     // 保存できない環境（プライベートブラウズ等）では、ページを開いている間だけ使える。
   }
+  // localStorageだけが消えても戻れるよう、控え(IndexedDB)と「アカウントを作った」目印(Cookie)も一緒に更新し、
+  // ブラウザに保存を消さないよう申請する（tokenBackup.ts参照）。
+  void mirrorToken(token);
+  if (token) {
+    setAccountMarker(true);
+    requestPersistentStorage();
+  }
 }
 
 /** 保存できなかった時のための、このページを開いている間の控え。 */
@@ -189,19 +206,41 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 /** 保存済みの鍵があれば、そのアカウントを読み込む。 */
 export async function loadAccount(): Promise<void> {
   if (!accountToken()) {
-    useAccountStore.setState({ status: "none", profile: null, error: null });
+    // localStorageの鍵が無くても、IndexedDBの控えがあれば、それで戻す（localStorageだけが消えた場合）。
+    const mirrored = await readMirroredToken();
+    if (mirrored) {
+      memoryToken = mirrored;
+      saveToken(mirrored);
+    }
+  }
+  if (!accountToken()) {
+    // 目印(Cookie)があるのに鍵が無い＝前にここでアカウントを作ったのに、鍵がブラウザから消えている。
+    // すでに理由が分かっている時（サーバーが鍵を知らなかった）は、それを残す（2回目の確認で上書きしない）。
+    useAccountStore.setState({
+      status: "none",
+      profile: null,
+      error: null,
+      lostReason: useAccountStore.getState().lostReason ?? (hasAccountMarker() ? "cleared" : null),
+    });
     return;
   }
   // 読み込み済みのアカウントを最新にするだけ（段位の更新等）なら、画面を「確認中」に戻さない。
   if (useAccountStore.getState().status !== "ready") useAccountStore.setState({ status: "loading", error: null });
   try {
     applyMe(await api<MeResponse>("/me"));
+    // 前から使っている人も、控えと目印を（まだ無ければ）作る。
+    const current = accountToken();
+    if (current) {
+      void mirrorToken(current);
+      setAccountMarker(true);
+      requestPersistentStorage();
+    }
   } catch (err) {
     if ((err as { status?: number }).status === 401) {
       // サーバー側にアカウントが無い（鍵が古い等）。作り直してもらう。
       saveToken(null);
       memoryToken = null;
-      useAccountStore.setState({ status: "none", profile: null, error: null });
+      useAccountStore.setState({ status: "none", profile: null, error: null, lostReason: "rejected" });
     } else {
       useAccountStore.setState({ status: "unknown", error: (err as Error).message });
     }
@@ -444,8 +483,10 @@ export function forgetAccountForTesting(): void {
 function clearLocalAccount(): void {
   memoryToken = null;
   saveToken(null);
+  setAccountMarker(false); // 自分で外した／退会した時は、「消えた」という案内は出さない
   useAccountStore.setState({
     status: "none",
+    lostReason: null,
     profile: null,
     termsAccepted: true,
     rank: null,

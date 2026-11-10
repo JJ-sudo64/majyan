@@ -5182,6 +5182,18 @@ body:has(.character-panel--bottom .character-panel__player) .hand-top-status {
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
 }
+/* 前にここで作ったアカウントの鍵が見つからない時の案内（OnlineLobby、アカウント作成の欄）。 */
+.online-lobby__lost {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d4af37;
+  background: rgba(212, 175, 55, 0.14);
+  color: #ffe9a8;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+}
 .online-lobby__error {
   margin: 0;
   color: #ff8a8a;
