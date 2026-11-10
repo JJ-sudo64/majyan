@@ -301,15 +301,23 @@ const initialSide2dMeldSlot = (): Record<Side2dSeat, Side2dSlotConfig> => ({
 const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: 7, offsetY: -26, scale: 0.85 };
 /** 対面の手牌、副露の数nとカンの数kの組ごと(toimenHandSlotIndexの番号順:
     0副露; 1副露(k=0,1); 2副露(k=0..2); …; 4副露(k=0..4))。2026-10-21に実機で調整した値。 */
-const INITIAL_TOIMEN_HAND_SLOTS: ToimenSlotConfig[] = Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ offsetX: 0, offsetY: 1, scale: 0.9 }));
+const TOIMEN_HAND_BY_MELD_COUNT: ToimenSlotConfig[] = [
+  { offsetX: -33, offsetY: 1, scale: 0.9 },
+  { offsetX: 16, offsetY: 1, scale: 0.9 },
+  { offsetX: 63, offsetY: 1, scale: 0.9 },
+  { offsetX: 108, offsetY: -1, scale: 0.9 },
+  { offsetX: 153, offsetY: -3, scale: 0.9 },
+];
+/** 副露を絶対配置にしたため手牌は副露の数nだけで決まる（ポン/カンの違いでは変わらない）。 */
+const INITIAL_TOIMEN_HAND_SLOTS: ToimenSlotConfig[] = Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...TOIMEN_HAND_BY_MELD_COUNT[0]! }));
 for (let n = 0; n <= 4; n++) {
-  // 副露を絶対配置にしたため、手牌は行の中央に置かれ、鳴くほど縮んで中心が動かない。
-  // 右端が動かないよう、縮んだ分（1副露=牌3枚≒129px、0.9倍・卓の拡大込みで実測し、1副露あたり約46px）右へ寄せる初期値。
-  for (let k = 0; k <= n; k++) INITIAL_TOIMEN_HAND_SLOTS[toimenHandSlotIndex(n, k)] = { offsetX: -33 + 46 * n, offsetY: 1, scale: 0.9 };
+  for (let k = 0; k <= n; k++) INITIAL_TOIMEN_HAND_SLOTS[toimenHandSlotIndex(n, k)] = { ...TOIMEN_HAND_BY_MELD_COUNT[n]! };
 }
 /** 対面の副露1個ごとの個別位置(toimenMeldEachIndexの番号順:
     副露1のポン・カン、副露2のポン・カン、…)。同上。 */
-const INITIAL_TOIMEN_MELD_EACH: ToimenMeldEachConfig[] = Array.from({ length: TOIMEN_MELD_EACH_COUNT }, () => ({ offsetX: 0, offsetY: 0 }));
+const INITIAL_TOIMEN_MELD_EACH: ToimenMeldEachConfig[] = [
+  [12, -4], [12, -6], [-105, 42], [-105, 44], [-90, -6], [-92, -5], [-207, 43], [-208, 42],
+].map(([offsetX, offsetY]) => ({ offsetX: offsetX!, offsetY: offsetY! }));
 /** 下家の牌形状・並べ方パラメータ(配列以外のスカラー値)。初期状態と
     v4→v6 migrate(下の「全ブラウザ統一」処理参照)の両方から参照する
     ので、値をここに集約して二重管理を避ける。 */
