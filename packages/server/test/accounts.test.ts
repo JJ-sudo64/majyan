@@ -180,11 +180,13 @@ describe("transfer code", () => {
 describe("account HTTP API", () => {
   let server: Server;
   let base: string;
+  let walletService: WalletService;
 
   beforeAll(async () => {
     const db = openDatabase(":memory:");
     const accounts = new AccountService(db);
-    const handleApi = createApiHandler({ accounts, ranks: new RankService(db), collections: new CollectionService(db), wallet: new WalletService(db), guestsPerHourPerIp: 3 });
+    walletService = new WalletService(db);
+    const handleApi = createApiHandler({ accounts, ranks: new RankService(db), collections: new CollectionService(db), wallet: walletService, guestsPerHourPerIp: 3 });
     server = createServer(async (req, res) => {
       if (!(await handleApi(req, res))) res.writeHead(418).end();
     });
@@ -237,10 +239,12 @@ describe("account HTTP API", () => {
     expect(Object.values(confirmed.cards).reduce((a, b) => a + b, 0)).toBe(pulledCards);
     expect((await post("/api/first-gacha/roll", {}, token)).status).toBe(409);
 
-    // 雀玉: 最初にもらえる分があり、ログインボーナスは1日1回。通常のガチャで減る。
+    // 雀玉: 最初は0で、ログインボーナスは1日1回。通常のガチャで減る。
     // （このテストの最初の /api/me で今日のログインボーナスは受け取り済み）
     expect(fresh.jade.free).toBe(STARTING_JADE + DAILY_LOGIN_JADE);
     expect(fresh.dailyBonus).toBeNull();
+    // 最初の雀玉は0なので、通常のガチャを引くテストのために10連ぶん（1500）を渡しておく。
+    walletService.grantFree(profile.id, 1500, "test");
     const meAgain = (await (await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${token}` } })).json()) as MeResponse;
     expect(meAgain.dailyBonus).toBeNull();
     const rolled = (await (await post("/api/gacha/roll", { count: 10 }, token)).json()) as GachaRollResponse;

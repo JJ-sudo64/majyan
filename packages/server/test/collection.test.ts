@@ -13,6 +13,7 @@ function setup() {
   const wallet = new WalletService(db, now);
   const collections = new CollectionService(db, Math.random, now, wallet);
   const { profile } = accounts.createGuest("A");
+  wallet.grantFree(profile.id, 1500, "test"); // 最初の雀玉は0なので、ガチャのテスト用に渡しておく
   /** テスト用にカードを直接持たせる。 */
   const giveCard = (cardId: string, count = 1) =>
     db

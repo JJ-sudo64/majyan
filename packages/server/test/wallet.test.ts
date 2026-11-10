@@ -23,7 +23,7 @@ function setup(startMs = Date.UTC(2026, 9, 1, 3, 0, 0)) {
 }
 
 describe("WalletService", () => {
-  it("starts every account with the starting jade, recorded once", () => {
+  it("starts every account with the starting jade (zero), recorded once", () => {
     const { wallet, userId, ledger } = setup();
     expect(wallet.balance(userId)).toEqual({ free: STARTING_JADE, paid: 0 });
     expect(wallet.balance(userId)).toEqual({ free: STARTING_JADE, paid: 0 });
@@ -33,6 +33,7 @@ describe("WalletService", () => {
   it("spends free jade before paid jade", () => {
     const { wallet, userId, setPaid, ledger } = setup();
     wallet.balance(userId);
+    wallet.grantFree(userId, 1500, "test"); // 最初の雀玉は0なので、無料分を渡しておく
     setPaid(1000);
     expect(wallet.spend(userId, 1200, "test")).toEqual({ free: 300, paid: 1000 });
     expect(wallet.spend(userId, 500, "test")).toEqual({ free: 0, paid: 800 });
@@ -62,12 +63,13 @@ describe("WalletService", () => {
 describe("paid gacha", () => {
   it("spends jade and grants the characters and cards", () => {
     const { wallet, collections, userId, db } = setup();
+    wallet.grantFree(userId, GACHA_PRICE.ten, "test"); // 最初の雀玉は0なので、10連ぶんを渡しておく
     const unitsBefore = collections.units(userId).length;
     const { results, isNew } = collections.rollGacha(userId, 10, wallet);
     expect(results).toHaveLength(10);
     expect(isNew).toHaveLength(10);
     expect(results.some((i) => rarityOf(i) >= 2)).toBe(true);
-    expect(wallet.balance(userId).free).toBe(STARTING_JADE - GACHA_PRICE.ten);
+    expect(wallet.balance(userId).free).toBe(STARTING_JADE);
     const chars = results.filter((i) => i.kind === "character").length;
     const cards = results.filter((i) => i.kind === "card").length;
     expect(collections.units(userId)).toHaveLength(unitsBefore + chars);
@@ -78,6 +80,7 @@ describe("paid gacha", () => {
 
   it("does nothing at all when the player cannot afford it", () => {
     const { wallet, collections, userId, db } = setup();
+    wallet.grantFree(userId, GACHA_PRICE.ten, "test"); // 最初の雀玉は0なので、10連ぶんだけ渡す
     collections.rollGacha(userId, 10, wallet); // 残り0
     const unitsBefore = collections.units(userId);
     const cardsBefore = collections.cards(userId);

@@ -269,8 +269,8 @@ export const GACHA_PRICE = { single: 150, ten: 1500 } as const;
 /** 通常の10連は、この中に最低1つ★2以上が入る（キャラ・カードどちらでも）。 */
 export const TEN_PULL_GUARANTEE: GachaGuarantee = { rarity: 2 };
 
-/** アカウントを作った時にもらえる雀玉。 */
-export const STARTING_JADE = 1500;
+/** アカウントを作った時にもらえる雀玉（0。最初の10連は別枠で無料。ログインボーナスだけがもらえる）。 */
+export const STARTING_JADE = 0;
 
 /** 1日1回のログインボーナス（日付は日本時間で区切る）。 */
 export const DAILY_LOGIN_JADE = 100;
