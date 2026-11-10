@@ -249,19 +249,59 @@ const INITIAL_MELD_EDIT_PREVIEW_COUNT = 4;
 type Side2dSeat = "shimocha" | "kamicha";
 export type Side2dSlotConfig = ToimenSlotConfig & { rotate?: number };
 const INITIAL_SIDE2D_SLOT: Side2dSlotConfig = { offsetX: 0, offsetY: 0, scale: 1, rotate: 0 };
-const initialSide2dHandSlots = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
-  shimocha: Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
-  kamicha: Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
-});
-/** 下家・上家の2D表示での副露1個ごとの個別位置(toimenMeldEachIndexの番号、8個)。
-    副露全体の位置(side2dMeldSlot)に重ねて足される。 */
-const initialSide2dMeldEach = (): Record<Side2dSeat, Side2dSlotConfig[]> => ({
-  shimocha: Array.from({ length: TOIMEN_MELD_EACH_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
-  kamicha: Array.from({ length: TOIMEN_MELD_EACH_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT })),
-});
+/** 調整済みの初期値（2D編集モードで決めた値）。手牌は副露の数n(0〜4)だけで決まり、
+    ポン/カンの違いでは変わらない（toimenHandSlotIndex(n, k)のkはどれも同じ値にする）。 */
+const SIDE2D_HAND_BY_MELD_COUNT: Record<Side2dSeat, Side2dSlotConfig[]> = {
+  shimocha: [
+    { offsetX: -22, offsetY: 19, scale: 1, rotate: -11 },
+    { offsetX: -15, offsetY: 70, scale: 1, rotate: -12 },
+    { offsetX: -6, offsetY: 117, scale: 1, rotate: -12 },
+    { offsetX: 5, offsetY: 169, scale: 1, rotate: -12 },
+    { offsetX: 14, offsetY: 218, scale: 1, rotate: -12 },
+  ],
+  kamicha: [
+    { offsetX: 30, offsetY: -79, scale: 1, rotate: 12 },
+    { offsetX: 41, offsetY: -116, scale: 1, rotate: 12 },
+    { offsetX: 48, offsetY: -166, scale: 1, rotate: 12 },
+    { offsetX: 56, offsetY: -218, scale: 1, rotate: 12 },
+    { offsetX: 63, offsetY: -269, scale: 1, rotate: 12 },
+  ],
+};
+const initialSide2dHandSlots = (): Record<Side2dSeat, Side2dSlotConfig[]> => {
+  const build = (seat: Side2dSeat): Side2dSlotConfig[] => {
+    const slots: Side2dSlotConfig[] = Array.from({ length: TOIMEN_HAND_SLOT_COUNT }, () => ({ ...INITIAL_SIDE2D_SLOT }));
+    SIDE2D_HAND_BY_MELD_COUNT[seat].forEach((v, n) => {
+      for (let k = 0; k <= n; k++) slots[toimenHandSlotIndex(n, k)] = { ...v };
+    });
+    return slots;
+  };
+  return { shimocha: build("shimocha"), kamicha: build("kamicha") };
+};
+/** 下家・上家の2D表示での副露1個ごとの個別位置（1〜4番目、並び順だけで決まる）。
+    副露全体の位置(side2dMeldSlot)に重ねて足される。toimenMeldEachIndexの番号(8個)は
+    ポン用・カン用に同じ値を入れる。 */
+const SIDE2D_MELD_EACH_BY_ORDER: Record<Side2dSeat, Side2dSlotConfig[]> = {
+  shimocha: [
+    { offsetX: -1, offsetY: 5, scale: 1, rotate: 0 },
+    { offsetX: 1, offsetY: 16, scale: 1, rotate: 0 },
+    { offsetX: 6, offsetY: 2, scale: 1, rotate: 0 },
+    { offsetX: 10, offsetY: 15, scale: 1, rotate: 0 },
+  ],
+  kamicha: [
+    { offsetX: 43, offsetY: -53, scale: 1, rotate: 0 },
+    { offsetX: 37, offsetY: -39, scale: 1, rotate: 0 },
+    { offsetX: 47, offsetY: -49, scale: 1, rotate: 0 },
+    { offsetX: 45, offsetY: -38, scale: 1, rotate: 0 },
+  ],
+};
+const initialSide2dMeldEach = (): Record<Side2dSeat, Side2dSlotConfig[]> => {
+  const build = (seat: Side2dSeat): Side2dSlotConfig[] =>
+    Array.from({ length: TOIMEN_MELD_EACH_COUNT }, (_, i) => ({ ...SIDE2D_MELD_EACH_BY_ORDER[seat][Math.floor(i / 2)]! }));
+  return { shimocha: build("shimocha"), kamicha: build("kamicha") };
+};
 const initialSide2dMeldSlot = (): Record<Side2dSeat, Side2dSlotConfig> => ({
   shimocha: { ...INITIAL_SIDE2D_SLOT },
-  kamicha: { ...INITIAL_SIDE2D_SLOT },
+  kamicha: { offsetX: -42, offsetY: -85, scale: 1, rotate: 3 },
 });
 /** 対面の副露全体。 */
 const INITIAL_TOIMEN_MELD_SLOT: ToimenSlotConfig = { offsetX: 7, offsetY: -26, scale: 0.85 };
