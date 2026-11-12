@@ -5,8 +5,8 @@
  *
  * 使い方:  node scripts/build-official-site.mjs
  *   環境変数（省略可）:
- *     SITE_URL  公式ページの住所（既定 https://janshin.maxplantlabs.com）。about/index.html の canonical 等と揃える。
- *     GAME_URL  ゲーム本体の住所（既定 https://play-janshin.maxplantlabs.com）。「今すぐプレイ」の行き先。
+ *     SITE_URL  公式ページの住所（既定 https://janhai.maxplantlabs.com）。about/index.html の canonical 等と揃える。
+ *     GAME_URL  ゲーム本体の住所（既定 https://play-janhai.maxplantlabs.com）。「今すぐプレイ」の行き先。
  *
  * やること:
  *   1. ページ内の「ゲームへのリンク（/）」を GAME_URL に、「/about/…」の素材の場所を「/…」に直す。
@@ -21,8 +21,8 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pub = join(root, "packages/web/public");
 const out = join(root, "official-site");
-const SITE_URL = (process.env.SITE_URL ?? "https://janshin.maxplantlabs.com").replace(/\/$/, "");
-const GAME_URL = (process.env.GAME_URL ?? "https://play-janshin.maxplantlabs.com").replace(/\/$/, "");
+const SITE_URL = (process.env.SITE_URL ?? "https://janhai.maxplantlabs.com").replace(/\/$/, "");
+const GAME_URL = (process.env.GAME_URL ?? "https://play-janhai.maxplantlabs.com").replace(/\/$/, "");
 const MAX_FILE_BYTES = 25 * 1024 * 1024; // Cloudflare Pages は1ファイル25MBまで
 
 // 先に、ページに埋め込んであるゲームのデータ（キャラ・カード・段位）をいまのゲームに合わせる。
