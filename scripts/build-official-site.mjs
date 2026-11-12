@@ -43,6 +43,8 @@ if (html.includes('href="/"') || html.includes("/about/")) throw new Error("書�
 const sourceOf = (url) => (url.startsWith("/img/") || url === "/pv.mp4" ? join(pub, "about", url) : join(pub, url));
 const used = new Set();
 for (const m of html.matchAll(/["'(](\/(?:img|icons|title|avatars|declarations)\/[^"')\s?#`$]+|\/pv\.mp4)/g)) used.add(m[1]);
+// 共有画像（og:image）は「https://公式ページ/img/og.webp」と絶対URLで書かれており、上の探し方では拾えない。
+for (const m of html.matchAll(new RegExp(`${SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\/img\\/[^"')\\s?#]+)`, "g"))) used.add(m[1]);
 // スクリプトが組み立てる住所（`/declarations/${id}.webp`）は、使うidの一覧から作る。
 const listIds = (name) => {
   const block = new RegExp(`const ${name} = \\[([\\s\\S]*?)\\n?\\];`).exec(html)?.[1] ?? "";
