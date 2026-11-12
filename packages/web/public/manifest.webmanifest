@@ -1,7 +1,7 @@
 {
-  "name": "雀神 - 対戦型麻雀",
-  "short_name": "雀神",
-  "description": "キャラクターの必殺技とカードで戦う対戦型麻雀。",
+  "name": "雀廃 - 異能麻雀バトル",
+  "short_name": "雀廃",
+  "description": "キャラクターの必殺技とカードで戦う異能麻雀バトル。",
   "lang": "ja",
   "start_url": "/",
   "scope": "/",

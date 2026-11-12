@@ -1,4 +1,4 @@
-"""雀神の効果音（ガチャ演出・メニューのボタン）を合成し、音量をそろえて mp3 に書き出す。
+"""雀廃の効果音（ガチャ演出・メニューのボタン）を合成し、音量をそろえて mp3 に書き出す。
 
     python scripts/synth-sfx.py            packages/web/public/sfx/ の gacha-*.mp3・ui-*.mp3 を作り直す
 

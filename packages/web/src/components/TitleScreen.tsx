@@ -31,7 +31,7 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
   const setSeVolume = useSettingsStore((s) => s.setSeVolume);
 
   function handleExit() {
-    if (window.confirm("雀神を終了しますか？")) {
+    if (window.confirm("雀廃を終了しますか？")) {
       window.close();
     }
   }
@@ -39,7 +39,7 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
   return (
     <div className="title-screen" ref={containerRef} onClickCapture={playUiClickFor}>
       <div className="title-screen__canvas" style={{ width: TITLE_WIDTH, height: TITLE_HEIGHT, zoom: scale }}>
-        <img className="title-screen__bg" src="/title/title-bg.webp" alt="雀神" />
+        <img className="title-screen__bg" src="/title/title-bg.webp" alt="雀廃" />
 
         <div className="title-screen__menu">
           <button type="button" className="title-screen__menu-btn" aria-label="プレイ" onClick={onPlay} />

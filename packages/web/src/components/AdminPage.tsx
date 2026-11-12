@@ -95,7 +95,7 @@ export function AdminPage() {
   if (!authed) {
     return (
       <div className="admin-page">
-        <h1>雀神 管理画面</h1>
+        <h1>雀廃 管理画面</h1>
         <p>サーバーの ADMIN_TOKEN を入れてください。</p>
         <form
           className="admin-row"
@@ -117,7 +117,7 @@ export function AdminPage() {
   return (
     <div className="admin-page">
       <div className="admin-row admin-header">
-        <h1>雀神 管理画面</h1>
+        <h1>雀廃 管理画面</h1>
         <button
           type="button"
           onClick={() => {
