@@ -139,6 +139,8 @@ export interface Character {
   /** 自風牌・場風牌が成立した時、実際の風（1=東 2=南 3=西 4=北）ごとに
       読み上げる収録ボイス。 */
   windVoiceClips?: Partial<Record<Wind, string>>;
+  /** 自風と場風が同じ風（ダブ東など）の時のボイス。characters.tsの末尾でwindVoiceClipsから自動生成する。 */
+  doubleWindVoiceClips?: Partial<Record<Wind, string>>;
   /** ドラ・裏ドラ・赤ドラが乗った本数ごとの収録ボイス（種別を問わず本数のみで
       決まる。例えば表ドラ2枚でも裏ドラ2枚でも同じ「ドラ2」を再生する）。 */
   doraVoiceClips?: Partial<Record<number, string>>;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CHARACTERS, hasCard, TUTORIAL_SCENARIOS, M_LEAGUE_RULE, matchPoints, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
+import { CHARACTERS, doubleWindVoiceClip, hasCard, TUTORIAL_SCENARIOS, M_LEAGUE_RULE, matchPoints, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useOnlineStore } from "../online/onlineLink.js";
 import { playVoiceQueue } from "../sound.js";
@@ -145,7 +145,15 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
       const player = Number(playerStr) as PlayerIndex;
       const character = CHARACTERS[round.characterIds[player]!];
       if (!character) continue;
+      // 自風と場風が同じ風なら「自風牌」「場風牌」が2つ並ぶ。個別に読まず、ダブ○○を1回だけ読む。
+      const doubleWind = doubleWindVoiceClip(character, analysis.yaku.map((y) => y.name), seatWindOf(round.dealerSeat, player), round.roundWind);
+      let doublePlayed = false;
       for (const y of analysis.yaku) {
+        if (doubleWind && (y.name === "自風牌" || y.name === "場風牌")) {
+          if (!doublePlayed) queue.push(doubleWind);
+          doublePlayed = true;
+          continue;
+        }
         const clip = resolveYakuVoiceClip(character, y, round, player);
         if (clip) queue.push(clip);
       }

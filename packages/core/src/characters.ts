@@ -8,6 +8,7 @@
 import type { Character, SkillContext } from "./skills/types.js";
 import type { RoundState } from "./gameState.js";
 import type { PlayerIndex } from "./actions.js";
+import type { Wind } from "./tiles.js";
 import { withSkillFizzle } from "./skillNotice.js";
 import { revealNextDora, drawFromLive, doraIndicators, type WallState } from "./wall.js";
 import { addTileToHand, getWaitingTiles, removeTileFromHand, type Hand } from "./hand.js";
@@ -3881,6 +3882,24 @@ export const CHARACTERS: Record<string, Character> = {
     },
   },
 };
+
+// 自風と場風が同じ風（ダブ東など）の時のボイス。windVoiceClipsの
+// 「yaku/東.mp3」に対する「yaku/ダブ東.mp3」を機械的に割り当てる。
+for (const c of Object.values(CHARACTERS)) {
+  if (!c.windVoiceClips) continue;
+  const dbl: Partial<Record<Wind, string>> = {};
+  for (const [w, src] of Object.entries(c.windVoiceClips)) {
+    dbl[Number(w) as Wind] = src.replace(/\/yaku\/([^/]+)$/, "/yaku/ダブ$1");
+  }
+  c.doubleWindVoiceClips = dbl;
+}
+
+/** 自風と場風が同じ風で、「自風牌」「場風牌」の両方が成立している時の「ダブ○○」ボイス。該当しなければundefined。 */
+export function doubleWindVoiceClip(character: Character, yakuNames: readonly string[], seatWind: Wind, roundWind: Wind): string | undefined {
+  if (seatWind !== roundWind) return undefined;
+  if (!yakuNames.includes("自風牌") || !yakuNames.includes("場風牌")) return undefined;
+  return character.doubleWindVoiceClips?.[seatWind];
+}
 
 export const CHARACTER_IDS: string[] = Object.keys(CHARACTERS);
 
