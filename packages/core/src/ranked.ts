@@ -5,7 +5,7 @@
  * 1局（1試合）ごとのポイント増減 = 順位による増減 ＋ 終局時の持ち点による増減
  *   （(持ち点 − 25000) / 1000、1点未満は四捨五入）。順位による増減は東風戦・半荘戦で別の値。
  * ポイントが段の上限に届くと昇段（次の段の開始ポイントから）、0を下回ると降段
- * （1つ下の段の開始ポイントから）。下雀と中雀1段は降段しない（ポイントは0で止まる）。
+ * （1つ下の段の開始ポイントから）。下雀1段だけは降段しない（ポイントは0で止まる）。
  */
 import type { MatchFormat } from "./gameState.js";
 
@@ -42,8 +42,9 @@ export const RANK_TIERS: RankTier[] = [
     id: "gejan",
     name: "下雀",
     levelMax: [20, 80, 200],
-    levelStart: [0, 0, 0],
-    canDemote: [false, false, false],
+    levelStart: [0, 10, 40],
+    // 下雀1だけは、これ以上下が無いので降段しない。
+    canDemote: [false, true, true],
     placement: { tonpuusen: [10, 5, 0], hanchan: [20, 10, 0] },
     fourth: { tonpuusen: [0, 0, 0], hanchan: [0, 0, 0] },
   },
@@ -52,8 +53,7 @@ export const RANK_TIERS: RankTier[] = [
     name: "中雀",
     levelMax: [600, 800, 1000],
     levelStart: [300, 400, 500],
-    // 雀魂でも雀士★1だけは降段しない。
-    canDemote: [false, true, true],
+    canDemote: [true, true, true],
     placement: { tonpuusen: [14, 1, -6], hanchan: [27, 3, -11] },
     fourth: { tonpuusen: [-8, -18, -28], hanchan: [-15, -35, -55] },
   },

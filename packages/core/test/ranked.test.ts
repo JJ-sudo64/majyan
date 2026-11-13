@@ -80,15 +80,16 @@ describe("rankPointDelta", () => {
 
 describe("applyRankPoints", () => {
   it("promotes to the next level and starts from its start points", () => {
-    expect(applyRankPoints(r(0, 0, 10), 15)).toEqual(r(0, 1, 0));
+    expect(applyRankPoints(r(0, 0, 10), 15)).toEqual(r(0, 1, 10));
     expect(applyRankPoints(r(0, 2, 190), 30)).toEqual(r(1, 0, 300));
     expect(applyRankPoints(r(1, 2, 990), 20)).toEqual(r(2, 0, 600));
     expect(applyRankPoints(r(4, 2, 8990), 100)).toEqual(r(5, 0, 0));
   });
 
-  it("never demotes 下雀 and 中雀1, but floors their points at 0", () => {
-    expect(applyRankPoints(r(0, 1, 5), -50)).toEqual(r(0, 1, 0));
-    expect(applyRankPoints(r(1, 0, 10), -50)).toEqual(r(1, 0, 0));
+  it("never demotes 下雀1, but floors its points at 0; 下雀2 and 中雀1 do demote", () => {
+    expect(applyRankPoints(r(0, 0, 5), -50)).toEqual(r(0, 0, 0));
+    expect(applyRankPoints(r(0, 1, 5), -50)).toEqual(r(0, 0, 0));
+    expect(applyRankPoints(r(1, 0, 10), -50)).toEqual(r(0, 2, 40));
   });
 
   it("demotes 中雀2 and 中雀3 like the original", () => {
@@ -125,6 +126,6 @@ describe("applyRankPoints", () => {
 describe("rankAfterMatch", () => {
   it("reports the change for the result screen", () => {
     const change = rankAfterMatch(r(0, 0, 10), "hanchan", 1, 30000);
-    expect(change).toEqual({ before: r(0, 0, 10), after: r(0, 1, 0), delta: 25, place: 1 });
+    expect(change).toEqual({ before: r(0, 0, 10), after: r(0, 1, 10), delta: 25, place: 1 });
   });
 });
