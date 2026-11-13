@@ -28,18 +28,30 @@ describe("rank labels", () => {
 });
 
 describe("rankPointDelta", () => {
-  it("adds placement points and the final score difference", () => {
-    // 上雀1・半荘: 1位+54、持ち点42300 → +17
-    expect(rankPointDelta(r(2, 0, 700), "hanchan", 1, 42300)).toBe(54 + 17);
-    // 東風戦は東風戦の値(1位+27)
-    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 1, 25000)).toBe(27);
-    // 4位の減点は段が上がるほど重い
-    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 4, 25000)).toBe(-33);
-    expect(rankPointDelta(r(2, 2, 1100), "tonpuusen", 4, 25000)).toBe(-53);
-    expect(rankPointDelta(r(2, 0, 700), "hanchan", 4, 25000)).toBe(-65);
-    expect(rankPointDelta(r(2, 2, 1100), "hanchan", 4, 25000)).toBe(-105);
-    // 箱下(マイナス)の持ち点もそのまま反映（中雀1の半荘4位 -15）
-    expect(rankPointDelta(r(1, 0, 400), "hanchan", 4, -5400)).toBe(-15 - 30);
+  it("下雀 keeps the old table: placement points plus (score - 25000) / 1000", () => {
+    expect(rankPointDelta(r(0, 0, 10), "hanchan", 1, 30000)).toBe(20 + 5);
+    expect(rankPointDelta(r(0, 0, 10), "tonpuusen", 2, 25000)).toBe(5);
+    expect(rankPointDelta(r(0, 0, 10), "tonpuusen", 4, 18000)).toBe(-7);
+  });
+
+  it("中雀 and above use the M-League formula: multiplier x Mpt, minus an extra only for 4th", () => {
+    // 上雀1・半荘(倍率0.98): 1位・42300点 → Mpt = 12.3 + 50 = 62.3 → 61
+    expect(rankPointDelta(r(2, 0, 700), "hanchan", 1, 42300)).toBe(61);
+    // 東風戦(倍率0.56): 1位・25000点 → Mpt 45 → 25
+    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 1, 25000)).toBe(25);
+    // 4位 = round(0.56 x -35) - 追加減点(段ごと 8/11/13)。上の段ほど重い
+    expect(rankPointDelta(r(2, 0, 700), "tonpuusen", 4, 25000)).toBe(-28);
+    expect(rankPointDelta(r(2, 2, 1100), "tonpuusen", 4, 25000)).toBe(-33);
+    expect(rankPointDelta(r(2, 0, 700), "hanchan", 4, 25000)).toBe(-50);
+    expect(rankPointDelta(r(2, 2, 1100), "hanchan", 4, 25000)).toBe(-60);
+    // 箱下(マイナス)の持ち点もそのまま反映（中雀1の半荘4位・-5400点: round(0.7 x -65.4) - 4）
+    expect(rankPointDelta(r(1, 0, 400), "hanchan", 4, -5400)).toBe(-50);
+  });
+
+  it("the Mpt part matches the result screen's M-League points (matchPoints.ts)", () => {
+    // 倍率1に近い雀廃(東風1.35)で、持ち点が1000点違うごとに約1.35ポイント動く
+    const d = (score: number) => rankPointDelta(r(5, 0, 0), "tonpuusen", 1, score);
+    expect(d(35000) - d(25000)).toBe(13); // 61 → 74（1.35 x 10 = 13.5 の四捨五入込み）
   });
 
   it("is top-heavy: 1st is the big reward, 2nd is a small plus, 3rd and 4th lose (from 中雀 up)", () => {
@@ -65,16 +77,17 @@ describe("rankPointDelta", () => {
     }
   });
 
-  it("keeps the pace: an average player drifts about as fast as before (東風戦, uniform placements)", () => {
-    // 平均的な人（各順位25%）の1試合あたりの期待増減。配点を変えてもペースが変わらないための目印（持ち点補正は除く）。
+  it("4th is lighter than the old table, yet an average player still drifts down from 上雀 (the wall stays)", () => {
+    // 平均的な人（各順位25%・持ち点25000）の1試合あたりの期待増減。
     const drift = (tier: number, level: number) => {
       const rank = r(tier, level, RANK_TIERS[tier]!.levelStart[level]!);
       return ([1, 2, 3, 4] as const).reduce((sum, place) => sum + rankPointDelta(rank, "tonpuusen", place, 25000), 0) / 4;
     };
-    expect(drift(1, 0)).toBeCloseTo(0.3, 0); // 中雀1
-    expect(drift(2, 0)).toBeCloseTo(-3.3, 0); // 上雀1
-    expect(drift(3, 0)).toBeCloseTo(-6.3, 0); // 雀王1
-    expect(drift(4, 0)).toBeCloseTo(-7.5, 0); // 雀帝1
+    expect(drift(2, 0)).toBeCloseTo(-2, 0); // 上雀1（旧 -3.3）
+    expect(drift(3, 0)).toBeCloseTo(-4, 0); // 雀王1（旧 -6.3）
+    expect(drift(4, 0)).toBeCloseTo(-5, 0); // 雀帝1（旧 -7.5）
+    // 雀帝2・東風戦の4位（旧 -98 → 約 -67）
+    expect(rankPointDelta(r(4, 1, 3000), "tonpuusen", 4, 25000)).toBe(-70);
   });
 });
 

@@ -28,6 +28,8 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
   const sampleScore = 35000;
   const samplePlacement = rankPointDelta(sample, format, 1, BASE_SCORE);
   const sampleTotal = rankPointDelta(sample, format, 1, sampleScore);
+  // 持ち点1000点ぶんで動くポイント（段位ごとに少し違う。1位・35000点と25000点の差から割り出す）。
+  const scoreSlope = (sampleTotal - samplePlacement) / ((sampleScore - BASE_SCORE) / 1000);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -133,12 +135,12 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
             <div className="rank-guide__score">
               <div className="rank-guide__score-title">終わった時の持ち点でも増減します</div>
               <p>
-                25000点より<b>1000点多いごとに +1</b>、<b>1000点少ないごとに −1</b> が、上の表の数字に足されます。
+                25000点より<b>1000点多いごとに約 +{scoreSlope.toFixed(1)}</b>、<b>1000点少ないごとに約 −{scoreSlope.toFixed(1)}</b> が、上の表の数字に足されます（段位が上がるほど大きくなります）。
               </p>
               <p className="rank-guide__example">
                 例：{rankLabel(sample)}で{format === "hanchan" ? "半荘戦" : "東風戦"}を1位・{sampleScore.toLocaleString()}点で終えると、
                 <b>
-                  {signed(samplePlacement)}（1位） {signed(sampleTotal - samplePlacement)}（持ち点） ＝ {signed(sampleTotal)} pt
+                  {signed(samplePlacement)}（1位・25000点のとき） {signed(sampleTotal - samplePlacement)}（持ち点） ＝ {signed(sampleTotal)} pt
                 </b>
               </p>
             </div>

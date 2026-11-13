@@ -2,12 +2,16 @@
  * 段位戦の段位とポイント計算（数値はここに集めてあるので、調整はこのファイルだけで済む）。
  *
  * 段位: 下雀 → 中雀 → 上雀 → 雀王 → 雀帝（それぞれ1〜3段）→ 雀廃（段なし、ポイントを積み上げる）
- * 1局（1試合）ごとのポイント増減 = 順位による増減 ＋ 終局時の持ち点による増減
- *   （(持ち点 − 25000) / 1000、1点未満は四捨五入）。順位による増減は東風戦・半荘戦で別の値。
+ * 1局（1試合）ごとのポイント増減:
+ *   - 下雀（初心者の育成段）: 順位による増減 ＋ (持ち点 − 25000) / 1000（四捨五入）。
+ *   - 中雀以上（Mリーグ式）: 倍率 × Mリーグpt − 4位だけの追加減点（四捨五入）。
+ *     Mリーグpt = (持ち点 − 30000) / 1000 ＋ 順位点(+50/+10/−10/−30)。結果画面の「Mリーグpt」と同じ式。
+ *   倍率・追加減点は東風戦・半荘戦で別の値。
  * ポイントが段の上限に届くと昇段（次の段の開始ポイントから）、0を下回ると降段
  * （1つ下の段の開始ポイントから）。下雀1段だけは降段しない（ポイントは0で止まる）。
  */
 import type { MatchFormat } from "./gameState.js";
+import { M_LEAGUE_RULE } from "./matchPoints.js";
 
 /** 東風戦・半荘戦ごとの値。 */
 type ByFormat<T> = Record<MatchFormat, T>;
@@ -21,10 +25,24 @@ export interface RankTier {
   levelStart: number[];
   /** 段ごとの、ポイントが0未満になった時に降段するか（falseならポイントは0で止まる）。 */
   canDemote: boolean[];
+  /** ポイントの計算方法（下雀は従来の表、中雀以上はMリーグ式）。 */
+  points: LegacyPoints | MleaguePoints;
+}
+
+/** 従来の表: 順位による増減 ＋ 持ち点(25000基準)による増減。 */
+export interface LegacyPoints {
   /** 順位による増減（1位〜3位）。トップ偏重（1位が大きく、2位は小さなプラス）。 */
   placement: ByFormat<[number, number, number]>;
   /** 4位の減点（段ごと）。上の段ほど重い。 */
   fourth: ByFormat<number[]>;
+}
+
+/** Mリーグ式: 倍率 × Mリーグpt − 4位だけの追加減点。 */
+export interface MleaguePoints {
+  /** Mリーグptにかける倍率。 */
+  multiplier: ByFormat<number>;
+  /** 4位のときだけ引く追加の減点（段ごと、正の数）。 */
+  fourthExtra: ByFormat<number[]>;
 }
 
 /**
@@ -34,6 +52,10 @@ export interface RankTier {
  *   雀魂と同じペースを保つため、段ごとに「平均的な人」「やや上手」「上手」の1試合あたりの
  *   増減（持ち点補正を除く）が雀魂の表とほぼ一致するように配点を逆算した。
  *   順位の分布は 平均25/25/25/25・やや上手30/27/23/20・上手35/28/22/15（%）と仮定。
+ * 11-13: 中雀以上をMリーグ式に変更（ユーザー了承）。倍率は、強いCPU（Lv5）の1戦あたりの増減が
+ *   従来の表と同じになるよう段ごと・形式ごとに合わせ、4位の追加減点は従来の4位減点の25%にした
+ *   （scripts/rank-collect.mts と rank-analyze.mts で測定。雀帝2・東風戦で 4位の平均 −109→−85、強い人の昇段ペースは同じ、
+ *   普通の人(Lv3)が降段するまで 371戦→602戦）。0%だと普通の人まで昇段し続けて壁が消え、50%だと4位が今より重くなる。
  * 下雀は初心者の育成段で、減点が無く従来のまま。
  * 雀廃は雀魂の魂天（魂珠で上下する別の仕組み）の代わりに、ポイントを積み上げる形にしてある。
  */
@@ -45,8 +67,10 @@ export const RANK_TIERS: RankTier[] = [
     levelStart: [0, 10, 40],
     // 下雀1だけは、これ以上下が無いので降段しない。
     canDemote: [false, true, true],
-    placement: { tonpuusen: [10, 5, 0], hanchan: [20, 10, 0] },
-    fourth: { tonpuusen: [0, 0, 0], hanchan: [0, 0, 0] },
+    points: {
+      placement: { tonpuusen: [10, 5, 0], hanchan: [20, 10, 0] },
+      fourth: { tonpuusen: [0, 0, 0], hanchan: [0, 0, 0] },
+    },
   },
   {
     id: "chujan",
@@ -54,8 +78,10 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [600, 800, 1000],
     levelStart: [300, 400, 500],
     canDemote: [true, true, true],
-    placement: { tonpuusen: [14, 1, -6], hanchan: [27, 3, -11] },
-    fourth: { tonpuusen: [-8, -18, -28], hanchan: [-15, -35, -55] },
+    points: {
+      multiplier: { tonpuusen: 0.46, hanchan: 0.7 },
+      fourthExtra: { tonpuusen: [2, 5, 7], hanchan: [4, 9, 14] },
+    },
   },
   {
     id: "jojan",
@@ -63,8 +89,10 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [1200, 1400, 2000],
     levelStart: [600, 700, 1000],
     canDemote: [true, true, true],
-    placement: { tonpuusen: [27, 3, -10], hanchan: [54, 5, -20] },
-    fourth: { tonpuusen: [-33, -43, -53], hanchan: [-65, -85, -105] },
+    points: {
+      multiplier: { tonpuusen: 0.56, hanchan: 0.98 },
+      fourthExtra: { tonpuusen: [8, 11, 13], hanchan: [16, 21, 26] },
+    },
   },
   {
     id: "janou",
@@ -72,8 +100,10 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [2800, 3200, 3600],
     levelStart: [1400, 1600, 1800],
     canDemote: [true, true, true],
-    placement: { tonpuusen: [55, 5, -20], hanchan: [109, 11, -39] },
-    fourth: { tonpuusen: [-65, -75, -85], hanchan: [-136, -151, -166] },
+    points: {
+      multiplier: { tonpuusen: 0.94, hanchan: 1.72 },
+      fourthExtra: { tonpuusen: [16, 19, 21], hanchan: [34, 38, 42] },
+    },
   },
   {
     id: "jantei",
@@ -81,8 +111,10 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [4000, 6000, 9000],
     levelStart: [2000, 3000, 4500],
     canDemote: [true, true, true],
-    placement: { tonpuusen: [77, 8, -27], hanchan: [150, 15, -50] },
-    fourth: { tonpuusen: [-88, -98, -108], hanchan: [-170, -185, -200] },
+    points: {
+      multiplier: { tonpuusen: 1.3, hanchan: 2.35 },
+      fourthExtra: { tonpuusen: [22, 25, 27], hanchan: [43, 46, 50] },
+    },
   },
   {
     id: "janshin",
@@ -90,12 +122,14 @@ export const RANK_TIERS: RankTier[] = [
     levelMax: [],
     levelStart: [0],
     canDemote: [true],
-    placement: { tonpuusen: [82, 8, -27], hanchan: [164, 16, -54] },
-    fourth: { tonpuusen: [-108], hanchan: [-196] },
+    points: {
+      multiplier: { tonpuusen: 1.35, hanchan: 2.56 },
+      fourthExtra: { tonpuusen: [27], hanchan: [49] },
+    },
   },
 ];
 
-/** 持ち点による増減の基準点。 */
+/** 下雀（従来の表）で、持ち点による増減の基準点。 */
 const RANK_BASE_SCORE = 25000;
 
 export interface RankState {
@@ -127,9 +161,15 @@ export function rankMaxPoints(rank: RankState): number | null {
 
 /** 1試合のポイント増減。place は 1〜4。 */
 export function rankPointDelta(rank: RankState, format: MatchFormat, place: 1 | 2 | 3 | 4, finalScore: number): number {
-  const tier = RANK_TIERS[rank.tier]!;
+  const points = RANK_TIERS[rank.tier]!.points;
+  if ("multiplier" in points) {
+    // Mリーグ式。結果画面の「Mリーグpt」と同じ式（matchPoints.ts）に倍率をかけ、4位だけ追加で引く。
+    const mpt = (finalScore - M_LEAGUE_RULE.returnScore) / 1000 + M_LEAGUE_RULE.placement[place - 1]!;
+    const extra = place === 4 ? points.fourthExtra[format][rank.level] ?? points.fourthExtra[format][0]! : 0;
+    return Math.round(points.multiplier[format] * mpt) - extra;
+  }
   const placement =
-    place === 4 ? tier.fourth[format][rank.level] ?? tier.fourth[format][0]! : tier.placement[format][place - 1]!;
+    place === 4 ? points.fourth[format][rank.level] ?? points.fourth[format][0]! : points.placement[format][place - 1]!;
   return placement + Math.round((finalScore - RANK_BASE_SCORE) / 1000);
 }
 
