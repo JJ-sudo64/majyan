@@ -57,7 +57,7 @@ const cards = core.CARD_IDS.map((id, i) => ({ c: core.CARDS[id], rarity: core.ca
   .sort((a, b) => b.rarity - a.rarity || a.i - b.i)
   .map(({ c, rarity }) => ({ name: c.name, rarity, type: KIND_LABEL[c.kind] ?? c.kind, desc: c.description }));
 
-// 段位。降段のある段がひとつでもあれば canDemote。段が無い最上位（雀神）は levels:0。
+// 段位。降段のある段がひとつでもあれば canDemote。段が無い最上位（雀廃）は levels:0。
 const ranks = core.RANK_TIERS.map((t) => ({ name: t.name, levels: t.levelMax.length, canDemote: t.canDemote.length === 0 ? true : t.canDemote.some(Boolean) }));
 
 const facts = { exchangeCost: core.EXCHANGE_COST };
@@ -83,4 +83,4 @@ for (const star of [3, 2, 1]) {
 }
 
 writeFileSync(pagePath, html);
-console.log(`公式ページのデータを更新しました: キャラ ${characters.length}人 / カード ${cards.length}種 / 段位 ${counts.rankTiers}つ（+雀神） / 交換 ${facts.exchangeCost}ポイント`);
+console.log(`公式ページのデータを更新しました: キャラ ${characters.length}人 / カード ${cards.length}種 / 段位 ${counts.rankTiers}つ（+雀廃） / 交換 ${facts.exchangeCost}ポイント`);

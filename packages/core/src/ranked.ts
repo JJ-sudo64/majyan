@@ -1,7 +1,7 @@
 /**
  * 段位戦の段位とポイント計算（数値はここに集めてあるので、調整はこのファイルだけで済む）。
  *
- * 段位: 下雀 → 中雀 → 上雀 → 雀王 → 雀帝（それぞれ1〜3段）→ 雀神（段なし、ポイントを積み上げる）
+ * 段位: 下雀 → 中雀 → 上雀 → 雀王 → 雀帝（それぞれ1〜3段）→ 雀廃（段なし、ポイントを積み上げる）
  * 1局（1試合）ごとのポイント増減 = 順位による増減 ＋ 終局時の持ち点による増減
  *   （(持ち点 − 25000) / 1000、1点未満は四捨五入）。順位による増減は東風戦・半荘戦で別の値。
  * ポイントが段の上限に届くと昇段（次の段の開始ポイントから）、0を下回ると降段
@@ -15,7 +15,7 @@ type ByFormat<T> = Record<MatchFormat, T>;
 export interface RankTier {
   id: string;
   name: string;
-  /** 段ごとの、昇段に必要なポイント（上限）。雀神は上限なし（空配列）。 */
+  /** 段ごとの、昇段に必要なポイント（上限）。雀廃は上限なし（空配列）。 */
   levelMax: number[];
   /** 段ごとの、その段に上がった/落ちた時の開始ポイント。 */
   levelStart: number[];
@@ -35,7 +35,7 @@ export interface RankTier {
  *   増減（持ち点補正を除く）が雀魂の表とほぼ一致するように配点を逆算した。
  *   順位の分布は 平均25/25/25/25・やや上手30/27/23/20・上手35/28/22/15（%）と仮定。
  * 下雀は初心者の育成段で、減点が無く従来のまま。
- * 雀神は雀魂の魂天（魂珠で上下する別の仕組み）の代わりに、ポイントを積み上げる形にしてある。
+ * 雀廃は雀魂の魂天（魂珠で上下する別の仕組み）の代わりに、ポイントを積み上げる形にしてある。
  */
 export const RANK_TIERS: RankTier[] = [
   {
@@ -86,7 +86,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     id: "janshin",
-    name: "雀神",
+    name: "雀廃",
     levelMax: [],
     levelStart: [0],
     canDemote: [true],
@@ -101,7 +101,7 @@ const RANK_BASE_SCORE = 25000;
 export interface RankState {
   /** RANK_TIERSの添字。 */
   tier: number;
-  /** 段（0始まり。表示は+1して「1段」）。雀神は常に0。 */
+  /** 段（0始まり。表示は+1して「1段」）。雀廃は常に0。 */
   level: number;
   points: number;
 }
@@ -110,7 +110,7 @@ export const INITIAL_RANK: RankState = { tier: 0, level: 0, points: 0 };
 
 const TOP_TIER = RANK_TIERS.length - 1;
 
-/** 段位の通し番号（下雀1段=0 … 雀帝3段=14、雀神=15）。マッチングで段位の近さを測るのに使う。 */
+/** 段位の通し番号（下雀1段=0 … 雀帝3段=14、雀廃=15）。マッチングで段位の近さを測るのに使う。 */
 export function rankOrdinal(rank: RankState): number {
   return rank.tier * 3 + rank.level;
 }
@@ -120,7 +120,7 @@ export function rankLabel(rank: RankState): string {
   return tier.levelMax.length === 0 ? tier.name : `${tier.name}${rank.level + 1}`;
 }
 
-/** 昇段に必要なポイント（雀神は上限なしでnull）。 */
+/** 昇段に必要なポイント（雀廃は上限なしでnull）。 */
 export function rankMaxPoints(rank: RankState): number | null {
   return RANK_TIERS[rank.tier]!.levelMax[rank.level] ?? null;
 }
@@ -145,7 +145,7 @@ export function applyRankPoints(rank: RankState, delta: number): RankState {
   }
   if (points < 0) {
     if (!tier.canDemote[rank.level]) return { ...rank, points: 0 };
-    // 降段（雀神からは雀帝の最上段へ）
+    // 降段（雀廃からは雀帝の最上段へ）
     const demoted =
       rank.level > 0
         ? { tier: rank.tier, level: rank.level - 1 }

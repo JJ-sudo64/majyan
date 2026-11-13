@@ -106,9 +106,9 @@ export interface TransferCodeResponse {
 
 /** 画面に出す段位（RankStateに表示用の値を足したもの）。 */
 export interface RankView extends RankState {
-  /** 例: "上雀2"、"雀神" */
+  /** 例: "上雀2"、"雀廃" */
   label: string;
-  /** 昇段に必要なポイント（雀神はnull）。 */
+  /** 昇段に必要なポイント（雀廃はnull）。 */
   maxPoints: number | null;
   gamesPlayed: number;
 }

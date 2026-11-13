@@ -78,7 +78,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
             <ul className="rank-guide__notes">
           <li>昇段・降段した時のポイントは、新しい段の「始まり」の数字になります。</li>
           <li>昇段・降段は1回の対局で1段までです。</li>
-          <li>雀神には上限がなく、ポイントを積み上げ続けます。0を下回ると雀帝3に戻ります。</li>
+          <li>雀廃には上限がなく、ポイントを積み上げ続けます。0を下回ると雀帝3に戻ります。</li>
           <li>段位戦では、段位の近い人どうしで卓を組みます。友人戦では段位は動きません。</li>
         </ul>
           </div>
