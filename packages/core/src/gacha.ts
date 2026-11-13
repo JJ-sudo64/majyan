@@ -275,7 +275,7 @@ export function rollFirstGacha(rng: () => number): GachaItem[] {
 export const RENAME_PRICE = 1000;
 
 /** 通常のガチャの値段（雀玉）。 */
-export const GACHA_PRICE = { single: 150, ten: 1500 } as const;
+export const GACHA_PRICE = { single: 250, ten: 2500 } as const;
 
 /** 通常の10連は、この中に最低1つ★2以上が入る（キャラ・カードどちらでも）。 */
 export const TEN_PULL_GUARANTEE: GachaGuarantee = { rarity: 2 };

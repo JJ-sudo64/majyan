@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARDS, CARD_IDS, CHARACTER_IDS, EXCHANGE_COST, FIRST_GACHA, gachaPool } from "@majyan/core";
+import { CARDS, CARD_IDS, CHARACTER_IDS, EXCHANGE_COST, FIRST_GACHA, GACHA_PRICE, gachaPool } from "@majyan/core";
 import { AccountService } from "../src/accounts.js";
 import { CollectionService, GachaError } from "../src/collection.js";
 import { openDatabase } from "../src/db.js";
@@ -13,7 +13,7 @@ function setup(rng: () => number = Math.random) {
   const wallet = new WalletService(db, now);
   const collections = new CollectionService(db, rng, now, wallet);
   const { profile } = accounts.createGuest("A");
-  wallet.grantFree(profile.id, 1500, "test"); // 最初の雀玉は0なので、ガチャのテスト用に渡しておく
+  wallet.grantFree(profile.id, GACHA_PRICE.ten, "test"); // 最初の雀玉は0なので、ガチャのテスト用に渡しておく
   /** テスト用にカードを直接持たせる。 */
   const giveCard = (cardId: string, count = 1) =>
     db
@@ -280,7 +280,7 @@ describe("pickup", () => {
     };
     const collections = new CollectionService(db, rng, now, wallet);
     const { profile } = new AccountService(db, now).createGuest("A");
-    wallet.grantFree(profile.id, 1500 * 150, "test");
+    wallet.grantFree(profile.id, 1500 * GACHA_PRICE.single, "test");
     collections.addPickup({ title: "ゼノ", items: [{ kind: "character", id: "zeno" }], startsAt: 0, endsAt: 2_000_000 });
     let zeno = 0;
     let otherTop = 0;

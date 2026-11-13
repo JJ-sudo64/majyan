@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import {
   DAILY_LOGIN_JADE,
+  GACHA_PRICE,
   RENAME_PRICE,
   TERMS_VERSION,
   STARTING_JADE,
@@ -250,13 +251,13 @@ describe("account HTTP API", () => {
     expect(fresh.jade.free).toBe(STARTING_JADE + DAILY_LOGIN_JADE);
     expect(fresh.dailyBonus).toBeNull();
     // 最初の雀玉は0なので、通常のガチャを引くテストのために10連ぶん（1500）を渡しておく。
-    walletService.grantFree(profile.id, 1500, "test");
+    walletService.grantFree(profile.id, GACHA_PRICE.ten, "test");
     const meAgain = (await (await fetch(`${base}/api/me`, { headers: { Authorization: `Bearer ${token}` } })).json()) as MeResponse;
     expect(meAgain.dailyBonus).toBeNull();
     const rolled = (await (await post("/api/gacha/roll", { count: 10 }, token)).json()) as GachaRollResponse;
     expect(rolled.results).toHaveLength(10);
     expect(rolled.isNew).toHaveLength(10);
-    expect(rolled.me.jade.free).toBe(meAgain.jade.free - 1500);
+    expect(rolled.me.jade.free).toBe(meAgain.jade.free - GACHA_PRICE.ten);
     expect((await post("/api/gacha/roll", { count: 10 }, token)).status).toBe(409); // 雀玉が足りない
 
     // カードを付ける: 付けたら外せない（2枚目は付けられない）。
