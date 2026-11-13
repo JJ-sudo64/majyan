@@ -104,7 +104,8 @@ button { font: inherit; color: inherit; }
 .pv__frame { position: relative; max-width: 960px; margin: 0 auto; border-radius: 6px; overflow: hidden; background: #000;
   box-shadow: 0 0 0 1px var(--line), 0 24px 70px rgba(0, 0, 0, 0.6), 0 0 80px rgba(230, 195, 106, 0.12); aspect-ratio: 16 / 9; }
 .pv__frame video { display: block; width: 100%; height: 100%; object-fit: cover; background: #000; }
-.sec-lead { color: var(--ink-2); max-width: 680px; margin: 0 auto; font-size: 15px; }
+.sec-lead { color: var(--ink-2); max-width: 680px; margin: 0 auto; font-size: 15px; word-break: auto-phrase; text-wrap: pretty; }
+.nw { white-space: nowrap; }
 .gold-text {
   background: linear-gradient(180deg, #fff4cf 0%, var(--gold-2) 30%, var(--gold) 60%, var(--gold-deep) 100%);
   -webkit-background-clip: text;
@@ -691,7 +692,7 @@ button { font: inherit; color: inherit; }
       <div class="sec-head reveal">
         <div class="sec-en">RANKED MATCH</div>
         <h2 class="sec-title">目指せ、伝説の麻雀廃人「<span class="gold-text">雀廃</span>」</h2>
-        <p class="sec-lead">段位戦の順位でポイントが増減し、たまれば昇段。下雀から始まり、<span data-count="rankTiers">5</span>つの段位をそれぞれ3段ずつ駆け上がれ。その先に待つのは、卓に生き、牌に溺れた者だけが辿り着く、伝説の麻雀廃人――雀廃の座。</p>
+        <p class="sec-lead"><span class="nw">段位戦の順位でポイントが増減し、</span><span class="nw">たまれば昇段。</span><br /><span class="nw">下雀から始まり、</span><span class="nw"><span data-count="rankTiers">5</span>つの段位をそれぞれ3段ずつ駆け上がれ。</span><br /><span class="nw">その先に待つのは、</span><span class="nw">卓に生き、牌に溺れた者だけが辿り着く、</span><span class="nw">伝説の麻雀廃人――雀廃の座。</span></p>
       </div>
       <div class="rank__ladder reveal" id="rankLadder"></div>
       <div class="rank__notes">
