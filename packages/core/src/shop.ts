@@ -108,6 +108,33 @@ export const SELLER_INFO_LABELS: Record<keyof typeof SELLER_INFO, string> = {
   email: "お問い合わせ",
 };
 
+/**
+ * 特定商取引法に基づく表記と、資金決済法に基づく表示の中身（ゲーム内のショップ画面と、公式サイトの
+ * 特商法ページの両方がこれを使う。文言を変える時はここだけ）。販売者の項目が空なら「（公開前に記入）」。
+ */
+export function legalNoticeRows(): { commerce: [string, string][]; prepaid: [string, string][] } {
+  const yen = (n: number) => `${n.toLocaleString("ja-JP")}円`;
+  const commerce: [string, string][] = [
+    ...(Object.keys(SELLER_INFO) as (keyof typeof SELLER_INFO)[]).map((k): [string, string] => [SELLER_INFO_LABELS[k], SELLER_INFO[k] || "（公開前に記入）"]),
+    ["販売価格", "各商品のボタンに表示した額（税込み）"],
+    ["代金以外に必要な費用", "インターネットの通信料"],
+    ["支払い方法・時期", "クレジットカード等（購入の手続きの時に支払い）"],
+    ["引き渡しの時期", "支払いの確認後、すぐに雀玉を付与します"],
+    ["返品・キャンセル", "商品の性質上、購入後の返品・キャンセルはできません"],
+  ];
+  const prepaid: [string, string][] = [
+    ["名称", "雀玉（有償）"],
+    ["発行者", SELLER_INFO.name || "（公開前に記入）"],
+    ["買える額の上限", `${AGE_BRACKET_LABELS.under16}は月${yen(MONTHLY_LIMIT_YEN.under16!)}、${AGE_BRACKET_LABELS["16to17"]}は月${yen(MONTHLY_LIMIT_YEN["16to17"]!)}まで`],
+    ["有効期限", "なし"],
+    ["使える場所", "このゲームの中だけ（ガチャ等）"],
+    ["残高の確認", "この画面とガチャの画面に表示します"],
+    ["払い戻し", "法令で定められた場合を除き、払い戻しはできません"],
+    ["注意", "雀玉は無償の分から先に使われます。おまけの雀玉は無償の雀玉です。退会すると残りの雀玉は使えなくなります"],
+  ];
+  return { commerce, prepaid };
+}
+
 export function sellerInfoComplete(): boolean {
   return Object.values(SELLER_INFO).every((v) => v.trim() !== "");
 }
