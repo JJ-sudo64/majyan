@@ -172,6 +172,8 @@ const HAND_LIFT_USES = 3;
 const TANYAO_GUARANTEE_MAX_SWAPS = 4;
 /** 断么確約が効く局の回数。測定（10-20、200席）で無制限だと平均順位1.96と抜けていたため絞る。 */
 const TANYAO_GUARANTEE_USES = 2;
+/** 役牌の組をつくる系（役牌確約・自風・場風・三元の約束）が効く局の回数。測定（11-14、約400席）で無制限だと平均順位2.05〜2.11（和了率37%）と★3より強く抜けていたため絞る。 */
+const YAKUHAI_PAIR_USES = 2;
 
 /** 配牌を書き換える強めのカードの共通処理。残り回数が無ければ何もせず、実際に牌を入れ替えた局だけ1回消費する。 */
 function limitedDealAdjust(ctx: CardContext, cardId: string, adjust: (hand: Hand, wall: WallState) => { hand: Hand; wall: WallState }): RoundState {
@@ -341,15 +343,14 @@ export const CARDS: Record<string, Card> = {
   "yakuhai-guarantee": {
     id: "yakuhai-guarantee",
     name: "役牌確約",
-    description: "配牌に役牌2枚の組が無ければ、1組つくる。",
+    description: "配牌に役牌2枚の組が無ければ、1組つくる。2局まで。",
     kind: "passive",
+    maxUses: YAKUHAI_PAIR_USES,
     hooks: {
       onDealHand: (ctx) => {
         const { round, owner } = ctx;
-        const p = round.players[owner]!;
         const yakuhai = [`${seatWindOf(round.dealerSeat, owner)}z`, `${round.roundWind}z`, "5z", "6z", "7z"] as TileCode[];
-        const { hand, wall } = ensureYakuhaiPair(p.hand, round.wall, [...new Set(yakuhai)]);
-        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+        return limitedDealAdjust(ctx, "yakuhai-guarantee", (hand, wall) => ensureYakuhaiPair(hand, wall, [...new Set(yakuhai)]));
       },
     },
   },
@@ -522,27 +523,24 @@ export const CARDS: Record<string, Card> = {
   "seat-wind-pair": {
     id: "seat-wind-pair",
     name: "自風の約束",
-    description: "配牌に自風牌2枚の組が無ければ、1組つくる。",
+    description: "配牌に自風牌2枚の組が無ければ、1組つくる。2局まで。",
     kind: "passive",
+    maxUses: YAKUHAI_PAIR_USES,
     hooks: {
       onDealHand: (ctx) => {
         const { round, owner } = ctx;
-        const { hand, wall } = ensureYakuhaiPair(round.players[owner]!.hand, round.wall, [`${seatWindOf(round.dealerSeat, owner)}z` as TileCode]);
-        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
+        return limitedDealAdjust(ctx, "seat-wind-pair", (hand, wall) => ensureYakuhaiPair(hand, wall, [`${seatWindOf(round.dealerSeat, owner)}z` as TileCode]));
       },
     },
   },
   "dragon-pair": {
     id: "dragon-pair",
     name: "三元の約束",
-    description: "配牌に三元牌（白・發・中）2枚の組が無ければ、1組つくる。",
+    description: "配牌に三元牌（白・發・中）2枚の組が無ければ、1組つくる。2局まで。",
     kind: "passive",
+    maxUses: YAKUHAI_PAIR_USES,
     hooks: {
-      onDealHand: (ctx) => {
-        const { round, owner } = ctx;
-        const { hand, wall } = ensureYakuhaiPair(round.players[owner]!.hand, round.wall, ["5z", "6z", "7z"]);
-        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
-      },
+      onDealHand: (ctx) => limitedDealAdjust(ctx, "dragon-pair", (hand, wall) => ensureYakuhaiPair(hand, wall, ["5z", "6z", "7z"])),
     },
   },
   "honor-sweep": {
@@ -697,14 +695,11 @@ export const CARDS: Record<string, Card> = {
   "round-wind-pair": {
     id: "round-wind-pair",
     name: "場風の約束",
-    description: "配牌に場風牌2枚の組が無ければ、1組つくる。",
+    description: "配牌に場風牌2枚の組が無ければ、1組つくる。2局まで。",
     kind: "passive",
+    maxUses: YAKUHAI_PAIR_USES,
     hooks: {
-      onDealHand: (ctx) => {
-        const { round, owner } = ctx;
-        const { hand, wall } = ensureYakuhaiPair(round.players[owner]!.hand, round.wall, [`${round.roundWind}z` as TileCode]);
-        return { ...round, wall, players: updatePlayer(round, owner, (pl) => ({ ...pl, hand })) };
-      },
+      onDealHand: (ctx) => limitedDealAdjust(ctx, "round-wind-pair", (hand, wall) => ensureYakuhaiPair(hand, wall, [`${ctx.round.roundWind}z` as TileCode])),
     },
   },
   "close-race": {
