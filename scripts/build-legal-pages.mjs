@@ -47,9 +47,9 @@ function page({ title, siteUrl, body }) {
 <h1>${esc(title)}</h1>
 ${body}
 <nav class="legal">
-<a href="${esc(siteUrl)}/tokushoho.html">特定商取引法に基づく表記</a>
-<a href="${esc(siteUrl)}/terms.html">利用規約</a>
-<a href="${esc(siteUrl)}/privacy.html">プライバシーポリシー</a>
+<a href="${esc(siteUrl)}/tokushoho">特定商取引法に基づく表記</a>
+<a href="${esc(siteUrl)}/terms">利用規約</a>
+<a href="${esc(siteUrl)}/privacy">プライバシーポリシー</a>
 </nav>
 </div>
 </body>
