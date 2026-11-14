@@ -7,7 +7,7 @@ import { deleteAccount, fetchTransferCode, loginWithTransfer, regenerateTransfer
  * 別の端末で決めたコードとパスワードでこのブラウザに入るのの2つ。
  * アカウントがまだ無い時は、入る方だけを出す。
  */
-export function TransferScreen({ onClose }: { onClose: () => void }) {
+export function TransferScreen({ onClose, justCreated = false }: { onClose: () => void; justCreated?: boolean }) {
   const profile = useAccountStore((s) => s.profile);
   const jade = useAccountStore((s) => s.jade);
   /** 今のアカウントの引き継ぎコード。undefined=読み込み中、null=まだ決めていない。 */
@@ -122,7 +122,7 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
                 <strong>{formatTransferCode(code)}</strong>
               </div>
             )}
-            {code && justSet && (
+            {code && (justSet || justCreated) && (
               <p className="transfer-screen__note">コードとパスワードを、メモやスクリーンショットで控えておいてください。パスワードはあとから表示できません。</p>
             )}
             {code && (

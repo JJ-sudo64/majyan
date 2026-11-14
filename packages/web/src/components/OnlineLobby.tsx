@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, RENAME_PRICE, ROOM_CODE_MAX_LENGTH, SHOP_RETURN_PARAM, suspensionMessage, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
+import { CARDS, CHARACTERS, PLAYER_NAME_MAX_LENGTH, RENAME_PRICE, TRANSFER_PASSWORD_MAX_LENGTH, TRANSFER_PASSWORD_MIN_LENGTH, ROOM_CODE_MAX_LENGTH, SHOP_RETURN_PARAM, suspensionMessage, characterRarity, type CharacterUnit, type MatchFormat } from "@majyan/core";
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
-import { createGuestAccount, fetchTransferCode, loadAccount, renameAccount, useAccountStore } from "../online/account.js";
+import { createGuestAccount, fetchTransferCode, loadAccount, renameAccount, setTransferPassword, useAccountStore } from "../online/account.js";
 import { FirstGacha } from "./FirstGacha.js";
 import { TutorialIntro, introSeen } from "./TutorialIntro.js";
 import { GachaScreen } from "./GachaScreen.js";
@@ -96,6 +96,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const dailyBonusNotice = useAccountStore((s) => s.dailyBonusNotice);
   const [showGacha, setShowGacha] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  /** アカウントを作った直後に開いた引き継ぎ画面か（コードを控えるよう強く案内する）。 */
+  const [transferJustCreated, setTransferJustCreated] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [inboxTab, setInboxTab] = useState<InboxTab | null>(null);
   const unclaimedGifts = useAccountStore((s) => s.unclaimedGifts);
@@ -121,6 +123,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
   const queue = useOnlineStore((s) => s.queue);
   const [now, setNow] = useState(() => performance.now());
   const [name, setName] = useState("");
+  /** アカウントを作る時に一緒に決める、引き継ぎのパスワード（ブラウザのデータが消えても戻れるように、作る時に必ず決めてもらう）。 */
+  const [newPassword, setNewPassword] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
+  const newPasswordLength = [...newPassword].length;
+  const newPasswordOk = newPasswordLength >= TRANSFER_PASSWORD_MIN_LENGTH && newPasswordLength <= TRANSFER_PASSWORD_MAX_LENGTH && newPassword === newPassword2;
   const [renaming, setRenaming] = useState(false);
   const jadeTotal = (jade?.free ?? 0) + (jade?.paid ?? 0);
   const [roomCode, setRoomCode] = useState(() => loadSaved(ROOM_KEY));
@@ -202,7 +209,21 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       await renameAccount(trimmed);
       setRenaming(false);
     } else if (agreed) {
+      if (!newPasswordOk) return;
       await createGuestAccount(trimmed);
+      if (useAccountStore.getState().status !== "none") {
+        // 作った直後に、引き継ぎのパスワードを決める。決められなくてもアカウントは作れているので、
+        // 失敗した時は理由を出し、あとから「引き継ぎ」で決められる（ロビーの案内も出る）。
+        try {
+          await setTransferPassword(newPassword);
+          setTransferJustCreated(true);
+          setShowTransfer(true); // 引き継ぎコードを見せる（控えてもらう）
+        } catch (err) {
+          useAccountStore.setState({ error: `アカウントは作れましたが、引き継ぎのパスワードを決められませんでした（${(err as Error).message}）。あとで「引き継ぎ」から決めてください。` });
+        }
+        setNewPassword("");
+        setNewPassword2("");
+      }
       // 作った後は欄を空にしておく（開発用の「新しいアカウントで始める」で戻った時に前の名前が残らないように）。
       if (useAccountStore.getState().status !== "none") setName("");
     }
@@ -233,7 +254,15 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     <>
       {showGacha && <GachaScreen onClose={() => setShowGacha(false)} />}
       {showUnits && <UnitsScreen onClose={() => setShowUnits(false)} />}
-      {showTransfer && <TransferScreen onClose={() => setShowTransfer(false)} />}
+      {showTransfer && (
+        <TransferScreen
+          justCreated={transferJustCreated}
+          onClose={() => {
+            setShowTransfer(false);
+            setTransferJustCreated(false);
+          }}
+        />
+      )}
       {showHistory && <HistoryScreen onClose={() => setShowHistory(false)} />}
       {inboxTab && <InboxScreen initialTab={inboxTab} onClose={() => setInboxTab(null)} />}
       {showMissions && <MissionsScreen onClose={() => setShowMissions(false)} />}
@@ -378,8 +407,24 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                   </span>
                 </label>
               )}
+              {!profile && (
+                <>
+                  <p className="oh-note">
+                    <strong>引き継ぎのパスワード</strong>も、ここで決めてください。ブラウザのデータが消えた時や、別の端末で遊ぶ時に、これがないとこのアカウント（雀玉・キャラ・段位）に戻れません。忘れないよう控えてください（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）。
+                  </p>
+                  <label className="online-lobby__field">
+                    <span>引き継ぎのパスワード（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）</span>
+                    <input type="password" autoComplete="new-password" value={newPassword} maxLength={TRANSFER_PASSWORD_MAX_LENGTH} onChange={(e) => setNewPassword(e.target.value)} />
+                  </label>
+                  <label className="online-lobby__field">
+                    <span>もう一度</span>
+                    <input type="password" autoComplete="new-password" value={newPassword2} maxLength={TRANSFER_PASSWORD_MAX_LENGTH} onChange={(e) => setNewPassword2(e.target.value)} />
+                  </label>
+                  {newPasswordLength > 0 && newPassword2 !== "" && newPassword !== newPassword2 && <p className="online-lobby__error">パスワードが一致しません</p>}
+                </>
+              )}
               <div className="oh-card__actions">
-                <button type="button" className="oh-cta" disabled={!name.trim() || (!profile && !agreed) || (!!profile && name.trim() !== profile.displayName && jadeTotal < RENAME_PRICE)} onClick={() => void submitName()}>
+                <button type="button" className="oh-cta" disabled={!name.trim() || (!profile && (!agreed || !newPasswordOk)) || (!!profile && name.trim() !== profile.displayName && jadeTotal < RENAME_PRICE)} onClick={() => void submitName()}>
                   {profile ? (name.trim() === profile.displayName ? "変更する" : `変更する（雀玉${RENAME_PRICE}）`) : "はじめる"}
                 </button>
                 {renaming && (
@@ -401,7 +446,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                     </p>
                   )}
                   <p className="oh-note">
-                    アカウントはこのブラウザに保存されます。ブラウザのデータを消しても戻れるように、はじめた後で「引き継ぎ」からパスワードを決めておくのがおすすめです。
+                    アカウントはこのブラウザに保存されます。上で決めたパスワードと、はじめた後に表示される引き継ぎコードで、ブラウザのデータを消しても、別の端末からでも戻れます。
                   </p>
                   <button type="button" className="oh-ghost" onClick={() => setShowTransfer(true)}>
                     引き継ぎコードで戻る
