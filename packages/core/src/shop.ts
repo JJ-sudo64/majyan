@@ -97,7 +97,7 @@ export const SELLER_INFO = {
   /** 電話番号。所在地と同じ扱い（実際の番号はリポジトリに入れない）。 */
   phone: "請求があった場合には、遅滞なく開示いたします。",
   /** 問い合わせ先のメールアドレス。 */
-  email: "",
+  email: "support@maxplantlabs.com",
 } as const satisfies Record<string, string>;
 
 export const SELLER_INFO_LABELS: Record<keyof typeof SELLER_INFO, string> = {
