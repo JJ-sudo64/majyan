@@ -284,7 +284,7 @@ export const TEN_PULL_GUARANTEE: GachaGuarantee = { rarity: 2 };
 export const STARTING_JADE = 0;
 
 /** 1日1回のログインボーナス（日付は日本時間で区切る）。 */
-export const DAILY_LOGIN_JADE = 150;
+export const DAILY_LOGIN_JADE = 100;
 
 /** 日本時間の日付（YYYY-MM-DD）。ログインボーナス等の「1日」の区切りに使う。 */
 export function jstDate(epochMs: number): string {
@@ -299,7 +299,7 @@ export function jstDate(epochMs: number): string {
 export const EXCHANGE_POINTS_PER_PULL = 1;
 
 /** この交換ポイントで★3のキャラかカードを1つ選んでもらえる（天井）。 */
-export const EXCHANGE_COST = 100;
+export const EXCHANGE_COST = 200;
 
 /** 交換でもらえるレア度。 */
 export const EXCHANGE_RARITY: Rarity = 3;
