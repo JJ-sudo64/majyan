@@ -89,13 +89,13 @@ export function ageBracket(birthMonth: string, nowMs: number): AgeBracket {
  */
 export const SELLER_INFO = {
   /** 販売事業者（個人なら氏名、法人なら会社名）。 */
-  name: "",
+  name: "マックスプラント",
   /** 運営統括責任者。 */
-  responsible: "",
-  /** 所在地。 */
-  address: "",
-  /** 電話番号。 */
-  phone: "",
+  responsible: "飯塚歩",
+  /** 所在地。公開したくないので、請求があった時に開示する旨の文言にしてある（実際の住所はリポジトリに入れない）。 */
+  address: "請求があった場合には、遅滞なく開示いたします。",
+  /** 電話番号。所在地と同じ扱い（実際の番号はリポジトリに入れない）。 */
+  phone: "請求があった場合には、遅滞なく開示いたします。",
   /** 問い合わせ先のメールアドレス。 */
   email: "",
 } as const satisfies Record<string, string>;
