@@ -9,6 +9,7 @@ import { deleteAccount, fetchTransferCode, loginWithTransfer, regenerateTransfer
  */
 export function TransferScreen({ onClose }: { onClose: () => void }) {
   const profile = useAccountStore((s) => s.profile);
+  const jade = useAccountStore((s) => s.jade);
   /** 今のアカウントの引き継ぎコード。undefined=読み込み中、null=まだ決めていない。 */
   const [code, setCode] = useState<string | null | undefined>(profile ? undefined : null);
   const [password, setPassword] = useState("");
@@ -242,6 +243,11 @@ export function TransferScreen({ onClose }: { onClose: () => void }) {
                 <p className="transfer-screen__note">
                   退会すると、このアカウント（{profile.displayName} さん）には二度と入れません。雀玉・キャラ・カード・段位はすべて使えなくなり、引き継ぎコードも消えます。取り消しはできません。
                 </p>
+                {jade && jade.paid > 0 && (
+                  <p className="online-lobby__error">
+                    購入した（有償の）雀玉が{jade.paid.toLocaleString()}個残っています。退会するとこの雀玉も使えなくなり、払い戻しもできません。
+                  </p>
+                )}
                 <label className="online-lobby__field">
                   <span>確認のため「{ACCOUNT_DELETE_CONFIRM}」と入力してください</span>
                   <input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} />
