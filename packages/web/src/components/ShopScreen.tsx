@@ -74,14 +74,14 @@ function AgeGate({ onSubmit, busy }: { onSubmit: (birthMonth: string) => void; b
 
 /** 特定商取引法に基づく表記と、資金決済法に基づく表示。 */
 function LegalNotes() {
-  const { commerce: rows, prepaid } = legalNoticeRows();
+  const { commerce: rows, commerceNote, prepaid } = legalNoticeRows();
   const table = (items: [string, string][]) => (
     <table className="shop-screen__legal-table">
       <tbody>
         {items.map(([k, v]) => (
           <tr key={k}>
             <th>{k}</th>
-            <td>{v}</td>
+            <td style={{ whiteSpace: "pre-line" }}>{v}</td>
           </tr>
         ))}
       </tbody>
@@ -91,6 +91,7 @@ function LegalNotes() {
     <div className="shop-screen__legal">
       <div className="online-lobby__section-title">特定商取引法に基づく表記</div>
       {table(rows)}
+      <p>{commerceNote}</p>
       <div className="online-lobby__section-title">資金決済法に基づく表示</div>
       {table(prepaid)}
     </div>

@@ -26,7 +26,7 @@ p { margin: 8px 0; color: var(--ink-2); }
 table { width: 100%; border-collapse: collapse; margin: 10px 0 8px; font-size: 15px; }
 th, td { text-align: left; vertical-align: top; padding: 10px 12px; border: 1px solid var(--line); }
 th { width: 34%; color: var(--gold); font-weight: 600; background: rgba(230,195,107,.05); }
-td { color: var(--ink-2); }
+td { color: var(--ink-2); white-space: pre-line; }
 nav.legal { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); display:flex; flex-wrap:wrap; gap: 8px 22px; font-size: 14px; }
 @media (max-width: 560px) { th, td { display: block; width: 100%; } th { border-bottom: 0; } }
 `;
@@ -70,7 +70,7 @@ export async function buildLegalPages({ root, out, siteUrl }) {
     return { ok: false, reason: "販売者の情報（packages/core/src/shop.ts の SELLER_INFO）が未記入のため、法的ページは作りませんでした" };
   }
 
-  const { commerce, prepaid } = core.legalNoticeRows();
+  const { commerce, commerceNote, prepaid } = core.legalNoticeRows();
   const yen = (n) => `${n.toLocaleString("ja-JP")}円`;
   const products = core.JADE_PRODUCTS.map((p) => [
     `雀玉 ${p.paidJade.toLocaleString("ja-JP")}個`,
@@ -81,6 +81,7 @@ export async function buildLegalPages({ root, out, siteUrl }) {
     title: "特定商取引法に基づく表記",
     siteUrl,
     body: `${table(commerce)}
+<p class="meta">${esc(commerceNote)}</p>
 <h2>販売する商品と価格</h2>
 ${table(products)}
 <h2>資金決済法に基づく表示</h2>
