@@ -121,7 +121,7 @@ export function legalNoticeRows(): {
   const yen = (n: number) => `${n.toLocaleString("ja-JP")}円`;
   const blank = (v: string) => v || "（公開前に記入）";
   const commerce: [string, string][] = [
-    ["販売事業者", `${blank(SELLER_INFO.responsible)}（屋号：${blank(SELLER_INFO.name)}）`],
+    ["販売事業者", blank(SELLER_INFO.name)],
     ["運営統括責任者", blank(SELLER_INFO.responsible)],
     ["所在地", blank(SELLER_INFO.address)],
     ["電話番号", blank(SELLER_INFO.phone)],
