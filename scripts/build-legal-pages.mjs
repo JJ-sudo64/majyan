@@ -58,7 +58,7 @@ ${body}
 }
 
 const table = (rows) => `<table><tbody>${rows.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join("")}</tbody></table>`;
-const sections = (list) => list.map((s) => `<h2>${esc(s.title)}</h2><p>${esc(s.body)}</p>`).join("\n");
+const sections = (list) => list.map((s) => `<h2>${esc(s.title)}</h2><p style="white-space:pre-line">${esc(s.body)}</p>`).join("\n");
 
 /** @returns {Promise<{ok: boolean, reason?: string, files?: string[]}>} */
 export async function buildLegalPages({ root, out, siteUrl }) {

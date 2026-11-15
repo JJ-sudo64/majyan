@@ -10,7 +10,7 @@ function LegalBody({ sections }: { sections: readonly LegalSection[] }) {
       {sections.map((s) => (
         <section key={s.title}>
           <h3>{s.title}</h3>
-          <p>{s.body}</p>
+          <p style={{ whiteSpace: "pre-line" }}>{s.body}</p>
         </section>
       ))}
       <p className="legal-screen__version">{TERMS_VERSION} 版</p>
