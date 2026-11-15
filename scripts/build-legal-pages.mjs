@@ -37,13 +37,13 @@ function page({ title, siteUrl, body }) {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${esc(title)}｜雀廃</title>
+<title>${esc(title)}｜雀杯</title>
 <meta name="robots" content="index,follow" />
 <style>${CSS}</style>
 </head>
 <body>
 <div class="wrap">
-<a class="back" href="${esc(siteUrl)}/">← 雀廃 公式サイトへ</a>
+<a class="back" href="${esc(siteUrl)}/">← 雀杯 公式サイトへ</a>
 <h1>${esc(title)}</h1>
 ${body}
 <nav class="legal">

@@ -9,7 +9,7 @@
  *
  * 中身の扱いを変えた時はCACHE_VERSIONを上げる（古いキャッシュは消える）。
  */
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const PAGES = `majyan-pages-${CACHE_VERSION}`;
 const ASSETS = `majyan-assets-${CACHE_VERSION}`;
 const MEDIA = `majyan-media-${CACHE_VERSION}`;

@@ -15,11 +15,11 @@ import {
 const r = (tier: number, level: number, points: number): RankState => ({ tier, level, points });
 
 describe("rank labels", () => {
-  it("names every rank from 下雀1 to 雀廃", () => {
-    expect(RANK_TIERS.map((t) => t.name)).toEqual(["下雀", "中雀", "上雀", "雀王", "雀帝", "雀廃"]);
+  it("names every rank from 下雀1 to 雀杯", () => {
+    expect(RANK_TIERS.map((t) => t.name)).toEqual(["下雀", "中雀", "上雀", "雀王", "雀帝", "雀杯"]);
     expect(rankLabel(INITIAL_RANK)).toBe("下雀1");
     expect(rankLabel(r(3, 2, 2000))).toBe("雀王3");
-    expect(rankLabel(r(5, 0, 123))).toBe("雀廃");
+    expect(rankLabel(r(5, 0, 123))).toBe("雀杯");
     expect(rankMaxPoints(r(5, 0, 123))).toBeNull();
     expect(rankOrdinal(r(0, 0, 0))).toBe(0);
     expect(rankOrdinal(r(4, 2, 0))).toBe(14);
@@ -49,7 +49,7 @@ describe("rankPointDelta", () => {
   });
 
   it("the Mpt part matches the result screen's M-League points (matchPoints.ts)", () => {
-    // 倍率1に近い雀廃(東風1.35)で、持ち点が1000点違うごとに約1.35ポイント動く
+    // 倍率1に近い雀杯(東風1.35)で、持ち点が1000点違うごとに約1.35ポイント動く
     const d = (score: number) => rankPointDelta(r(5, 0, 0), "tonpuusen", 1, score);
     expect(d(35000) - d(25000)).toBe(13); // 61 → 74（1.35 x 10 = 13.5 の四捨五入込み）
   });
@@ -110,13 +110,13 @@ describe("applyRankPoints", () => {
     expect(applyRankPoints(r(1, 2, 10), -50)).toEqual(r(1, 1, 400));
   });
 
-  it("demotes from 上雀 upward, including 雀廃 back to 雀帝3", () => {
+  it("demotes from 上雀 upward, including 雀杯 back to 雀帝3", () => {
     expect(applyRankPoints(r(2, 1, 20), -50)).toEqual(r(2, 0, 600));
     expect(applyRankPoints(r(2, 0, 20), -50)).toEqual(r(1, 2, 500));
     expect(applyRankPoints(r(5, 0, 30), -150)).toEqual(r(4, 2, 4500));
   });
 
-  it("lets 雀廃 accumulate points without a cap", () => {
+  it("lets 雀杯 accumulate points without a cap", () => {
     expect(applyRankPoints(r(5, 0, 100000), 500)).toEqual(r(5, 0, 100500));
   });
 
