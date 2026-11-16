@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>雀杯 公式サイト｜必殺技で卓が動く、異能麻雀バトル</title>
-<meta name="description" content="雀杯（じゃんはい）は、個性豊かな雀士たちがそれぞれ持つ必殺技と、運命を変えるカードで戦う異能麻雀バトル。ブラウザですぐ遊べて、段位戦・友人戦・CPU戦に対応。" />
+<meta name="description" content="雀杯（じゃんはい）は、個性豊かな雀士たちがそれぞれ持つ必殺技と、運命を変えるカードで戦う異能麻雀バトル。無料のブラウザ麻雀ゲームで、4人打ちリーチ麻雀を段位戦・友人戦・CPU戦で遊べます。" />
 <meta name="theme-color" content="#0b0806" />
 <!-- 検索に載せる正式な住所。ゲーム本体のサーバー側にも同じページがあるので、どちらから開いてもこちらを正とする。
      この住所と下のog:image等は scripts/build-official-site.mjs の SITE_URL と揃えること。 -->
@@ -26,7 +26,7 @@
   "@type": "VideoGame",
   "name": "雀杯",
   "alternateName": ["じゃんはい", "Janhai", "Jyanhai"],
-  "description": "雀杯（じゃんはい）は、個性豊かな雀士たちがそれぞれ持つ必殺技と、運命を変えるカードで戦う異能麻雀バトル。ブラウザですぐ遊べて、段位戦・友人戦・CPU戦に対応。",
+  "description": "雀杯（じゃんはい）は、個性豊かな雀士たちがそれぞれ持つ必殺技と、運命を変えるカードで戦う異能麻雀バトル。無料のブラウザ麻雀ゲームで、4人打ちリーチ麻雀を段位戦・友人戦・CPU戦で遊べます。",
   "url": "https://janhai.maxplantlabs.com/",
   "image": "https://janhai.maxplantlabs.com/img/og.webp",
   "inLanguage": "ja",
@@ -36,6 +36,62 @@
   "gamePlatform": "Web browser",
   "playMode": ["SinglePlayer", "MultiPlayer"],
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY", "url": "https://play-janhai.maxplantlabs.com/" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "麻雀のルールを知らなくても遊べますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "ゲーム内の「ルール」から基本を確認できます。CPU戦なら自分のペースで練習でき、ツモ切りや和了を自動にする機能もあります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "どの端末で遊べますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "パソコン・スマートフォン・タブレットのブラウザで遊べます。画面は横長で、スマホを縦に持っていても自動で横向きに表示します。ホーム画面に追加すると、アプリのように全画面で起動できます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "アカウント登録は必要ですか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不要です。名前を決めるだけで始められます。ブラウザのデータを消した時や端末を変える時のために、始めたあとでゲーム内の「引き継ぎ」からパスワードを決めて、発行される引き継ぎコードを控えておいてください。コードとパスワードで、手持ちをそのまま移せます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "必殺技はいつ使えますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "対局中に必殺技ゲージが溜まり、満タンになると使えます。自分で好きな時に発動する技のほか、リーチと同時に自動で発動する技、条件を満たすと常に効くパッシブの技もあります。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "カードは付け替えられますか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "カードはキャラ1体に、パッシブ1枚とアクティブ1枚まで付けられます。一度付けると外せません。同じキャラを複数持っていれば、それぞれに別のカードを付けて使い分けられます。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "CPU戦でもガチャで出したキャラしか使えませんか？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "CPU戦では全キャラ・全カードを自由に使えます。オンライン（段位戦・友人戦）では、手持ちのキャラとカードで対局します。"
+      }
+    }
+  ]
 }
 </script>
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
