@@ -20,8 +20,17 @@ import { GachaCard, RARITY_STARS } from "./GachaCard.js";
 import { GachaReveal } from "./GachaReveal.js";
 import { RecordsScreen } from "./RecordsScreen.js";
 import { preloadGachaSounds } from "../sound.js";
+import { shareToX } from "../share.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
+
+/** ★3が出た回だけシェア文面を返す（出ていなければ null でボタンを出さない）。 */
+function shareText(items: GachaItem[]): string | null {
+  const stars = items.filter((it) => rarityOf(it) === 3);
+  if (stars.length === 0) return null;
+  const names = stars.map((it) => (it.kind === "character" ? CHARACTERS[it.id]?.name : CARDS[it.id]?.name)).filter(Boolean);
+  return `雀杯のガチャで★3「${names.join("」「")}」が出た！`;
+}
 
 /** 確率の表示（小数第3位まで、末尾の0は省く）。 */
 function percent(rate: number): string {
@@ -117,6 +126,13 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
             {result.results.map((item, i) => (
               <GachaCard key={`${i}-${item.kind}-${item.id}-${result.me.jade.free}`} item={item} index={i} isNew={result.isNew[i]} />
             ))}
+          </div>
+        )}
+        {result && !revealing && shareText(result.results) && (
+          <div className="setup-buttons">
+            <button type="button" className="btn" onClick={() => shareToX(shareText(result.results)!)}>
+              Xでシェア
+            </button>
           </div>
         )}
         {error && <p className="online-lobby__error">{error}</p>}

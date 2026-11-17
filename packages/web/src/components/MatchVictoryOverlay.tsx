@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { Character, PlayerIndex } from "@majyan/core";
 import { playVoiceClip } from "../sound.js";
+import { shareToX } from "../share.js";
 
 const PLAYER_NAMES: Record<number, string> = { 0: "あなた", 1: "下家", 2: "対面", 3: "上家" };
 
@@ -35,6 +36,14 @@ export function MatchVictoryOverlay({
           {PLAYER_NAMES[champion.player]}（{champion.character.name}）
         </div>
         <div className="match-victory-card__quote">「{champion.character.winQuote}」</div>
+        {champion.player === 0 && (
+          <button
+            className="btn btn--large"
+            onClick={() => shareToX(`雀杯で${champion.character.name}を使ってトップを取った！「${champion.character.winQuote}」`)}
+          >
+            Xでシェア
+          </button>
+        )}
         <button className="btn btn--primary btn--large" onClick={onBackToTitle}>
           タイトルへ戻る
         </button>
