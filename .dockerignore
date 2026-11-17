@@ -7,3 +7,7 @@ packages/web/asset-backups
 packages/web/tuning
 *.log
 packages/server/data
+asset-backups
+drafts
+official-site
+marketing-plan.md

@@ -49,3 +49,9 @@
 - Xアカウントでの投稿・DM・外部サイトへの寄稿（アカウントと公開の判断が必要）
 - `fly deploy`、Cloudflare Web Analyticsの有効化
 - 配信OKの方針決定（公式ページに明記する）
+
+## 7. 投稿用の動画（作成済み）
+- `drafts/shorts/short-timestop-issen.mp4`（6.7秒）、`drafts/shorts/short-cast4.mp4`（13.5秒）
+- `drafts/shorts/chars/{キャラid}.mp4` 27本（各5秒、必殺技の絵＋ボイス）。**1日1本、27日分**の連続投稿に使う。
+- 順番の目安：ゼノ → ライコ → カガミ → ミライ → にゃん次郎 → …（絵が派手な順）。毎回「#雀杯 #異能麻雀」と、キャラ名・必殺技名を文面に入れる。
+- 再生成：必殺技の絵（public/declarations）とボイスを組み合わせて作っている。キャラを足したら同じ手順で足せる。
