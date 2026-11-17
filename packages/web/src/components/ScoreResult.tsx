@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { shareToX } from "../share.js";
 import { CHARACTERS, doubleWindVoiceClip, hasCard, TUTORIAL_SCENARIOS, M_LEAGUE_RULE, matchPoints, doraIndicators, rankOrdinal, rankSeats, getWaitingTiles, seatWindOf, uraDoraIndicators, type Character, type Meld, type PlayerIndex, type RoundScoreOutcome, type RoundState, type Tile, type YakuResult } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useOnlineStore } from "../online/onlineLink.js";
@@ -373,6 +374,11 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                   </div>
                 </div>
               </div>
+            )}
+            {rankResult && rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && (
+              <button className="btn" onClick={() => shareToX(`雀杯の段位戦で「${rankResult.after.label}」に昇段した！`)}>
+                Xでシェア
+              </button>
             )}
             <button className="btn btn--primary" onClick={() => setShowVictory(true)} disabled={reading}>
               結果を見る
