@@ -1,4 +1,4 @@
-import { CARDS, CHARACTERS } from "@majyan/core";
+import { CARDS, CHARACTERS, TUTORIAL_SCENARIOS } from "@majyan/core";
 
 /**
  * キャラクター・必殺技・カードの名前と説明は、coreに日本語で書いてある（サーバーと共有のため）。
@@ -51,7 +51,8 @@ export const CORE_TEXTS: string[] = [
 /** 翻訳が要る日本語の原文の一覧（対訳表を作る時の元）。 */
 export function dataSourceTexts(): string[] {
   originals ??= collect();
-  return [...new Set([...originals.map((o) => o.text), ...CORE_TEXTS])];
+  const tutorial = TUTORIAL_SCENARIOS.flatMap((s) => s.steps.map((st) => st.text));
+  return [...new Set([...originals.map((o) => o.text), ...CORE_TEXTS, ...tutorial])];
 }
 
 /** 対訳表に従って、キャラクターとカードの文言を差し替える（表が無ければ日本語に戻す）。 */

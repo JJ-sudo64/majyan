@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { TUTORIAL_SCENARIOS } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
-import { useT } from "../i18n/index.js";
+import { useT, tx } from "../i18n/index.js";
 
 /** 光らせるボタンの見つけ方（Hand.tsx・CallPrompt.tsxのボタンのクラス）。ツモとロンのボタンは同じクラス。 */
 const HINT_BUTTON_SELECTOR = {
@@ -48,7 +48,7 @@ export function TutorialOverlay() {
       {tutorial.visible && step && (
         <div key={`${tutorial.scenarioIndex}-${tutorial.stepIndex}-${shake}`} className={`tutorial-panel${step.advance === "result" || step.panelTop ? " tutorial-panel--top" : ""}${shake > 0 ? " tutorial-panel--nudge" : ""}`}>
           <div className="tutorial-panel__head">{t("tutorialOverlay.t3", { v1: tutorial.scenarioIndex - tutorial.firstScenario + 1, v2: TUTORIAL_SCENARIOS.length - tutorial.firstScenario })}</div>
-          <p className="tutorial-panel__text">{step.text}</p>
+          <p className="tutorial-panel__text">{tx(step.text)}</p>
           {step.advance === "next" && (
             <button type="button" className="btn btn--primary tutorial-panel__next" onClick={tutorialNext}>
               {t("shopScreen.t5")}
