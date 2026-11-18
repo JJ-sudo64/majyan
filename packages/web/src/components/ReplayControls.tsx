@@ -58,18 +58,13 @@ export function ReplayControls() {
 
   const playButton = (
     <button type="button" className="btn btn--primary" onClick={() => setPlaying((p) => !p)} title={t("replayControls.t1")}>
-      {playing ? "■ 停止" : "▶ 再生"}
+      {playing ? t("replayControls.t13") : t("replayControls.t14")}
     </button>
   );
   const info = (
     <div className="replay-controls__info">
-      <strong>
-        {WIND[start.roundWind]}
-        {start.roundNumber}局 {start.honba}本場
-      </strong>
-      <span>
-        {replay.roundIndex + 1}/{replay.data.rounds.length}局目・{Math.min(replay.step, total)}/{total}手
-      </span>
+      <strong>{t("replayControls.t15", { v1: WIND[start.roundWind] ?? "", roundNumber: start.roundNumber, honba: start.honba })}</strong>
+      <span>{t("replayControls.t16", { v1: replay.roundIndex + 1, length: replay.data.rounds.length, v2: Math.min(replay.step, total), total })}</span>
     </div>
   );
 
@@ -144,7 +139,7 @@ export function ReplayControls() {
             {replay.data.seats.map((s, i) => (
               <option key={i} value={i}>
                 {s.name}
-                {i === replay.data.yourSeat ? "（あなた）" : ""}
+                {i === replay.data.yourSeat ? t("onlineLobby.t63") : ""}
               </option>
             ))}
           </select>

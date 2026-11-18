@@ -140,14 +140,14 @@ function PointsTab() {
             <tr>
               <th>{t("rulesGuide.t11")}</th>
               {HAN_COLUMNS.map((h) => (
-                <th key={h}>{h}翻</th>
+                <th key={h}>{t("rulesGuide.t14", { h })}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {FU_ROWS.map((fu) => (
               <tr key={fu}>
-                <th scope="row">{fu}符</th>
+                <th scope="row">{t("rulesGuide.t15", { fu })}</th>
                 {HAN_COLUMNS.map((h) => (
                   <td key={h}>{pointCell(h, fu, isDealer, isTsumo)}</td>
                 ))}
@@ -172,9 +172,7 @@ function PointsTab() {
               ))}
             </tbody>
           </table>
-          <p className="rules-guide__note">
-            ツモは「{isDealer ? "全員が支払う額 オール" : "子が払う額／親が払う額"}」です。本場がつくと、ロンは1本場ごとに+300点、ツモは1本場ごとに各+100点です。5翻以上は符に関係なく決まります。
-          </p>
+          <p className="rules-guide__note">{t("rulesGuide.t16", { v1: isDealer ? t("rulesGuide.t17") : t("rulesGuide.t18") })}</p>
         </div>
       </div>
     </div>

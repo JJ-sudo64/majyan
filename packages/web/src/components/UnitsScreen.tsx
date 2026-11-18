@@ -216,7 +216,7 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
         <div className="gacha-screen" onClick={(e) => e.stopPropagation()}>
           <div className="setup-picker-modal__header">
             <div className="setup-character-select__label">
-              {practice ? "カードの付け方（練習）" : `手持ち（${filtered ? `${shownUnits.length}／${units.length}` : units.length}体）`}
+              {practice ? t("unitsScreen.t1") : t("unitsScreen.t11", { v1: filtered ? `${shownUnits.length}／${units.length}` : units.length })}
             </div>
             <button type="button" className="setup-picker-modal__close" onClick={onClose}>
               ×
@@ -258,7 +258,7 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
                   className={`units-screen__chip${view.rarity === r ? " units-screen__chip--active" : ""}`}
                   onClick={() => setView({ rarity: r })}
                 >
-                  {r === "all" ? "すべて" : RARITY_STARS[r]}
+                  {r === "all" ? t("cardSlot.t11") : RARITY_STARS[r]}
                 </button>
               ))}
             </div>
@@ -296,10 +296,10 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
                   <span className="units-screen__stars">{RARITY_STARS[characterRarity(u.characterId)]}</span>
                   <span className="units-screen__name">{character?.name.split("・").at(-1) ?? u.characterId}</span>
                   <span className={`units-screen__card${card ? "" : " units-screen__card--none"}`}>
-                    {card ? `${RARITY_STARS[cardRarity(u.cardId!)]} ${card.name}` : "パッシブなし"}
+                    {card ? `${RARITY_STARS[cardRarity(u.cardId!)]} ${card.name}` : t("onlineLobby.t41")}
                   </span>
                   <span className={`units-screen__card${card2 ? "" : " units-screen__card--none"}`}>
-                    {card2 ? `${RARITY_STARS[cardRarity(u.cardId2!)]} ${card2.name}` : "アクティブなし"}
+                    {card2 ? `${RARITY_STARS[cardRarity(u.cardId2!)]} ${card2.name}` : t("onlineLobby.t42")}
                   </span>
                 </button>
               );
@@ -341,13 +341,13 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
       {selectedUnit && openSlot && (
         <CardSlotPicker
           kind={openSlot}
-          title={`${CHARACTERS[selectedUnit.characterId]?.name ?? ""} の${slotLabel(openSlot)}に付けるカード`}
+          title={t("unitsScreen.t12", { v1: CHARACTERS[selectedUnit.characterId]?.name ?? "", v2: slotLabel(openSlot) })}
           // この欄に付けられるカード＝持っているカードのうち、この欄の種類のものだけ。
           candidates={ownedCardIds.filter((id) => CARDS[id]?.kind === openSlot)}
           counts={cards}
           permanent
           busy={busy}
-          emptyMessage={`付けられる${openSlot === "passive" ? "パッシブ" : "アクティブ"}カードを持っていません（カードはガチャで手に入ります）。`}
+          emptyMessage={t("unitsScreen.t13", { v1: openSlot === "passive" ? t("unitsScreen.t14") : t("unitsScreen.t15") })}
           onConfirm={(id) => void confirmEquip(id)}
           onClose={() => setOpenSlot(null)}
           banner={practiceBanner}

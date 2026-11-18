@@ -145,7 +145,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
               {selectedCharacter && <img src={selectedCharacter.avatar} alt="" />}
               <div>
                 <div className="oh-plate__label">{t("matchSetup.t5")}</div>
-                <div className="oh-plate__name">{selectedCharacter?.name ?? "おまかせ"}</div>
+                <div className="oh-plate__name">{selectedCharacter?.name ?? t("matchSetup.t11")}</div>
               </div>
             </div>
             <p className="cardloadout__lead">
@@ -173,17 +173,15 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
           )}
           <div className="oh-plate">
             <div className="oh-plate__label">{t("matchSetup.t5")}</div>
-            <div className="oh-plate__name">{selectedCharacter?.name ?? "おまかせ"}</div>
+            <div className="oh-plate__name">{selectedCharacter?.name ?? t("matchSetup.t11")}</div>
             <div className="oh-plate__sub">
-              {selectedCharacter ? `必殺技「${selectedCharacter.skill.name}」` : "ランダムに割り当てます"}
+              {selectedCharacter ? t("gachaReveal.t3", { name: selectedCharacter.skill.name }) : t("matchSetup.t15")}
             </div>
             <div className="oh-plate__buttons">
               <button type="button" className="oh-ghost" onClick={() => setShowCharacterPicker(true)}>
                 {t("matchSetup.t8")}
               </button>
-              <button type="button" className="oh-ghost" onClick={() => setShowLoadout(true)}>
-                カードを付ける（{attachedCardCount}/2）
-              </button>
+              <button type="button" className="oh-ghost" onClick={() => setShowLoadout(true)}>{t("matchSetup.t19", { attachedCardCount })}</button>
             </div>
           </div>
         </section>
@@ -309,9 +307,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
               alt=""
             />
             <div className="character-confirm__name">{confirmingCharacter.name}</div>
-            <div className="character-confirm__skill">
-              必殺技「{confirmingCharacter.skill.name}」: {confirmingCharacter.skill.description}
-            </div>
+            <div className="character-confirm__skill">{t("matchSetup.t20", { name: confirmingCharacter.skill.name, description: confirmingCharacter.skill.description })}</div>
             <div className="character-confirm__prompt">{t("matchSetup.t16")}</div>
             <div className="character-confirm__buttons">
               <button
@@ -336,7 +332,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
       {openSlot && (
         <CardSlotPicker
           kind={openSlot}
-          title={`${slotLabel(openSlot)}に入れるカード`}
+          title={t("matchSetup.t21", { v1: slotLabel(openSlot) })}
           candidates={cardIdsOfKind(openSlot)}
           current={openSlot === "passive" ? selectedPassiveId : selectedActiveId}
           emptyMessage={t("matchSetup.t18")}

@@ -91,9 +91,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         <div className="gacha-screen__jade">
           雀玉 <strong>{total.toLocaleString()}</strong>
           {jade && jade.paid > 0 && (
-            <span className="gacha-screen__jade-detail">
-              （無償 {jade.free.toLocaleString()} ／ 有償 {jade.paid.toLocaleString()}）
-            </span>
+            <span className="gacha-screen__jade-detail">{t("gachaScreen.t6", { v1: jade.free.toLocaleString(), v2: jade.paid.toLocaleString() })}</span>
           )}
         </div>
 
@@ -101,9 +99,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
           <div className="gacha-screen__pickup">
             <div className="gacha-screen__pickup-title">
               ピックアップ：{pickup.title}
-              <span className="gacha-screen__pickup-until">
-                {new Date(pickup.endsAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} まで
-              </span>
+              <span className="gacha-screen__pickup-until">{t("gachaScreen.t7", { v1: new Date(pickup.endsAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}</span>
             </div>
             <div className="gacha-screen__pickup-items">
               {pickup.items.map((item) => {
@@ -113,7 +109,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
                     {character ? <img src={character.avatar} alt="" /> : <span className="gacha-card__card-icon">{t("gachaScreen.t2")}</span>}
                     <span>
                       {RARITY_STARS[rarityOf(item)]} {fullName(item)}
-                      <small>出る確率 {percent(itemRate(item, pickup))}（ふだんは {percent(itemRate(item))}）</small>
+                      <small>{t("gachaScreen.t8", { v1: percent(itemRate(item, pickup)), v2: percent(itemRate(item)) })}</small>
                     </span>
                   </span>
                 );
@@ -141,7 +137,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
 
         <div className="setup-buttons gacha-screen__pulls">
           <button type="button" className="btn btn--large" disabled={busy || total < GACHA_PRICE.single} onClick={() => void run(() => rollGacha(1), undefined, true)}>
-            1回<span className="gacha-screen__price">（雀玉{GACHA_PRICE.single}）</span>
+            1回<span className="gacha-screen__price">{t("gachaScreen.t9", { single: GACHA_PRICE.single })}</span>
           </button>
           <button
             type="button"
@@ -149,27 +145,20 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
             disabled={busy || total < GACHA_PRICE.ten}
             onClick={() => void run(() => rollGacha(10), undefined, true)}
           >
-            10連<span className="gacha-screen__price">（雀玉{GACHA_PRICE.ten.toLocaleString()}）</span>
+            10連<span className="gacha-screen__price">{t("gachaScreen.t10", { v1: GACHA_PRICE.ten.toLocaleString() })}</span>
           </button>
         </div>
-        <p className="setup-lead">
-          キャラとカードが出ます。10連は★{TEN_PULL_GUARANTEE.rarity}以上が1つ確定。同じキャラが出たら別々の仲間として増えます。
-          雀玉はログインボーナスとミッションでもらえます。
-        </p>
+        <p className="setup-lead">{t("gachaScreen.t11", { rarity: TEN_PULL_GUARANTEE.rarity })}</p>
 
         <div className="gacha-screen__exchange">
           <span>
             交換ポイント <strong>{exchangePoints}</strong> / {EXCHANGE_COST}（1回引くごとに1ポイント。{EXCHANGE_COST}で★{EXCHANGE_RARITY}
             のキャラかカードがランダムで1つもらえます）
           </span>
-          <button type="button" className="btn" disabled={busy || exchangePoints < EXCHANGE_COST} onClick={() => void run(() => exchangeItem(), undefined, true)}>
-            ★{EXCHANGE_RARITY}と交換（ランダム）
-          </button>
+          <button type="button" className="btn" disabled={busy || exchangePoints < EXCHANGE_COST} onClick={() => void run(() => exchangeItem(), undefined, true)}>{t("gachaScreen.t12", { EXCHANGE_RARITY })}</button>
         </div>
         <div className="setup-buttons gacha-screen__links">
-          <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRates((v) => !v)}>
-            提供割合{showRates ? "を閉じる" : "を見る"}
-          </button>
+          <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRates((v) => !v)}>{t("gachaScreen.t13", { v1: showRates ? t("gachaScreen.t19") : t("gachaScreen.t20") })}</button>
           <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRecords(true)}>
             {t("gachaScreen.t4")}
           </button>
@@ -193,22 +182,16 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
                   const others = pool.filter((i) => !featured.some((f) => sameItem(f, i)));
                   return (
                     <div key={r} className="gacha-screen__rate-block">
-                      <div className="gacha-screen__rate-head">
-                        {RARITY_STARS[r]}　{percent(GACHA_RARITY_RATES[r])}（キャラ{chars.length}人・カード{cardItems.length}枚、
-                        {featured.length > 0
-                          ? `ピックアップは1つあたり${percent(itemRate(featured[0]!, pickup))}、その他は1つあたり${others[0] ? percent(itemRate(others[0], pickup)) : "-"}`
-                          : `1つあたり${percent(GACHA_RARITY_RATES[r] / pool.length)}`}
-                        ）
-                      </div>
-                      {featured.length > 0 && <div className="gacha-screen__rate-names">ピックアップ：{featured.map(fullName).join("、")}</div>}
-                      <div className="gacha-screen__rate-names">キャラ：{chars.map(fullName).join("、")}</div>
-                      <div className="gacha-screen__rate-names">カード：{cardItems.map(fullName).join("、")}</div>
+                      <div className="gacha-screen__rate-head">{t("gachaScreen.t14", { v1: RARITY_STARS[r], v2: percent(GACHA_RARITY_RATES[r]), length: chars.length, v3: cardItems.length, v4: featured.length > 0
+                          ? t("gachaScreen.t21", { v1: percent(itemRate(featured[0]!, pickup)), v2: others[0] ? percent(itemRate(others[0], pickup)) : "-" })
+                          : t("gachaScreen.t22", { v1: percent(GACHA_RARITY_RATES[r] / pool.length) }) })}</div>
+                      {featured.length > 0 && <div className="gacha-screen__rate-names">{t("gachaScreen.t15", { v1: featured.map(fullName).join("、") })}</div>}
+                      <div className="gacha-screen__rate-names">{t("gachaScreen.t16", { v1: chars.map(fullName).join("、") })}</div>
+                      <div className="gacha-screen__rate-names">{t("gachaScreen.t17", { v1: cardItems.map(fullName).join("、") })}</div>
                     </div>
                   );
                 })}
-                <p className="gacha-screen__rate-note">
-                  10連で★{TEN_PULL_GUARANTEE.rarity}以上が1つも出なかった場合、10枠目を★{TEN_PULL_GUARANTEE.rarity}のキャラ・カードの中から引き直します。
-                </p>
+                <p className="gacha-screen__rate-note">{t("gachaScreen.t18", { rarity: TEN_PULL_GUARANTEE.rarity, v1: TEN_PULL_GUARANTEE.rarity })}</p>
               </div>
             </div>
           </div>

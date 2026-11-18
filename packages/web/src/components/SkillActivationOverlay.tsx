@@ -119,7 +119,7 @@ export function SkillActivationView({ character, nullified }: { character: Chara
           <img className="skill-activation-overlay__cutin" src={character.cutin ?? character.avatar} alt="" />
         </div>
         <div className="skill-activation-overlay__text">
-          <div className="skill-activation-overlay__name">{character.name}の{character.skill.name}は</div>
+          <div className="skill-activation-overlay__name">{t("skillActivationOverlay.t2", { name: character.name, v1: character.skill.name })}</div>
           <div className="skill-activation-overlay__skill">{t("skillActivationOverlay.t1")}</div>
         </div>
       </div>

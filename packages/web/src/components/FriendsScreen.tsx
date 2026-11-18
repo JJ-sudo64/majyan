@@ -145,7 +145,7 @@ export function FriendsScreen({
                         <div className="inbox-screen__news-title">{r.displayName}</div>
                         <div className="inbox-screen__date">{r.rankLabel}</div>
                       </div>
-                      <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void act(() => friendAction("respond", r.code, true), `${r.displayName} さんとフレンドになりました`)}>
+                      <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void act(() => friendAction("respond", r.code, true), t("friendsScreen.t17", { displayName: r.displayName }))}>
                         {t("friendsScreen.t8")}
                       </button>
                       <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => void act(() => friendAction("respond", r.code, false))}>
@@ -157,7 +157,7 @@ export function FriendsScreen({
               </>
             )}
 
-            <div className="online-lobby__section-title">フレンド（{data.friends.length}人）</div>
+            <div className="online-lobby__section-title">{t("friendsScreen.t18", { length: data.friends.length })}</div>
             {data.friends.length === 0 && <p className="setup-lead">{t("friendsScreen.t10")}</p>}
             <ul className="inbox-screen__list">
               {data.friends.map((f) => (

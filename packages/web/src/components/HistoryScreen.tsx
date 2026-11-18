@@ -31,13 +31,14 @@ function formatDate(ms: number): string {
 }
 
 function RankingRow({ e }: { e: RankingEntry }) {
+  const t = useT();
   return (
     <tr className={e.isYou ? "ranking-screen__you" : undefined}>
       <td className="ranking-screen__position">{e.position}</td>
       <td className="ranking-screen__name">{e.displayName}</td>
       <td className="history-screen__rank">{e.rankLabel}</td>
       <td>{e.points} pt</td>
-      <td>{e.gamesPlayed}戦</td>
+      <td>{t("historyScreen.t11", { gamesPlayed: e.gamesPlayed })}</td>
     </tr>
   );
 }
@@ -57,10 +58,7 @@ function RankingView() {
   const youInTop = ranking.top.some((e) => e.isYou);
   return (
     <>
-      <p className="setup-lead">
-        段位戦を打った {ranking.totalPlayers.toLocaleString()} 人中
-        {ranking.you ? ` あなたは ${ranking.you.position.toLocaleString()} 位` : "（あなたはまだ段位戦を打っていません）"}
-      </p>
+      <p className="setup-lead">{t("historyScreen.t12", { v1: ranking.totalPlayers.toLocaleString(), v2: ranking.you ? t("historyScreen.t19", { v1: ranking.you.position.toLocaleString() }) : t("historyScreen.t20") })}</p>
       <table className="history-screen__stats ranking-screen__table">
         <tbody>
           {ranking.top.map((e) => (
@@ -101,7 +99,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
     setError(null);
     try {
       await reportPlayer(reporting.matchId, reporting.seat, reportReason);
-      setNotice(`${reporting.name} さんを通報しました。運営が確認します。`);
+      setNotice(t("historyScreen.t13", { name: reporting.name }));
       setReporting(null);
     } catch (err) {
       setError((err as Error).message);
@@ -167,9 +165,9 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
               {history.recent.slice(page * MATCHES_PER_PAGE, (page + 1) * MATCHES_PER_PAGE).map((e) => (
                 <li key={e.matchId} className={`history-screen__match history-screen__match--place${e.place}`}>
                   <div className="history-screen__match-head">
-                    <span className="history-screen__place">{e.place}位</span>
+                    <span className="history-screen__place">{t("historyScreen.t14", { place: e.place })}</span>
                     <span>{FORMAT_LABEL[e.format]}</span>
-                    <span className="history-screen__score">{e.finalScore.toLocaleString()}点</span>
+                    <span className="history-screen__score">{t("historyScreen.t15", { v1: e.finalScore.toLocaleString() })}</span>
                     <span className={e.delta >= 0 ? "history-screen__delta--up" : "history-screen__delta--down"}>
                       {e.delta >= 0 ? `+${e.delta}` : e.delta} pt
                     </span>
@@ -182,7 +180,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                         disabled={loadingReplay !== null}
                         onClick={() => void openReplay(e.matchId)}
                       >
-                        {loadingReplay === e.matchId ? "読み込み中…" : "牌譜"}
+                        {loadingReplay === e.matchId ? t("historyScreen.t16") : t("historyScreen.t17")}
                       </button>
                     )}
                   </div>
@@ -216,7 +214,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                   )}
                   {reporting?.matchId === e.matchId && (
                     <div className="first-gacha__confirm history-screen__report-form">
-                      <p>{reporting.name} さんを通報します。理由を選んでください。</p>
+                      <p>{t("historyScreen.t18", { name: reporting.name })}</p>
                       <select value={reportReason} onChange={(ev) => setReportReason(ev.target.value as ReportReason)}>
                         {(Object.keys(REPORT_REASONS) as ReportReason[]).map((r) => (
                           <option key={r} value={r}>

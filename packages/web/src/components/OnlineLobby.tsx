@@ -221,7 +221,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           setTransferJustCreated(true);
           setShowTransfer(true); // 引き継ぎコードを見せる（控えてもらう）
         } catch (err) {
-          useAccountStore.setState({ error: `アカウントは作れましたが、引き継ぎのパスワードを決められませんでした（${(err as Error).message}）。あとで「引き継ぎ」から決めてください。` });
+          useAccountStore.setState({ error: t("onlineLobby.t40", { message: (err as Error).message }) });
         }
         setNewPassword("");
         setNewPassword2("");
@@ -326,10 +326,10 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                     <span className="units-screen__stars">{"★".repeat(characterRarity(u.characterId))}</span>
                     <span className="units-screen__name">{character?.name.split("・").at(-1) ?? u.characterId}</span>
                     <span className={`units-screen__card${u.cardId ? "" : " units-screen__card--none"}`}>
-                      {u.cardId ? (CARDS[u.cardId]?.name ?? "カード") : "パッシブなし"}
+                      {u.cardId ? (CARDS[u.cardId]?.name ?? t("gachaScreen.t2")) : t("onlineLobby.t41")}
                     </span>
                     <span className={`units-screen__card${u.cardId2 ? "" : " units-screen__card--none"}`}>
-                      {u.cardId2 ? (CARDS[u.cardId2]?.name ?? "カード") : "アクティブなし"}
+                      {u.cardId2 ? (CARDS[u.cardId2]?.name ?? t("gachaScreen.t2")) : t("onlineLobby.t42")}
                     </span>
                   </button>
                 );
@@ -379,11 +379,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {(accountStatus === "none" || renaming) && (
             <div className="oh-card oh-card--form">
               <div className="oh-card__head">
-                <span className="oh-card__title">{profile ? "名前を変える" : "はじめる"}</span>
+                <span className="oh-card__title">{profile ? t("onlineLobby.t17") : t("onlineLobby.t43")}</span>
                 <span className="oh-card__en">{profile ? "RENAME" : "NEW PLAYER"}</span>
               </div>
               <label className="online-lobby__field">
-                <span>{profile ? "新しい名前" : "名前（あとで変えられます）"}</span>
+                <span>{profile ? t("onlineLobby.t44") : t("onlineLobby.t45")}</span>
                 <input
                   value={name}
                   maxLength={PLAYER_NAME_MAX_LENGTH}
@@ -394,9 +394,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 />
               </label>
               {profile && (
-                <p className="oh-note">
-                  名前を変えるには雀玉が{RENAME_PRICE}個かかります（今の所持: {jadeTotal}個）。同じ名前のままなら無料です。
-                </p>
+                <p className="oh-note">{t("onlineLobby.t46", { RENAME_PRICE, jadeTotal })}</p>
               )}
               {!profile && (
                 <label className="online-lobby__agree">
@@ -415,7 +413,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                     <strong>{t("onlineLobby.t7")}</strong>も、ここで決めてください。ブラウザのデータが消えた時や、別の端末で遊ぶ時に、これがないとこのアカウント（雀玉・キャラ・段位）に戻れません。忘れないよう控えてください（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）。
                   </p>
                   <label className="online-lobby__field">
-                    <span>引き継ぎのパスワード（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）</span>
+                    <span>{t("onlineLobby.t47", { TRANSFER_PASSWORD_MIN_LENGTH })}</span>
                     <input type="password" autoComplete="new-password" value={newPassword} maxLength={TRANSFER_PASSWORD_MAX_LENGTH} onChange={(e) => setNewPassword(e.target.value)} />
                   </label>
                   <label className="online-lobby__field">
@@ -427,7 +425,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               )}
               <div className="oh-card__actions">
                 <button type="button" className="oh-cta" disabled={!name.trim() || (!profile && (!agreed || !newPasswordOk)) || (!!profile && name.trim() !== profile.displayName && jadeTotal < RENAME_PRICE)} onClick={() => void submitName()}>
-                  {profile ? (name.trim() === profile.displayName ? "変更する" : `変更する（雀玉${RENAME_PRICE}）`) : "はじめる"}
+                  {profile ? (name.trim() === profile.displayName ? t("onlineLobby.t48") : t("onlineLobby.t49", { RENAME_PRICE })) : t("onlineLobby.t43")}
                 </button>
                 {renaming && (
                   <button type="button" className="oh-ghost" onClick={() => setRenaming(false)}>
@@ -440,12 +438,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 <>
                   {/* 前にここでアカウントを作った形跡があるのに鍵が無い時の案内（新しく作る前に気づけるように）。 */}
                   {lostReason && (
-                    <p className="online-lobby__lost" role="alert">
-                      {lostReason === "rejected"
-                        ? "保存されていたアカウントが、サーバーで見つかりませんでした。"
-                        : "前にこのブラウザで作ったアカウントの情報が見当たりません（ブラウザのデータを消した、別のURLやウィンドウで開いた、などの場合）。"}
-                      引き継ぎのパスワードを決めてあれば、下の「引き継ぎコードで戻る」から戻れます。新しく作ると、別のアカウントになります。
-                    </p>
+                    <p className="online-lobby__lost" role="alert">{t("onlineLobby.t50", { v1: lostReason === "rejected"
+                        ? t("onlineLobby.t64")
+                        : t("onlineLobby.t65") })}</p>
                   )}
                   <p className="oh-note">
                     {t("onlineLobby.t10")}
@@ -600,8 +595,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             </div>
             <div className="oh-plate__sub">
               {chosen
-                ? `必殺技「${chosen.character.skill.name}」／${cardLabel(chosen.unit.cardId, chosen.unit.cardId2)}`
-                : "手持ちからランダムに出ます"}
+                ? t("onlineLobby.t51", { name: chosen.character.skill.name, v1: cardLabel(chosen.unit.cardId, chosen.unit.cardId2) })
+                : t("onlineLobby.t52")}
             </div>
             <div className="oh-plate__buttons">
               <button type="button" className="oh-ghost oh-plate__change" disabled={status === "connecting" || queued} onClick={() => setShowUnitPicker(true)}>
@@ -618,12 +613,10 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
 
         <section className="oh-panel">
           {profile.suspendedUntil !== null && (
-            <p className="online-lobby__error">{suspensionMessage(profile.suspendedUntil)}。対戦と雀玉の購入はできません。</p>
+            <p className="online-lobby__error">{t("onlineLobby.t53", { v1: suspensionMessage(profile.suspendedUntil) })}</p>
           )}
           {dailyBonusNotice !== null && (
-            <div className="online-lobby__notice" onClick={() => useAccountStore.setState({ dailyBonusNotice: null })}>
-              ログインボーナス：雀玉 {dailyBonusNotice} を受け取りました（タップで閉じる）
-            </div>
+            <div className="online-lobby__notice" onClick={() => useAccountStore.setState({ dailyBonusNotice: null })}>{t("onlineLobby.t54", { dailyBonusNotice })}</div>
           )}
           {needsBackupNotice && !backupNoticeLater && !needsFirstGacha && (
             <div className="online-lobby__backup-notice">
@@ -648,9 +641,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 <span className="oh-card__title">{t("onlineLobby.t25")}</span>
                 <span className="oh-card__en">MATCH IN PROGRESS</span>
               </div>
-              <p className="oh-card__lead">
-                {runningRanked === "hanchan" ? "半荘戦" : "東風戦"}が続いています。抜けている間は自動で打牌されます。終わるまで新しい段位戦は始められません。
-              </p>
+              <p className="oh-card__lead">{t("onlineLobby.t55", { v1: runningRanked === "hanchan" ? t("format.hanchan") : t("format.tonpuusen") })}</p>
               <button type="button" className="btn btn--primary oh-resume" onClick={() => void returnToRanked()}>
                 {t("onlineLobby.t26")}
               </button>
@@ -664,7 +655,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 <span className="oh-card__en">RANKED MATCH</span>
               </div>
               <p className="oh-card__lead">
-                段位の近い相手と自動で卓を組みます。{rank ? `現在 ${rank.label}・${rank.gamesPlayed}戦` : ""}
+                段位の近い相手と自動で卓を組みます。{rank ? t("onlineLobby.t56", { label: rank.label, gamesPlayed: rank.gamesPlayed }) : ""}
                 <button type="button" className="oh-link" onClick={() => setShowRankGuide(true)}>
                   {t("onlineLobby.t28")}
                 </button>
@@ -687,17 +678,14 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {queued && queue && (
             <div className="oh-card oh-card--queue">
               <div className="oh-card__head">
-                <span className="oh-card__title">段位戦（{queue.format === "hanchan" ? "半荘戦" : "東風戦"}）</span>
+                <span className="oh-card__title">{t("onlineLobby.t57", { v1: queue.format === "hanchan" ? t("format.hanchan") : t("format.tonpuusen") })}</span>
                 <span className="oh-card__en">MATCHING</span>
               </div>
               <div className="oh-queue">
                 <div className="oh-queue__ring" />
-                <div className="oh-queue__time">{Math.max(0, Math.floor((now - queue.since) / 1000))}秒</div>
+                <div className="oh-queue__time">{t("onlineLobby.t58", { v1: Math.max(0, Math.floor((now - queue.since) / 1000)) })}</div>
               </div>
-              <p className="oh-card__lead">
-                相手を探しています… {Math.max(0, Math.ceil((queue.cpuFillInMs - (now - queue.since)) / 1000))}
-                秒たっても4人そろわなければ、空いた席にCPUが入って始まります。
-              </p>
+              <p className="oh-card__lead">{t("onlineLobby.t59", { v1: Math.max(0, Math.ceil((queue.cpuFillInMs - (now - queue.since)) / 1000)) })}</p>
               <button type="button" className="oh-ghost" onClick={() => onlineLink.cancelQueue()}>
                 {t("cardSlot.t7")}
               </button>
@@ -723,7 +711,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                   }}
                 />
                 <button type="button" className="oh-cta" disabled={status === "connecting" || !roomCode.trim()} onClick={join}>
-                  {status === "connecting" ? "接続中…" : "部屋に入る"}
+                  {status === "connecting" ? t("onlineLobby.t60") : t("onlineLobby.t61")}
                 </button>
               </div>
             </div>
@@ -732,7 +720,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {inRoom && (
             <div className="oh-card oh-card--room">
               <div className="oh-card__head">
-                <span className="oh-card__title">合言葉「{room}」の部屋</span>
+                <span className="oh-card__title">{t("onlineLobby.t62", { room: room ?? "" })}</span>
                 <span className="oh-card__en">{members.length} / 4</span>
               </div>
               <ul className="oh-seats">
@@ -749,10 +737,10 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                         <span className="oh-seat__name">
                           {m.isHost ? "★ " : ""}
                           {m.name}
-                          {m.isYou ? "（あなた）" : ""}
+                          {m.isYou ? t("onlineLobby.t63") : ""}
                         </span>
                         <span className="oh-seat__loadout">
-                          {character ? character.name : "おまかせ"} ／ {cardLabel(m.cardId, m.cardId2)}
+                          {character ? character.name : t("matchSetup.t11")} ／ {cardLabel(m.cardId, m.cardId2)}
                         </span>
                       </span>
                     </li>

@@ -28,25 +28,18 @@ function AgeGate({ onSubmit, busy }: { onSubmit: (birthMonth: string) => void; b
 
   return (
     <div className="shop-screen__age">
-      <p className="setup-lead">
-        雀玉を買う前に、生まれた年と月を教えてください。年齢によって1か月に買える額に上限があります（
-        {AGE_BRACKET_LABELS.under16}：{yen(MONTHLY_LIMIT_YEN.under16!)}、{AGE_BRACKET_LABELS["16to17"]}：{yen(MONTHLY_LIMIT_YEN["16to17"]!)}）。
-      </p>
+      <p className="setup-lead">{t("shopScreen.t13", { under16: AGE_BRACKET_LABELS.under16, v1: yen(MONTHLY_LIMIT_YEN.under16!), v2: AGE_BRACKET_LABELS["16to17"], v3: yen(MONTHLY_LIMIT_YEN["16to17"]!) })}</p>
       <div className="shop-screen__age-inputs">
         <select value={year} onChange={(e) => (setYear(e.target.value), setConfirming(false))} aria-label={t("shopScreen.t1")}>
           <option value="">{t("shopScreen.t2")}</option>
           {Array.from({ length: 100 }, (_, i) => thisYear - i).map((y) => (
-            <option key={y} value={y}>
-              {y}年
-            </option>
+            <option key={y} value={y}>{t("shopScreen.t14", { y })}</option>
           ))}
         </select>
         <select value={month} onChange={(e) => (setMonth(e.target.value), setConfirming(false))} aria-label={t("shopScreen.t3")}>
           <option value="">{t("shopScreen.t4")}</option>
           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-            <option key={m} value={m}>
-              {m}月
-            </option>
+            <option key={m} value={m}>{t("shopScreen.t15", { m })}</option>
           ))}
         </select>
         {!confirming && (
@@ -57,9 +50,7 @@ function AgeGate({ onSubmit, busy }: { onSubmit: (birthMonth: string) => void; b
       </div>
       {confirming && birthMonth && (
         <div className="first-gacha__confirm">
-          <p>
-            {year}年{month}月生まれで登録します。一度登録すると自分では変えられません。よろしいですか？
-          </p>
+          <p>{t("shopScreen.t16", { year, month })}</p>
           <div className="setup-buttons">
             <button type="button" className="btn btn--primary" disabled={busy} onClick={() => onSubmit(birthMonth)}>
               {t("shopScreen.t6")}
@@ -110,7 +101,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
   const [shop, setShop] = useState<ShopResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(
-    returned === "done" ? "お支払いありがとうございます。雀玉の反映まで少しかかることがあります。" : returned === "cancel" ? "購入を取りやめました。" : null,
+    returned === "done" ? t("shopScreen.t17") : returned === "cancel" ? t("shopScreen.t18") : null,
   );
   const [busy, setBusy] = useState(false);
   const [choice, setChoice] = useState<JadeProduct | null>(null);
@@ -154,7 +145,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
       }
       const next = await payTestPurchase(checkout.purchaseId);
       setChoice(null);
-      setNotice(`テスト購入：雀玉 ${product.paidJade + product.bonusJade} を受け取りました`);
+      setNotice(t("shopScreen.t19", { v1: product.paidJade + product.bonusJade }));
       return next;
     });
 
@@ -181,9 +172,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
           <>
             <div className="gacha-screen__jade">
               雀玉 <strong>{(shop.jade.free + shop.jade.paid).toLocaleString()}</strong>
-              <span className="gacha-screen__jade-detail">
-                （無償 {shop.jade.free.toLocaleString()} ／ 有償 {shop.jade.paid.toLocaleString()}）
-              </span>
+              <span className="gacha-screen__jade-detail">{t("gachaScreen.t6", { v1: shop.jade.free.toLocaleString(), v2: shop.jade.paid.toLocaleString() })}</span>
             </div>
             {shop.mode === "closed" && <p className="setup-lead">{t("shopScreen.t10")}</p>}
             {shop.mode === "test" && <p className="shop-screen__test">{t("shopScreen.t11")}</p>}
@@ -191,10 +180,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
             {shop.mode !== "closed" && shop.ageBracket && (
               <>
                 {remaining !== null && (
-                  <p className="setup-lead">
-                    {AGE_BRACKET_LABELS[shop.ageBracket]}の方は月{yen(shop.monthlyLimitYen!)}まで購入できます（今月はあと{yen(remaining)}）。
-                    購入の前に、必ず保護者の方の同意を得てください。
-                  </p>
+                  <p className="setup-lead">{t("shopScreen.t20", { v1: AGE_BRACKET_LABELS[shop.ageBracket], v2: yen(shop.monthlyLimitYen!), v3: yen(remaining) })}</p>
                 )}
                 <div className="shop-screen__products">
                   {shop.products.map((p) => (
@@ -205,23 +191,18 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
                       disabled={busy || (remaining !== null && p.priceYen > remaining)}
                       onClick={() => setChoice(p)}
                     >
-                      <span className="shop-screen__product-jade">雀玉 {p.paidJade.toLocaleString()}</span>
-                      <span className="shop-screen__product-bonus">{p.bonusJade > 0 ? `+おまけ ${p.bonusJade.toLocaleString()}` : " "}</span>
+                      <span className="shop-screen__product-jade">{t("shopScreen.t21", { v1: p.paidJade.toLocaleString() })}</span>
+                      <span className="shop-screen__product-bonus">{p.bonusJade > 0 ? t("shopScreen.t22", { v1: p.bonusJade.toLocaleString() }) : " "}</span>
                       <span className="shop-screen__product-price">{yen(p.priceYen)}</span>
                     </button>
                   ))}
                 </div>
                 {choice && (
                   <div className="first-gacha__confirm">
-                    <p>
-                      雀玉 {choice.paidJade.toLocaleString()}
-                      {choice.bonusJade > 0 && `（+おまけ ${choice.bonusJade.toLocaleString()}）`}を{yen(choice.priceYen)}で購入しますか？
-                      購入後の返品・キャンセルはできません。
-                      {minor && "保護者の方の同意を得ていることを確認してください。"}
-                    </p>
+                    <p>{t("shopScreen.t23", { v1: choice.paidJade.toLocaleString(), v2: choice.bonusJade > 0 ? t("shopScreen.t29", { v1: choice.bonusJade.toLocaleString() }) : "", v3: yen(choice.priceYen), v4: minor ? t("shopScreen.t30") : "" })}</p>
                     <div className="setup-buttons">
                       <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void buy(choice)}>
-                        {shop.mode === "test" ? "テスト購入する" : "支払いへ進む"}
+                        {shop.mode === "test" ? t("shopScreen.t24") : t("shopScreen.t25")}
                       </button>
                       <button type="button" className="btn btn--secondary" onClick={() => setChoice(null)}>
                         {t("cardSlot.t7")}
@@ -238,14 +219,8 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
                   {shop.purchases.map((p) => (
                     <li key={p.id} className="inbox-screen__gift">
                       <div className="inbox-screen__gift-main">
-                        <div className="inbox-screen__news-title">
-                          雀玉 {p.paidJade.toLocaleString()}
-                          {p.bonusJade > 0 && `（+おまけ ${p.bonusJade.toLocaleString()}）`}
-                        </div>
-                        <div className="inbox-screen__date">
-                          {dateTime(p.createdAt)}・{yen(p.priceYen)}
-                          {!jadeProduct(p.productId) && "・販売終了の商品"}
-                        </div>
+                        <div className="inbox-screen__news-title">{t("shopScreen.t26", { v1: p.paidJade.toLocaleString(), v2: p.bonusJade > 0 ? t("shopScreen.t29", { v1: p.bonusJade.toLocaleString() }) : "" })}</div>
+                        <div className="inbox-screen__date">{t("shopScreen.t27", { v1: dateTime(p.createdAt), v2: yen(p.priceYen), v3: !jadeProduct(p.productId) ? t("shopScreen.t31") : "" })}</div>
                       </div>
                       <span className={`shop-screen__status shop-screen__status--${p.status}`}>{PURCHASE_STATUS_LABELS[p.status]}</span>
                     </li>
@@ -254,9 +229,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
               </>
             )}
             <div className="setup-buttons">
-              <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowLegal((v) => !v)}>
-                特定商取引法・資金決済法の表示{showLegal ? "を閉じる" : "を見る"}
-              </button>
+              <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowLegal((v) => !v)}>{t("shopScreen.t28", { v1: showLegal ? t("gachaScreen.t19") : t("gachaScreen.t20") })}</button>
             </div>
             {showLegal && <LegalNotes />}
           </>

@@ -49,9 +49,7 @@ function PlaceLineChart({ series }: { series: RankedSeriesPoint[] }) {
         {[1, 2, 3, 4].map((p) => (
           <g key={p}>
             <line x1={CHART_LEFT - 4} x2={CHART_W - CHART_RIGHT} y1={chartY(p)} y2={chartY(p)} className="history-stats__grid" />
-            <text x={CHART_LEFT - 8} y={chartY(p) + 5} textAnchor="end" className="history-stats__axis">
-              {p}位
-            </text>
+            <text x={CHART_LEFT - 8} y={chartY(p) + 5} textAnchor="end" className="history-stats__axis">{t("historyStats.t28", { p })}</text>
           </g>
         ))}
         {shown.length > 1 && <polyline points={points} className="history-stats__path" />}
@@ -77,12 +75,12 @@ function PlaceBars({ series }: { series: RankedSeriesPoint[] }) {
     <section className="history-stats__block">
       <div className="history-stats__head">
         <h3>{t("historyStats.t6")}</h3>
-        <span className="history-stats__note">直近{series.length}戦</span>
+        <span className="history-stats__note">{t("historyStats.t29", { length: series.length })}</span>
       </div>
       <div className="history-stats__bars">
         {counts.map((n, i) => (
           <div key={i} className="history-stats__bar-row">
-            <span className="history-stats__bar-label">{i + 1}位</span>
+            <span className="history-stats__bar-label">{t("historyStats.t30", { v1: i + 1 })}</span>
             <span className="history-stats__bar-track">
               <span className={`history-stats__bar history-stats__bar--place${i + 1}`} style={{ width: `${series.length ? (n / series.length) * 100 : 0}%` }} />
             </span>
@@ -208,9 +206,7 @@ export function HistoryStats({
   const [format, setFormat] = useState<MatchFormat>(byFormat.tonpuusen.games >= byFormat.hanchan.games ? "tonpuusen" : "hanchan");
   return (
     <div className="history-stats">
-      <p className="history-stats__total">
-        通算 {total.games}戦・平均順位 {averagePlace(total)}
-      </p>
+      <p className="history-stats__total">{t("historyStats.t31", { games: total.games, v1: averagePlace(total) })}</p>
       <div className="history-stats__cols">
         <div className="history-stats__left">
           <PlaceLineChart series={series} />
@@ -224,7 +220,7 @@ export function HistoryStats({
             {(["tonpuusen", "hanchan"] as MatchFormat[]).map((f) => (
               <button key={f} type="button" className={`history-stats__format${format === f ? " is-active" : ""}`} onClick={() => setFormat(f)}>
                 {FORMAT_LABEL[f]}
-                <small>{byFormat[f].games}戦</small>
+                <small>{t("historyStats.t32", { games: byFormat[f].games })}</small>
               </button>
             ))}
           </div>

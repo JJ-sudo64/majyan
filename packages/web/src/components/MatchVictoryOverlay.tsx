@@ -41,7 +41,7 @@ export function MatchVictoryOverlay({
         {champion.player === 0 && (
           <button
             className="btn btn--large"
-            onClick={() => shareToX(`雀杯で${champion.character.name}を使ってトップを取った！「${champion.character.winQuote}」`)}
+            onClick={() => shareToX(t("matchVictoryOverlay.t3", { name: champion.character.name, winQuote: champion.character.winQuote }))}
           >
             {t("gachaScreen.t3")}
           </button>

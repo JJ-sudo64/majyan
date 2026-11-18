@@ -31,7 +31,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
     try {
       const res = await claimMissions(missionId);
       setData((d) => (d ? { ...d, missions: res.missions } : d));
-      setNotice(`雀玉 ${res.jade} を受け取りました`);
+      setNotice(t("missionsScreen.t4", { jade: res.jade }));
       playUiSuccess();
     } catch (err) {
       setError((err as Error).message);
@@ -60,9 +60,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
         )}
         {data && (
           <>
-            <p className="setup-lead">
-              デイリーは毎日0時（{untilReset(data.resetsAt, Date.now())}）、ウィークリーは毎週月曜0時（{untilReset(data.weeklyResetsAt, Date.now())}）に新しくなります（日本時間）。
-            </p>
+            <p className="setup-lead">{t("missionsScreen.t5", { v1: untilReset(data.resetsAt, Date.now()), v2: untilReset(data.weeklyResetsAt, Date.now()) })}</p>
             {ready.length > 1 && (
               <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void claim(null)}>
                 {t("inboxScreen.t4")}
@@ -70,7 +68,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
             )}
             {(["daily", "weekly"] as const).map((period) => (
             <div key={period}>
-            <div className="setup-character-select__label">{period === "daily" ? "デイリー" : "ウィークリー"}</div>
+            <div className="setup-character-select__label">{period === "daily" ? t("missionsScreen.t6") : t("missionsScreen.t7")}</div>
             <ul className="inbox-screen__list">
               {data.missions.filter((m) => m.period === period).map((m) => {
                 const done = m.progress >= m.target;
@@ -81,15 +79,13 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
                       <div className="missions-screen__bar">
                         <div className="missions-screen__bar-fill" style={{ width: `${(m.progress / m.target) * 100}%` }} />
                       </div>
-                      <div className="inbox-screen__date">
-                        {m.progress} / {m.target}・報酬 雀玉 {m.jade}
-                      </div>
+                      <div className="inbox-screen__date">{t("missionsScreen.t8", { progress: m.progress, target: m.target, jade: m.jade })}</div>
                     </div>
                     {m.claimed ? (
                       <span className="missions-screen__claimed">{t("missionsScreen.t2")}</span>
                     ) : (
                       <button type="button" className="btn" disabled={!done || busy} onClick={() => void claim(m.id)}>
-                        {done ? "受け取る" : "未達成"}
+                        {done ? t("inboxScreen.t5") : t("missionsScreen.t9")}
                       </button>
                     )}
                   </li>

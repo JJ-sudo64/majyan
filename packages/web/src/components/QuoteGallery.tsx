@@ -28,9 +28,7 @@ export function QuoteGallery() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <span className="quote-gallery__count">
-          {shown.length} / {all.length} キャラ
-        </span>
+        <span className="quote-gallery__count">{t("quoteGallery.t3", { length: shown.length, v1: all.length })}</span>
       </header>
       <div className="quote-gallery__grid">
         {shown.map((c) => (
@@ -39,7 +37,7 @@ export function QuoteGallery() {
             <div>
               <div className="quote-gallery__name">
                 {c.name}
-                <span className="quote-gallery__skill">必殺技: {c.skill.name}</span>
+                <span className="quote-gallery__skill">{t("hand.t21", { name: c.skill.name })}</span>
               </div>
               <p className="quote-gallery__quote">「{c.winQuote}」</p>
             </div>

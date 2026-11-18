@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { CHARACTERS, type PlayerIndex, type RoundState } from "@majyan/core";
+import { useT } from "../i18n/index.js";
 
 /** 必殺技ゲージの表示。溜まり具合をバーで見せ、満タン時は光らせて発動可能を知らせる。 */
 export function SkillGauge({ round, player }: { round: RoundState; player: PlayerIndex }) {
+  const t = useT();
   const readyNow = (() => {
     const c = CHARACTERS[round.characterIds[player]];
     return !!c && round.players[player].skillGauge >= c.gaugeMax;
@@ -38,7 +40,7 @@ export function SkillGauge({ round, player }: { round: RoundState; player: Playe
           「これは何のゲージか」が伝わらないとの指摘のため、常時見える
           ラベルとして「必殺技」だけは出しておく（技名まで出すと横長に
           なりすぎるため、名前はready時のボタン側に譲る）。 */}
-      <div className="skill-gauge__label">{ready ? "必殺技 READY!" : "必殺技"}</div>
+      <div className="skill-gauge__label">{ready ? t("skillGauge.t1") : t("skillGauge.t2")}</div>
       <div className="skill-gauge__bar">
         <div className="skill-gauge__fill" style={{ width: `${pct}%` }} />
         <div className="skill-gauge__ticks" />

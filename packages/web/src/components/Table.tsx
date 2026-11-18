@@ -633,9 +633,7 @@ export function Table() {
             <div className="skill-info-card" onClick={(e) => e.stopPropagation()}>
               <img className="skill-info-card__avatar" src={skillInfoCharacter.avatar} alt="" />
               <div className="skill-info-card__name">{skillInfoCharacter.name}</div>
-              <div className="skill-info-card__skill">
-                必殺技「{skillInfoCharacter.skill.name}」: {skillInfoCharacter.skill.description}
-              </div>
+              <div className="skill-info-card__skill">{t("matchSetup.t20", { name: skillInfoCharacter.skill.name, description: skillInfoCharacter.skill.description })}</div>
               <button className="btn btn--primary" onClick={() => setSkillInfoSeat(null)}>
                 {t("common.close")}
               </button>

@@ -51,19 +51,19 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
                 <span className="rank-guide__mine-rank">{rank.label}</span>
                 <span className="rank-guide__mine-points">
                   {rank.maxPoints === null
-                    ? `${rank.points} pt（いちばん上の段位です）`
-                    : `${rank.points} / ${rank.maxPoints} pt・あと ${rank.maxPoints - rank.points} pt で昇段`}
+                    ? t("rankGuideScreen.t15", { points: rank.points })
+                    : t("rankGuideScreen.t16", { points: rank.points, maxPoints: rank.maxPoints, v1: rank.maxPoints - rank.points })}
                 </span>
               </div>
             )}
 
             <div className="rank-guide__ladder">
-              {RANK_TIERS.map((tier, t) => (
+              {RANK_TIERS.map((tier, ti) => (
                 <Fragment key={tier.id}>
-                  {t > 0 && <span className="rank-guide__arrow">▶</span>}
-                  <span className={`rank-guide__step${rank?.tier === t ? " is-mine" : ""}`}>
+                  {ti > 0 && <span className="rank-guide__arrow">▶</span>}
+                  <span className={`rank-guide__step${rank?.tier === ti ? " is-mine" : ""}`}>
                     <span className="rank-guide__step-name">{tier.name}</span>
-                    <span className="rank-guide__step-levels">{tier.levelMax.length === 0 ? "頂点" : "1 → 2 → 3"}</span>
+                    <span className="rank-guide__step-levels">{tier.levelMax.length === 0 ? t("rankGuideScreen.t17") : "1 → 2 → 3"}</span>
                   </span>
                 </Fragment>
               ))}
@@ -91,7 +91,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
               <span className="rank-guide__tabs-label">{t("rankGuideScreen.t9")}</span>
               {(["tonpuusen", "hanchan"] as MatchFormat[]).map((f) => (
                 <button key={f} type="button" className={`rank-guide__tab${format === f ? " is-active" : ""}`} onClick={() => setFormat(f)}>
-                  {f === "hanchan" ? "半荘戦" : "東風戦"}
+                  {f === "hanchan" ? t("format.hanchan") : t("format.tonpuusen")}
                 </button>
               ))}
             </div>
@@ -103,7 +103,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
                     <th>{t("rankGuideScreen.t10")}</th>
                     <th>{t("rankGuideScreen.t11")}</th>
                     {PLACES.map((p) => (
-                      <th key={p}>{p}位</th>
+                      <th key={p}>{t("historyStats.t28", { p })}</th>
                     ))}
                   </tr>
                 </thead>
@@ -118,7 +118,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
                           {isMine(r) && <span className="rank-guide__here">{t("rankGuideScreen.t12")}</span>}
                           {!tier.canDemote[r.level] && <span className="rank-guide__safe">{t("rankGuideScreen.t13")}</span>}
                         </th>
-                        <td>{max === null ? "上限なし" : `${tier.levelStart[r.level]} → ${max}`}</td>
+                        <td>{max === null ? t("rankGuideScreen.t18") : `${tier.levelStart[r.level]} → ${max}`}</td>
                         {PLACES.map((p) => {
                           const d = rankPointDelta(r, format, p, BASE_SCORE);
                           return (
@@ -137,13 +137,11 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
             <div className="rank-guide__score">
               <div className="rank-guide__score-title">{t("rankGuideScreen.t14")}</div>
               <p>
-                25000点より<b>1000点多いごとに約 +{scoreSlope.toFixed(1)}</b>、<b>1000点少ないごとに約 −{scoreSlope.toFixed(1)}</b> が、上の表の数字に足されます（段位が上がるほど大きくなります）。
+                25000点より<b>{t("rankGuideScreen.t19", { v1: scoreSlope.toFixed(1) })}</b>、<b>{t("rankGuideScreen.t20", { v1: scoreSlope.toFixed(1) })}</b> が、上の表の数字に足されます（段位が上がるほど大きくなります）。
               </p>
               <p className="rank-guide__example">
-                例：{rankLabel(sample)}で{format === "hanchan" ? "半荘戦" : "東風戦"}を1位・{sampleScore.toLocaleString()}点で終えると、
-                <b>
-                  {signed(samplePlacement)}（1位・25000点のとき） {signed(sampleTotal - samplePlacement)}（持ち点） ＝ {signed(sampleTotal)} pt
-                </b>
+                例：{rankLabel(sample)}で{format === "hanchan" ? t("format.hanchan") : t("format.tonpuusen")}を1位・{sampleScore.toLocaleString()}点で終えると、
+                <b>{t("rankGuideScreen.t21", { v1: signed(samplePlacement), v2: signed(sampleTotal - samplePlacement), v3: signed(sampleTotal) })}</b>
               </p>
             </div>
 

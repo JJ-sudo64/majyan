@@ -6,6 +6,7 @@ import { useT } from "../i18n/index.js";
 type LegalTab = "terms" | "privacy";
 
 function LegalBody({ sections }: { sections: readonly LegalSection[] }) {
+  const t = useT();
   return (
     <div className="legal-screen__body">
       {sections.map((s) => (
@@ -14,7 +15,7 @@ function LegalBody({ sections }: { sections: readonly LegalSection[] }) {
           <p style={{ whiteSpace: "pre-line" }}>{s.body}</p>
         </section>
       ))}
-      <p className="legal-screen__version">{TERMS_VERSION} 版</p>
+      <p className="legal-screen__version">{t("legalScreen.t6", { TERMS_VERSION })}</p>
     </div>
   );
 }

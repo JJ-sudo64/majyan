@@ -105,7 +105,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
     <div className="modal-overlay" onClick={onClose}>
       <div className="gacha-screen transfer-screen" onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">{profile ? "引き継ぎ・退会" : "引き継ぎ"}</div>
+          <div className="setup-character-select__label">{profile ? t("onlineLobby.t18") : t("transferScreen.t14")}</div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
           </button>
@@ -140,7 +140,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
                     </p>
                     <div className="setup-buttons">
                       <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void submitRegenerate()}>
-                        {busy ? "作り直しています…" : "作り直す"}
+                        {busy ? t("transferScreen.t15") : t("transferScreen.t16")}
                       </button>
                       <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => setConfirmRegenerate(false)}>
                         {t("cardSlot.t7")}
@@ -153,9 +153,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
             {code !== undefined && (
               <div className="online-lobby__form">
                 <label className="online-lobby__field">
-                  <span>
-                    {code ? "新しいパスワード" : "パスワード"}（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）
-                  </span>
+                  <span>{t("transferScreen.t17", { v1: code ? t("transferScreen.t26") : t("transferScreen.t11"), TRANSFER_PASSWORD_MIN_LENGTH })}</span>
                   <input
                     type="password"
                     autoComplete="new-password"
@@ -178,7 +176,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
                   />
                 </label>
                 <button type="button" className="btn btn--primary" disabled={!canSet} onClick={() => void submitPassword()}>
-                  {code ? "パスワードを変える" : "パスワードを決める"}
+                  {code ? t("transferScreen.t18") : t("transferScreen.t19")}
                 </button>
               </div>
             )}
@@ -197,10 +195,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
           <div className="online-lobby__section-title">{t("transferScreen.t9")}</div>
           <p className="setup-lead">{t("transferScreen.t10")}</p>
           {profile && (
-            <p className="transfer-screen__note">
-              このブラウザの今のアカウント（{profile.displayName} さん）とは入れ替わります。
-              {code ? "今のアカウントには、上の引き継ぎコードで戻れます。" : "今のアカウントは引き継ぎのパスワードを決めていないので、入れ替えると二度と戻れません。"}
-            </p>
+            <p className="transfer-screen__note">{t("transferScreen.t20", { displayName: profile.displayName, v1: code ? t("transferScreen.t27") : t("transferScreen.t28") })}</p>
           )}
           <div className="online-lobby__form">
             <label className="online-lobby__field">
@@ -227,7 +222,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
               </label>
             )}
             <button type="button" className="btn btn--primary" disabled={!canLogin} onClick={() => void submitLogin()}>
-              {busy ? "確認中…" : "このアカウントで入る"}
+              {busy ? t("transferScreen.t21") : t("transferScreen.t22")}
             </button>
           </div>
           {loginError && <p className="online-lobby__error">{loginError}</p>}
@@ -242,16 +237,12 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
             ) : (
               <>
                 <div className="online-lobby__section-title">{t("transferScreen.t13")}</div>
-                <p className="transfer-screen__note">
-                  退会すると、このアカウント（{profile.displayName} さん）には二度と入れません。雀玉・キャラ・カード・段位はすべて使えなくなり、引き継ぎコードも消えます。取り消しはできません。
-                </p>
+                <p className="transfer-screen__note">{t("transferScreen.t23", { displayName: profile.displayName })}</p>
                 {jade && jade.paid > 0 && (
-                  <p className="online-lobby__error">
-                    購入した（有償の）雀玉が{jade.paid.toLocaleString()}個残っています。退会するとこの雀玉も使えなくなり、払い戻しもできません。
-                  </p>
+                  <p className="online-lobby__error">{t("transferScreen.t24", { v1: jade.paid.toLocaleString() })}</p>
                 )}
                 <label className="online-lobby__field">
-                  <span>確認のため「{ACCOUNT_DELETE_CONFIRM}」と入力してください</span>
+                  <span>{t("transferScreen.t25", { ACCOUNT_DELETE_CONFIRM })}</span>
                   <input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} />
                 </label>
                 <div className="setup-buttons">

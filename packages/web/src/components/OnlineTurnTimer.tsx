@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useGameStore } from "../store/gameStore.js";
 import { playCountdownBeep } from "../sound.js";
+import { useT } from "../i18n/index.js";
 
 /** 自分の持ち時間がこの秒数以下になったら、1秒ごとに音で知らせる。 */
 const BEEP_FROM_SECONDS = 5;
@@ -17,6 +18,7 @@ const SEAT_LABELS = ["あなた", "下家", "対面", "上家"];
  * 自分の時間が残りわずか（時間切れまでBEEP_FROM_SECONDS秒以下）になると、1秒ごとに音を鳴らす。
  */
 export function OnlineTurnTimer() {
+  const t = useT();
   const clock = useGameStore((s) => s.clock);
   const seats = useGameStore((s) => s.onlineSeats);
   const [now, setNow] = useState(() => performance.now());
@@ -41,14 +43,14 @@ export function OnlineTurnTimer() {
   }, [secondsLeft]);
 
   if (!clock || seats?.[clock.seat]?.isCpu) return null;
-  const who = mine ? "あなた" : (seats?.[clock.seat]?.name ?? SEAT_LABELS[clock.seat]);
+  const who = mine ? t("standings.you") : (seats?.[clock.seat]?.name ?? SEAT_LABELS[clock.seat]);
   const urgent = base === 0 && bank < 5000;
 
   return (
     <div className={`online-turn-timer${mine ? " online-turn-timer--mine" : ""}${urgent ? " online-turn-timer--urgent" : ""}`}>
       <span className="online-turn-timer__who">
         {who}
-        {clock.kind === "call" ? "の鳴き判断" : "の手番"}
+        {clock.kind === "call" ? t("onlineTurnTimer.t1") : t("onlineTurnTimer.t2")}
       </span>
       <span className="online-turn-timer__time">
         {Math.ceil(base / 1000)}

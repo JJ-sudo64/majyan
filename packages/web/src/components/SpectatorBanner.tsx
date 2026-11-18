@@ -10,7 +10,7 @@ export function SpectatorBanner() {
     <div className="replay-controls spectator-banner">
       <div className="replay-controls__info">
         <strong>{t("spectatorBanner.t1")}</strong>
-        <span>{seats?.[0]?.name ?? ""} さんの後ろから（手牌は見えません）</span>
+        <span>{t("spectatorBanner.t3", { v1: seats?.[0]?.name ?? "" })}</span>
       </div>
       <button type="button" className="btn btn--secondary" onClick={backToTitle}>
         {t("spectatorBanner.t2")}

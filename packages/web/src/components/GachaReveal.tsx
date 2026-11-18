@@ -124,12 +124,12 @@ export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () 
         <div key={spot} className="gacha-reveal__spot">
           <div className="gacha-reveal__spot-rays" />
           {character && <img className="gacha-reveal__art" src={character.cutin ?? character.avatar} alt="" />}
-          {card && <div className="gacha-reveal__card">{card.kind === "passive" ? "常時" : "消費"}</div>}
+          {card && <div className="gacha-reveal__card">{card.kind === "passive" ? t("gachaReveal.t1") : t("gachaReveal.t2")}</div>}
           <div className="gacha-reveal__plate">
             <div className="gacha-reveal__stars">{RARITY_STARS[3]}</div>
             {character && <div className="gacha-reveal__title">{character.name.split("・")[0]}</div>}
             <div className="gacha-reveal__name">{character ? character.name.split("・").at(-1) : card?.name}</div>
-            <div className="gacha-reveal__skill">{character ? `必殺技「${character.skill.name}」` : "カード"}</div>
+            <div className="gacha-reveal__skill">{character ? t("gachaReveal.t3", { name: character.skill.name }) : t("gachaScreen.t2")}</div>
           </div>
           {stars.length > 1 && (
             <div className="gacha-reveal__count">
@@ -149,7 +149,7 @@ export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () 
       >
         {t("call.skip")}
       </button>
-      <div className="gacha-reveal__hint">{phase === "spot" ? "タップで次へ" : ""}</div>
+      <div className="gacha-reveal__hint">{phase === "spot" ? t("gachaReveal.t4") : ""}</div>
     </div>,
     portalRoot(),
   );

@@ -41,10 +41,8 @@ export function FirstGacha() {
 
   return (
     <div className="first-gacha">
-      <h2 className="first-gacha__title">はじめの{FIRST_GACHA.count}連</h2>
-      <p className="setup-lead">
-        最初の仲間を選ぶガチャです。キャラとカードが出ます。{CHARACTERS[FIRST_GACHA.fixed.id]?.name ?? ""}は必ず1枠入ります。納得いくまで何度でも引き直せます。「これで決定」を押すと、出たものがすべて手に入ります。
-      </p>
+      <h2 className="first-gacha__title">{t("firstGacha.t4", { count: FIRST_GACHA.count })}</h2>
+      <p className="setup-lead">{t("firstGacha.t5", { v1: CHARACTERS[FIRST_GACHA.fixed.id]?.name ?? "" })}</p>
 
       {pending && revealing && <GachaReveal key={firstGacha?.rolls} items={pending} onDone={() => setRevealing(false)} />}
       {pending && !revealing && (
@@ -60,7 +58,7 @@ export function FirstGacha() {
       {!confirming ? (
         <div className="setup-buttons">
           <button type="button" className="btn btn--primary btn--large" disabled={busy} onClick={() => void rollAndReveal()}>
-            {pending ? `引き直す（${firstGacha?.rolls ?? 0}回目）` : `${FIRST_GACHA.count}連を引く`}
+            {pending ? t("firstGacha.t6", { v1: firstGacha?.rolls ?? 0 }) : t("firstGacha.t7", { count: FIRST_GACHA.count })}
           </button>
           {pending && (
             <button type="button" className="btn btn--large" disabled={busy} onClick={() => setConfirming(true)}>
@@ -70,7 +68,7 @@ export function FirstGacha() {
         </div>
       ) : (
         <div className="first-gacha__confirm">
-          <p>この{FIRST_GACHA.count}連の結果で決定しますか？（決定した後は引き直せません）</p>
+          <p>{t("firstGacha.t8", { count: FIRST_GACHA.count })}</p>
           <div className="setup-buttons">
             <button type="button" className="btn btn--primary btn--large" disabled={busy} onClick={() => void run(confirmFirstGacha)}>
               {t("firstGacha.t2")}

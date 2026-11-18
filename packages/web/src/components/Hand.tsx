@@ -556,22 +556,22 @@ export function Hand({ round }: { round: RoundState }) {
                 note={
                   heldCard.kind === "passive"
                     ? heldCard.maxUses === undefined
-                      ? "常時発動中"
+                      ? t("hand.t12")
                       : // 回数制限つきの常時効果（加護・配牌の底上げ等）は、残り回数を見せる。
                         uses > 0
-                        ? `常時発動中・残り${uses}回`
-                        : "使い切り"
+                        ? t("hand.t13", { uses })
+                        : t("hand.t14")
                     : heldCard.hooks.onUse
                       ? uses > 0
-                        ? `残り${uses}回`
-                        : "使用済み"
+                        ? t("hand.t15", { uses })
+                        : t("hand.t16")
                       : // onUseを持たない消費型カード（例:一閃の盾）は自分では使えず、
                         // 条件を満たした瞬間に自動で発動・消費される「持っているだけ」の
                         // カードのため、手動使用前提の「残りN回」ではなく発動待ち/
                         // 発動済みとして表示する（指摘により）。
                         uses > 0
-                        ? "発動待ち"
-                        : "発動済み"
+                        ? t("hand.t17")
+                        : t("hand.t18")
                 }
               />
             )}
@@ -587,16 +587,12 @@ export function Hand({ round }: { round: RoundState }) {
                 setSwapMode(true);
                 setSwapSelection([]);
               }}
-            >
-              配牌交換 (残り{player.tileSwapsRemaining})
-            </button>
+            >{t("hand.t19", { tileSwapsRemaining: player.tileSwapsRemaining })}</button>
           </div>
         )}
         {swapMode && (
           <div className="call-actions">
-            <span className="wait-row__label">
-              {swapSelection.length}/{player.tileSwapsRemaining}枚選択中
-            </span>
+            <span className="wait-row__label">{t("hand.t20", { length: swapSelection.length, tileSwapsRemaining: player.tileSwapsRemaining })}</span>
             {swapSelection.length === player.tileSwapsRemaining && (
               <button
                 className="btn btn--skill"
@@ -623,9 +619,7 @@ export function Hand({ round }: { round: RoundState }) {
         {isMyTurn && (
           <div className="call-actions">
             {skillReady && character && (
-              <button className="btn btn--skill" onClick={() => humanUseSkill()} title={character.skill.description}>
-                必殺技: {character.skill.name}
-              </button>
+              <button className="btn btn--skill" onClick={() => humanUseSkill()} title={character.skill.description}>{t("hand.t21", { name: character.skill.name })}</button>
             )}
             {borrowTargets.length > 0 && (
               // いきなり3人ぶんを横に並べると見にくいため、まず「借り物競争」の
@@ -658,15 +652,11 @@ export function Hand({ round }: { round: RoundState }) {
                   className={`btn btn--skill${borrowOpen ? " btn--skill-open" : ""}`}
                   onClick={() => setBorrowOpen((v) => !v)}
                   title={character?.skill.description}
-                >
-                  必殺技: {character?.skill.name ?? "借り物競争"} {borrowOpen ? "▲" : "▼"}
-                </button>
+                >{t("hand.t22", { v1: character?.skill.name ?? t("hand.t26"), v2: borrowOpen ? "▲" : "▼" })}</button>
               </div>
             )}
             {retrieveReady && !retrieveActive && character && (
-              <button className="btn btn--skill" onClick={() => startRetrieve()} title={character.skill.description}>
-                必殺技: {character.skill.name}
-              </button>
+              <button className="btn btn--skill" onClick={() => startRetrieve()} title={character.skill.description}>{t("hand.t21", { name: character.skill.name })}</button>
             )}
             {retrieveActive && (
               <>
@@ -677,18 +667,14 @@ export function Hand({ round }: { round: RoundState }) {
               </>
             )}
             {tsumoAnalysis && (
-              <button className="btn btn--ron" onClick={() => humanTsumo()}>
-                ツモ ({tsumoAnalysis.isYakuman ? "役満" : `${tsumoAnalysis.han}翻${tsumoAnalysis.fu}符`})
-              </button>
+              <button className="btn btn--ron" onClick={() => humanTsumo()}>{t("hand.t23", { v1: tsumoAnalysis.isYakuman ? t("scoreResult.t9") : t("hand.t27", { han: tsumoAnalysis.han, fu: tsumoAnalysis.fu }) })}</button>
             )}
             {riichiEligible && !riichiMode && !player.riichi && (
               <button
                 className="btn btn--riichi"
                 onClick={() => setRiichiMode(true)}
-                title={riichiAutoSkillName ? `一発中に必殺技「${riichiAutoSkillName}」が自動発動します` : undefined}
-              >
-                リーチ{riichiAutoSkillName}
-              </button>
+                title={riichiAutoSkillName ? t("hand.t28", { riichiAutoSkillName }) : undefined}
+              >{t("hand.t24", { riichiAutoSkillName: riichiAutoSkillName ?? "" })}</button>
             )}
             {riichiMode && (turnOptions?.riichiBorrowTargets ?? []).length > 0 && (
               // カリン: リーチ時に発動する技（アトミックリーチ・捲る運命等）は、
@@ -703,10 +689,7 @@ export function Hand({ round }: { round: RoundState }) {
                       className={`btn btn--skill${riichiBorrow === target ? " btn--skill-open" : ""}`}
                       onClick={() => setRiichiBorrow(riichiBorrow === target ? null : target)}
                       title={c.skill.description}
-                    >
-                      {riichiBorrow === target ? "✔ " : ""}
-                      {c.name}の「{c.skill.name}」
-                    </button>
+                    >{t("hand.t25", { v1: riichiBorrow === target ? "✔ " : "", name: c.name, v2: c.skill.name })}</button>
                   );
                 })}
               </div>

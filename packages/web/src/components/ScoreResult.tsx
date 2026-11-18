@@ -226,7 +226,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               <div className="win-detail__player">{PLAYER_NAMES[player]}</div>
               <WinningHandView round={round} player={player} />
               {player === round.dealerSeat && round.honba > 0 && hasCard(round, player, "dealer-honba-boost") && (
-                <div className="score-card-notes">カード「親孝行」：本場の点が2倍（{round.honba}本場）</div>
+                <div className="score-card-notes">{t("scoreResult.t7", { honba: round.honba })}</div>
               )}
               <div className="win-detail__dora">
                 <span className="hud__dora-label">{t("hud.doraIndicator")}</span>
@@ -249,14 +249,14 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               <ul className="yaku-list">
                 {analysis.yaku.map((y, i) => (
                   <li key={i}>
-                    {y.name} {analysis.isYakuman ? (y.han >= 26 ? "ダブル役満" : "役満") : y.han > 0 ? `${y.han}翻` : ""}
+                    {y.name} {analysis.isYakuman ? (y.han >= 26 ? t("scoreResult.t8") : t("scoreResult.t9")) : y.han > 0 ? t("scoreResult.t10", { han: y.han }) : ""}
                   </li>
                 ))}
               </ul>
               <div className="win-detail__score">
                 {analysis.isYakuman
-                  ? `${score.limitName ?? "役満"} ${score.payments.total}点`
-                  : `${analysis.han}翻${analysis.fu}符 ${score.payments.total}点${score.limitName ? `（${limitLabel(analysis.han, score.limitName)}）` : ""}`}
+                  ? t("scoreResult.t11", { v1: score.limitName ?? t("scoreResult.t9"), total: score.payments.total })
+                  : t("scoreResult.t12", { han: analysis.han, fu: analysis.fu, total: score.payments.total, v1: score.limitName ? `（${limitLabel(analysis.han, score.limitName)}）` : "" })}
               </div>
             </div>
           );
@@ -264,9 +264,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
 
         {round.result?.type === "exhaustive-draw" && (
           <div className="tenpai-list">
-            <div className="tenpai-list__label">
-              テンパイ: {(round.result.tenpaiPlayers ?? []).map((p) => PLAYER_NAMES[p]).join("、") || "なし"}
-            </div>
+            <div className="tenpai-list__label">{t("scoreResult.t13", { v1: (round.result.tenpaiPlayers ?? []).map((p) => PLAYER_NAMES[p]).join("、") || t("cardSlot.t10") })}</div>
             {/* 実際の麻雀のルール通り、荒牌流局時はテンパイを申告した者の手牌を
                 開示する（ノーテン者は開示不要のため対象外）。名前だけでは
                 「本当にテンパイしていたか」が分からず不透明だったため。 */}
@@ -309,15 +307,15 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                 <div className="rank-card__body">
                   <div className="rank-card__name">{PLAYER_NAMES[i]}</div>
                   <div className="rank-card__score-row">
-                    <span className="rank-card__rank">{rank + 1}位</span>
-                    <span className="rank-card__score">{s}点</span>
+                    <span className="rank-card__rank">{t("historyStats.t30", { v1: rank + 1 })}</span>
+                    <span className="rank-card__score">{t("scoreResult.t14", { s })}</span>
                     <span className={outcome.scoreDeltas[i]! >= 0 ? "delta-positive" : "delta-negative"}>
                       {outcome.scoreDeltas[i]! >= 0 ? "+" : ""}
                       {outcome.scoreDeltas[i]}
                     </span>
                   </div>
                   {finalPoints && (
-                    <div className="rank-card__mpt" title={`${M_LEAGUE_RULE.name}: ${M_LEAGUE_RULE.returnScore}点返し、順位点 ${M_LEAGUE_RULE.placement.join(" / ")}`}>
+                    <div className="rank-card__mpt" title={t("scoreResult.t15", { name: M_LEAGUE_RULE.name, returnScore: M_LEAGUE_RULE.returnScore, v1: M_LEAGUE_RULE.placement.join(" / ") })}>
                       {M_LEAGUE_RULE.name} <strong className={finalPoints[i]! >= 0 ? "delta-positive" : "delta-negative"}>{finalPoints[i]! >= 0 ? "+" : ""}{finalPoints[i]!.toFixed(1)}pt</strong>
                     </div>
                   )}
@@ -333,7 +331,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               <ul className="score-card-notes">
                 {match.finalBonusNotes.map((n, i) => (
                   <li key={i}>
-                    カード「{n.title}」 {PLAYER_NAMES[n.seat]}：<strong className={n.delta >= 0 ? "delta-positive" : "delta-negative"}>{n.delta >= 0 ? "+" : ""}{n.delta}点</strong>
+                    カード「{n.title}」 {PLAYER_NAMES[n.seat]}：<strong className={n.delta >= 0 ? "delta-positive" : "delta-negative"}>{t("scoreResult.t16", { v1: n.delta >= 0 ? "+" : "", delta: n.delta })}</strong>
                   </li>
                 ))}
               </ul>
@@ -378,7 +376,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               </div>
             )}
             {rankResult && rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && (
-              <button className="btn" onClick={() => shareToX(`雀杯の段位戦で「${rankResult.after.label}」に昇段した！`)}>
+              <button className="btn" onClick={() => shareToX(t("scoreResult.t17", { label: rankResult.after.label }))}>
                 {t("gachaScreen.t3")}
               </button>
             )}
@@ -389,12 +387,12 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
         ) : (
           <button className="btn btn--primary" onClick={acknowledgeRoundEnd} disabled={reading || (online && roundEndAcknowledged)}>
             {online && roundEndAcknowledged
-              ? "他のプレイヤーを待っています…"
+              ? t("scoreResult.t18")
               : tutorial
                 ? tutorial.scenarioIndex >= TUTORIAL_SCENARIOS.length - 1
-                  ? "チュートリアルを終わる"
-                  : "次へ"
-                : "次の局へ"}
+                  ? t("scoreResult.t19")
+                  : t("shopScreen.t5")
+                : t("scoreResult.t20")}
           </button>
         )}
           </div>

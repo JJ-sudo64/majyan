@@ -46,7 +46,7 @@ export function CardSlot({ kind, cardId, onOpen, emptyHint }: CardSlotProps) {
           <span className="cs-slot__empty">
             <span className="cs-slot__plus">＋</span>
           </span>
-          <span className="cs-slot__hint">{emptyHint ?? (onOpen ? "押して選ぶ" : "なし")}</span>
+          <span className="cs-slot__hint">{emptyHint ?? (onOpen ? t("cardSlot.t9") : t("cardSlot.t10"))}</span>
         </>
       )}
     </>
@@ -130,10 +130,10 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
             <div className="cs-picker__filters">
               {([0, 3, 2, 1] as const).map((r) => (
                 <button key={r} type="button" className={`card-picker-filters__chip${rarity === r ? " is-active" : ""}`} onClick={() => setRarity(r)}>
-                  {r === 0 ? "すべて" : STARS[r]}
+                  {r === 0 ? t("cardSlot.t11") : STARS[r]}
                 </button>
               ))}
-              <span className="card-picker-filters__count">{list.length}枚</span>
+              <span className="card-picker-filters__count">{t("cardSlot.t12", { length: list.length })}</span>
             </div>
             <div className="cs-picker__grid" onPointerLeave={() => setHover(null)}>
               {list.map((id) => (
@@ -148,7 +148,7 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
                     }}
                     onHover={() => setHover(id)}
                   />
-                  {counts && <span className="cs-pick__count">{counts[id] ?? 0}枚</span>}
+                  {counts && <span className="cs-pick__count">{t("cardSlot.t13", { v1: counts[id] ?? 0 })}</span>}
                 </div>
               ))}
               {list.length === 0 && <p className="cs-picker__empty">{t("cardSlot.t3")}</p>}
@@ -194,7 +194,7 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
                   disabled={!targetId || busy}
                   onClick={() => (permanent ? setConfirming(true) : targetId && onConfirm(targetId))}
                 >
-                  {permanent ? "付ける" : "このカードにする"}
+                  {permanent ? t("cardSlot.t6") : t("cardSlot.t14")}
                 </button>
               </div>
             )}

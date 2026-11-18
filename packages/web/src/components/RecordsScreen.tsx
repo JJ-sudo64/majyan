@@ -73,7 +73,7 @@ export function RecordsScreen({ onClose }: { onClose: () => void }) {
                       <td>{JADE_REASON_LABELS[e.reason] ?? e.reason}</td>
                       <td className={delta >= 0 ? "history-screen__delta--up" : "history-screen__delta--down"}>
                         {signed(delta)}
-                        {e.paidDelta !== 0 && <small>（有償 {signed(e.paidDelta)}）</small>}
+                        {e.paidDelta !== 0 && <small>{t("recordsScreen.t9", { v1: signed(e.paidDelta) })}</small>}
                       </td>
                       <td>{(e.freeAfter + e.paidAfter).toLocaleString()}</td>
                     </tr>

@@ -60,7 +60,7 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
     setError(null);
     try {
       const res = await claimGifts(giftId);
-      setNotice(`${contentsLabel(res.jade, res.items)} を受け取りました`);
+      setNotice(t("inboxScreen.t7", { v1: contentsLabel(res.jade, res.items) }));
       playUiSuccess();
       setInbox(await fetchInbox());
     } catch (err) {
@@ -81,9 +81,7 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
             <button type="button" className={`inbox-screen__tab${tab === "news" ? " is-active" : ""}`} onClick={() => setTab("news")}>
               {t("inboxScreen.t1")}
             </button>
-            <button type="button" className={`inbox-screen__tab${tab === "gifts" ? " is-active" : ""}`} onClick={() => setTab("gifts")}>
-              プレゼント{gifts.length > 0 && `（${gifts.length}）`}
-            </button>
+            <button type="button" className={`inbox-screen__tab${tab === "gifts" ? " is-active" : ""}`} onClick={() => setTab("gifts")}>{t("inboxScreen.t8", { v1: gifts.length > 0 ? `（${gifts.length}）` : "" })}</button>
           </div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
@@ -131,9 +129,7 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
                     <div className="inbox-screen__news-title">{g.title}</div>
                     {g.message && <p className="inbox-screen__body">{g.message}</p>}
                     <div className="inbox-screen__contents">{contentsLabel(g.jade, g.items)}</div>
-                    <div className="inbox-screen__date">
-                      {formatDate(g.createdAt)}・{remaining(g.expiresAt, now)}
-                    </div>
+                    <div className="inbox-screen__date">{t("inboxScreen.t9", { v1: formatDate(g.createdAt), v2: remaining(g.expiresAt, now) })}</div>
                   </div>
                   <button type="button" className="btn" disabled={busy} onClick={() => void claim(g.id)}>
                     {t("inboxScreen.t5")}

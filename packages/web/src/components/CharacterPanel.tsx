@@ -98,7 +98,7 @@ export function CharacterPanel({
             type="button"
             className="character-panel__portrait-btn"
             onClick={onShowSkillInfo}
-            aria-label={`${character.name}の能力を見る`}
+            aria-label={t("characterPanel.t4", { name: character.name })}
             title={t("characterPanel.t1")}
           >
             <img className="character-panel__avatar" src={character.avatar ?? `/avatars/seat${player}.svg`} alt="" />
@@ -119,7 +119,7 @@ export function CharacterPanel({
             {(onlineSeat.rankLabel || onlineSeat.disconnected) && (
               <span className="character-panel__player-sub">
                 {onlineSeat.rankLabel && <span className="character-panel__rank">{onlineSeat.rankLabel}</span>}
-                {onlineSeat.disconnected ? "（切断中）" : ""}
+                {onlineSeat.disconnected ? t("characterPanel.t5") : ""}
               </span>
             )}
           </div>
@@ -127,9 +127,9 @@ export function CharacterPanel({
         <div className="character-panel__meta">
           <span className="wind-badge">
             {WIND_NAMES[wind]}
-            {isDealer ? "(親)" : ""}
+            {isDealer ? t("characterPanel.t6") : ""}
           </span>
-          <span className="character-panel__score">{score}点</span>
+          <span className="character-panel__score">{t("characterPanel.t7", { score })}</span>
         </div>
         <SkillGauge round={round} player={player} />
       </div>
@@ -151,7 +151,7 @@ export function CharacterPanel({
           {p.bettaoriActive && (
             <div className="character-panel__side-item">
               <span className="wait-row__label">{t("characterPanel.t3")}</span>
-              <span className={`wait-row__shield${p.bettaoriShield ? " wait-row__shield--up" : ""}`}>{p.bettaoriShield ? "盾あり" : "盾なし"}</span>
+              <span className={`wait-row__shield${p.bettaoriShield ? " wait-row__shield--up" : ""}`}>{p.bettaoriShield ? t("characterPanel.t8") : t("characterPanel.t9")}</span>
             </div>
           )}
         </div>

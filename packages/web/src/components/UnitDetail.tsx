@@ -32,7 +32,7 @@ export function UnitDetail({
           {character.name}
         </div>
         <div className="unit-detail__box">
-          <div className="unit-detail__label">必殺技「{character.skill.name}」</div>
+          <div className="unit-detail__label">{t("gachaReveal.t3", { name: character.skill.name })}</div>
           <p className="unit-detail__text">{character.skill.description}</p>
         </div>
         {(
@@ -47,7 +47,7 @@ export function UnitDetail({
             return (
               <div key={slot} className="unit-detail__box unit-detail__box--card unit-detail__box--slot">
                 <CardSlot kind={kind} cardId={null} onOpen={() => onOpenSlot(kind)} emptyHint={t("unitDetail.t1")} />
-                <p className="unit-detail__text">{slot}カードは付いていません。</p>
+                <p className="unit-detail__text">{t("unitDetail.t2", { slot })}</p>
               </div>
             );
           }
@@ -66,7 +66,7 @@ export function UnitDetail({
                   </div>
                 </div>
               ) : (
-                <div className="unit-detail__label unit-detail__label--none">{slot}カードなし</div>
+                <div className="unit-detail__label unit-detail__label--none">{t("unitDetail.t3", { slot })}</div>
               )}
             </div>
           );

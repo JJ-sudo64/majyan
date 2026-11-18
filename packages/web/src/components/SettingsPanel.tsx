@@ -169,7 +169,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                下家の調整
+                {t("settingsPanel.t1")}
               </button>
               <button
                 type="button"
@@ -180,7 +180,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                上家の調整
+                {t("settingsPanel.t2")}
               </button>
             </div>
             {/* 副露の位置は、別画面の縮小プレビューでは実際の卓の配置と
@@ -198,7 +198,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                副露編集モード
+                {t("settingsPanel.t3")}
               </button>
             </div>
             {/* 手牌の列全体の位置も、鳴いた副露の数(0〜4)ごとに実際の卓の
@@ -214,7 +214,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                手牌配置編集モード
+                {t("settingsPanel.t4")}
               </button>
             </div>
             {/* 他家の暗槓（自分以外）は厚みの帯が変な位置に出る不具合の
@@ -231,7 +231,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                暗槓表示確認
+                {t("settingsPanel.t5")}
               </button>
             </div>
             {/* 自分の副露（ポン・暗槓・加槓）が、手牌の横にどう見えるかの確認用
@@ -245,7 +245,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                自分の副露の確認
+                {t("settingsPanel.t6")}
               </button>
             </div>
             {/* 河・ネームプレートの位置・角度を、自分含む4人全員分、実際の
@@ -262,7 +262,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                河の配置編集モード
+                {t("settingsPanel.t7")}
               </button>
             </div>
             {/* リーチ棒の位置・角度も同じ考え方で編集できる
@@ -276,7 +276,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                リーチ棒の配置編集モード
+                {t("settingsPanel.t8")}
               </button>
             </div>
             <div className="hud__row volume-popover__tile3d-row">
@@ -288,7 +288,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                ネームプレート配置編集モード
+                {t("settingsPanel.t9")}
               </button>
             </div>
             {/* 対面の手牌・副露は下家/上家と違いTile3D非表示（常に通常の
@@ -303,7 +303,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                対面の配置編集モード
+                {t("settingsPanel.t10")}
               </button>
             </div>
             {/* 立体牌をOFF（2D表示）にした時の、下家・上家の手牌・副露の配置。
@@ -314,25 +314,25 @@ export function SettingsPanel() {
                 type="button"
                 className="hud__toggle-btn"
                 disabled={tile3dEnabled}
-                title={tile3dEnabled ? "立体牌をOFFにすると使えます" : undefined}
+                title={tile3dEnabled ? t("settingsPanel.t11") : undefined}
                 onClick={() => {
                   openSide2dEdit("shimocha", "hand");
                   setVolumeOpen(false);
                 }}
               >
-                下家の2D配置編集
+                {t("settingsPanel.t12")}
               </button>
               <button
                 type="button"
                 className="hud__toggle-btn"
                 disabled={tile3dEnabled}
-                title={tile3dEnabled ? "立体牌をOFFにすると使えます" : undefined}
+                title={tile3dEnabled ? t("settingsPanel.t11") : undefined}
                 onClick={() => {
                   openSide2dEdit("kamicha", "hand");
                   setVolumeOpen(false);
                 }}
               >
-                上家の2D配置編集
+                {t("settingsPanel.t13")}
               </button>
             </div>
             {/* 透視の術・大明立直で公開された他家の手牌(2D表示)の角度
@@ -346,7 +346,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                公開手牌の角度調整
+                {t("settingsPanel.t14")}
               </button>
             </div>
             {/* 卓面背景画像も同じ理由でモーダル化（BackgroundDebugPanel.tsx
@@ -362,7 +362,7 @@ export function SettingsPanel() {
                   setVolumeOpen(false);
                 }}
               >
-                背景の調整
+                {t("settingsPanel.t15")}
               </button>
             </div>
             </>
@@ -372,7 +372,7 @@ export function SettingsPanel() {
                 するだけで増やせる。切り替えた直後だけ「元に戻す」で
                 1つ前の画像に戻せる（変だった場合の保険）。 */}
             <div className="hud__row volume-popover__tile3d-row">
-              <span className="hud__dora-label">卓の背景</span>
+              <span className="hud__dora-label">{t("settingsPanel.t16")}</span>
             </div>
             <div className="hud__row volume-popover__tile3d-row volume-popover__bg-row">
               {TABLE_BACKGROUND_OPTIONS.map((opt) => (
@@ -393,7 +393,7 @@ export function SettingsPanel() {
                 disabled={!tableBackgroundPreviousId || tableBackgroundPreviousId === tableBackgroundId}
                 onClick={() => revertTableBackground()}
               >
-                背景を元に戻す
+                {t("settingsPanel.t17")}
               </button>
             </div>
           </div>
