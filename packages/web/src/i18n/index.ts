@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Fragment, createElement, type ReactNode } from "react";
 import { ja, type MessageKey } from "./ja.js";
+import { applyDataLocale } from "./dataOverlay.js";
 
 /** 対応言語。新しい言語を足すときは、ここに足して dictionaries に辞書を登録する。 */
 export const LOCALES = [{ id: "ja", label: "日本語", tag: "ja-JP" }] as const;
@@ -8,6 +9,8 @@ export type Locale = (typeof LOCALES)[number]["id"];
 
 type Dictionary = Partial<Record<MessageKey, string>>;
 const dictionaries: Record<Locale, Dictionary> = { ja };
+/** キャラクター・カードの日本語原文 → 翻訳。日本語は原文のままなので空。 */
+const dataTables: Record<Locale, Record<string, string>> = { ja: {} };
 
 const STORAGE_KEY = "majyan.locale";
 
@@ -26,14 +29,18 @@ interface LocaleState {
   setLocale: (locale: Locale) => void;
 }
 
+const initialLocale: Locale = typeof window === "undefined" ? "ja" : loadInitialLocale();
+applyDataLocale(dataTables[initialLocale]);
+
 export const useLocaleStore = create<LocaleState>((set) => ({
-  locale: typeof window === "undefined" ? "ja" : loadInitialLocale(),
+  locale: initialLocale,
   setLocale: (locale) => {
     try {
       window.localStorage.setItem(STORAGE_KEY, locale);
     } catch {
       // 保存できなくても、このセッション中は切り替わる
     }
+    applyDataLocale(dataTables[locale]);
     set({ locale });
   },
 }));
