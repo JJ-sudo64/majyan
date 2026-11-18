@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { scoreWin, type WinAnalysis } from "@majyan/core";
-import { GUIDE_GROUP_LABELS, GUIDE_PAGES, YAKU_GROUPS, type GuideGroup } from "./rulesGuideData.js";
+import { GUIDE_GROUP_LABELS, GUIDE_PAGES, GUIDE_PARAMS, YAKU_GROUPS, type GuideGroup } from "./rulesGuideData.js";
 import { useT, type MessageKey, type Translate } from "../i18n/index.js";
 
 type Tab = "guide" | "yaku" | "points";
@@ -48,16 +48,16 @@ function GuideTab({ initialGroup }: { initialGroup?: GuideGroup }) {
             className={`rules-guide__chip${current.group === g ? " is-active" : ""}`}
             onClick={() => setPage(Math.max(0, GUIDE_PAGES.findIndex((p) => p.group === g)))}
           >
-            {GUIDE_GROUP_LABELS[g]}
+            {t(GUIDE_GROUP_LABELS[g])}
           </button>
         ))}
       </div>
       <h3 className="rules-guide__page-title">
-        {page + 1}. {current.title}
+        {page + 1}. {t(current.title)}
       </h3>
       <ul className="rules-guide__lines">
         {current.lines.map((line) => (
-          <li key={line}>{line}</li>
+          <li key={line}>{t(line, GUIDE_PARAMS)}</li>
         ))}
       </ul>
       <div className="rules-guide__pager">
@@ -77,6 +77,7 @@ function GuideTab({ initialGroup }: { initialGroup?: GuideGroup }) {
 
 function YakuTab() {
   const t = useT();
+  const hanText = (v: string) => (v.startsWith("yaku.") ? t(v as MessageKey) : v);
   const [groupId, setGroupId] = useState(YAKU_GROUPS[0]!.id);
   const group = YAKU_GROUPS.find((g) => g.id === groupId)!;
   return (
@@ -84,7 +85,7 @@ function YakuTab() {
       <div className="rules-guide__chips">
         {YAKU_GROUPS.map((g) => (
           <button key={g.id} type="button" className={`rules-guide__chip${g.id === groupId ? " is-active" : ""}`} onClick={() => setGroupId(g.id)}>
-            {g.label}
+            {t(g.label)}
           </button>
         ))}
       </div>
@@ -100,10 +101,10 @@ function YakuTab() {
         <tbody>
           {group.yaku.map((entry) => (
             <tr key={entry.name}>
-              <th scope="row">{entry.name}</th>
-              <td>{entry.han}</td>
-              <td>{entry.openHan}</td>
-              <td className="rules-guide__desc">{entry.description}</td>
+              <th scope="row">{t(entry.name)}</th>
+              <td>{hanText(entry.han)}</td>
+              <td>{hanText(entry.openHan)}</td>
+              <td className="rules-guide__desc">{t(entry.description)}</td>
             </tr>
           ))}
         </tbody>
