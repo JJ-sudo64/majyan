@@ -7,7 +7,7 @@ import { playVoiceQueue } from "../sound.js";
 import { meldDisplaySlots } from "../meldDisplay.js";
 import { MatchVictoryOverlay } from "./MatchVictoryOverlay.js";
 import { TileView } from "./TileView.js";
-import { useT, seatKey, type MessageKey } from "../i18n/index.js";
+import { useT, tx, seatKey, type MessageKey } from "../i18n/index.js";
 
 const seatLabel = (t: (k: MessageKey) => string, seat: number) => t(seatKey(seat));
 
@@ -109,7 +109,7 @@ function resolveYakuVoiceClip(character: Character, y: YakuResult, round: RoundS
 
 /** 役満でない13翻以上は「数え役満」と表示する（ボイスのキーは「役満」のまま）。 */
 function limitLabel(han: number, limitName: string, t: (k: MessageKey) => string): string {
-  return limitName === "役満" && han >= 13 ? t("limit.countedYakuman") : limitName === "役満" ? t("limit.yakuman") : limitName;
+  return limitName === "役満" && han >= 13 ? t("limit.countedYakuman") : limitName === "役満" ? t("limit.yakuman") : tx(limitName);
 }
 
 /** 満貫・跳満・倍満・三倍満・役満の読み上げの直前に空ける間（ms）。 */
@@ -249,13 +249,13 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               <ul className="yaku-list">
                 {analysis.yaku.map((y, i) => (
                   <li key={i}>
-                    {y.name} {analysis.isYakuman ? (y.han >= 26 ? t("scoreResult.t8") : t("scoreResult.t9")) : y.han > 0 ? t("scoreResult.t10", { han: y.han }) : ""}
+                    {tx(y.name)} {analysis.isYakuman ? (y.han >= 26 ? t("scoreResult.t8") : t("scoreResult.t9")) : y.han > 0 ? t("scoreResult.t10", { han: y.han }) : ""}
                   </li>
                 ))}
               </ul>
               <div className="win-detail__score">
                 {analysis.isYakuman
-                  ? t("scoreResult.t11", { v1: score.limitName ?? t("scoreResult.t9"), total: score.payments.total })
+                  ? t("scoreResult.t11", { v1: score.limitName ? tx(score.limitName) : t("scoreResult.t9"), total: score.payments.total })
                   : t("scoreResult.t12", { han: analysis.han, fu: analysis.fu, total: score.payments.total, v1: score.limitName ? `（${limitLabel(analysis.han, score.limitName, t)}）` : "" })}
               </div>
             </div>

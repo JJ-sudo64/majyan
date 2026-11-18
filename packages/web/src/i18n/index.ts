@@ -105,6 +105,11 @@ export function tr(key: MessageKey, params?: Record<string, string | number>): s
   return translate(useLocaleStore.getState().locale, key, params);
 }
 
+/** coreが日本語で出してくる文言（役名・満貫などの名前）を、今の言語に直す。対訳が無ければそのまま。 */
+export function tx(text: string): string {
+  return dataTables[useLocaleStore.getState().locale][text] ?? text;
+}
+
 /** 要素を差し込める版を返す。言語を切り替えると再描画される。 */
 export function useTn(): (key: MessageKey, params?: Record<string, ReactNode>) => ReactNode {
   const locale = useLocaleStore((s) => s.locale);
