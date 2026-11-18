@@ -667,6 +667,43 @@ export const ja = {
   "unit.slotPassive": "パッシブ",
   "unit.slotActive": "アクティブ",
   "unit.slotCard": "{slot}カード",
+  // --- cardSlot ---
+  "cardSlot.t15": "「{name}」を付けますか？ {strong}",
+  // --- cutinGallery ---
+  "cutinGallery.t4": "{input}アニメーションを繰り返し再生（オフなら表示中の一瞬で止める）",
+  // --- gachaScreen ---
+  "gachaScreen.t23": "雀玉 {strong}{v1}",
+  "gachaScreen.t24": "ピックアップ：{title}{span}",
+  "gachaScreen.t25": "1回{span}",
+  "gachaScreen.t26": "10連{span}",
+  "gachaScreen.t27": "交換ポイント {strong} / {EXCHANGE_COST}（1回引くごとに1ポイント。{EXCHANGE_COST1}で★{EXCHANGE_RARITY}のキャラかカードがランダムで1つもらえます）",
+  // --- hand ---
+  "hand.t29": "{tileview}切りなら",
+  "hand.t30": "{name}の「{name1}」{v1}",
+  // --- matchSetup ---
+  "matchSetup.t22": "{input}箱下続行（オフだと、誰かが0点未満になった時点で終了）",
+  "matchSetup.t23": "{input}デバッグモード（CPUは和了しない・早送り・巻き戻し可能）",
+  // --- onlineLobby ---
+  "onlineLobby.t66": "{button}に同意する",
+  "onlineLobby.t67": "{strong}も、ここで決めてください。ブラウザのデータが消えた時や、別の端末で遊ぶ時に、これがないとこのアカウント（雀玉・キャラ・段位）に戻れません。忘れないよう控えてください（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）。",
+  "onlineLobby.t68": "{strong}ブラウザのデータを消した時や、端末を替えた時に、コードがないとこのアカウント（雀玉・キャラ・段位）に戻れなくなります。",
+  "onlineLobby.t69": "段位の近い相手と自動で卓を組みます。{v1}{button}",
+  "onlineLobby.t70": "{input}箱下続行",
+  // --- onlineStamps ---
+  "onlineStamps.t4": "{input}スタンプを表示しない",
+  // --- rankGuideScreen ---
+  "rankGuideScreen.t22": "ポイントが{b}上がります。",
+  "rankGuideScreen.t23": "ポイントが{b}下がります（下雀1だけは下がりません。表の「降段なし」の段です）。",
+  "rankGuideScreen.t24": "25000点より{b}、{b1} が、上の表の数字に足されます（段位が上がるほど大きくなります）。",
+  "rankGuideScreen.t25": "例：{v1}で{v2}を1位・{v3}点で終えると、{b}",
+  // --- shopScreen ---
+  "shopScreen.t32": "雀玉 {strong}{span}",
+  // --- transferScreen ---
+  "transferScreen.t29": "アカウントID（お問い合わせの時にお伝えください）: {strong}",
+  "transferScreen.t30": "{input}今のアカウントに戻れなくなってもよい",
+  // --- unitsScreen ---
+  "unitsScreen.t16": "キャラを押すと、パッシブカード欄・アクティブカード欄にカードを付けられます。一度付けたカードは外せません。{v1}{button}",
+  "unitsScreen.t17": "この条件に合うキャラがいません。{v1}{button}",
 } as const;
 
 export type MessageKey = keyof typeof ja;

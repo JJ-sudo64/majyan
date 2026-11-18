@@ -5,7 +5,7 @@ import { playVoiceClip } from "../sound.js";
 import { useKyushuPreview } from "../store/kyushuPreview.js";
 import { stampArt } from "../online/stampArt.js";
 import { onlineLink, setStampsMuted, showStamp, useOnlineStore } from "../online/onlineLink.js";
-import { useT, seatKey } from "../i18n/index.js";
+import { useT, seatKey, useTn } from "../i18n/index.js";
 
 /** 届いたスタンプを出しておく時間。 */
 const STAMP_SHOW_MS = 3500;
@@ -73,6 +73,7 @@ export function OnlineStampBubbles() {
  * 「表示しない」は他の人の分も出さなくする、このブラウザだけの設定。
  */
 export function OnlineStamps({ canSend }: { canSend: boolean }) {
+  const tn = useTn();
   const t = useT();
   const muted = useOnlineStore((s) => s.stampsMuted);
   const online = useGameStore((s) => s.online);
@@ -150,10 +151,7 @@ export function OnlineStamps({ canSend }: { canSend: boolean }) {
               {t("onlineStamps.t2")}
             </button>
           )}
-          <label className="online-stamps__mute">
-            <input type="checkbox" checked={muted} onChange={(e) => setStampsMuted(e.target.checked)} />
-            スタンプを表示しない
-          </label>
+          <label className="online-stamps__mute">{tn("onlineStamps.t4", { input: <input type="checkbox" checked={muted} onChange={(e) => setStampsMuted(e.target.checked)} /> })}</label>
         </div>
       )}
       <button type="button" className="online-stamps__toggle" onClick={() => setOpen((v) => !v)}>

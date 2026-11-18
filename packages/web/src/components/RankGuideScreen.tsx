@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { RANK_TIERS, rankLabel, rankMaxPoints, rankPointDelta, type MatchFormat, type RankState, type RankView } from "@majyan/core";
-import { useT } from "../i18n/index.js";
+import { useT, useTn } from "../i18n/index.js";
 
 const PLACES = [1, 2, 3, 4] as const;
 /** 持ち点による増減が0になる点数（順位による増減だけを取り出すのに使う）。 */
@@ -21,6 +21,7 @@ function ladderRows(): RankState[] {
 
 /** 段位のしくみを表で見せる。数値はcoreのranked.tsからそのまま出す。 */
 export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onClose: () => void }) {
+  const tn = useTn();
   const t = useT();
   const [format, setFormat] = useState<MatchFormat>("tonpuusen");
   const rows = ladderRows();
@@ -71,12 +72,8 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
 
             <ol className="rank-guide__rules">
               <li>{t("rankGuideScreen.t2")}</li>
-              <li>
-                ポイントが<b>{t("rankGuideScreen.t3")}</b>上がります。
-              </li>
-              <li>
-                ポイントが<b>{t("rankGuideScreen.t4")}</b>下がります（下雀1だけは下がりません。表の「降段なし」の段です）。
-              </li>
+              <li>{tn("rankGuideScreen.t22", { b: <b>{t("rankGuideScreen.t3")}</b> })}</li>
+              <li>{tn("rankGuideScreen.t23", { b: <b>{t("rankGuideScreen.t4")}</b> })}</li>
             </ol>
 
             <ul className="rank-guide__notes">
@@ -136,13 +133,8 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
 
             <div className="rank-guide__score">
               <div className="rank-guide__score-title">{t("rankGuideScreen.t14")}</div>
-              <p>
-                25000点より<b>{t("rankGuideScreen.t19", { v1: scoreSlope.toFixed(1) })}</b>、<b>{t("rankGuideScreen.t20", { v1: scoreSlope.toFixed(1) })}</b> が、上の表の数字に足されます（段位が上がるほど大きくなります）。
-              </p>
-              <p className="rank-guide__example">
-                例：{rankLabel(sample)}で{format === "hanchan" ? t("format.hanchan") : t("format.tonpuusen")}を1位・{sampleScore.toLocaleString()}点で終えると、
-                <b>{t("rankGuideScreen.t21", { v1: signed(samplePlacement), v2: signed(sampleTotal - samplePlacement), v3: signed(sampleTotal) })}</b>
-              </p>
+              <p>{tn("rankGuideScreen.t24", { b: <b>{t("rankGuideScreen.t19", { v1: scoreSlope.toFixed(1) })}</b>, b1: <b>{t("rankGuideScreen.t20", { v1: scoreSlope.toFixed(1) })}</b> })}</p>
+              <p className="rank-guide__example">{tn("rankGuideScreen.t25", { v1: rankLabel(sample), v2: format === "hanchan" ? t("format.hanchan") : t("format.tonpuusen"), v3: sampleScore.toLocaleString(), b: <b>{t("rankGuideScreen.t21", { v1: signed(samplePlacement), v2: signed(sampleTotal - samplePlacement), v3: signed(sampleTotal) })}</b> })}</p>
             </div>
 
           </div>

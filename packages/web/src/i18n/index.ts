@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { Fragment, createElement, type ReactNode } from "react";
 import { ja, type MessageKey } from "./ja.js";
 
 /** 対応言語。新しい言語を足すときは、ここに足して dictionaries に辞書を登録する。 */
@@ -40,8 +41,25 @@ export const useLocaleStore = create<LocaleState>((set) => ({
 /** 文言を引く。選んだ言語に無ければ日本語、日本語にも無ければキー名を返す。{name} は params で差し込む。 */
 export function translate(locale: Locale, key: MessageKey, params?: Record<string, string | number>): string {
   const raw = dictionaries[locale][key] ?? ja[key] ?? key;
-  if (!params) return raw;
-  return raw.replace(/\{(\w+)\}/g, (m, name: string) => (name in params ? String(params[name]) : m));
+  const out = params ? raw.replace(/\{(\w+)\}/g, (m, name: string) => (name in params ? String(params[name]) : m)) : raw;
+  // 差し込み欄が残っているのは、呼び出し側の渡し忘れ（または要素を渡すべき所に t を使った）。開発中だけ知らせる。
+  if (import.meta.env.DEV && /\{\w+\}/.test(out)) console.warn(`[i18n] 差し込み欄が残っています: ${key} → ${out}`);
+  return out;
+}
+
+/** 文言の中に太字などの要素を差し込む版。{名前} の所に、params の要素（ReactNode）が入る。 */
+export function translateNode(locale: Locale, key: MessageKey, params: Record<string, ReactNode> = {}): ReactNode {
+  const raw = dictionaries[locale][key] ?? ja[key] ?? key;
+  const parts = raw.split(/(\{\w+\})/g);
+  return createElement(
+    Fragment,
+    null,
+    ...parts.map((part, i) => {
+      const m = /^\{(\w+)\}$/.exec(part);
+      if (m && m[1]! in params) return createElement(Fragment, { key: i }, params[m[1]!]);
+      return part ? createElement(Fragment, { key: i }, part) : null;
+    }),
+  );
 }
 
 /** コンポーネント用。言語を切り替えると、使っている画面が再描画される。 */
@@ -63,6 +81,12 @@ export function seatKey(seat: number): MessageKey {
 /** CPU席（1=下家 2=対面 3=上家）の呼び名のキー。 */
 export function cpuSeatKey(seat: number): MessageKey {
   return `seat.cpu${seat}` as MessageKey;
+}
+
+/** 要素を差し込める版を返す。言語を切り替えると再描画される。 */
+export function useTn(): (key: MessageKey, params?: Record<string, ReactNode>) => ReactNode {
+  const locale = useLocaleStore((s) => s.locale);
+  return (key, params) => translateNode(locale, key, params);
 }
 
 /** 文言を引く関数の型（部品の外の補助関数に渡す用）。 */

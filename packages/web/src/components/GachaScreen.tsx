@@ -21,7 +21,7 @@ import { GachaReveal } from "./GachaReveal.js";
 import { RecordsScreen } from "./RecordsScreen.js";
 import { preloadGachaSounds } from "../sound.js";
 import { shareToX } from "../share.js";
-import { useT } from "../i18n/index.js";
+import { useT, useTn } from "../i18n/index.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
 
@@ -47,6 +47,7 @@ const sameItem = (a: GachaItem | null, b: GachaItem) => !!a && a.kind === b.kind
  * 必ず見られるようにする（ガチャの確率表示は業界の自主規制・各ストアの規約で求められている）。
  */
 export function GachaScreen({ onClose }: { onClose: () => void }) {
+  const tn = useTn();
   const t = useT();
   // 引いた直後の演出の音が最初の1回から遅れず鳴るよう、画面を開いた時に読み込んでおく。
   useEffect(preloadGachaSounds, []);
@@ -88,19 +89,13 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="gacha-screen__jade">
-          雀玉 <strong>{total.toLocaleString()}</strong>
-          {jade && jade.paid > 0 && (
+        <div className="gacha-screen__jade">{tn("gachaScreen.t23", { strong: <strong>{total.toLocaleString()}</strong>, v1: jade && jade.paid > 0 && (
             <span className="gacha-screen__jade-detail">{t("gachaScreen.t6", { v1: jade.free.toLocaleString(), v2: jade.paid.toLocaleString() })}</span>
-          )}
-        </div>
+          ) })}</div>
 
         {pickup && (
           <div className="gacha-screen__pickup">
-            <div className="gacha-screen__pickup-title">
-              ピックアップ：{pickup.title}
-              <span className="gacha-screen__pickup-until">{t("gachaScreen.t7", { v1: new Date(pickup.endsAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}</span>
-            </div>
+            <div className="gacha-screen__pickup-title">{tn("gachaScreen.t24", { title: pickup.title, span: <span className="gacha-screen__pickup-until">{t("gachaScreen.t7", { v1: new Date(pickup.endsAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}</span> })}</div>
             <div className="gacha-screen__pickup-items">
               {pickup.items.map((item) => {
                 const character = item.kind === "character" ? CHARACTERS[item.id] : undefined;
@@ -136,25 +131,18 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         {error && <p className="online-lobby__error">{error}</p>}
 
         <div className="setup-buttons gacha-screen__pulls">
-          <button type="button" className="btn btn--large" disabled={busy || total < GACHA_PRICE.single} onClick={() => void run(() => rollGacha(1), undefined, true)}>
-            1回<span className="gacha-screen__price">{t("gachaScreen.t9", { single: GACHA_PRICE.single })}</span>
-          </button>
+          <button type="button" className="btn btn--large" disabled={busy || total < GACHA_PRICE.single} onClick={() => void run(() => rollGacha(1), undefined, true)}>{tn("gachaScreen.t25", { span: <span className="gacha-screen__price">{t("gachaScreen.t9", { single: GACHA_PRICE.single })}</span> })}</button>
           <button
             type="button"
             className="btn btn--primary btn--large"
             disabled={busy || total < GACHA_PRICE.ten}
             onClick={() => void run(() => rollGacha(10), undefined, true)}
-          >
-            10連<span className="gacha-screen__price">{t("gachaScreen.t10", { v1: GACHA_PRICE.ten.toLocaleString() })}</span>
-          </button>
+          >{tn("gachaScreen.t26", { span: <span className="gacha-screen__price">{t("gachaScreen.t10", { v1: GACHA_PRICE.ten.toLocaleString() })}</span> })}</button>
         </div>
         <p className="setup-lead">{t("gachaScreen.t11", { rarity: TEN_PULL_GUARANTEE.rarity })}</p>
 
         <div className="gacha-screen__exchange">
-          <span>
-            交換ポイント <strong>{exchangePoints}</strong> / {EXCHANGE_COST}（1回引くごとに1ポイント。{EXCHANGE_COST}で★{EXCHANGE_RARITY}
-            のキャラかカードがランダムで1つもらえます）
-          </span>
+          <span>{tn("gachaScreen.t27", { strong: <strong>{exchangePoints}</strong>, EXCHANGE_COST, EXCHANGE_COST1: EXCHANGE_COST, EXCHANGE_RARITY })}</span>
           <button type="button" className="btn" disabled={busy || exchangePoints < EXCHANGE_COST} onClick={() => void run(() => exchangeItem(), undefined, true)}>{t("gachaScreen.t12", { EXCHANGE_RARITY })}</button>
         </div>
         <div className="setup-buttons gacha-screen__links">

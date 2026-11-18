@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ACCOUNT_DELETE_CONFIRM, TRANSFER_PASSWORD_MAX_LENGTH, TRANSFER_PASSWORD_MIN_LENGTH, formatTransferCode } from "@majyan/core";
 import { deleteAccount, fetchTransferCode, loginWithTransfer, regenerateTransferCode, setTransferPassword, useAccountStore } from "../online/account.js";
-import { useT } from "../i18n/index.js";
+import { useT, useTn } from "../i18n/index.js";
 
 /**
  * 引き継ぎ。今のアカウントに引き継ぎのパスワードを決める（コードはサーバーが作る）のと、
@@ -9,6 +9,7 @@ import { useT } from "../i18n/index.js";
  * アカウントがまだ無い時は、入る方だけを出す。
  */
 export function TransferScreen({ onClose, justCreated = false }: { onClose: () => void; justCreated?: boolean }) {
+  const tn = useTn();
   const t = useT();
   const profile = useAccountStore((s) => s.profile);
   const jade = useAccountStore((s) => s.jade);
@@ -186,9 +187,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
         )}
 
         {profile && (
-          <p className="transfer-screen__note">
-            アカウントID（お問い合わせの時にお伝えください）: <strong>{profile.id.slice(0, 8)}</strong>
-          </p>
+          <p className="transfer-screen__note">{tn("transferScreen.t29", { strong: <strong>{profile.id.slice(0, 8)}</strong> })}</p>
         )}
 
         <section className="transfer-screen__section">
@@ -216,10 +215,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
               />
             </label>
             {needsAbandonOk && (
-              <label className="setup-debug-toggle">
-                <input type="checkbox" checked={abandonOk} onChange={(e) => setAbandonOk(e.target.checked)} />
-                今のアカウントに戻れなくなってもよい
-              </label>
+              <label className="setup-debug-toggle">{tn("transferScreen.t30", { input: <input type="checkbox" checked={abandonOk} onChange={(e) => setAbandonOk(e.target.checked)} /> })}</label>
             )}
             <button type="button" className="btn btn--primary" disabled={!canLogin} onClick={() => void submitLogin()}>
               {busy ? t("transferScreen.t21") : t("transferScreen.t22")}

@@ -19,7 +19,7 @@ import { useRetrieveDiscardStore } from "../store/retrieveDiscardStore.js";
 import { TileView } from "./TileView.js";
 import { CallPrompt } from "./CallPrompt.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
-import { useT } from "../i18n/index.js";
+import { useT, useTn } from "../i18n/index.js";
 
 /** 自動ツモ切りが実際に切るまでの待ち時間。0だと切られたことに気付く前に
     河へ飛んでしまい、リーチ・カン等の選択肢に気付いて手を止める余地が
@@ -128,6 +128,7 @@ function MeldView({ meld }: { meld: Meld }) {
 }
 
 export function Hand({ round }: { round: RoundState }) {
+  const tn = useTn();
   const t = useT();
   const humanDiscard = useGameStore((s) => s.humanDiscard);
   const humanRiichi = useGameStore((s) => s.humanRiichi);
@@ -455,10 +456,7 @@ export function Hand({ round }: { round: RoundState }) {
             <div className="wait-row">
               <span className="wait-row__label">
                 {previewCode ? (
-                  <>
-                    <TileView code={previewCode} tiny highlightable={false} />
-                    切りなら
-                  </>
+                  <>{tn("hand.t29", { tileview: <TileView code={previewCode} tiny highlightable={false} /> })}</>
                 ) : (
                   "待ち"
                 )}
@@ -640,10 +638,7 @@ export function Hand({ round }: { round: RoundState }) {
                             humanBorrowSkill(target);
                           }}
                           title={targetCharacter.skill.description}
-                        >
-                          {targetCharacter.name}の「{targetCharacter.skill.name}」
-                          {blockReason !== null && <span className="btn__block-reason">{blockReason}</span>}
-                        </button>
+                        >{tn("hand.t30", { name: targetCharacter.name, name1: targetCharacter.skill.name, v1: blockReason !== null && <span className="btn__block-reason">{blockReason}</span> })}</button>
                       );
                     })}
                   </div>

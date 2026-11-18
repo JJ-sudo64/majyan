@@ -3,7 +3,7 @@ import { CARDS, CHARACTERS, type AiDifficulty, type MatchFormat } from "@majyan/
 import { useGameStore, type CpuDifficultySettings } from "../store/gameStore.js";
 import { playUiClickFor } from "../sound.js";
 import { CardSlot, CardSlotPicker, slotLabel, type SlotKind } from "./CardSlot.js";
-import { useT, type MessageKey } from "../i18n/index.js";
+import { useT, type MessageKey, useTn } from "../i18n/index.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
 /** その種類のカードのID（定義順）。カード欄を開いた時の選択肢になる。 */
@@ -37,6 +37,7 @@ const CPU_SEATS: { player: 1 | 2 | 3; label: MessageKey }[] = [
 ];
 
 export function MatchSetup({ onBack }: { onBack: () => void }) {
+  const tn = useTn();
   const t = useT();
   const startMatch = useGameStore((s) => s.startMatch);
   const startTutorial = useGameStore((s) => s.startTutorial);
@@ -231,16 +232,10 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
                 <span className="oh-mode__sub">{t("matchSetup.t14")}</span>
               </button>
             </div>
-            <label className="setup-debug-toggle">
-              <input type="checkbox" checked={continueBelowZero} onChange={(e) => setContinueBelowZero(e.target.checked)} />
-              箱下続行（オフだと、誰かが0点未満になった時点で終了）
-            </label>
+            <label className="setup-debug-toggle">{tn("matchSetup.t22", { input: <input type="checkbox" checked={continueBelowZero} onChange={(e) => setContinueBelowZero(e.target.checked)} /> })}</label>
             {/* 開発者用。本番のビルドには出さない（import.meta.env.DEVは開発サーバーでだけtrue）。 */}
             {import.meta.env.DEV && (
-              <label className="setup-debug-toggle">
-                <input type="checkbox" checked={debugMode} onChange={(e) => setDebugMode(e.target.checked)} />
-                デバッグモード（CPUは和了しない・早送り・巻き戻し可能）
-              </label>
+              <label className="setup-debug-toggle">{tn("matchSetup.t23", { input: <input type="checkbox" checked={debugMode} onChange={(e) => setDebugMode(e.target.checked)} /> })}</label>
             )}
           </div>
         </section>

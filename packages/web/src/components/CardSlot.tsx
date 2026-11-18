@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { CARDS, cardRarity } from "@majyan/core";
 import { KIND_LONG } from "../cardDesign.js";
 import { CardFace } from "./CardFace.js";
-import { useT } from "../i18n/index.js";
+import { useT, useTn } from "../i18n/index.js";
 
 export type SlotKind = "passive" | "consumable";
 
@@ -92,6 +92,7 @@ interface CardSlotPickerProps {
  * 決める時は「付ける」。外せない装着（permanent）では、もう一度確認してから付ける。
  */
 export function CardSlotPicker({ kind, title, candidates, counts, current, permanent, busy, emptyMessage, onConfirm, onClear, onClose, banner, onStage }: CardSlotPickerProps) {
+  const tn = useTn();
   const t = useT();
   const [rarity, setRarity] = useState<0 | 1 | 2 | 3>(0);
   const [picked, setPicked] = useState<string | null>(current ?? null);
@@ -169,9 +170,7 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
             </div>
             {confirming && targetId ? (
               <div className="first-gacha__confirm">
-                <p>
-                  「{CARDS[targetId]?.name}」を付けますか？ <strong>{t("cardSlot.t5")}</strong>
-                </p>
+                <p>{tn("cardSlot.t15", { name: CARDS[targetId]?.name, strong: <strong>{t("cardSlot.t5")}</strong> })}</p>
                 <div className="setup-buttons">
                   <button type="button" className="btn btn--primary" disabled={busy} onClick={() => onConfirm(targetId)}>
                     {t("cardSlot.t6")}

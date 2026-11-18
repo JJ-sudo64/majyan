@@ -9,7 +9,7 @@ import {
   type ShopResponse,
 } from "@majyan/core";
 import { declareBirthMonth, fetchShop, payTestPurchase, startCheckout } from "../online/account.js";
-import { useT } from "../i18n/index.js";
+import { useT, useTn } from "../i18n/index.js";
 
 const yen = (n: number) => `${n.toLocaleString("ja-JP")}円`;
 const dateTime = (ms: number) => new Date(ms).toLocaleString("ja-JP", { dateStyle: "short", timeStyle: "short" });
@@ -97,6 +97,7 @@ function LegalNotes() {
  * 雀玉が増えるのは、サーバーが決済会社から支払いの通知を受けた時（この画面からは増やせない）。
  */
 export function ShopScreen({ onClose, returned }: { onClose: () => void; returned?: string | null }) {
+  const tn = useTn();
   const t = useT();
   const [shop, setShop] = useState<ShopResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -170,10 +171,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
         )}
         {shop && (
           <>
-            <div className="gacha-screen__jade">
-              雀玉 <strong>{(shop.jade.free + shop.jade.paid).toLocaleString()}</strong>
-              <span className="gacha-screen__jade-detail">{t("gachaScreen.t6", { v1: shop.jade.free.toLocaleString(), v2: shop.jade.paid.toLocaleString() })}</span>
-            </div>
+            <div className="gacha-screen__jade">{tn("shopScreen.t32", { strong: <strong>{(shop.jade.free + shop.jade.paid).toLocaleString()}</strong>, span: <span className="gacha-screen__jade-detail">{t("gachaScreen.t6", { v1: shop.jade.free.toLocaleString(), v2: shop.jade.paid.toLocaleString() })}</span> })}</div>
             {shop.mode === "closed" && <p className="setup-lead">{t("shopScreen.t10")}</p>}
             {shop.mode === "test" && <p className="shop-screen__test">{t("shopScreen.t11")}</p>}
             {shop.mode !== "closed" && !shop.ageBracket && <AgeGate busy={busy} onSubmit={(m) => void run(() => declareBirthMonth(m))} />}

@@ -18,7 +18,7 @@ import { FriendsScreen } from "./FriendsScreen.js";
 import { RulesGuide } from "./RulesGuide.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 import { playUiClickFor } from "../sound.js";
-import { useT } from "../i18n/index.js";
+import { useT, useTn } from "../i18n/index.js";
 
 /** 付けているカードの表示（パッシブ・アクティブの順。無ければ「カードなし」）。 */
 function cardLabel(cardId: string | null, cardId2: string | null): string {
@@ -81,6 +81,7 @@ function save(key: string, value: string) {
  * 画面は上のバー（名前・段位・雀玉）、左の立ち絵、右の対戦パネル、下のメニューの4つ。
  */
 export function OnlineLobby({ onBack }: { onBack: () => void }) {
+  const tn = useTn();
   const t = useT();
   const status = useOnlineStore((s) => s.status);
   const room = useOnlineStore((s) => s.room);
@@ -399,19 +400,14 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               {!profile && (
                 <label className="online-lobby__agree">
                   <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-                  <span>
-                    <button type="button" className="online-lobby__link" onClick={() => setShowLegal(true)}>
+                  <span>{tn("onlineLobby.t66", { button: <button type="button" className="online-lobby__link" onClick={() => setShowLegal(true)}>
                       {t("onlineLobby.t6")}
-                    </button>
-                    に同意する
-                  </span>
+                    </button> })}</span>
                 </label>
               )}
               {!profile && (
                 <>
-                  <p className="oh-note">
-                    <strong>{t("onlineLobby.t7")}</strong>も、ここで決めてください。ブラウザのデータが消えた時や、別の端末で遊ぶ時に、これがないとこのアカウント（雀玉・キャラ・段位）に戻れません。忘れないよう控えてください（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）。
-                  </p>
+                  <p className="oh-note">{tn("onlineLobby.t67", { strong: <strong>{t("onlineLobby.t7")}</strong>, TRANSFER_PASSWORD_MIN_LENGTH })}</p>
                   <label className="online-lobby__field">
                     <span>{t("onlineLobby.t47", { TRANSFER_PASSWORD_MIN_LENGTH })}</span>
                     <input type="password" autoComplete="new-password" value={newPassword} maxLength={TRANSFER_PASSWORD_MAX_LENGTH} onChange={(e) => setNewPassword(e.target.value)} />
@@ -620,10 +616,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           )}
           {needsBackupNotice && !backupNoticeLater && !needsFirstGacha && (
             <div className="online-lobby__backup-notice">
-              <p>
-                <strong>{t("onlineLobby.t22")}</strong>
-                ブラウザのデータを消した時や、端末を替えた時に、コードがないとこのアカウント（雀玉・キャラ・段位）に戻れなくなります。
-              </p>
+              <p>{tn("onlineLobby.t68", { strong: <strong>{t("onlineLobby.t22")}</strong> })}</p>
               <div className="online-lobby__backup-notice-buttons">
                 <button type="button" className="oh-cta" onClick={() => setShowTransfer(true)}>
                   {t("onlineLobby.t23")}
@@ -654,12 +647,9 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 <span className="oh-card__title">{t("onlineLobby.t27")}</span>
                 <span className="oh-card__en">RANKED MATCH</span>
               </div>
-              <p className="oh-card__lead">
-                段位の近い相手と自動で卓を組みます。{rank ? t("onlineLobby.t56", { label: rank.label, gamesPlayed: rank.gamesPlayed }) : ""}
-                <button type="button" className="oh-link" onClick={() => setShowRankGuide(true)}>
+              <p className="oh-card__lead">{tn("onlineLobby.t69", { v1: rank ? t("onlineLobby.t56", { label: rank.label, gamesPlayed: rank.gamesPlayed }) : "", button: <button type="button" className="oh-link" onClick={() => setShowRankGuide(true)}>
                   {t("onlineLobby.t28")}
-                </button>
-              </p>
+                </button> })}</p>
               <div className="oh-modes">
                 <button type="button" className="oh-mode" onClick={() => onlineLink.queueRanked("tonpuusen", unitId)}>
                   <span className="oh-mode__kanji">{t("wind.1")}</span>
@@ -768,10 +758,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                       <span className="oh-mode__name">{t("onlineLobby.t35")}</span>
                     </button>
                   </div>
-                  <label className="setup-debug-toggle">
-                    <input type="checkbox" checked={continueBelowZero} onChange={(e) => setContinueBelowZero(e.target.checked)} />
-                    箱下続行
-                  </label>
+                  <label className="setup-debug-toggle">{tn("onlineLobby.t70", { input: <input type="checkbox" checked={continueBelowZero} onChange={(e) => setContinueBelowZero(e.target.checked)} /> })}</label>
                 </>
               ) : (
                 <p className="oh-card__lead">{t("onlineLobby.t36")}</p>

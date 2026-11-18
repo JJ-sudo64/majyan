@@ -4,7 +4,7 @@ import { equipCard, useAccountStore } from "../online/account.js";
 import { RARITY_STARS } from "./GachaCard.js";
 import { UnitDetail } from "./UnitDetail.js";
 import { CardSlotPicker, slotLabel, type SlotKind } from "./CardSlot.js";
-import { useT } from "../i18n/index.js";
+import { useT, useTn } from "../i18n/index.js";
 
 /** 並び順。oldest=入手順（サーバーの並び）、newest=新しい順。 */
 export type SortKey = "oldest" | "newest" | "rarity" | "equipped" | "name";
@@ -140,6 +140,7 @@ function PracticeBanner({ stage, onFinish }: { stage: PracticeStage; onFinish: (
  * レア度・カードの装着状態での絞り込みができる（選んだ内容は覚えておく）。
  */
 export function UnitsScreen({ onClose, practice = false }: { onClose: () => void; practice?: boolean }) {
+  const tn = useTn();
   const t = useT();
   const realUnits = useAccountStore((s) => s.units);
   const realCards = useAccountStore((s) => s.cards);
@@ -225,12 +226,9 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
           {practice ? (
             practiceBanner
           ) : (
-            <p className="setup-lead">
-              キャラを押すと、パッシブカード欄・アクティブカード欄にカードを付けられます。一度付けたカードは外せません。{" "}
-              <button type="button" className="units-screen__chip" onClick={() => setShowPractice(true)}>
+            <p className="setup-lead">{tn("unitsScreen.t16", { v1: " ", button: <button type="button" className="units-screen__chip" onClick={() => setShowPractice(true)}>
                 {t("unitsScreen.t3")}
-              </button>
-            </p>
+              </button> })}</p>
           )}
           {error && !selectedUnit && <p className="online-lobby__error">{error}</p>}
 
@@ -307,12 +305,9 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
           </div>
 
           {units.length > 0 && shownUnits.length === 0 && (
-            <p className="setup-lead">
-              この条件に合うキャラがいません。{" "}
-              <button type="button" className="units-screen__chip" onClick={() => setView({ rarity: "all", equip: "all" })}>
+            <p className="setup-lead">{tn("unitsScreen.t17", { v1: " ", button: <button type="button" className="units-screen__chip" onClick={() => setView({ rarity: "all", equip: "all" })}>
                 {t("unitsScreen.t8")}
-              </button>
-            </p>
+              </button> })}</p>
           )}
 
           {ownedCardIds.length === 0 && <p className="setup-lead">{t("unitsScreen.t9")}</p>}
