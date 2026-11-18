@@ -57,12 +57,14 @@ console.log("shorts-captions:", ids.length, "days");
 import { enData } from "../packages/web/src/i18n/en-data.ts";
 const EN_URL = "https://janhai.maxplantlabs.com/en/";
 const en = (t: string): string => enData[t] ?? t;
+// 英語UIで撮った動画があればそれを使う。無ければ日本語UIの動画（その旨を注記）。
+const videoOfEn = (id: string) => (existsSync(`drafts/shorts/play-en/${id}.mp4`) ? `drafts/shorts/play-en/${id}.mp4` : `${videoOf(id)} (Japanese UI)`);
 const enWeight = (t: string) => [...t.replace(EN_URL, "")].length + (t.includes(EN_URL) ? 23 : 0);
 const firstEn = (t: string) => (t.split(/(?<=\.)\s/)[0] ?? t).trim();
 
 let pe = `# English posts (X / TikTok / Reels / Shorts)
 
-Same order and same videos as post-calendar.md. Note: the gameplay clips still show the Japanese UI — re-record in English (set \`majyan.locale\` to "en") if you want an English-UI version.
+Same order and same videos as post-calendar.md. Videos: drafts/shorts/play-en/ holds English-UI clips with English captions; days without one fall back to the Japanese-UI clip (marked).
 Check each time: AI-generated content label ON; put the link in the profile (caption links aren't clickable on TikTok/Reels); post in the evening of the target time zone.
 
 `;
@@ -78,7 +80,7 @@ ids.forEach((id, i) => {
   const tail = `Free skill-powered mahjong in your browser, no sign-up:\n${EN_URL}\n#mahjong #riichimahjong #indiegame`;
   const withQuote = `${head}"${quote}"\n\n${tail}`;
   const post = enWeight(withQuote) <= 280 ? withQuote : `${head}${tail}`;
-  pe += `## Day ${i + 1}: ${short} (video \`${videoOf(id)}\`)\n\n**X**\n\n${FENCE}\n${post}\n${FENCE}\n(${enWeight(post)}/280${post === withQuote ? "" : ", quote omitted: too long"})\n\n`;
+  pe += `## Day ${i + 1}: ${short} (video \`${videoOfEn(id)}\`)\n\n**X**\n\n${FENCE}\n${post}\n${FENCE}\n(${enWeight(post)}/280${post === withQuote ? "" : ", quote omitted: too long"})\n\n`;
   pe += `**TikTok / Reels**\n\n${FENCE}\n${short}'s skill "${skill}" 🀄 ${first} Free, no sign-up — link in bio.\n#mahjong #riichimahjong #browsergame #indiegame #gamedev\n${FENCE}\n\n`;
   pe += `**YouTube Shorts** (title ≤100 chars)\n\n${FENCE}\n${short}: "${skill}" skill | Skill-Powered Riichi Mahjong #Shorts\n${FENCE}\n\n`;
 });

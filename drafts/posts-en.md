@@ -1,9 +1,9 @@
 # English posts (X / TikTok / Reels / Shorts)
 
-Same order and same videos as post-calendar.md. Note: the gameplay clips still show the Japanese UI — re-record in English (set `majyan.locale` to "en") if you want an English-UI version.
+Same order and same videos as post-calendar.md. Videos: drafts/shorts/play-en/ holds English-UI clips with English captions; days without one fall back to the Japanese-UI clip (marked).
 Check each time: AI-generated content label ON; put the link in the profile (caption links aren't clickable on TikTok/Reels); post in the evening of the target time zone.
 
-## Day 1: Zeno (video `drafts/shorts/play-zeno-timestop.mp4`)
+## Day 1: Zeno (video `drafts/shorts/play-zeno-timestop.mp4 (Japanese UI)`)
 
 **X**
 
@@ -32,7 +32,7 @@ Zeno's skill "Time Stop" 🀄 Time stops until you have played twice. Free, no s
 Zeno: "Time Stop" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 2: Raiko (video `drafts/shorts/play-raiko-issen.mp4`)
+## Day 2: Raiko (video `drafts/shorts/play-raiko-issen.mp4 (Japanese UI)`)
 
 **X**
 
@@ -59,7 +59,7 @@ Raiko's skill "Flash" 🀄 During Ippatsu after Riichi, if the gauge is full, ac
 Raiko: "Flash" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 3: Kagami (video `drafts/shorts/chars/kagami.mp4`)
+## Day 3: Kagami (video `drafts/shorts/chars/kagami.mp4 (Japanese UI)`)
 
 **X**
 
@@ -86,7 +86,7 @@ Kagami's skill "Mirror Image" 🀄 Use the skill someone else just used, exactly
 Kagami: "Mirror Image" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 4: Mirai (video `drafts/shorts/play/mirai.mp4`)
+## Day 4: Mirai (video `drafts/shorts/play/mirai.mp4 (Japanese UI)`)
 
 **X**
 
@@ -113,7 +113,7 @@ Mirai's skill "Future Sight" 🀄 See your next three draws ahead. Free, no sign
 Mirai: "Future Sight" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 5: Nyanjiro (video `drafts/shorts/play/nyanjiro.mp4`)
+## Day 5: Nyanjiro (video `drafts/shorts/play/nyanjiro.mp4 (Japanese UI)`)
 
 **X**
 
@@ -140,7 +140,7 @@ Nyanjiro's skill "Atomic Riichi" 🀄 If you declare Riichi with a full gauge, t
 Nyanjiro: "Atomic Riichi" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 6: Ren (video `drafts/shorts/play/ren.mp4`)
+## Day 6: Ren (video `drafts/shorts/play/ren.mp4 (Japanese UI)`)
 
 **X**
 
@@ -167,7 +167,7 @@ Ren's skill "Flip of Fate" 🀄 Activates when you declare Riichi with a full ga
 Ren: "Flip of Fate" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 7: Maki (video `drafts/shorts/chars/saki.mp4`)
+## Day 7: Maki (video `drafts/shorts/chars/saki.mp4 (Japanese UI)`)
 
 **X**
 
@@ -194,7 +194,7 @@ Maki's skill "Dora Draw" 🀄 When the gauge is full, activates automatically on
 Maki: "Dora Draw" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 8: Karin (video `drafts/shorts/chars/karin.mp4`)
+## Day 8: Karin (video `drafts/shorts/chars/karin.mp4 (Japanese UI)`)
 
 **X**
 
@@ -221,7 +221,7 @@ Karin's skill "Borrow Race" 🀄 Pick one other player and use their skill exact
 Karin: "Borrow Race" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 9: Naoto (video `drafts/shorts/chars/naoki.mp4`)
+## Day 9: Naoto (video `drafts/shorts/chars/naoki.mp4 (Japanese UI)`)
 
 **X**
 
@@ -248,7 +248,7 @@ Naoto's skill "Kuma-Kuma Time" 🀄 When you win and the dealer stays, the next 
 Naoto: "Kuma-Kuma Time" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 10: Tomohiko (video `drafts/shorts/chars/tomohiro.mp4`)
+## Day 10: Tomohiko (video `drafts/shorts/chars/tomohiro.mp4 (Japanese UI)`)
 
 **X**
 
@@ -275,7 +275,7 @@ Tomohiko's skill "The Man with One Tile" 🀄 While your hand has just one tile,
 Tomohiko: "The Man with One Tile" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 11: Kagerou (video `drafts/shorts/play/kagerou.mp4`)
+## Day 11: Kagerou (video `drafts/shorts/play-en/kagerou.mp4`)
 
 **X**
 
@@ -302,7 +302,7 @@ Kagerou's skill "Art of Sight" 🀄 For one turn until your next draw, you can s
 Kagerou: "Art of Sight" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 12: Runa (video `drafts/shorts/play/runa.mp4`)
+## Day 12: Runa (video `drafts/shorts/play-en/runa.mp4`)
 
 **X**
 
@@ -329,7 +329,7 @@ Runa's skill "Fate's Arrangement" 🀄 In the next round's deal, you can swap an
 Runa: "Fate's Arrangement" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 13: Hiiragi (video `drafts/shorts/play/hiiragi.mp4`)
+## Day 13: Hiiragi (video `drafts/shorts/play-en/hiiragi.mp4`)
 
 **X**
 
@@ -356,7 +356,7 @@ Hiiragi's skill "Bloom" 🀄 Flip one more dora indicator, adding a dora. Free, 
 Hiiragi: "Bloom" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 14: Jin (video `drafts/shorts/play/jin.mp4`)
+## Day 14: Jin (video `drafts/shorts/play/jin.mp4 (Japanese UI)`)
 
 **X**
 
@@ -383,7 +383,7 @@ Jin's skill "Open Declaration" 🀄 If you declare Riichi with a full gauge, it 
 Jin: "Open Declaration" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 15: Toki (video `drafts/shorts/play/toki.mp4`)
+## Day 15: Toki (video `drafts/shorts/play-en/toki.mp4`)
 
 **X**
 
@@ -410,7 +410,7 @@ Toki's skill "Rinshan Revelation" 🀄 After activating, if you declare a Kan wh
 Toki: "Rinshan Revelation" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 16: Subaru (video `drafts/shorts/play/subaru.mp4`)
+## Day 16: Subaru (video `drafts/shorts/play/subaru.mp4 (Japanese UI)`)
 
 **X**
 
@@ -437,7 +437,7 @@ Subaru's skill "Wall Reading" 🀄 For this round, you know exactly how many of 
 Subaru: "Wall Reading" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 17: Kaede (video `drafts/shorts/play/kaede.mp4`)
+## Day 17: Kaede (video `drafts/shorts/play/kaede.mp4 (Japanese UI)`)
 
 **X**
 
@@ -464,7 +464,7 @@ Kaede's skill "Guidance" 🀄 Put the tile you just drew back in the wall and dr
 Kaede: "Guidance" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 18: Nagi (video `drafts/shorts/play/nagi.mp4`)
+## Day 18: Nagi (video `drafts/shorts/play-en/nagi.mp4`)
 
 **X**
 
@@ -491,7 +491,7 @@ Nagi's skill "Stack the Deck" 🀄 Put the tile you just drew back in the wall a
 Nagi: "Stack the Deck" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 19: Masaki (video `drafts/shorts/play/masato.mp4`)
+## Day 19: Masaki (video `drafts/shorts/play-en/masato.mp4`)
 
 **X**
 
@@ -518,7 +518,7 @@ Masaki's skill "Sanshoku Glimmer" 🀄 Tiles close to a Sanshoku Doujun glow for
 Masaki: "Sanshoku Glimmer" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 20: Kouki (video `drafts/shorts/play/koki.mp4`)
+## Day 20: Kouki (video `drafts/shorts/play/koki.mp4 (Japanese UI)`)
 
 **X**
 
@@ -545,7 +545,7 @@ Kouki's skill "Big-Hearted" 🀄 After activating, for the rest of the round, ev
 Kouki: "Big-Hearted" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 21: Takanori (video `drafts/shorts/play/takaharu.mp4`)
+## Day 21: Takanori (video `drafts/shorts/play/takaharu.mp4 (Japanese UI)`)
 
 **X**
 
@@ -572,7 +572,7 @@ Takanori's skill "Atomic Full Defense" 🀄 After activating, for the rest of th
 Takanori: "Atomic Full Defense" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 22: Kouji (video `drafts/shorts/play/koji.mp4`)
+## Day 22: Kouji (video `drafts/shorts/play/koji.mp4 (Japanese UI)`)
 
 **X**
 
@@ -601,7 +601,7 @@ Kouji's skill "Pair Promise" 🀄 In the next round's deal, you get 4 or more pa
 Kouji: "Pair Promise" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 23: Nannan (video `drafts/shorts/play/nannan.mp4`)
+## Day 23: Nannan (video `drafts/shorts/play/nannan.mp4 (Japanese UI)`)
 
 **X**
 
@@ -628,7 +628,7 @@ Nannan's skill "Rule Change" 🀄 For the rest of the round, calls no longer red
 Nannan: "Rule Change" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 24: Shigure (video `drafts/shorts/play/deagari.mp4`)
+## Day 24: Shigure (video `drafts/shorts/play/deagari.mp4 (Japanese UI)`)
 
 **X**
 
@@ -657,7 +657,7 @@ Shigure's skill "Sniper" 🀄 Activates when you declare Riichi with a full gaug
 Shigure: "Sniper" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 25: Sena (video `drafts/shorts/play/sena.mp4`)
+## Day 25: Sena (video `drafts/shorts/play/sena.mp4 (Japanese UI)`)
 
 **X**
 
@@ -684,7 +684,7 @@ Sena's skill "Wait and See" 🀄 Put the tile you just drew back in the wall and
 Sena: "Wait and See" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 26: Mio (video `drafts/shorts/chars/mio.mp4`)
+## Day 26: Mio (video `drafts/shorts/chars/mio.mp4 (Japanese UI)`)
 
 **X**
 
@@ -711,7 +711,7 @@ Mio's skill "Take Back" 🀄 After drawing, return one tile from your own discar
 Mio: "Take Back" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 27: Mebius (video `drafts/shorts/chars/mebius.mp4`)
+## Day 27: Mebius (video `drafts/shorts/chars/mebius.mp4 (Japanese UI)`)
 
 **X**
 
