@@ -3,6 +3,7 @@ import { useSettingsStore } from "../store/settingsStore.js";
 import { useFitScale } from "../hooks/useFitScale.js";
 import { playUiClickFor } from "../sound.js";
 import { RulesGuide } from "./RulesGuide.js";
+import { useT } from "../i18n/index.js";
 
 /** タイトル背景画像(1672x940)の実ピクセルサイズ。画像内に描かれたボタン絵の
     座標にそのまま合わせて実ボタンを重ねるため、Stageと同様に
@@ -14,6 +15,7 @@ const TITLE_HEIGHT = 940;
     透明ボタンを重ねるレイアウト。画像自体は静止画のため見た目のボタンは
     押せず、その代わりにこのコンポーネントが座標を合わせた実ボタンを提供する。 */
 export function TitleScreen({ onPlay }: { onPlay: () => void }) {
+  const t = useT();
   const { containerRef, scale } = useFitScale(TITLE_WIDTH, TITLE_HEIGHT);
   const [showRules, setShowRules] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -33,7 +35,7 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
   const setSeVolume = useSettingsStore((s) => s.setSeVolume);
 
   function handleExit() {
-    if (window.confirm("雀杯を終了しますか？")) {
+    if (window.confirm(t("title.exitConfirm"))) {
       window.close();
     }
   }
@@ -44,7 +46,7 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
         <img
           className={`title-screen__bg${bgReady ? " title-screen__bg--ready" : ""}`}
           src="/title/title-bg.webp"
-          alt="雀杯"
+          alt={t("title.logoAlt")}
           ref={(el) => {
             if (el?.complete && el.naturalWidth > 0) setBgReady(true);
           }}
@@ -53,10 +55,10 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
         />
 
         <div className="title-screen__menu">
-          <button type="button" className="title-screen__menu-btn" aria-label="プレイ" onClick={onPlay} />
-          <button type="button" className="title-screen__menu-btn" aria-label="ルール" onClick={() => setShowRules(true)} />
-          <button type="button" className="title-screen__menu-btn" aria-label="設定" onClick={() => setShowSettings(true)} />
-          <button type="button" className="title-screen__menu-btn" aria-label="終了" onClick={handleExit} />
+          <button type="button" className="title-screen__menu-btn" aria-label={t("title.play")} onClick={onPlay} />
+          <button type="button" className="title-screen__menu-btn" aria-label={t("title.rules")} onClick={() => setShowRules(true)} />
+          <button type="button" className="title-screen__menu-btn" aria-label={t("title.settings")} onClick={() => setShowSettings(true)} />
+          <button type="button" className="title-screen__menu-btn" aria-label={t("title.exit")} onClick={handleExit} />
         </div>
 
         <button type="button" className="title-screen__pv-btn" onClick={() => setShowPv(true)}>
@@ -67,7 +69,7 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
       {showPv && (
         <div className="modal-overlay" onClick={() => setShowPv(false)}>
           <div className="pv-modal" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="pv-modal__close" aria-label="閉じる" onClick={() => setShowPv(false)}>
+            <button type="button" className="pv-modal__close" aria-label={t("common.close")} onClick={() => setShowPv(false)}>
               ×
             </button>
             <video className="pv-modal__video" src="/about/pv.mp4" poster="/about/img/pv-poster.webp" controls autoPlay playsInline />
@@ -81,14 +83,14 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
         <div className="modal-overlay" onClick={() => setShowSettings(false)}>
           <div className="title-modal" onClick={(e) => e.stopPropagation()}>
             <div className="setup-picker-modal__header">
-              <div className="setup-character-select__label">設定</div>
+              <div className="setup-character-select__label">{t("settings.title")}</div>
               <button type="button" className="setup-picker-modal__close" onClick={() => setShowSettings(false)}>
                 ×
               </button>
             </div>
             <div className="title-modal__body">
               <div className="hud__row hud__bgm-volume">
-                <span className="hud__dora-label">BGM音量</span>
+                <span className="hud__dora-label">{t("settings.bgmVolume")}</span>
                 <input
                   type="range"
                   min={0}
@@ -100,7 +102,7 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
                 <span className="hud__bgm-volume__value">{Math.round(bgmVolume * 100)}%</span>
               </div>
               <div className="hud__row hud__bgm-volume">
-                <span className="hud__dora-label">SE音量</span>
+                <span className="hud__dora-label">{t("settings.seVolume")}</span>
                 <input
                   type="range"
                   min={0}

@@ -6,12 +6,14 @@ import { useTile3DDebugStore } from "../store/tile3dDebugStore.js";
 import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
 import { TABLE_BACKGROUND_OPTIONS, useTableBackgroundStore } from "../store/tableBackgroundStore.js";
 import { portalRoot } from "../orientation.js";
+import { useT } from "../i18n/index.js";
 
 /** 自動ツモ切り/自動和了トグルを、対局情報(Hud.tsx)とは切り離して画面左下に
     常設する設定パネル。以前はHudパネル(左上)に同居していたが、対局情報と
     設定操作は役割が異なるため分離した。BGM音量は画面右端の歯車アイコンを
     押した時だけ出るポップオーバーに移した（指摘により）。 */
 export function SettingsPanel() {
+  const t = useT();
   const bgmVolume = useSettingsStore((s) => s.bgmVolume);
   const setBgmVolume = useSettingsStore((s) => s.setBgmVolume);
   const seVolume = useSettingsStore((s) => s.seVolume);
@@ -62,33 +64,33 @@ export function SettingsPanel() {
       {!replaying && <div className="settings-panel">
         {/* 「ON/OFF」の文字は出さず、色（緑）と●○で状態を見せる。ラベルは短く。 */}
         <div className="hud__row hud__auto-toggles">
-          <span className="hud__auto-label">自動</span>
+          <span className="hud__auto-label">{t("settings.auto")}</span>
           <button
             type="button"
             aria-pressed={autoTsumogiri}
-            title="自動ツモ切り：引いた牌を自動で切る"
+            title={t("settings.autoTsumogiriHint")}
             className={`hud__toggle-btn${autoTsumogiri ? " hud__toggle-btn--on" : ""}`}
             onClick={() => setAutoTsumogiri(!autoTsumogiri)}
           >
-            {autoTsumogiri ? "●" : "○"} ツモ切り
+            {autoTsumogiri ? "●" : "○"} {t("settings.autoTsumogiri")}
           </button>
           <button
             type="button"
             aria-pressed={autoWin}
-            title="自動和了：和了できる時に自動で和了する"
+            title={t("settings.autoWinHint")}
             className={`hud__toggle-btn${autoWin ? " hud__toggle-btn--on" : ""}`}
             onClick={() => setAutoWin(!autoWin)}
           >
-            {autoWin ? "●" : "○"} 和了
+            {autoWin ? "●" : "○"} {t("settings.autoWin")}
           </button>
           <button
             type="button"
             aria-pressed={autoPassCalls}
-            title="鳴きなし：ポン・チー・カンを自動で見送る"
+            title={t("settings.autoPassCallsHint")}
             className={`hud__toggle-btn${autoPassCalls ? " hud__toggle-btn--on" : ""}`}
             onClick={() => setAutoPassCalls(!autoPassCalls)}
           >
-            {autoPassCalls ? "●" : "○"} 鳴きなし
+            {autoPassCalls ? "●" : "○"} {t("settings.autoPassCalls")}
           </button>
         </div>
       </div>}
@@ -98,7 +100,7 @@ export function SettingsPanel() {
           <button
             type="button"
             className="volume-gear"
-            aria-label="音量設定"
+            aria-label={t("settings.volume")}
             aria-expanded={volumeOpen}
             onClick={() => setVolumeOpen((v) => !v)}
           >
@@ -112,7 +114,7 @@ export function SettingsPanel() {
           {volumeOpen && (
           <div className="volume-popover">
             <div className="hud__row hud__bgm-volume">
-              <span className="hud__dora-label">BGM音量</span>
+              <span className="hud__dora-label">{t("settings.bgmVolume")}</span>
               <input
                 type="range"
                 min={0}
@@ -124,7 +126,7 @@ export function SettingsPanel() {
               <span className="hud__bgm-volume__value">{Math.round(bgmVolume * 100)}%</span>
             </div>
             <div className="hud__row hud__bgm-volume">
-              <span className="hud__dora-label">SE音量</span>
+              <span className="hud__dora-label">{t("settings.seVolume")}</span>
               <input
                 type="range"
                 min={0}
@@ -146,7 +148,7 @@ export function SettingsPanel() {
                 className={`hud__toggle-btn${tile3dEnabled ? " hud__toggle-btn--on" : ""}`}
                 onClick={() => setTile3dEnabled(!tile3dEnabled)}
               >
-                立体牌{tile3dEnabled ? " ON" : " OFF"}
+                {t("settings.tile3d")} {tile3dEnabled ? t("settings.on") : t("settings.off")}
               </button>
             </div>
             {/* ここから「背景の調整」までは開発者用の調整項目。本番のビルドには出さない
