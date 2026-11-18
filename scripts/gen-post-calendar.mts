@@ -1,6 +1,10 @@
 // 縦動画1日1本用の投稿文を、キャラデータから作る。出力: drafts/post-calendar.md
 import { CHARACTERS } from "../packages/core/src/index.ts";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, existsSync } from "node:fs";
+
+// 実プレイ録画を優先。無ければ紹介用の短い動画。
+const SPECIAL: Record<string, string> = { zeno: "drafts/shorts/play-zeno-timestop.mp4", raiko: "drafts/shorts/play-raiko-issen.mp4" };
+const videoOf = (id: string) => SPECIAL[id] ?? (existsSync(`drafts/shorts/play/${id}.mp4`) ? `drafts/shorts/play/${id}.mp4` : `drafts/shorts/chars/${id}.mp4`);
 
 const ORDER = ["zeno", "raiko", "kagami", "mirai", "nyanjiro", "ren", "saki", "karin", "naoki", "tomohiro", "kagerou", "runa", "hiiragi", "jin", "toki", "subaru", "kaede", "nagi", "masato", "koki", "takaharu", "koji", "nannan", "deagari", "sena", "mio", "mebius"];
 const URL = "https://janhai.maxplantlabs.com";
@@ -12,7 +16,7 @@ const ids = [...ORDER.filter((id) => all[id]), ...Object.keys(all).filter((id) =
 const weight = (t: string) =>
   [...t.replace(URL, "")].reduce((n, ch) => n + (ch.charCodeAt(0) > 255 ? 2 : 1), 0) + (t.includes(URL) ? 23 : 0);
 
-let out = "# 投稿カレンダー（1日1本・縦動画）\n\n毎日: 動画を添付 → 下の文をコピペ。動画は drafts/shorts/chars/{id}.mp4。\n\n";
+let out = "# 投稿カレンダー（1日1本・縦動画）\n\n毎日: 動画を添付 → 下の文をコピペ。動画のパスは各日に記載（実プレイ録画があるキャラはそれを優先）。\n\n";
 ids.forEach((id, i) => {
   const c = all[id];
   const [title, ...rest] = c.name.split("・");
@@ -22,7 +26,7 @@ ids.forEach((id, i) => {
   const tail = `無料・登録不要で遊べる異能麻雀『雀杯』\n${URL}\n#雀杯 #異能麻雀`;
   const withQuote = `${head}「${c.winQuote}」\n\n${tail}`;
   const post = weight(withQuote) <= 280 ? withQuote : `${head}${tail}`;
-  out += `## Day ${i + 1}：${who}（動画 \`${id}.mp4\`）\n\n${FENCE}\n${post}\n${FENCE}\n`;
+  out += `## Day ${i + 1}：${who}（動画 \`${videoOf(id)}\`）\n\n${FENCE}\n${post}\n${FENCE}\n`;
   out += `（X換算 ${weight(post)}/280${post === withQuote ? "" : "・台詞が長いので省略"}）\n\n`;
 });
 writeFileSync("drafts/post-calendar.md", out);

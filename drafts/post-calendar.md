@@ -1,8 +1,8 @@
 # 投稿カレンダー（1日1本・縦動画）
 
-毎日: 動画を添付 → 下の文をコピペ。動画は drafts/shorts/chars/{id}.mp4。
+毎日: 動画を添付 → 下の文をコピペ。動画のパスは各日に記載（実プレイ録画があるキャラはそれを優先）。
 
-## Day 1：ゼノ（動画 `zeno.mp4`）
+## Day 1：ゼノ（動画 `drafts/shorts/play-zeno-timestop.mp4`）
 
 ```
 【刻を止める者】ゼノの必殺技「時間停止」
@@ -16,7 +16,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 214/280）
 
-## Day 2：ライコ（動画 `raiko.mp4`）
+## Day 2：ライコ（動画 `drafts/shorts/play-raiko-issen.mp4`）
 
 ```
 【一閃の雷神】ライコの必殺技「一閃」
@@ -30,7 +30,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 267/280）
 
-## Day 3：カガミ（動画 `kagami.mp4`）
+## Day 3：カガミ（動画 `drafts/shorts/chars/kagami.mp4`）
 
 ```
 【百面の写し身】カガミの必殺技「写し身」
@@ -44,7 +44,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 245/280）
 
-## Day 4：ミライ（動画 `mirai.mp4`）
+## Day 4：ミライ（動画 `drafts/shorts/play/mirai.mp4`）
 
 ```
 【先読みの巫女】ミライの必殺技「未来視」
@@ -58,7 +58,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 226/280）
 
-## Day 5：にゃん次郎（動画 `nyanjiro.mp4`）
+## Day 5：にゃん次郎（動画 `drafts/shorts/play/nyanjiro.mp4`）
 
 ```
 【怪鳥】にゃん次郎の必殺技「アトミックリーチ」
@@ -72,7 +72,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 264/280）
 
-## Day 6：レン（動画 `ren.mp4`）
+## Day 6：レン（動画 `drafts/shorts/play/ren.mp4`）
 
 ```
 【強運の賭け師】レンの必殺技「捲る運命」
@@ -86,7 +86,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 211/280）
 
-## Day 7：マキ（動画 `saki.mp4`）
+## Day 7：マキ（動画 `drafts/shorts/chars/saki.mp4`）
 
 ```
 【強気のアフロディーテ】マキの必殺技「特技ドラ引き」
@@ -100,7 +100,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 257/280）
 
-## Day 8：カリン（動画 `karin.mp4`）
+## Day 8：カリン（動画 `drafts/shorts/chars/karin.mp4`）
 
 ```
 【何でも屋】カリンの必殺技「借り物競争」
@@ -114,7 +114,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 222/280）
 
-## Day 9：ナオト（動画 `naoki.mp4`）
+## Day 9：ナオト（動画 `drafts/shorts/chars/naoki.mp4`）
 
 ```
 【卓上の暴熊】ナオトの必殺技「クマクマタイム」
@@ -128,7 +128,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 245/280）
 
-## Day 10：トモヒコ（動画 `tomohiro.mp4`）
+## Day 10：トモヒコ（動画 `drafts/shorts/chars/tomohiro.mp4`）
 
 ```
 【ヤンチャなプリンス】トモヒコの必殺技「手牌が一枚しかない人」
@@ -142,7 +142,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 263/280）
 
-## Day 11：カゲロウ（動画 `kagerou.mp4`）
+## Day 11：カゲロウ（動画 `drafts/shorts/play/kagerou.mp4`）
 
 ```
 【千里眼の忍】カゲロウの必殺技「透視の術」
@@ -156,7 +156,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 245/280）
 
-## Day 12：ルナ（動画 `runa.mp4`）
+## Day 12：ルナ（動画 `drafts/shorts/play/runa.mp4`）
 
 ```
 【運命の配師】ルナの必殺技「運命の采配」
@@ -168,7 +168,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 203/280・台詞が長いので省略）
 
-## Day 13：ヒイラギ（動画 `hiiragi.mp4`）
+## Day 13：ヒイラギ（動画 `drafts/shorts/play/hiiragi.mp4`）
 
 ```
 【開花の巫女】ヒイラギの必殺技「開花」
@@ -182,7 +182,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 230/280）
 
-## Day 14：ジン（動画 `jin.mp4`）
+## Day 14：ジン（動画 `drafts/shorts/play/jin.mp4`）
 
 ```
 【捨て身の伊達者】ジンの必殺技「大明立直」
@@ -196,7 +196,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 275/280）
 
-## Day 15：トキ（動画 `toki.mp4`）
+## Day 15：トキ（動画 `drafts/shorts/play/toki.mp4`）
 
 ```
 【嶺上の予言者】トキの必殺技「嶺上顕現」
@@ -210,7 +210,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 251/280）
 
-## Day 16：スバル（動画 `subaru.mp4`）
+## Day 16：スバル（動画 `drafts/shorts/play/subaru.mp4`）
 
 ```
 【山読みの軍師】スバルの必殺技「山読み」
@@ -224,7 +224,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 217/280）
 
-## Day 17：カエデ（動画 `kaede.mp4`）
+## Day 17：カエデ（動画 `drafts/shorts/play/kaede.mp4`）
 
 ```
 【百戦の学匠】カエデの必殺技「手ほどき」
@@ -238,7 +238,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 243/280）
 
-## Day 18：ナギ（動画 `nagi.mp4`）
+## Day 18：ナギ（動画 `drafts/shorts/play/nagi.mp4`）
 
 ```
 【積み込み師】ナギの必殺技「積み込み」
@@ -252,7 +252,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 225/280）
 
-## Day 19：マサキ（動画 `masato.mp4`）
+## Day 19：マサキ（動画 `drafts/shorts/play/masato.mp4`）
 
 ```
 【卓上のてんこしゃんこ】マサキの必殺技「三色の煌めき」
@@ -266,7 +266,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 202/280）
 
-## Day 20：コウキ（動画 `koki.mp4`）
+## Day 20：コウキ（動画 `drafts/shorts/play/koki.mp4`）
 
 ```
 【気前の良い散財家】コウキの必殺技「太っ腹」
@@ -280,7 +280,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 275/280）
 
-## Day 21：タカノリ（動画 `takaharu.mp4`）
+## Day 21：タカノリ（動画 `drafts/shorts/play/takaharu.mp4`）
 
 ```
 【ベタオリスト】タカノリの必殺技「アトミックベタ降り」
@@ -294,7 +294,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 239/280）
 
-## Day 22：コウジ（動画 `koji.mp4`）
+## Day 22：コウジ（動画 `drafts/shorts/play/koji.mp4`）
 
 ```
 【対子使い】コウジの必殺技「対子の約束」
@@ -308,7 +308,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 229/280）
 
-## Day 23：南南（動画 `nannan.mp4`）
+## Day 23：南南（動画 `drafts/shorts/play/nannan.mp4`）
 
 ```
 【中国からの刺客】南南の必殺技「ルール変更」
@@ -320,7 +320,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 207/280・台詞が長いので省略）
 
-## Day 24：シグレ（動画 `deagari.mp4`）
+## Day 24：シグレ（動画 `drafts/shorts/play/deagari.mp4`）
 
 ```
 【一撃の狩人】シグレの必殺技「狙い撃ち」
@@ -334,7 +334,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 211/280）
 
-## Day 25：セナ（動画 `sena.mp4`）
+## Day 25：セナ（動画 `drafts/shorts/play/sena.mp4`）
 
 ```
 【石橋の番人】セナの必殺技「様子見」
@@ -348,7 +348,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 235/280）
 
-## Day 26：ミオ（動画 `mio.mp4`）
+## Day 26：ミオ（動画 `drafts/shorts/chars/mio.mp4`）
 
 ```
 【やり直し請負人】ミオの必殺技「取り返し」
@@ -362,7 +362,7 @@ https://janhai.maxplantlabs.com
 ```
 （X換算 271/280）
 
-## Day 27：メビウス（動画 `mebius.mp4`）
+## Day 27：メビウス（動画 `drafts/shorts/chars/mebius.mp4`）
 
 ```
 【表裏の配牌師】メビウスの必殺技「陰陽配牌」
