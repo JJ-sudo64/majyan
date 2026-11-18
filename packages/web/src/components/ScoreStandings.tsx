@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { CHARACTERS, rankSeats, type PlayerIndex, type RoundState } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { portalRoot } from "../orientation.js";
+import { useT } from "../i18n/index.js";
 
 const HUMAN = 0 as const;
 
@@ -25,11 +26,12 @@ export function ScoreStandings({
   startingDealer: PlayerIndex;
   onClose: () => void;
 }) {
+  const t = useT();
   const onlineSeats = useGameStore((s) => s.onlineSeats);
   const order = rankSeats(scores, startingDealer);
   const myRank = order.indexOf(HUMAN);
   const nameOf = (seat: PlayerIndex) =>
-    seat === HUMAN ? "あなた" : (onlineSeats?.[seat]?.name ?? CHARACTERS[round.characterIds[seat]]?.name ?? "");
+    seat === HUMAN ? t("standings.you") : (onlineSeats?.[seat]?.name ?? CHARACTERS[round.characterIds[seat]]?.name ?? "");
 
   // 自分から見たトップ・1つ上・1つ下との差（該当する相手がいない時はnull）。
   const gapTo = (rank: number): number | null => (rank >= 0 && rank < 4 ? scores[order[rank]!] - scores[HUMAN] : null);
@@ -47,13 +49,13 @@ export function ScoreStandings({
         onClose();
       }}
     >
-      <div className="score-standings" role="dialog" aria-label="点差" onClick={(e) => e.stopPropagation()}>
-        <div className="score-standings__title">点差</div>
+      <div className="score-standings" role="dialog" aria-label={t("standings.title")} onClick={(e) => e.stopPropagation()}>
+        <div className="score-standings__title">{t("standings.title")}</div>
         <table className="score-standings__table">
           <tbody>
             {order.map((seat, i) => (
               <tr key={seat} className={seat === HUMAN ? "score-standings__row--me" : undefined}>
-                <td className="score-standings__rank">{i + 1}位</td>
+                <td className="score-standings__rank">{t("standings.place", { n: i + 1 })}</td>
                 <td className="score-standings__name">{nameOf(seat)}</td>
                 <td className="score-standings__score">{scores[seat]}</td>
                 <td className="score-standings__diff">{seat === HUMAN ? "" : signed(scores[seat] - scores[HUMAN])}</td>
@@ -62,15 +64,15 @@ export function ScoreStandings({
           </tbody>
         </table>
         <div className="score-standings__notes">
-          {top !== null && <div>トップとの差 {signed(top)}</div>}
-          {above !== null && myRank > 1 && <div>1つ上との差 {signed(above)}</div>}
-          {below !== null && <div>1つ下との差 {signed(below)}</div>}
+          {top !== null && <div>{t("standings.diffTop", { d: signed(top) })}</div>}
+          {above !== null && myRank > 1 && <div>{t("standings.diffAbove", { d: signed(above) })}</div>}
+          {below !== null && <div>{t("standings.diffBelow", { d: signed(below) })}</div>}
           <div>
-            供託 {round.kyotaku}本 ／ {round.honba}本場
+            {t("standings.sticks", { kyotaku: round.kyotaku, honba: round.honba })}
           </div>
         </div>
         <button type="button" className="score-standings__close" onClick={onClose}>
-          閉じる
+          {t("common.close")}
         </button>
       </div>
     </div>,

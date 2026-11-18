@@ -50,4 +50,9 @@ export function useT(): (key: MessageKey, params?: Record<string, string | numbe
   return (key, params) => translate(locale, key, params);
 }
 
+/** 風（1=東 2=南 3=西 4=北）の表示用キー。 */
+export function windKey(wind: 1 | 2 | 3 | 4): MessageKey {
+  return `wind.${wind}` as MessageKey;
+}
+
 export type { MessageKey };

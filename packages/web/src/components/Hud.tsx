@@ -1,8 +1,9 @@
 import type { MatchFormat, RoundState } from "@majyan/core";
 import { doraIndicators } from "@majyan/core";
 import { TileView } from "./TileView.js";
+import { useT } from "../i18n/index.js";
 
-const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
+const FORMAT_KEY = { tonpuusen: "format.tonpuusen", hanchan: "format.hanchan" } as const;
 
 /** 点棒の画像素材は未用意のため、雀魂等でよく見る「縦長カプセル型の点棒
     アイコン」をSVGで再現する（ユーザー提供の参考画像を実測して作図）。
@@ -32,15 +33,16 @@ function StickIconDotGrid() {
 }
 
 export function Hud({ round, format }: { round: RoundState; format: MatchFormat }) {
+  const t = useT();
   const dora = doraIndicators(round.wall);
 
   return (
     <div className="hud">
       <div className="hud__row">
-        <div className="hud__label">{FORMAT_LABEL[format]}</div>
+        <div className="hud__label">{t(FORMAT_KEY[format])}</div>
       </div>
       <div className="hud__row">
-        <span className="hud__dora-label">ドラ表示</span>
+        <span className="hud__dora-label">{t("hud.doraIndicator")}</span>
         <div className="hud__dora">
           {dora.map((d, i) => (
             <TileView key={i} code={d} tiny />
@@ -55,10 +57,10 @@ export function Hud({ round, format }: { round: RoundState; format: MatchFormat 
           順に並べ、アイコンの組み合わせも訂正した。 */}
       <div className="hud__row hud__sticks">
         <StickIconSingleDot />
-        <span className="hud__sticks-label">供託</span>
+        <span className="hud__sticks-label">{t("hud.kyotaku")}</span>
         <span className="hud__sticks-count">× {round.kyotaku}</span>
         <StickIconDotGrid />
-        <span className="hud__sticks-label">本場</span>
+        <span className="hud__sticks-label">{t("hud.honba")}</span>
         <span className="hud__sticks-count">× {round.honba}</span>
       </div>
     </div>

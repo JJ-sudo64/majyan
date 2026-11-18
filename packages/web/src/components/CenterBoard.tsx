@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { PlayerIndex, RoundState } from "@majyan/core";
-import { WIND_NAMES, seatWindOf } from "@majyan/core";
+import { seatWindOf } from "@majyan/core";
 import { SeatBadge } from "./SeatBadge.js";
 import { ScoreStandings } from "./ScoreStandings.js";
 import { useGameStore } from "../store/gameStore.js";
 import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
+import { useT, windKey } from "../i18n/index.js";
 
 /** カード「点棒吸収」等の即時点数増減演出を表示しておく時間。 */
 const SCORE_ADJUSTMENT_DISPLAY_MS = 1800;
@@ -28,6 +29,7 @@ export function CenterBoard({
   scores: [number, number, number, number];
   startingDealer: PlayerIndex;
 }) {
+  const t = useT();
   // 押すと点差の一覧を出す（ScoreStandings.tsx）。
   const [standingsOpen, setStandingsOpen] = useState(false);
 
@@ -76,15 +78,15 @@ export function CenterBoard({
         <ScoreStandings round={round} scores={scores} startingDealer={startingDealer} onClose={() => setStandingsOpen(false)} />
       )}
       <div className="center-board__round">
-        {WIND_NAMES[round.roundWind]}
-        {round.roundNumber}局
+        {t(windKey(round.roundWind))}
+        {t("board.roundNumber", { n: round.roundNumber })}
       </div>
       {/* 供託表示はHUD左上（Hud.tsx、本場と並べて常時表示）に統合したため、
           ここでの重複表示は廃止した。 */}
       <div className="center-board__wall-group">
-        <div className="center-board__wall">残り {round.wall.liveTiles.length}枚</div>
+        <div className="center-board__wall">{t("board.wallLeft", { n: round.wall.liveTiles.length })}</div>
       </div>
-      {activeDelta && <div className="center-board__absorb-banner">点棒吸収！</div>}
+      {activeDelta && <div className="center-board__absorb-banner">{t("board.absorb")}</div>}
 
       {/* 参考画像を丸ごと切り出した中央パネル(center-cluster.png)には、
           中央の局情報2段に加えて上下左右4方向の枠がすでに絵として
@@ -114,22 +116,22 @@ export function CenterBoard({
       <div
         className={`center-board__wind center-board__wind--top-left${round.dealerSeat === 3 ? " center-board__wind--dealer" : ""}`}
       >
-        {WIND_NAMES[seatWindOf(round.dealerSeat, 3)]}
+        {t(windKey(seatWindOf(round.dealerSeat, 3)))}
       </div>
       <div
         className={`center-board__wind center-board__wind--top-right${round.dealerSeat === 2 ? " center-board__wind--dealer" : ""}`}
       >
-        {WIND_NAMES[seatWindOf(round.dealerSeat, 2)]}
+        {t(windKey(seatWindOf(round.dealerSeat, 2)))}
       </div>
       <div
         className={`center-board__wind center-board__wind--bottom-right${round.dealerSeat === 1 ? " center-board__wind--dealer" : ""}`}
       >
-        {WIND_NAMES[seatWindOf(round.dealerSeat, 1)]}
+        {t(windKey(seatWindOf(round.dealerSeat, 1)))}
       </div>
       <div
         className={`center-board__wind center-board__wind--bottom-left${round.dealerSeat === 0 ? " center-board__wind--dealer" : ""}`}
       >
-        {WIND_NAMES[seatWindOf(round.dealerSeat, 0)]}
+        {t(windKey(seatWindOf(round.dealerSeat, 0)))}
       </div>
     </div>
   );
