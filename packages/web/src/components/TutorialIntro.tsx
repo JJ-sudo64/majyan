@@ -1,5 +1,6 @@
 import { TUTORIAL_COURSE_START, type TutorialCourse } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
+import { useT } from "../i18n/index.js";
 
 /** アカウントごとに、最初の案内を出したか（選んだコース／skipped）をこのブラウザに覚えておく。 */
 const KEY_PREFIX = "majyan.intro.";
@@ -28,6 +29,7 @@ function markIntro(accountId: string, value: TutorialCourse | "skipped") {
  * コースを選んで始めるだけ。「あとで」でやめることもでき、遊び方の画面の「チュートリアル」からいつでもやり直せる。
  */
 export function TutorialIntro({ accountId, onDone }: { accountId: string; onDone: () => void }) {
+  const t = useT();
   const startTutorial = useGameStore((s) => s.startTutorial);
 
   function choose(course: TutorialCourse) {
@@ -43,27 +45,27 @@ export function TutorialIntro({ accountId, onDone }: { accountId: string; onDone
 
   return (
     <div className="modal-overlay">
-      <div className="tutorial-intro" role="dialog" aria-label="はじめに">
-        <h2 className="tutorial-intro__title">はじめに</h2>
+      <div className="tutorial-intro" role="dialog" aria-label={t("tutorial.introTitle")}>
+        <h2 className="tutorial-intro__title">{t("tutorial.introTitle")}</h2>
         <p className="tutorial-intro__lead">
-          遊び方を、実際の画面で触りながら体験できます（数分ほど）。麻雀は知っていますか？
+          {t("tutorial.introLead")}
         </p>
         <div className="tutorial-intro__options">
           <button type="button" className="tutorial-intro__option" onClick={() => choose("beginner")}>
-            <span className="tutorial-intro__option-name">麻雀を知らない・あまり知らない</span>
-            <span className="tutorial-intro__option-desc">牌の捨て方、リーチ、あがり方、鳴き（ポン）を、基本から。そのあと、必殺技とカードも体験します。</span>
-            <span className="tutorial-intro__option-meta">4局・約5分</span>
+            <span className="tutorial-intro__option-name">{t("tutorial.beginnerName")}</span>
+            <span className="tutorial-intro__option-desc">{t("tutorial.beginnerDesc")}</span>
+            <span className="tutorial-intro__option-meta">{t("tutorial.beginnerMeta")}</span>
           </button>
           <button type="button" className="tutorial-intro__option tutorial-intro__option--primary" onClick={() => choose("experienced")}>
-            <span className="tutorial-intro__option-name">麻雀は知っている</span>
-            <span className="tutorial-intro__option-desc">ルールの説明は省いて、このゲームならではの「必殺技」と「カード」の使い方から。</span>
-            <span className="tutorial-intro__option-meta">2局・約2分</span>
+            <span className="tutorial-intro__option-name">{t("tutorial.experiencedName")}</span>
+            <span className="tutorial-intro__option-desc">{t("tutorial.experiencedDesc")}</span>
+            <span className="tutorial-intro__option-meta">{t("tutorial.experiencedMeta")}</span>
           </button>
         </div>
         <button type="button" className="tutorial-intro__skip" onClick={skip}>
-          あとで（スキップ）
+          {t("tutorial.skip")}
         </button>
-        <p className="tutorial-intro__note">あとからでも、プレイ→CPU戦の画面の「チュートリアル」からいつでも体験できます。</p>
+        <p className="tutorial-intro__note">{t("tutorial.note")}</p>
       </div>
     </div>
   );

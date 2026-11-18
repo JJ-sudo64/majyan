@@ -3,6 +3,7 @@ import type { RoundState, TileCode } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { useSettingsStore } from "../store/settingsStore.js";
 import { TILE_FRONT_SRC, tileImageSrc } from "../tileGlyph.js";
+import { useT } from "../i18n/index.js";
 
 /** じゃんたま同様、ポン/チー/カンのボタンには実際に鳴く牌の絵を出す
     （牌コードのテキスト表記は直感的に分かりにくいとの指摘のため）。
@@ -20,6 +21,7 @@ function CallTileFace({ code, red }: { code: TileCode; red: boolean }) {
 const HUMAN = 0 as const;
 
 export function CallPrompt({ round, active }: { round: RoundState; active: boolean }) {
+  const t = useT();
   const options = useGameStore((s) => s.humanCallOptions);
   const humanCall = useGameStore((s) => s.humanCall);
   const humanSkip = useGameStore((s) => s.humanSkip);
@@ -57,18 +59,18 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
     <div className="call-actions">
       {options!.canRon && (
         <button className="btn btn--ron" onClick={() => humanCall({ type: "ron", player: HUMAN })}>
-          ロン {analysis && (analysis.isYakuman ? "(役満)" : `(${analysis.han}翻${analysis.fu}符)`)}
+          {t("call.ron")} {analysis && (analysis.isYakuman ? t("call.yakuman") : t("call.hanFu", { han: analysis.han, fu: analysis.fu }))}
         </button>
       )}
       {options!.ronBlockedByShield && (
-        <span className="call-actions__blocked">盾で防がれた（この牌ではロンできません）</span>
+        <span className="call-actions__blocked">{t("call.shieldBlocked")}</span>
       )}
       {!passCalls && options!.canPon && (
         <button
           className="btn btn--call btn--call-tiles"
           onClick={() => humanCall({ type: "pon", player: HUMAN, usedHandTileIds: options!.canPon!.usedHandTileIds })}
         >
-          ポン
+          {t("call.pon")}
           <span className="btn--call-tiles__tiles">
             {options!.canPon.redFlags.map((red, j) => (
               <CallTileFace key={j} code={options!.canPon!.tileCode} red={red} />
@@ -81,7 +83,7 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
           className="btn btn--call btn--call-tiles"
           onClick={() => humanCall({ type: "minkan", player: HUMAN, usedHandTileIds: options!.canMinkan!.usedHandTileIds })}
         >
-          カン
+          {t("call.kan")}
           <span className="btn--call-tiles__tiles">
             {options!.canMinkan.redFlags.map((red, j) => (
               <CallTileFace key={j} code={options!.canMinkan!.tileCode} red={red} />
@@ -95,7 +97,7 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
           className="btn btn--call btn--call-tiles"
           onClick={() => humanCall({ type: "chi", player: HUMAN, tileCodes: c.tileCodes, usedHandTileIds: c.usedHandTileIds })}
         >
-          チー
+          {t("call.chi")}
           <span className="btn--call-tiles__tiles">
             {c.tileCodes.map((code, j) => (
               <CallTileFace key={j} code={code} red={c.redFlags[j]!} />
@@ -104,7 +106,7 @@ export function CallPrompt({ round, active }: { round: RoundState; active: boole
         </button>
       ))}
       <button className="btn btn--skip" onClick={() => humanSkip()}>
-        スキップ
+        {t("call.skip")}
       </button>
     </div>
   );
