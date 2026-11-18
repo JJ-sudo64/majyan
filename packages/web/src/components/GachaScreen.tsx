@@ -21,16 +21,16 @@ import { GachaReveal } from "./GachaReveal.js";
 import { RecordsScreen } from "./RecordsScreen.js";
 import { preloadGachaSounds } from "../sound.js";
 import { shareToX } from "../share.js";
-import { useT, useTn } from "../i18n/index.js";
+import { useT, useTn, type Translate } from "../i18n/index.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
 
 /** ★3が出た回だけシェア文面を返す（出ていなければ null でボタンを出さない）。 */
-function shareText(items: GachaItem[]): string | null {
+function shareText(items: GachaItem[], t: Translate): string | null {
   const stars = items.filter((it) => rarityOf(it) === 3);
   if (stars.length === 0) return null;
   const names = stars.map((it) => (it.kind === "character" ? CHARACTERS[it.id]?.name : CARDS[it.id]?.name)).filter(Boolean);
-  return `雀杯のガチャで★3「${names.join("」「")}」が出た！`;
+  return t("gacha.share", { names: names.join(t("gacha.shareJoin")) });
 }
 
 /** 確率の表示（小数第3位まで、末尾の0は省く）。 */
@@ -121,9 +121,9 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
             ))}
           </div>
         )}
-        {result && !revealing && shareText(result.results) && (
+        {result && !revealing && shareText(result.results, t) && (
           <div className="setup-buttons">
-            <button type="button" className="btn" onClick={() => shareToX(shareText(result.results)!)}>
+            <button type="button" className="btn" onClick={() => shareToX(shareText(result.results, t)!)}>
               {t("gachaScreen.t3")}
             </button>
           </div>

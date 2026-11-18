@@ -4,7 +4,7 @@ import { equipCard, useAccountStore } from "../online/account.js";
 import { RARITY_STARS } from "./GachaCard.js";
 import { UnitDetail } from "./UnitDetail.js";
 import { CardSlotPicker, slotLabel, type SlotKind } from "./CardSlot.js";
-import { useT, useTn } from "../i18n/index.js";
+import { useT, useTn, type MessageKey } from "../i18n/index.js";
 
 /** 並び順。oldest=入手順（サーバーの並び）、newest=新しい順。 */
 export type SortKey = "oldest" | "newest" | "rarity" | "equipped" | "name";
@@ -12,18 +12,18 @@ export type SortKey = "oldest" | "newest" | "rarity" | "equipped" | "name";
 export type EquipFilter = "all" | "none" | "partial" | "full";
 export type RarityFilter = "all" | Rarity;
 
-const SORT_LABELS: [SortKey, string][] = [
-  ["oldest", "入手順"],
-  ["newest", "新しい順"],
-  ["rarity", "レア度"],
-  ["equipped", "カード装着"],
-  ["name", "名前"],
+const SORT_LABELS: [SortKey, MessageKey][] = [
+  ["oldest", "units.sortOldest"],
+  ["newest", "units.sortNewest"],
+  ["rarity", "units.sortRarity"],
+  ["equipped", "units.sortEquipped"],
+  ["name", "units.sortName"],
 ];
-const EQUIP_LABELS: [EquipFilter, string][] = [
-  ["all", "すべて"],
-  ["none", "カードなし"],
-  ["partial", "片方だけ"],
-  ["full", "両方付き"],
+const EQUIP_LABELS: [EquipFilter, MessageKey][] = [
+  ["all", "units.equipAll"],
+  ["none", "units.equipNone"],
+  ["partial", "units.equipPartial"],
+  ["full", "units.equipFull"],
 ];
 const RARITY_FILTERS: RarityFilter[] = ["all", 3, 2, 1];
 
@@ -99,13 +99,13 @@ function makePracticeData(): { units: CharacterUnit[]; cards: Record<string, num
   return { units, cards };
 }
 
-const PRACTICE_TEXT: Record<PracticeStage, string> = {
-  list: "手持ちのキャラの一覧です（練習用のキャラで、本物の手持ちは変わりません）。光っているキャラを押してみましょう。",
-  detail: "キャラの詳細です。必殺技の説明と、カードを付ける欄（パッシブ・アクティブ）が並んでいます。光っている「パッシブカード欄」を押しましょう。",
-  pick: "持っているカードのうち、この欄に付けられる種類のカードだけが並びます。カードにカーソルを合わせる（スマホは押す）と、下に効果が出ます。光っているカードを選んでみましょう。",
-  picked: "選んだカードの効果が下に出ています。よければ、光っている「付ける」を押しましょう。",
-  confirm: "もう一度確認が出ます。本番では、一度付けたカードは外せません。よく選んでから押しましょう（今は練習なので、押しても本物のカードは減りません）。「付ける」を押しましょう。",
-  done: "カードが付きました！ パッシブ（青緑）は条件を満たすと自動で効き、アクティブ（紫）は自分の番に押して使います。もう片方の欄も、同じ手順で付けられます。キャラやカードが増えたら、一覧の上の「並び替え・絞り込み」で探せます。",
+const PRACTICE_TEXT: Record<PracticeStage, MessageKey> = {
+  list: "practice.list",
+  detail: "practice.detail",
+  pick: "practice.pick",
+  picked: "practice.picked",
+  confirm: "practice.confirm",
+  done: "practice.done",
 };
 
 /** 今やることの下にある、光らせる場所（CSSのルールを1つ差し込むだけで、画面の要素には触らない）。 */
@@ -122,7 +122,7 @@ function PracticeBanner({ stage, onFinish }: { stage: PracticeStage; onFinish: (
   return (
     <div className="practice-banner" role="status">
       <div className="practice-banner__head">{t("unitsScreen.t1")}</div>
-      <p className="practice-banner__text">{PRACTICE_TEXT[stage]}</p>
+      <p className="practice-banner__text">{t(PRACTICE_TEXT[stage])}</p>
       {stage === "done" && (
         <button type="button" className="btn btn--primary practice-banner__finish" onClick={onFinish}>
           {t("unitsScreen.t2")}
@@ -243,7 +243,7 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
                   className={`units-screen__chip${view.sort === key ? " units-screen__chip--active" : ""}`}
                   onClick={() => setView({ sort: key })}
                 >
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>
@@ -269,7 +269,7 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
                   className={`units-screen__chip${view.equip === key ? " units-screen__chip--active" : ""}`}
                   onClick={() => setView({ equip: key })}
                 >
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>
@@ -336,7 +336,7 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
       {selectedUnit && openSlot && (
         <CardSlotPicker
           kind={openSlot}
-          title={t("unitsScreen.t12", { v1: CHARACTERS[selectedUnit.characterId]?.name ?? "", v2: slotLabel(openSlot) })}
+          title={t("unitsScreen.t12", { v1: CHARACTERS[selectedUnit.characterId]?.name ?? "", v2: slotLabel(openSlot, t) })}
           // この欄に付けられるカード＝持っているカードのうち、この欄の種類のものだけ。
           candidates={ownedCardIds.filter((id) => CARDS[id]?.kind === openSlot)}
           counts={cards}

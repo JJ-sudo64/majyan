@@ -11,6 +11,7 @@ import { useSettingsStore } from "../store/settingsStore.js";
 import type { MeldSlotConfig, Side2dSeatKey } from "../store/tile3dDebugStore.js";
 import { viewRect } from "../orientation.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
+import { useT, type MessageKey } from "../i18n/index.js";
 
 /** 副露どうしの「自然な(手で動かす前の)」間隔(px)。実際の副露の実寸
     (種類によって3〜4枚で幅が変わる)には依存しない固定値——固定値にする
@@ -117,12 +118,12 @@ const TILE3D_MAX_SLOTS = 14;
 // 一瞬表示する。暗槓は他家の捨て牌に反応した「鳴き」ではなく自分の手番中の
 // 自己申告だが、実際の対局でも「カン」は声に出して宣言するのが普通なので
 // 表示対象に含める。
-const CALL_LABELS: Partial<Record<Meld["type"], string>> = {
-  chi: "チー",
-  pon: "ポン",
-  minkan: "カン",
-  kakan: "カン",
-  ankan: "カン",
+const CALL_LABELS: Partial<Record<Meld["type"], MessageKey>> = {
+  chi: "call.chi",
+  pon: "call.pon",
+  minkan: "call.kan",
+  kakan: "call.kan",
+  ankan: "call.kan",
 };
 const CALL_ANNOUNCE_MS = 1000;
 
@@ -174,6 +175,7 @@ export function OpponentArea({
       座席・useTile3D=falseの座席では元通りその場に描画する。 */
   tile3dPortalTarget?: HTMLDivElement | null;
 }) {
+  const t = useT();
   // Tile3Dの角度・拡大率・厚みは実機の画面上でスライダー調整できるように
   // Tile3DDebugPanel/tile3dDebugStore側に外出ししてある（値が決まったら
   // このusePlayerTile3DParam呼び出しを消して固定値に置き換えてよい）。
@@ -587,7 +589,8 @@ export function OpponentArea({
       }
     }
     prevMeldTypesRef.current = meldTypes;
-    const label = changedType && CALL_LABELS[changedType];
+    const callKey = changedType && CALL_LABELS[changedType];
+    const label = callKey ? t(callKey) : null;
     if (label) {
       setCallAnnounce(label);
       const timer = setTimeout(() => setCallAnnounce(null), CALL_ANNOUNCE_MS);

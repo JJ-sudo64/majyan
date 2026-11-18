@@ -321,7 +321,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
       {openSlot && (
         <CardSlotPicker
           kind={openSlot}
-          title={t("matchSetup.t21", { v1: slotLabel(openSlot) })}
+          title={t("matchSetup.t21", { v1: slotLabel(openSlot, t) })}
           candidates={cardIdsOfKind(openSlot)}
           current={openSlot === "passive" ? selectedPassiveId : selectedActiveId}
           emptyMessage={t("matchSetup.t18")}

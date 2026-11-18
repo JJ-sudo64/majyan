@@ -6,6 +6,7 @@
  *   "A": 金墨（黒地に金・銀・銅の二重の枠、種類は朱と緑の落款）。差し替え用に残してある。
  * 見た目のCSSは styles.css の「カードの見た目」の節（.cf-a / .cf-b）。
  */
+import { type MessageKey } from "./i18n/index.js";
 export type CardDesign = "A" | "B";
 export const CARD_DESIGN: CardDesign = "B";
 
@@ -70,8 +71,8 @@ export const CARD_ICON_PATH: Record<CardCategory, string> = {
   han: "M12 20V5 M5.5 11.5L12 5l6.5 6.5 M6 20h12",
 };
 
-export const KIND_SHORT = { passive: "常時", consumable: "消費" } as const;
-export const KIND_LONG = { passive: "パッシブ", consumable: "アクティブ" } as const;
+export const KIND_SHORT = { passive: "card.kindShort.passive", consumable: "card.kindShort.consumable" } as const satisfies Record<string, MessageKey>;
+export const KIND_LONG = { passive: "card.kindLong.passive", consumable: "card.kindLong.consumable" } as const satisfies Record<string, MessageKey>;
 
 /**
  * カード面に出す説明。カードの説明文（cards.tsのdescription）自体を、1〜2文の短い言葉で書いてあるので、

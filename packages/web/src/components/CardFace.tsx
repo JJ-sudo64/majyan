@@ -1,6 +1,7 @@
 import type { CSSProperties, KeyboardEvent, PointerEvent, ReactNode } from "react";
 import { CARDS, cardRarity } from "@majyan/core";
 import { CARD_DESIGN, CARD_ICON_PATH, KIND_LONG, KIND_SHORT, cardCategory, cardShort } from "../cardDesign.js";
+import { useT } from "../i18n/index.js";
 
 const stars = (rarity: number) => "★".repeat(rarity);
 
@@ -35,6 +36,7 @@ interface CardFaceProps {
  * 幅は親が決める（親の幅に合わせて文字・枠の大きさも変わる＝コンテナクエリ）。
  */
 export function CardFace({ cardId, compact, selected, focused, onClick, onHover, caption, badge, className, style }: CardFaceProps) {
+  const t = useT();
   const card = CARDS[cardId];
   if (!card) return null;
   const rarity = cardRarity(cardId);
@@ -94,7 +96,7 @@ export function CardFace({ cardId, compact, selected, focused, onClick, onHover,
               <CardIcon cardId={cardId} />
             </div>
             <div className="cf-b__type">
-              <span>{KIND_LONG[card.kind]}</span>
+              <span>{t(KIND_LONG[card.kind])}</span>
               <span className="cf-b__stars">{stars(rarity)}</span>
             </div>
             <div className="cf-b__text">
@@ -108,7 +110,7 @@ export function CardFace({ cardId, compact, selected, focused, onClick, onHover,
         <article className="cf-a" data-r={rarity} data-k={kind} aria-label={card.name}>
           <div className="cf-a__top">
             <span className="cf-a__stars">{stars(rarity)}</span>
-            <span className={`cf-seal cf-seal--${kind}`}>{KIND_SHORT[card.kind]}</span>
+            <span className={`cf-seal cf-seal--${kind}`}>{t(KIND_SHORT[card.kind])}</span>
           </div>
           <div className="cf-a__art">
             <CardIcon cardId={cardId} />
@@ -125,6 +127,7 @@ export function CardFace({ cardId, compact, selected, focused, onClick, onHover,
 
 /** 対局中の小さい表示（カード欄の1枚）。色・縁はカード面と同じ規則（種類で地の色、レア度で縁の色）。 */
 export function CardChip({ cardId, note, ready, onClick }: { cardId: string; note: string; ready?: boolean; onClick?: () => void }) {
+  const t = useT();
   const card = CARDS[cardId];
   if (!card) return null;
   const rarity = cardRarity(cardId);
@@ -135,7 +138,7 @@ export function CardChip({ cardId, note, ready, onClick }: { cardId: string; not
       <CardIcon cardId={cardId} />
       <b>{card.name}</b>
       <small>{note}</small>
-      <span className={`cf-seal cf-seal--${kind}`}>{KIND_SHORT[card.kind]}</span>
+      <span className={`cf-seal cf-seal--${kind}`}>{t(KIND_SHORT[card.kind])}</span>
     </>
   );
   return onClick ? (

@@ -458,7 +458,7 @@ export function Hand({ round }: { round: RoundState }) {
                 {previewCode ? (
                   <>{tn("hand.t29", { tileview: <TileView code={previewCode} tiny highlightable={false} /> })}</>
                 ) : (
-                  "待ち"
+                  t("hand.wait")
                 )}
               </span>
               {furiten && <span className="wait-row__furiten">{t("hand.t1")}</span>}

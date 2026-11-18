@@ -1,36 +1,36 @@
 import { useState } from "react";
 import { scoreWin, type WinAnalysis } from "@majyan/core";
 import { GUIDE_GROUP_LABELS, GUIDE_PAGES, YAKU_GROUPS, type GuideGroup } from "./rulesGuideData.js";
-import { useT } from "../i18n/index.js";
+import { useT, type MessageKey, type Translate } from "../i18n/index.js";
 
 type Tab = "guide" | "yaku" | "points";
 
-const TABS: [Tab, string][] = [
-  ["guide", "遊び方"],
-  ["yaku", "役一覧"],
-  ["points", "点数表"],
+const TABS: [Tab, MessageKey][] = [
+  ["guide", "rules.tabGuide"],
+  ["yaku", "rules.tabYaku"],
+  ["points", "rules.tabPoints"],
 ];
 
 /** 符の一覧（点数表の行）。 */
 const FU_ROWS = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110] as const;
 const HAN_COLUMNS = [1, 2, 3, 4] as const;
 /** 満貫以上の行（翻数と名前）。 */
-const LIMIT_ROWS: { han: number; label: string; yakuman?: boolean }[] = [
-  { han: 5, label: "満貫（5翻）" },
-  { han: 6, label: "跳満（6〜7翻）" },
-  { han: 8, label: "倍満（8〜10翻）" },
-  { han: 11, label: "三倍満（11〜12翻）" },
-  { han: 13, label: "役満（13翻〜）", yakuman: true },
+const LIMIT_ROWS: { han: number; label: MessageKey; yakuman?: boolean }[] = [
+  { han: 5, label: "rules.limit5" },
+  { han: 6, label: "rules.limit6" },
+  { han: 8, label: "rules.limit8" },
+  { han: 11, label: "rules.limit11" },
+  { han: 13, label: "rules.limit13", yakuman: true },
 ];
 
 /** 点数表の1マス。scoreWinをそのまま使うので、実際の対局の計算と必ず一致する。 */
-function pointCell(han: number, fu: number, isDealer: boolean, isTsumo: boolean, yakuman = false): string {
+function pointCell(t: Translate, han: number, fu: number, isDealer: boolean, isTsumo: boolean, yakuman = false): string {
   // 20符はツモだけ（平和ツモ）、25符は七対子（2翻から）。ありえない組み合わせは出さない。
   if (!yakuman && ((fu === 20 && (!isTsumo || han < 2)) || (fu === 25 && han < 2))) return "-";
   const analysis = { han, fu, isYakuman: yakuman, yakumanMultiplier: 1 } as unknown as WinAnalysis;
   const { payments } = scoreWin(analysis, isDealer, isTsumo);
   if (!isTsumo) return String(payments.fromDiscarder);
-  return isDealer ? `${payments.fromEachNonDealer}オール` : `${payments.fromEachNonDealer}/${payments.fromDealer}`;
+  return isDealer ? t("rules.all", { n: payments.fromEachNonDealer ?? 0 }) : `${payments.fromEachNonDealer}/${payments.fromDealer}`;
 }
 
 function GuideTab({ initialGroup }: { initialGroup?: GuideGroup }) {
@@ -149,7 +149,7 @@ function PointsTab() {
               <tr key={fu}>
                 <th scope="row">{t("rulesGuide.t15", { fu })}</th>
                 {HAN_COLUMNS.map((h) => (
-                  <td key={h}>{pointCell(h, fu, isDealer, isTsumo)}</td>
+                  <td key={h}>{pointCell(t, h, fu, isDealer, isTsumo)}</td>
                 ))}
               </tr>
             ))}
@@ -166,8 +166,8 @@ function PointsTab() {
             <tbody>
               {LIMIT_ROWS.map((row) => (
                 <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  <td>{pointCell(row.han, 30, isDealer, isTsumo, row.yakuman)}</td>
+                  <th scope="row">{t(row.label)}</th>
+                  <td>{pointCell(t, row.han, 30, isDealer, isTsumo, row.yakuman)}</td>
                 </tr>
               ))}
             </tbody>
@@ -181,6 +181,7 @@ function PointsTab() {
 
 /** ルール＆ガイド。遊び方・役一覧・点数表を、スクロールなしで1画面ずつ見せる。 */
 export function RulesGuide({ onClose, initialTab = "guide", initialGroup }: { onClose: () => void; initialTab?: Tab; initialGroup?: GuideGroup }) {
+  const t = useT();
   const [tab, setTab] = useState<Tab>(initialTab);
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -189,7 +190,7 @@ export function RulesGuide({ onClose, initialTab = "guide", initialGroup }: { on
           <div className="inbox-screen__tabs">
             {TABS.map(([id, label]) => (
               <button key={id} type="button" className={`inbox-screen__tab${tab === id ? " is-active" : ""}`} onClick={() => setTab(id)}>
-                {label}
+                {t(label)}
               </button>
             ))}
           </div>

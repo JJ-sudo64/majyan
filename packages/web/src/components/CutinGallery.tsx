@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CHARACTERS } from "@majyan/core";
 import { DeclarationCutinView, characterCutin, type Declaration } from "./DeclarationCutinOverlay.js";
 import { SkillActivationView } from "./SkillActivationOverlay.js";
-import { useT, useTn } from "../i18n/index.js";
+import { useT, useTn, type MessageKey } from "../i18n/index.js";
 
 /**
  * 全キャラのリーチ・ツモ・ロン・必殺技カットインを、対局中と同じ部品・CSSで
@@ -16,11 +16,11 @@ import { useT, useTn } from "../i18n/index.js";
 
 type Kind = Declaration | "skill";
 
-const KINDS: { kind: Kind; label: string }[] = [
-  { kind: "riichi", label: "リーチ" },
-  { kind: "tsumo", label: "ツモ" },
-  { kind: "ron", label: "ロン" },
-  { kind: "skill", label: "必殺技" },
+const KINDS: { kind: Kind; label: MessageKey }[] = [
+  { kind: "riichi", label: "cutin.riichi" },
+  { kind: "tsumo", label: "cutin.tsumo" },
+  { kind: "ron", label: "cutin.ron" },
+  { kind: "skill", label: "cutin.skill" },
 ];
 
 /** 繰り返し再生の間隔。演出の長さ(DeclarationCutinOverlay/SkillActivationOverlayのDISPLAY_MS)に少し間を足したもの。 */
@@ -51,7 +51,7 @@ export function CutinGallery() {
           <tr>
             <th />
             {KINDS.map((k) => (
-              <th key={k.kind}>{k.label}</th>
+              <th key={k.kind}>{t(k.label)}</th>
             ))}
           </tr>
         </thead>

@@ -2,15 +2,15 @@ import { useEffect, useState, type ReactNode } from "react";
 import { CARDS, cardRarity } from "@majyan/core";
 import { KIND_LONG } from "../cardDesign.js";
 import { CardFace } from "./CardFace.js";
-import { useT, useTn } from "../i18n/index.js";
+import { useT, useTn, type Translate } from "../i18n/index.js";
 
 export type SlotKind = "passive" | "consumable";
 
 const STARS = ["", "★", "★★", "★★★"];
 
 /** 欄の名前（パッシブカード欄／アクティブカード欄）。 */
-export function slotLabel(kind: SlotKind): string {
-  return `${KIND_LONG[kind]}カード欄`;
+export function slotLabel(kind: SlotKind, t: Translate): string {
+  return t("card.slotLabel", { kind: t(KIND_LONG[kind]) });
 }
 
 interface CardSlotProps {
@@ -32,7 +32,7 @@ export function CardSlot({ kind, cardId, onOpen, emptyHint }: CardSlotProps) {
   const card = cardId ? CARDS[cardId] : undefined;
   const body = (
     <>
-      <span className="cs-slot__label">{slotLabel(kind)}</span>
+      <span className="cs-slot__label">{slotLabel(kind, t)}</span>
       {card ? (
         <>
           <span className="cs-slot__face">
@@ -160,7 +160,7 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
                   <div className="card-picker-detail__head">
                     <span className="card-picker-detail__name">{shown.name}</span>
                     <span className="card-tile__stars">{STARS[cardRarity(shownId)]}</span>
-                    <span className="card-tile__kind">{KIND_LONG[shown.kind]}</span>
+                    <span className="card-tile__kind">{t(KIND_LONG[shown.kind])}</span>
                   </div>
                   <p className="card-picker-detail__desc">{shown.description}</p>
                 </>

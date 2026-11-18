@@ -18,19 +18,19 @@ import { FriendsScreen } from "./FriendsScreen.js";
 import { RulesGuide } from "./RulesGuide.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 import { playUiClickFor } from "../sound.js";
-import { useT, useTn } from "../i18n/index.js";
+import { useT, useTn, type Translate } from "../i18n/index.js";
 
 /** 付けているカードの表示（パッシブ・アクティブの順。無ければ「カードなし」）。 */
-function cardLabel(cardId: string | null, cardId2: string | null): string {
-  const names = [cardId, cardId2].flatMap((id) => (id ? [CARDS[id]?.name ?? "カード"] : []));
-  return names.length > 0 ? names.join("＋") : "カードなし";
+function cardLabel(cardId: string | null, cardId2: string | null, t: Translate): string {
+  const names = [cardId, cardId2].flatMap((id) => (id ? [CARDS[id]?.name ?? t("card.generic")] : []));
+  return names.length > 0 ? names.join("＋") : t("card.none");
 }
 
 /** キャラ選択の表示（例: 「★★ 一閃の雷神・ライコ ＋ 面子確約＋点棒吸収」）。 */
-function unitLabel(u: CharacterUnit): string {
+function unitLabel(u: CharacterUnit, t: Translate): string {
   const name = CHARACTERS[u.characterId]?.name ?? u.characterId;
-  const cards = cardLabel(u.cardId, u.cardId2);
-  return `${"★".repeat(characterRarity(u.characterId))} ${name}${u.cardId || u.cardId2 ? ` ＋ ${cards}` : "（カードなし）"}`;
+  const cards = cardLabel(u.cardId, u.cardId2, t);
+  return `${"★".repeat(characterRarity(u.characterId))} ${name}${u.cardId || u.cardId2 ? t("unit.withCards", { cards }) : t("unit.noCards")}`;
 }
 
 /** 上のバー・下のメニューのアイコン（24x24の線画）。 */
@@ -317,7 +317,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                     key={u.unitId}
                     type="button"
                     className={`units-screen__unit${unitId === u.unitId ? " units-screen__unit--selected" : ""}`}
-                    title={unitLabel(u)}
+                    title={unitLabel(u, t)}
                     onClick={() => {
                       changeLoadout(u.unitId);
                       setShowUnitPicker(false);
@@ -586,12 +586,12 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                   {chosen.character.name}
                 </>
               ) : (
-                "おまかせ"
+                t("common.auto")
               )}
             </div>
             <div className="oh-plate__sub">
               {chosen
-                ? t("onlineLobby.t51", { name: chosen.character.skill.name, v1: cardLabel(chosen.unit.cardId, chosen.unit.cardId2) })
+                ? t("onlineLobby.t51", { name: chosen.character.skill.name, v1: cardLabel(chosen.unit.cardId, chosen.unit.cardId2, t) })
                 : t("onlineLobby.t52")}
             </div>
             <div className="oh-plate__buttons">
@@ -730,7 +730,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                           {m.isYou ? t("onlineLobby.t63") : ""}
                         </span>
                         <span className="oh-seat__loadout">
-                          {character ? character.name : t("matchSetup.t11")} ／ {cardLabel(m.cardId, m.cardId2)}
+                          {character ? character.name : t("matchSetup.t11")} ／ {cardLabel(m.cardId, m.cardId2, t)}
                         </span>
                       </span>
                     </li>

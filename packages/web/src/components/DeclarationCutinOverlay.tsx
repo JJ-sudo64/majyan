@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { CHARACTERS, CUTIN_DISPLAY_MS, type Character, type DeclarationArt, type RoundState } from "@majyan/core";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
+import { useT, type MessageKey } from "../i18n/index.js";
 
 export type Declaration = "riichi" | "tsumo" | "ron";
 
@@ -8,7 +9,7 @@ export type Declaration = "riichi" | "tsumo" | "ron";
 // リーチの間はツモ・CPUの手を進めずに待たせる。その長さと揃える（turnClock.tsのcutinHoldMs）。
 const DISPLAY_MS: Record<Declaration, number> = { riichi: CUTIN_DISPLAY_MS.riichi, tsumo: 2200, ron: 2200 };
 
-const WORDS: Record<Declaration, string> = { riichi: "リーチ", tsumo: "ツモ", ron: "ロン" };
+const WORDS: Record<Declaration, MessageKey> = { riichi: "cutin.riichi", tsumo: "cutin.tsumo", ron: "cutin.ron" };
 
 /** 1枚絵の縦横比。生成した絵はどれも16:9(1671x941)。cropの帯の縦横比はこれから求める。 */
 const ART_ASPECT = 16 / 9;
@@ -168,7 +169,8 @@ export function DeclarationCutinOverlay({ round }: { round: RoundState }) {
  * DeclarationCutinOverlayと、全キャラ一覧(CutinGallery.tsx)の両方で使う。
  */
 export function DeclarationCutinView({ cutin }: { cutin: Omit<ActiveCutin, "key"> }) {
-  const word = cutin.kind === "skill" ? null : WORDS[cutin.kind];
+  const t = useT();
+  const word = cutin.kind === "skill" ? null : t(WORDS[cutin.kind]);
   const { crop } = cutin;
   // cropがあれば、帯をその範囲の縦横比にし、絵を拡大・ずらして範囲だけを帯に写す。
   const bandStyle = crop ? ({ "--band-aspect": (crop.w / crop.h) * ART_ASPECT } as CSSProperties) : undefined;
