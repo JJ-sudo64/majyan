@@ -910,6 +910,7 @@ export const ja = {
   "yaku.group.4": "ドラ・カード",
   "guide.group.basic": "麻雀の基本",
   "guide.group.game": "このゲームの特徴",
+  "trigger.fizzle": "{name}は不発",
 } as const;
 
 export type MessageKey = keyof typeof ja;

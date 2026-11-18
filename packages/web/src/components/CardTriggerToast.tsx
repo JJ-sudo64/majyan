@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CHARACTERS, type RoundState } from "@majyan/core";
 import { CardFace } from "./CardFace.js";
-import { useT } from "../i18n/index.js";
+import { useT, tr, tx } from "../i18n/index.js";
 
 const SHOW_MS = 2200;
 /** カードの絵つきの演出は、札だけの時より少し長く見せる。 */
@@ -46,8 +46,8 @@ export function CardTriggerToast({ round }: { round: RoundState }) {
     keyRef.current += 1;
     const who = CHARACTERS[round.characterIds[trigger.seat]!]?.name ?? "";
     setShown({
-      title: trigger.title,
-      detail: trigger.detail,
+      title: trigger.title.endsWith("は不発") ? tr("trigger.fizzle", { name: tx(trigger.title.slice(0, -3)) }) : tx(trigger.title),
+      detail: tx(trigger.detail),
       who,
       key: keyRef.current,
       cardId: trigger.cardId,
