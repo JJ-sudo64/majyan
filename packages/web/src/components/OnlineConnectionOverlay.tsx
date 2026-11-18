@@ -1,5 +1,6 @@
 import { onlineLink, useOnlineStore } from "../online/onlineLink.js";
 import { useGameStore } from "../store/gameStore.js";
+import { useT } from "../i18n/index.js";
 
 /**
  * ネット対戦の対局中にサーバーとの接続が切れた時の案内。切れている間も
@@ -7,6 +8,7 @@ import { useGameStore } from "../store/gameStore.js";
  * 入り直すと同じ席に戻れる。
  */
 export function OnlineConnectionOverlay() {
+  const t = useT();
   const status = useOnlineStore((s) => s.status);
   const error = useOnlineStore((s) => s.error);
   const autoRejoining = useOnlineStore((s) => s.autoRejoining);
@@ -18,19 +20,19 @@ export function OnlineConnectionOverlay() {
       <div className="title-modal">
         <div className="title-modal__body">
           {status === "connecting" ? (
-            <p>サーバーに接続し直しています…</p>
+            <p>{t("onlineConnectionOverlay.t1")}</p>
           ) : (
             <>
-              <p>サーバーとの接続が切れました。</p>
-              <p>切れている間も対局は進みます（自分の手番は自動でツモ切りになります）。入り直すと同じ席に戻れます。</p>
-              {autoRejoining && <p>自動で入り直そうとしています…</p>}
+              <p>{t("onlineConnectionOverlay.t2")}</p>
+              <p>{t("onlineConnectionOverlay.t3")}</p>
+              {autoRejoining && <p>{t("onlineConnectionOverlay.t4")}</p>}
               {error && <p className="online-lobby__error">{error}</p>}
               <div className="setup-buttons">
                 <button className="btn btn--primary" onClick={() => onlineLink.rejoin()}>
-                  入り直す
+                  {t("onlineConnectionOverlay.t5")}
                 </button>
                 <button className="btn btn--secondary" onClick={backToTitle}>
-                  タイトルへ戻る
+                  {t("matchVictoryOverlay.t2")}
                 </button>
               </div>
             </>

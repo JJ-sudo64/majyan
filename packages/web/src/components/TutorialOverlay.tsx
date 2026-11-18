@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { TUTORIAL_SCENARIOS } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
+import { useT } from "../i18n/index.js";
 
 /** 光らせるボタンの見つけ方（Hand.tsx・CallPrompt.tsxのボタンのクラス）。ツモとロンのボタンは同じクラス。 */
 const HINT_BUTTON_SELECTOR = {
@@ -17,6 +18,7 @@ const HINT_BUTTON_SELECTOR = {
  * 光らせる。光らせるのは、CSSのルールを1つ差し込むだけ（Reactが描く牌・ボタンには触らない）。
  */
 export function TutorialOverlay() {
+  const t = useT();
   const tutorial = useGameStore((s) => s.tutorial);
   const tutorialNext = useGameStore((s) => s.tutorialNext);
   const backToTitle = useGameStore((s) => s.backToTitle);
@@ -41,7 +43,7 @@ export function TutorialOverlay() {
     <>
       {hintRules.length > 0 && <style>{hintRules.join("\n")}</style>}
       <button type="button" className="tutorial-quit" onClick={backToTitle}>
-        チュートリアルをやめる
+        {t("tutorialOverlay.t1")}
       </button>
       {tutorial.visible && step && (
         <div key={`${tutorial.scenarioIndex}-${tutorial.stepIndex}-${shake}`} className={`tutorial-panel${step.advance === "result" || step.panelTop ? " tutorial-panel--top" : ""}${shake > 0 ? " tutorial-panel--nudge" : ""}`}>
@@ -51,10 +53,10 @@ export function TutorialOverlay() {
           <p className="tutorial-panel__text">{step.text}</p>
           {step.advance === "next" && (
             <button type="button" className="btn btn--primary tutorial-panel__next" onClick={tutorialNext}>
-              次へ
+              {t("shopScreen.t5")}
             </button>
           )}
-          {step.advance === "action" && <div className="tutorial-panel__wait">↑ 案内のとおりに操作してください</div>}
+          {step.advance === "action" && <div className="tutorial-panel__wait">{t("tutorialOverlay.t2")}</div>}
         </div>
       )}
     </>

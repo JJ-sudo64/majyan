@@ -2,6 +2,7 @@ import { CARDS, CHARACTERS, cardRarity, characterRarity } from "@majyan/core";
 import { RARITY_STARS } from "./GachaCard.js";
 import { CardFace } from "./CardFace.js";
 import { CardSlot, type SlotKind } from "./CardSlot.js";
+import { useT } from "../i18n/index.js";
 
 /**
  * キャラ1体の詳しい中身: 立ち絵・必殺技の説明・付けているカードの説明。
@@ -19,6 +20,7 @@ export function UnitDetail({
   /** 渡すと、空のカード欄を押して選択画面を開ける（手持ち画面の装着用）。渡さなければ表示だけ。 */
   onOpenSlot?: (kind: SlotKind) => void;
 }) {
+  const t = useT();
   const character = CHARACTERS[characterId];
   if (!character) return null;
   return (
@@ -44,7 +46,7 @@ export function UnitDetail({
           if (!card && onOpenSlot) {
             return (
               <div key={slot} className="unit-detail__box unit-detail__box--card unit-detail__box--slot">
-                <CardSlot kind={kind} cardId={null} onOpen={() => onOpenSlot(kind)} emptyHint="押して装着する" />
+                <CardSlot kind={kind} cardId={null} onOpen={() => onOpenSlot(kind)} emptyHint={t("unitDetail.t1")} />
                 <p className="unit-detail__text">{slot}カードは付いていません。</p>
               </div>
             );

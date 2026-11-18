@@ -19,6 +19,7 @@ import { useRetrieveDiscardStore } from "../store/retrieveDiscardStore.js";
 import { TileView } from "./TileView.js";
 import { CallPrompt } from "./CallPrompt.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
+import { useT } from "../i18n/index.js";
 
 /** 自動ツモ切りが実際に切るまでの待ち時間。0だと切られたことに気付く前に
     河へ飛んでしまい、リーチ・カン等の選択肢に気付いて手を止める余地が
@@ -127,6 +128,7 @@ function MeldView({ meld }: { meld: Meld }) {
 }
 
 export function Hand({ round }: { round: RoundState }) {
+  const t = useT();
   const humanDiscard = useGameStore((s) => s.humanDiscard);
   const humanRiichi = useGameStore((s) => s.humanRiichi);
   const humanTsumo = useGameStore((s) => s.humanTsumo);
@@ -461,8 +463,8 @@ export function Hand({ round }: { round: RoundState }) {
                   "待ち"
                 )}
               </span>
-              {furiten && <span className="wait-row__furiten">フリテン</span>}
-              {round.wallReadRevealedTo === HUMAN && <span className="wait-row__wallread">山読み中</span>}
+              {furiten && <span className="wait-row__furiten">{t("hand.t1")}</span>}
+              {round.wallReadRevealedTo === HUMAN && <span className="wait-row__wallread">{t("hand.t2")}</span>}
               <div className="wait-row__tiles">
                 {waitingTiles.map((code) => {
                   const remaining =
@@ -547,7 +549,7 @@ export function Hand({ round }: { round: RoundState }) {
         {heldCards.map(({ id: heldId, card: heldCard, uses }) => (
           <div key={heldId} className="action-stack__card">
             {readyCardId === heldId ? (
-              <CardChip cardId={heldId} note="使用する" ready onClick={() => humanUseCard()} />
+              <CardChip cardId={heldId} note={t("hand.t3")} ready onClick={() => humanUseCard()} />
             ) : (
               <CardChip
                 cardId={heldId}
@@ -604,7 +606,7 @@ export function Hand({ round }: { round: RoundState }) {
                   setSwapSelection([]);
                 }}
               >
-                交換する
+                {t("hand.t4")}
               </button>
             )}
             <button
@@ -614,7 +616,7 @@ export function Hand({ round }: { round: RoundState }) {
                 setSwapSelection([]);
               }}
             >
-              取消
+              {t("hand.t5")}
             </button>
           </div>
         )}
@@ -668,9 +670,9 @@ export function Hand({ round }: { round: RoundState }) {
             )}
             {retrieveActive && (
               <>
-                {!retrieveReclaimTileId && <span className="call-actions__hint">河から取り返す牌を選んでください</span>}
+                {!retrieveReclaimTileId && <span className="call-actions__hint">{t("hand.t6")}</span>}
                 <button className="btn btn--skip" onClick={() => cancelRetrieve()}>
-                  取消
+                  {t("hand.t5")}
                 </button>
               </>
             )}
@@ -692,7 +694,7 @@ export function Hand({ round }: { round: RoundState }) {
               // カリン: リーチ時に発動する技（アトミックリーチ・捲る運命等）は、
               // リーチ宣言の時にここで借りる相手を選ぶ（再度押すと選択解除）。
               <div className="borrow-group__list">
-                <span className="call-actions__hint">借り物競争で借りる技（切る牌を選ぶと発動）</span>
+                <span className="call-actions__hint">{t("hand.t7")}</span>
                 {(turnOptions?.riichiBorrowTargets ?? []).map((target) => {
                   const c = CHARACTERS[round.characterIds[target]]!;
                   return (
@@ -717,22 +719,22 @@ export function Hand({ round }: { round: RoundState }) {
                   setRiichiBorrow(null);
                 }}
               >
-                リーチ取消
+                {t("hand.t8")}
               </button>
             )}
             {ankanChoices.map((code) => (
               <button key={code} className="btn btn--call" onClick={() => humanAnkan(code)}>
-                暗槓
+                {t("hand.t9")}
               </button>
             ))}
             {kakanChoices.map((id) => (
               <button key={id} className="btn btn--call" onClick={() => humanKakan(id)}>
-                加槓
+                {t("hand.t10")}
               </button>
             ))}
             {kyushuOk && (
               <button className="btn btn--skip" onClick={() => humanKyushuKyuhai()}>
-                九種九牌流局
+                {t("hand.t11")}
               </button>
             )}
           </div>

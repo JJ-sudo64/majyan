@@ -18,6 +18,7 @@ import { FriendsScreen } from "./FriendsScreen.js";
 import { RulesGuide } from "./RulesGuide.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 import { playUiClickFor } from "../sound.js";
+import { useT } from "../i18n/index.js";
 
 /** 付けているカードの表示（パッシブ・アクティブの順。無ければ「カードなし」）。 */
 function cardLabel(cardId: string | null, cardId2: string | null): string {
@@ -80,6 +81,7 @@ function save(key: string, value: string) {
  * 画面は上のバー（名前・段位・雀玉）、左の立ち絵、右の対戦パネル、下のメニューの4つ。
  */
 export function OnlineLobby({ onBack }: { onBack: () => void }) {
+  const t = useT();
   const status = useOnlineStore((s) => s.status);
   const room = useOnlineStore((s) => s.room);
   const members = useOnlineStore((s) => s.members);
@@ -275,7 +277,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         <div className="modal-overlay" onClick={() => setShowUnitDetail(false)}>
           <div className="gacha-screen units-screen__detail" onClick={(e) => e.stopPropagation()}>
             <div className="setup-picker-modal__header">
-              <div className="setup-character-select__label">対局に出すキャラ</div>
+              <div className="setup-character-select__label">{t("onlineLobby.t1")}</div>
               <button type="button" className="setup-picker-modal__close" onClick={() => setShowUnitDetail(false)}>
                 ×
               </button>
@@ -288,12 +290,12 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         <div className="modal-overlay" onClick={() => setShowUnitPicker(false)}>
           <div className="gacha-screen" onClick={(e) => e.stopPropagation()}>
             <div className="setup-picker-modal__header">
-              <div className="setup-character-select__label">対局に出すキャラ</div>
+              <div className="setup-character-select__label">{t("onlineLobby.t1")}</div>
               <button type="button" className="setup-picker-modal__close" onClick={() => setShowUnitPicker(false)}>
                 ×
               </button>
             </div>
-            <p className="setup-lead">付けたカードごと対局に出ます。カードは下の「手持ち・カード」から付けられます。</p>
+            <p className="setup-lead">{t("onlineLobby.t2")}</p>
             <div className="units-screen__grid">
               <button
                 type="button"
@@ -304,8 +306,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 }}
               >
                 <span className="oh-unit-random">？</span>
-                <span className="units-screen__name">おまかせ</span>
-                <span className="units-screen__card units-screen__card--none">手持ちからランダム</span>
+                <span className="units-screen__name">{t("matchSetup.t11")}</span>
+                <span className="units-screen__card units-screen__card--none">{t("onlineLobby.t3")}</span>
               </button>
               {units.map((u) => {
                 const character = CHARACTERS[u.characterId];
@@ -360,17 +362,17 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       <div className="online-home online-lobby online-home--gate" onClickCapture={playUiClickFor}>
         <header className="oh-top">
           <button type="button" className="oh-back" onClick={back}>
-            ← 戻る
+            {t("matchSetup.t1")}
           </button>
           <div className="oh-top__title">ONLINE</div>
         </header>
         <main className="oh-gate">
-          {(accountStatus === "unknown" || accountStatus === "loading") && !accountError && <p className="oh-note">アカウントを確認しています…</p>}
+          {(accountStatus === "unknown" || accountStatus === "loading") && !accountError && <p className="oh-note">{t("onlineLobby.t4")}</p>}
           {accountStatus === "unknown" && accountError && (
             <div className="oh-card oh-card--form">
               <p className="online-lobby__error">{accountError}</p>
               <button type="button" className="oh-cta" onClick={() => void loadAccount()}>
-                もう一度試す
+                {t("onlineLobby.t5")}
               </button>
             </div>
           )}
@@ -401,7 +403,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                   <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
                   <span>
                     <button type="button" className="online-lobby__link" onClick={() => setShowLegal(true)}>
-                      利用規約とプライバシーポリシー
+                      {t("onlineLobby.t6")}
                     </button>
                     に同意する
                   </span>
@@ -410,17 +412,17 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
               {!profile && (
                 <>
                   <p className="oh-note">
-                    <strong>引き継ぎのパスワード</strong>も、ここで決めてください。ブラウザのデータが消えた時や、別の端末で遊ぶ時に、これがないとこのアカウント（雀玉・キャラ・段位）に戻れません。忘れないよう控えてください（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）。
+                    <strong>{t("onlineLobby.t7")}</strong>も、ここで決めてください。ブラウザのデータが消えた時や、別の端末で遊ぶ時に、これがないとこのアカウント（雀玉・キャラ・段位）に戻れません。忘れないよう控えてください（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）。
                   </p>
                   <label className="online-lobby__field">
                     <span>引き継ぎのパスワード（{TRANSFER_PASSWORD_MIN_LENGTH}文字以上）</span>
                     <input type="password" autoComplete="new-password" value={newPassword} maxLength={TRANSFER_PASSWORD_MAX_LENGTH} onChange={(e) => setNewPassword(e.target.value)} />
                   </label>
                   <label className="online-lobby__field">
-                    <span>もう一度</span>
+                    <span>{t("onlineLobby.t8")}</span>
                     <input type="password" autoComplete="new-password" value={newPassword2} maxLength={TRANSFER_PASSWORD_MAX_LENGTH} onChange={(e) => setNewPassword2(e.target.value)} />
                   </label>
-                  {newPasswordLength > 0 && newPassword2 !== "" && newPassword !== newPassword2 && <p className="online-lobby__error">パスワードが一致しません</p>}
+                  {newPasswordLength > 0 && newPassword2 !== "" && newPassword !== newPassword2 && <p className="online-lobby__error">{t("onlineLobby.t9")}</p>}
                 </>
               )}
               <div className="oh-card__actions">
@@ -429,7 +431,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 </button>
                 {renaming && (
                   <button type="button" className="oh-ghost" onClick={() => setRenaming(false)}>
-                    やめる
+                    {t("cardSlot.t7")}
                   </button>
                 )}
               </div>
@@ -446,10 +448,10 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                     </p>
                   )}
                   <p className="oh-note">
-                    アカウントはこのブラウザに保存されます。上で決めたパスワードと、はじめた後に表示される引き継ぎコードで、ブラウザのデータを消しても、別の端末からでも戻れます。
+                    {t("onlineLobby.t10")}
                   </p>
                   <button type="button" className="oh-ghost" onClick={() => setShowTransfer(true)}>
-                    引き継ぎコードで戻る
+                    {t("onlineLobby.t11")}
                   </button>
                 </>
               )}
@@ -469,14 +471,14 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
     <div className="online-home online-lobby" onClickCapture={playUiClickFor}>
       <header className="oh-top">
         <button type="button" className="oh-back" onClick={back}>
-          ← 戻る
+          {t("matchSetup.t1")}
         </button>
         <div className="oh-player">
           {shownCharacter && <img className="oh-player__avatar" src={shownCharacter.avatar} alt="" />}
           <div className="oh-player__text">
             <div className="oh-player__name">{profile.displayName}</div>
             {rank && (
-              <button type="button" className="oh-player__rank" title="段位のしくみを見る" onClick={() => setShowRankGuide(true)}>
+              <button type="button" className="oh-player__rank" title={t("onlineLobby.t12")} onClick={() => setShowRankGuide(true)}>
                 <span className="oh-player__rank-label">{rank.label}</span>
                 <span className="oh-player__rank-bar">
                   <span style={{ width: `${rankProgress * 100}%` }} />
@@ -491,7 +493,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         </div>
         <div className="oh-top__spacer" />
         {jade && (
-          <button type="button" className="oh-jade" disabled={busy} onClick={() => setShowShop(true)} title="雀玉を買う">
+          <button type="button" className="oh-jade" disabled={busy} onClick={() => setShowShop(true)} title={t("onlineLobby.t13")}>
             <span className="oh-jade__gem" />
             <span className="oh-jade__amount">{(jade.free + jade.paid).toLocaleString()}</span>
             <span className="oh-jade__plus">＋</span>
@@ -500,28 +502,28 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
         <div className="oh-top__icons">
           <button type="button" className="oh-iconbtn" disabled={busy} onClick={() => setInboxTab("news")}>
             <Icon name="news" />
-            <span>お知らせ</span>
+            <span>{t("inboxScreen.t1")}</span>
             {hasUnreadNews && <span className="online-lobby__badge online-lobby__badge--dot" />}
           </button>
           <button type="button" className="oh-iconbtn" disabled={busy} onClick={() => setInboxTab("gifts")}>
             <Icon name="gift" />
-            <span>プレゼント</span>
+            <span>{t("onlineLobby.t14")}</span>
             {unclaimedGifts > 0 && <span className="online-lobby__badge">{unclaimedGifts}</span>}
           </button>
           <button type="button" className="oh-iconbtn" disabled={busy} onClick={() => setShowMissions(true)}>
             <Icon name="mission" />
-            <span>ミッション</span>
+            <span>{t("missionsScreen.t1")}</span>
             {claimableMissions > 0 && <span className="online-lobby__badge">{claimableMissions}</span>}
           </button>
           <button type="button" className="oh-iconbtn" disabled={busy} onClick={() => setShowFriends(true)}>
             <Icon name="friends" />
-            <span>フレンド</span>
+            <span>{t("friendsScreen.t1")}</span>
             {incomingFriendRequests > 0 && <span className="online-lobby__badge">{incomingFriendRequests}</span>}
           </button>
           <div className="oh-menu">
             <button type="button" className="oh-iconbtn" disabled={busy} onClick={() => setShowMenu((v) => !v)}>
               <Icon name="menu" />
-              <span>その他</span>
+              <span>{t("onlineLobby.t15")}</span>
             </button>
             {showMenu && !busy && (
               <>
@@ -534,7 +536,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                       setShowRulesGuide(true);
                     }}
                   >
-                    遊び方・役一覧
+                    {t("onlineLobby.t16")}
                   </button>
                   <button
                     type="button"
@@ -544,7 +546,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                       setRenaming(true);
                     }}
                   >
-                    名前を変える
+                    {t("onlineLobby.t17")}
                   </button>
                   <button
                     type="button"
@@ -553,7 +555,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                       setShowTransfer(true);
                     }}
                   >
-                    引き継ぎ・退会
+                    {t("onlineLobby.t18")}
                   </button>
                   <button
                     type="button"
@@ -562,10 +564,10 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                       setShowLegal(true);
                     }}
                   >
-                    規約
+                    {t("onlineLobby.t19")}
                   </button>
                   <a href="/about/" target="_blank" rel="noreferrer" onClick={() => setShowMenu(false)}>
-                    公式サイト
+                    {t("matchSetup.t4")}
                   </a>
                 </div>
               </>
@@ -585,7 +587,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             />
           )}
           <div className="oh-plate">
-            <div className="oh-plate__label">対局に出すキャラ</div>
+            <div className="oh-plate__label">{t("onlineLobby.t1")}</div>
             <div className="oh-plate__name">
               {chosen ? (
                 <>
@@ -603,11 +605,11 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             </div>
             <div className="oh-plate__buttons">
               <button type="button" className="oh-ghost oh-plate__change" disabled={status === "connecting" || queued} onClick={() => setShowUnitPicker(true)}>
-                キャラを変える
+                {t("onlineLobby.t20")}
               </button>
               {chosen && (
                 <button type="button" className="oh-ghost" onClick={() => setShowUnitDetail(true)}>
-                  詳しく見る
+                  {t("onlineLobby.t21")}
                 </button>
               )}
             </div>
@@ -626,15 +628,15 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {needsBackupNotice && !backupNoticeLater && !needsFirstGacha && (
             <div className="online-lobby__backup-notice">
               <p>
-                <strong>引き継ぎコードを作って、控えておいてください。</strong>
+                <strong>{t("onlineLobby.t22")}</strong>
                 ブラウザのデータを消した時や、端末を替えた時に、コードがないとこのアカウント（雀玉・キャラ・段位）に戻れなくなります。
               </p>
               <div className="online-lobby__backup-notice-buttons">
                 <button type="button" className="oh-cta" onClick={() => setShowTransfer(true)}>
-                  コードを作る
+                  {t("onlineLobby.t23")}
                 </button>
                 <button type="button" className="oh-ghost" onClick={() => setBackupNoticeLater(true)}>
-                  あとで
+                  {t("onlineLobby.t24")}
                 </button>
               </div>
             </div>
@@ -643,14 +645,14 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {!busy && runningRanked && (
             <div className="oh-card oh-card--ranked oh-card--resume">
               <div className="oh-card__head">
-                <span className="oh-card__title">対局中の段位戦</span>
+                <span className="oh-card__title">{t("onlineLobby.t25")}</span>
                 <span className="oh-card__en">MATCH IN PROGRESS</span>
               </div>
               <p className="oh-card__lead">
                 {runningRanked === "hanchan" ? "半荘戦" : "東風戦"}が続いています。抜けている間は自動で打牌されます。終わるまで新しい段位戦は始められません。
               </p>
               <button type="button" className="btn btn--primary oh-resume" onClick={() => void returnToRanked()}>
-                対局に戻る
+                {t("onlineLobby.t26")}
               </button>
             </div>
           )}
@@ -658,25 +660,25 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {!busy && !runningRanked && (
             <div className="oh-card oh-card--ranked">
               <div className="oh-card__head">
-                <span className="oh-card__title">段位戦</span>
+                <span className="oh-card__title">{t("onlineLobby.t27")}</span>
                 <span className="oh-card__en">RANKED MATCH</span>
               </div>
               <p className="oh-card__lead">
                 段位の近い相手と自動で卓を組みます。{rank ? `現在 ${rank.label}・${rank.gamesPlayed}戦` : ""}
                 <button type="button" className="oh-link" onClick={() => setShowRankGuide(true)}>
-                  段位のしくみ
+                  {t("onlineLobby.t28")}
                 </button>
               </p>
               <div className="oh-modes">
                 <button type="button" className="oh-mode" onClick={() => onlineLink.queueRanked("tonpuusen", unitId)}>
-                  <span className="oh-mode__kanji">東</span>
-                  <span className="oh-mode__name">東風戦</span>
-                  <span className="oh-mode__sub">東場のみ・短め</span>
+                  <span className="oh-mode__kanji">{t("wind.1")}</span>
+                  <span className="oh-mode__name">{t("format.tonpuusen")}</span>
+                  <span className="oh-mode__sub">{t("matchSetup.t13")}</span>
                 </button>
                 <button type="button" className="oh-mode" onClick={() => onlineLink.queueRanked("hanchan", unitId)}>
-                  <span className="oh-mode__kanji">南</span>
-                  <span className="oh-mode__name">半荘戦</span>
-                  <span className="oh-mode__sub">東場＋南場・じっくり</span>
+                  <span className="oh-mode__kanji">{t("wind.2")}</span>
+                  <span className="oh-mode__name">{t("format.hanchan")}</span>
+                  <span className="oh-mode__sub">{t("matchSetup.t14")}</span>
                 </button>
               </div>
             </div>
@@ -697,7 +699,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 秒たっても4人そろわなければ、空いた席にCPUが入って始まります。
               </p>
               <button type="button" className="oh-ghost" onClick={() => onlineLink.cancelQueue()}>
-                やめる
+                {t("cardSlot.t7")}
               </button>
             </div>
           )}
@@ -705,15 +707,15 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
           {!inRoom && !queued && (
             <div className="oh-card">
               <div className="oh-card__head">
-                <span className="oh-card__title">友人戦</span>
+                <span className="oh-card__title">{t("onlineLobby.t29")}</span>
                 <span className="oh-card__en">FRIEND MATCH</span>
               </div>
-              <p className="oh-card__lead">同じ合言葉を入れた人どうしで同じ卓に座ります。</p>
+              <p className="oh-card__lead">{t("onlineLobby.t30")}</p>
               <div className="oh-room-join">
                 <input
                   value={roomCode}
-                  placeholder="合言葉"
-                  aria-label="合言葉"
+                  placeholder={t("onlineLobby.t31")}
+                  aria-label={t("onlineLobby.t31")}
                   maxLength={ROOM_CODE_MAX_LENGTH}
                   onChange={(e) => setRoomCode(e.target.value)}
                   onKeyDown={(e) => {
@@ -760,8 +762,8 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                   <li key={`cpu-${i}`} className="oh-seat oh-seat--cpu">
                     <span className="oh-seat__avatar oh-seat__avatar--none">CPU</span>
                     <span className="oh-seat__text">
-                      <span className="oh-seat__name">空き席</span>
-                      <span className="oh-seat__loadout">開始するとCPUが入ります</span>
+                      <span className="oh-seat__name">{t("onlineLobby.t32")}</span>
+                      <span className="oh-seat__loadout">{t("onlineLobby.t33")}</span>
                     </span>
                   </li>
                 ))}
@@ -770,12 +772,12 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 <>
                   <div className="oh-modes">
                     <button type="button" className="oh-mode" onClick={() => start("tonpuusen")}>
-                      <span className="oh-mode__kanji">東</span>
-                      <span className="oh-mode__name">東風戦で開始</span>
+                      <span className="oh-mode__kanji">{t("wind.1")}</span>
+                      <span className="oh-mode__name">{t("onlineLobby.t34")}</span>
                     </button>
                     <button type="button" className="oh-mode" onClick={() => start("hanchan")}>
-                      <span className="oh-mode__kanji">南</span>
-                      <span className="oh-mode__name">半荘戦で開始</span>
+                      <span className="oh-mode__kanji">{t("wind.2")}</span>
+                      <span className="oh-mode__name">{t("onlineLobby.t35")}</span>
                     </button>
                   </div>
                   <label className="setup-debug-toggle">
@@ -784,7 +786,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                   </label>
                 </>
               ) : (
-                <p className="oh-card__lead">部屋主（★）が開始するのを待っています…</p>
+                <p className="oh-card__lead">{t("onlineLobby.t36")}</p>
               )}
             </div>
           )}
@@ -797,19 +799,19 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
       <nav className="oh-dock">
         <button type="button" className="oh-dock__btn oh-dock__btn--gacha" disabled={busy} onClick={() => setShowGacha(true)}>
           <Icon name="gacha" />
-          <span>ガチャ</span>
+          <span>{t("gachaScreen.t1")}</span>
         </button>
         <button type="button" className="oh-dock__btn" disabled={busy} onClick={() => setShowUnits(true)}>
           <Icon name="units" />
-          <span>手持ち・カード</span>
+          <span>{t("onlineLobby.t37")}</span>
         </button>
         <button type="button" className="oh-dock__btn" disabled={busy} onClick={() => setShowHistory(true)}>
           <Icon name="history" />
-          <span>戦績</span>
+          <span>{t("onlineLobby.t38")}</span>
         </button>
         <button type="button" className="oh-dock__btn" disabled={busy} onClick={() => setShowShop(true)}>
           <Icon name="shop" />
-          <span>雀玉ショップ</span>
+          <span>{t("onlineLobby.t39")}</span>
         </button>
       </nav>
       {overlays}

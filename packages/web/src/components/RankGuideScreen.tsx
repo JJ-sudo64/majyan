@@ -1,5 +1,6 @@
 import { Fragment, useState } from "react";
 import { RANK_TIERS, rankLabel, rankMaxPoints, rankPointDelta, type MatchFormat, type RankState, type RankView } from "@majyan/core";
+import { useT } from "../i18n/index.js";
 
 const PLACES = [1, 2, 3, 4] as const;
 /** 持ち点による増減が0になる点数（順位による増減だけを取り出すのに使う）。 */
@@ -20,6 +21,7 @@ function ladderRows(): RankState[] {
 
 /** 段位のしくみを表で見せる。数値はcoreのranked.tsからそのまま出す。 */
 export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onClose: () => void }) {
+  const t = useT();
   const [format, setFormat] = useState<MatchFormat>("tonpuusen");
   const rows = ladderRows();
   const isMine = (r: RankState) => !!rank && rank.tier === r.tier && rank.level === r.level;
@@ -35,7 +37,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
     <div className="modal-overlay" onClick={onClose}>
       <div className="gacha-screen inbox-screen rank-guide" onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">段位のしくみ</div>
+          <div className="setup-character-select__label">{t("onlineLobby.t28")}</div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
           </button>
@@ -45,7 +47,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
           <div className="rank-guide__left">
             {rank && (
               <div className="rank-guide__mine">
-                <span className="rank-guide__mine-label">今のあなた</span>
+                <span className="rank-guide__mine-label">{t("rankGuideScreen.t1")}</span>
                 <span className="rank-guide__mine-rank">{rank.label}</span>
                 <span className="rank-guide__mine-points">
                   {rank.maxPoints === null
@@ -68,25 +70,25 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
             </div>
 
             <ol className="rank-guide__rules">
-              <li>段位戦を1回打つたびに、順位に応じてポイントが増えたり減ったりします。</li>
+              <li>{t("rankGuideScreen.t2")}</li>
               <li>
-                ポイントが<b>「昇段」の数字に届くと次の段へ</b>上がります。
+                ポイントが<b>{t("rankGuideScreen.t3")}</b>上がります。
               </li>
               <li>
-                ポイントが<b>0を下回ると1つ下の段へ</b>下がります（下雀1だけは下がりません。表の「降段なし」の段です）。
+                ポイントが<b>{t("rankGuideScreen.t4")}</b>下がります（下雀1だけは下がりません。表の「降段なし」の段です）。
               </li>
             </ol>
 
             <ul className="rank-guide__notes">
-          <li>昇段・降段した時のポイントは、新しい段の「始まり」の数字になります。</li>
-          <li>昇段・降段は1回の対局で1段までです。</li>
-          <li>雀神には上限がなく、ポイントを積み上げ続けます。0を下回ると雀帝3に戻ります。</li>
-          <li>段位戦では、段位の近い人どうしで卓を組みます。友人戦では段位は動きません。</li>
+          <li>{t("rankGuideScreen.t5")}</li>
+          <li>{t("rankGuideScreen.t6")}</li>
+          <li>{t("rankGuideScreen.t7")}</li>
+          <li>{t("rankGuideScreen.t8")}</li>
         </ul>
           </div>
           <div className="rank-guide__right">
             <div className="rank-guide__tabs">
-              <span className="rank-guide__tabs-label">1回の対局で動くポイント</span>
+              <span className="rank-guide__tabs-label">{t("rankGuideScreen.t9")}</span>
               {(["tonpuusen", "hanchan"] as MatchFormat[]).map((f) => (
                 <button key={f} type="button" className={`rank-guide__tab${format === f ? " is-active" : ""}`} onClick={() => setFormat(f)}>
                   {f === "hanchan" ? "半荘戦" : "東風戦"}
@@ -98,8 +100,8 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
               <table className="rank-guide__table">
                 <thead>
                   <tr>
-                    <th>段位</th>
-                    <th>始まり → 昇段</th>
+                    <th>{t("rankGuideScreen.t10")}</th>
+                    <th>{t("rankGuideScreen.t11")}</th>
                     {PLACES.map((p) => (
                       <th key={p}>{p}位</th>
                     ))}
@@ -113,8 +115,8 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
                       <tr key={`${r.tier}-${r.level}`} className={`${isMine(r) ? "is-mine" : ""}${r.level === 0 ? " is-tier-start" : ""}`}>
                         <th scope="row">
                           {rankLabel(r)}
-                          {isMine(r) && <span className="rank-guide__here">今ここ</span>}
-                          {!tier.canDemote[r.level] && <span className="rank-guide__safe">降段なし</span>}
+                          {isMine(r) && <span className="rank-guide__here">{t("rankGuideScreen.t12")}</span>}
+                          {!tier.canDemote[r.level] && <span className="rank-guide__safe">{t("rankGuideScreen.t13")}</span>}
                         </th>
                         <td>{max === null ? "上限なし" : `${tier.levelStart[r.level]} → ${max}`}</td>
                         {PLACES.map((p) => {
@@ -133,7 +135,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
             </div>
 
             <div className="rank-guide__score">
-              <div className="rank-guide__score-title">終わった時の持ち点でも増減します</div>
+              <div className="rank-guide__score-title">{t("rankGuideScreen.t14")}</div>
               <p>
                 25000点より<b>1000点多いごとに約 +{scoreSlope.toFixed(1)}</b>、<b>1000点少ないごとに約 −{scoreSlope.toFixed(1)}</b> が、上の表の数字に足されます（段位が上がるほど大きくなります）。
               </p>

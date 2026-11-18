@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { CARDS, cardRarity } from "@majyan/core";
 import { KIND_LONG } from "../cardDesign.js";
 import { CardFace } from "./CardFace.js";
+import { useT } from "../i18n/index.js";
 
 export type SlotKind = "passive" | "consumable";
 
@@ -27,6 +28,7 @@ interface CardSlotProps {
  * 「欄を開いて、その欄に付けられるカードだけから選ぶ」装着の入り口（CardSlotPicker）。
  */
 export function CardSlot({ kind, cardId, onOpen, emptyHint }: CardSlotProps) {
+  const t = useT();
   const card = cardId ? CARDS[cardId] : undefined;
   const body = (
     <>
@@ -37,7 +39,7 @@ export function CardSlot({ kind, cardId, onOpen, emptyHint }: CardSlotProps) {
             <CardFace cardId={cardId!} compact />
           </span>
           <span className="cs-slot__name">{card.name}</span>
-          {onOpen && <span className="cs-slot__edit">変える</span>}
+          {onOpen && <span className="cs-slot__edit">{t("cardSlot.t1")}</span>}
         </>
       ) : (
         <>
@@ -90,6 +92,7 @@ interface CardSlotPickerProps {
  * 決める時は「付ける」。外せない装着（permanent）では、もう一度確認してから付ける。
  */
 export function CardSlotPicker({ kind, title, candidates, counts, current, permanent, busy, emptyMessage, onConfirm, onClear, onClose, banner, onStage }: CardSlotPickerProps) {
+  const t = useT();
   const [rarity, setRarity] = useState<0 | 1 | 2 | 3>(0);
   const [picked, setPicked] = useState<string | null>(current ?? null);
   const [hover, setHover] = useState<string | null>(null);
@@ -118,7 +121,7 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
           </button>
         </div>
         {banner}
-        {permanent && <p className="cs-picker__note">一度付けたカードは外せません。</p>}
+        {permanent && <p className="cs-picker__note">{t("cardSlot.t2")}</p>}
 
         {candidates.length === 0 ? (
           <p className="cs-picker__empty">{emptyMessage}</p>
@@ -148,7 +151,7 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
                   {counts && <span className="cs-pick__count">{counts[id] ?? 0}枚</span>}
                 </div>
               ))}
-              {list.length === 0 && <p className="cs-picker__empty">このレア度のカードはありません。</p>}
+              {list.length === 0 && <p className="cs-picker__empty">{t("cardSlot.t3")}</p>}
             </div>
             <div className="card-picker-detail cs-picker__detail">
               {shown && shownId ? (
@@ -161,20 +164,20 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
                   <p className="card-picker-detail__desc">{shown.description}</p>
                 </>
               ) : (
-                <p className="card-picker-detail__desc">カードを選ぶと、ここに効果が出ます。</p>
+                <p className="card-picker-detail__desc">{t("cardSlot.t4")}</p>
               )}
             </div>
             {confirming && targetId ? (
               <div className="first-gacha__confirm">
                 <p>
-                  「{CARDS[targetId]?.name}」を付けますか？ <strong>一度付けると外せません。</strong>
+                  「{CARDS[targetId]?.name}」を付けますか？ <strong>{t("cardSlot.t5")}</strong>
                 </p>
                 <div className="setup-buttons">
                   <button type="button" className="btn btn--primary" disabled={busy} onClick={() => onConfirm(targetId)}>
-                    付ける
+                    {t("cardSlot.t6")}
                   </button>
                   <button type="button" className="btn btn--secondary" onClick={() => setConfirming(false)}>
-                    やめる
+                    {t("cardSlot.t7")}
                   </button>
                 </div>
               </div>
@@ -182,7 +185,7 @@ export function CardSlotPicker({ kind, title, candidates, counts, current, perma
               <div className="cs-picker__actions">
                 {onClear && (
                   <button type="button" className="card-picker-filters__chip" onClick={onClear}>
-                    なしにする
+                    {t("cardSlot.t8")}
                   </button>
                 )}
                 <button

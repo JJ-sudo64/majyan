@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CARDS, CHARACTERS, characterRarity, type GachaItem, type InboxResponse } from "@majyan/core";
 import { claimGifts, fetchInbox, markAnnouncementsSeen, useAccountStore } from "../online/account.js";
 import { playUiSuccess } from "../sound.js";
+import { useT } from "../i18n/index.js";
 
 export type InboxTab = "news" | "gifts";
 
@@ -29,6 +30,7 @@ function remaining(expiresAt: number | null, now: number): string {
 
 /** お知らせとプレゼントボックス。 */
 export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onClose: () => void }) {
+  const t = useT();
   const [tab, setTab] = useState<InboxTab>(initialTab);
   const [inbox, setInbox] = useState<InboxResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +79,7 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
         <div className="setup-picker-modal__header">
           <div className="inbox-screen__tabs">
             <button type="button" className={`inbox-screen__tab${tab === "news" ? " is-active" : ""}`} onClick={() => setTab("news")}>
-              お知らせ
+              {t("inboxScreen.t1")}
             </button>
             <button type="button" className={`inbox-screen__tab${tab === "gifts" ? " is-active" : ""}`} onClick={() => setTab("gifts")}>
               プレゼント{gifts.length > 0 && `（${gifts.length}）`}
@@ -88,7 +90,7 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
           </button>
         </div>
 
-        {!inbox && !error && <p className="setup-lead">読み込んでいます…</p>}
+        {!inbox && !error && <p className="setup-lead">{t("friendsScreen.t2")}</p>}
         {error && <p className="online-lobby__error">{error}</p>}
         {notice && (
           <div className="online-lobby__notice" onClick={() => setNotice(null)}>
@@ -98,7 +100,7 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
 
         {inbox && tab === "news" && (
           <>
-            {inbox.announcements.length === 0 && <p className="setup-lead">お知らせはありません。</p>}
+            {inbox.announcements.length === 0 && <p className="setup-lead">{t("inboxScreen.t2")}</p>}
             <ul className="inbox-screen__list">
               {inbox.announcements.map((a) => (
                 <li key={a.id} className="inbox-screen__news">
@@ -116,10 +118,10 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
 
         {inbox && tab === "gifts" && (
           <>
-            {gifts.length === 0 && <p className="setup-lead">受け取れるプレゼントはありません。</p>}
+            {gifts.length === 0 && <p className="setup-lead">{t("inboxScreen.t3")}</p>}
             {gifts.length > 1 && (
               <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void claim(null)}>
-                まとめて受け取る
+                {t("inboxScreen.t4")}
               </button>
             )}
             <ul className="inbox-screen__list">
@@ -134,12 +136,12 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
                     </div>
                   </div>
                   <button type="button" className="btn" disabled={busy} onClick={() => void claim(g.id)}>
-                    受け取る
+                    {t("inboxScreen.t5")}
                   </button>
                 </li>
               ))}
             </ul>
-            <p className="gacha-screen__rate-note">受け取り期限を過ぎたプレゼントは消えます。</p>
+            <p className="gacha-screen__rate-note">{t("inboxScreen.t6")}</p>
           </>
         )}
       </div>

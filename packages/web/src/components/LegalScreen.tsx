@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PRIVACY_SECTIONS, TERMS_SECTIONS, TERMS_VERSION, type LegalSection } from "@majyan/core";
 import { acceptTerms, useAccountStore } from "../online/account.js";
+import { useT } from "../i18n/index.js";
 
 type LegalTab = "terms" | "privacy";
 
@@ -19,13 +20,14 @@ function LegalBody({ sections }: { sections: readonly LegalSection[] }) {
 }
 
 function LegalTabs({ tab, setTab }: { tab: LegalTab; setTab: (tab: LegalTab) => void }) {
+  const t = useT();
   return (
     <div className="inbox-screen__tabs">
       <button type="button" className={`inbox-screen__tab${tab === "terms" ? " is-active" : ""}`} onClick={() => setTab("terms")}>
-        利用規約
+        {t("legalScreen.t1")}
       </button>
       <button type="button" className={`inbox-screen__tab${tab === "privacy" ? " is-active" : ""}`} onClick={() => setTab("privacy")}>
-        プライバシーポリシー
+        {t("legalScreen.t2")}
       </button>
     </div>
   );
@@ -54,14 +56,15 @@ export function LegalScreen({ onClose }: { onClose: () => void }) {
  * アカウントで）開いた時に、同意をもらう画面。同意するまで閉じられない。
  */
 export function TermsConsent() {
+  const t = useT();
   const [tab, setTab] = useState<LegalTab>("terms");
   const [busy, setBusy] = useState(false);
   const error = useAccountStore((s) => s.error);
   return (
     <div className="modal-overlay">
       <div className="gacha-screen inbox-screen">
-        <div className="setup-character-select__label">利用規約とプライバシーポリシーの確認</div>
-        <p className="setup-lead">続けるには、今の利用規約とプライバシーポリシーへの同意が必要です。</p>
+        <div className="setup-character-select__label">{t("legalScreen.t3")}</div>
+        <p className="setup-lead">{t("legalScreen.t4")}</p>
         <LegalTabs tab={tab} setTab={setTab} />
         <LegalBody sections={tab === "terms" ? TERMS_SECTIONS : PRIVACY_SECTIONS} />
         {error && <p className="online-lobby__error">{error}</p>}
@@ -75,7 +78,7 @@ export function TermsConsent() {
               void acceptTerms().finally(() => setBusy(false));
             }}
           >
-            同意して続ける
+            {t("legalScreen.t5")}
           </button>
         </div>
       </div>

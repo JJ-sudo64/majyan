@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CHARACTERS, CUTIN_DISPLAY_MS, type Character, type RoundState } from "@majyan/core";
 import { DeclarationCutinView, skillCutin } from "./DeclarationCutinOverlay.js";
+import { useT } from "../i18n/index.js";
 
 /** この間はツモ・CPUの手を進めず、ネット対戦では制限時間も止める（turnClock.tsのcutinHoldMs）。 */
 const DISPLAY_MS = CUTIN_DISPLAY_MS.skill;
@@ -108,6 +109,7 @@ export function SkillActivationOverlay({ round }: { round: RoundState }) {
  * SkillActivationOverlayと、全キャラ一覧(CutinGallery.tsx)の両方で使う。
  */
 export function SkillActivationView({ character, nullified }: { character: Character; nullified?: boolean }) {
+  const t = useT();
   if (nullified) {
     return (
       <div className="skill-activation-overlay skill-activation-overlay--nullified">
@@ -118,7 +120,7 @@ export function SkillActivationView({ character, nullified }: { character: Chara
         </div>
         <div className="skill-activation-overlay__text">
           <div className="skill-activation-overlay__name">{character.name}の{character.skill.name}は</div>
-          <div className="skill-activation-overlay__skill">無効化された！</div>
+          <div className="skill-activation-overlay__skill">{t("skillActivationOverlay.t1")}</div>
         </div>
       </div>
     );

@@ -21,6 +21,7 @@ import { GachaReveal } from "./GachaReveal.js";
 import { RecordsScreen } from "./RecordsScreen.js";
 import { preloadGachaSounds } from "../sound.js";
 import { shareToX } from "../share.js";
+import { useT } from "../i18n/index.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
 
@@ -46,6 +47,7 @@ const sameItem = (a: GachaItem | null, b: GachaItem) => !!a && a.kind === b.kind
  * 必ず見られるようにする（ガチャの確率表示は業界の自主規制・各ストアの規約で求められている）。
  */
 export function GachaScreen({ onClose }: { onClose: () => void }) {
+  const t = useT();
   // 引いた直後の演出の音が最初の1回から遅れず鳴るよう、画面を開いた時に読み込んでおく。
   useEffect(preloadGachaSounds, []);
   const jade = useAccountStore((s) => s.jade);
@@ -80,7 +82,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
       {/* 10連の結果を出している間は、説明文などを畳んで、10枚とボタンが1画面に収まるようにする（--result）。 */}
       <div className={`gacha-screen${result && !revealing ? " gacha-screen--result" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">ガチャ</div>
+          <div className="setup-character-select__label">{t("gachaScreen.t1")}</div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
           </button>
@@ -108,7 +110,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
                 const character = item.kind === "character" ? CHARACTERS[item.id] : undefined;
                 return (
                   <span key={`${item.kind}-${item.id}`} className="gacha-screen__pickup-item">
-                    {character ? <img src={character.avatar} alt="" /> : <span className="gacha-card__card-icon">カード</span>}
+                    {character ? <img src={character.avatar} alt="" /> : <span className="gacha-card__card-icon">{t("gachaScreen.t2")}</span>}
                     <span>
                       {RARITY_STARS[rarityOf(item)]} {fullName(item)}
                       <small>出る確率 {percent(itemRate(item, pickup))}（ふだんは {percent(itemRate(item))}）</small>
@@ -131,7 +133,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         {result && !revealing && shareText(result.results) && (
           <div className="setup-buttons">
             <button type="button" className="btn" onClick={() => shareToX(shareText(result.results)!)}>
-              Xでシェア
+              {t("gachaScreen.t3")}
             </button>
           </div>
         )}
@@ -169,7 +171,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
             提供割合{showRates ? "を閉じる" : "を見る"}
           </button>
           <button type="button" className="btn gacha-screen__rates-toggle" onClick={() => setShowRecords(true)}>
-            ガチャ・雀玉の履歴
+            {t("gachaScreen.t4")}
           </button>
         </div>
         {showRecords && <RecordsScreen onClose={() => setShowRecords(false)} />}
@@ -177,7 +179,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
           <div className="modal-overlay" onClick={() => setShowRates(false)}>
             <div className="gacha-screen gacha-rates-modal" onClick={(e) => e.stopPropagation()}>
               <div className="setup-picker-modal__header">
-                <div className="setup-character-select__label">提供割合</div>
+                <div className="setup-character-select__label">{t("gachaScreen.t5")}</div>
                 <button type="button" className="setup-picker-modal__close" onClick={() => setShowRates(false)}>
                   ×
                 </button>

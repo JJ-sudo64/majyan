@@ -9,6 +9,7 @@ import {
   type ShopResponse,
 } from "@majyan/core";
 import { declareBirthMonth, fetchShop, payTestPurchase, startCheckout } from "../online/account.js";
+import { useT } from "../i18n/index.js";
 
 const yen = (n: number) => `${n.toLocaleString("ja-JP")}円`;
 const dateTime = (ms: number) => new Date(ms).toLocaleString("ja-JP", { dateStyle: "short", timeStyle: "short" });
@@ -18,6 +19,7 @@ const RETURN_RELOAD_DELAYS_MS = [2000, 5000, 10000];
 
 /** 生まれた年月を聞く（未成年の買いすぎを防ぐ上限を決めるため）。 */
 function AgeGate({ onSubmit, busy }: { onSubmit: (birthMonth: string) => void; busy: boolean }) {
+  const t = useT();
   const thisYear = new Date().getFullYear();
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
@@ -31,16 +33,16 @@ function AgeGate({ onSubmit, busy }: { onSubmit: (birthMonth: string) => void; b
         {AGE_BRACKET_LABELS.under16}：{yen(MONTHLY_LIMIT_YEN.under16!)}、{AGE_BRACKET_LABELS["16to17"]}：{yen(MONTHLY_LIMIT_YEN["16to17"]!)}）。
       </p>
       <div className="shop-screen__age-inputs">
-        <select value={year} onChange={(e) => (setYear(e.target.value), setConfirming(false))} aria-label="生まれた年">
-          <option value="">年</option>
+        <select value={year} onChange={(e) => (setYear(e.target.value), setConfirming(false))} aria-label={t("shopScreen.t1")}>
+          <option value="">{t("shopScreen.t2")}</option>
           {Array.from({ length: 100 }, (_, i) => thisYear - i).map((y) => (
             <option key={y} value={y}>
               {y}年
             </option>
           ))}
         </select>
-        <select value={month} onChange={(e) => (setMonth(e.target.value), setConfirming(false))} aria-label="生まれた月">
-          <option value="">月</option>
+        <select value={month} onChange={(e) => (setMonth(e.target.value), setConfirming(false))} aria-label={t("shopScreen.t3")}>
+          <option value="">{t("shopScreen.t4")}</option>
           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
             <option key={m} value={m}>
               {m}月
@@ -49,7 +51,7 @@ function AgeGate({ onSubmit, busy }: { onSubmit: (birthMonth: string) => void; b
         </select>
         {!confirming && (
           <button type="button" className="btn" disabled={!birthMonth} onClick={() => setConfirming(true)}>
-            次へ
+            {t("shopScreen.t5")}
           </button>
         )}
       </div>
@@ -60,10 +62,10 @@ function AgeGate({ onSubmit, busy }: { onSubmit: (birthMonth: string) => void; b
           </p>
           <div className="setup-buttons">
             <button type="button" className="btn btn--primary" disabled={busy} onClick={() => onSubmit(birthMonth)}>
-              登録する
+              {t("shopScreen.t6")}
             </button>
             <button type="button" className="btn btn--secondary" onClick={() => setConfirming(false)}>
-              直す
+              {t("shopScreen.t7")}
             </button>
           </div>
         </div>
@@ -74,6 +76,7 @@ function AgeGate({ onSubmit, busy }: { onSubmit: (birthMonth: string) => void; b
 
 /** 特定商取引法に基づく表記と、資金決済法に基づく表示。 */
 function LegalNotes() {
+  const t = useT();
   const { commerce: rows, commerceNote, prepaid } = legalNoticeRows();
   const table = (items: [string, string][]) => (
     <table className="shop-screen__legal-table">
@@ -89,10 +92,10 @@ function LegalNotes() {
   );
   return (
     <div className="shop-screen__legal">
-      <div className="online-lobby__section-title">特定商取引法に基づく表記</div>
+      <div className="online-lobby__section-title">{t("shopScreen.t8")}</div>
       {table(rows)}
       <p>{commerceNote}</p>
-      <div className="online-lobby__section-title">資金決済法に基づく表示</div>
+      <div className="online-lobby__section-title">{t("shopScreen.t9")}</div>
       {table(prepaid)}
     </div>
   );
@@ -103,6 +106,7 @@ function LegalNotes() {
  * 雀玉が増えるのは、サーバーが決済会社から支払いの通知を受けた時（この画面からは増やせない）。
  */
 export function ShopScreen({ onClose, returned }: { onClose: () => void; returned?: string | null }) {
+  const t = useT();
   const [shop, setShop] = useState<ShopResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(
@@ -161,12 +165,12 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
     <div className="modal-overlay" onClick={onClose}>
       <div className="gacha-screen inbox-screen shop-screen" onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">雀玉を買う</div>
+          <div className="setup-character-select__label">{t("onlineLobby.t13")}</div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
           </button>
         </div>
-        {!shop && !error && <p className="setup-lead">読み込んでいます…</p>}
+        {!shop && !error && <p className="setup-lead">{t("friendsScreen.t2")}</p>}
         {error && <p className="online-lobby__error">{error}</p>}
         {notice && (
           <div className="online-lobby__notice" onClick={() => setNotice(null)}>
@@ -181,8 +185,8 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
                 （無償 {shop.jade.free.toLocaleString()} ／ 有償 {shop.jade.paid.toLocaleString()}）
               </span>
             </div>
-            {shop.mode === "closed" && <p className="setup-lead">雀玉の販売は準備中です。雀玉はログインボーナスとミッションでもらえます。</p>}
-            {shop.mode === "test" && <p className="shop-screen__test">開発用のテスト購入です。お金は動かず、押すだけで雀玉が増えます。</p>}
+            {shop.mode === "closed" && <p className="setup-lead">{t("shopScreen.t10")}</p>}
+            {shop.mode === "test" && <p className="shop-screen__test">{t("shopScreen.t11")}</p>}
             {shop.mode !== "closed" && !shop.ageBracket && <AgeGate busy={busy} onSubmit={(m) => void run(() => declareBirthMonth(m))} />}
             {shop.mode !== "closed" && shop.ageBracket && (
               <>
@@ -220,7 +224,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
                         {shop.mode === "test" ? "テスト購入する" : "支払いへ進む"}
                       </button>
                       <button type="button" className="btn btn--secondary" onClick={() => setChoice(null)}>
-                        やめる
+                        {t("cardSlot.t7")}
                       </button>
                     </div>
                   </div>
@@ -229,7 +233,7 @@ export function ShopScreen({ onClose, returned }: { onClose: () => void; returne
             )}
             {shop.purchases.length > 0 && (
               <>
-                <div className="online-lobby__section-title">購入の記録</div>
+                <div className="online-lobby__section-title">{t("shopScreen.t12")}</div>
                 <ul className="inbox-screen__list">
                   {shop.purchases.map((p) => (
                     <li key={p.id} className="inbox-screen__gift">

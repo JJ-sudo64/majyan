@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CHARACTERS } from "@majyan/core";
 import { DeclarationCutinView, characterCutin, type Declaration } from "./DeclarationCutinOverlay.js";
 import { SkillActivationView } from "./SkillActivationOverlay.js";
+import { useT } from "../i18n/index.js";
 
 /**
  * 全キャラのリーチ・ツモ・ロン・必殺技カットインを、対局中と同じ部品・CSSで
@@ -29,6 +30,7 @@ const LOOP_MS: Record<Kind, number> = { riichi: 2200, tsumo: 2800, ron: 2800, sk
 const THUMB_WIDTH = 260;
 
 export function CutinGallery() {
+  const t = useT();
   const screen = useWindowSize();
   const [playing, setPlaying] = useState(false);
   // コマをクリックした時に、そのコマだけ再生し直すための番号。
@@ -39,12 +41,12 @@ export function CutinGallery() {
   return (
     <div className="cutin-gallery">
       <header className="cutin-gallery__header">
-        <h1>カットイン一覧</h1>
+        <h1>{t("cutinGallery.t1")}</h1>
         <label>
           <input type="checkbox" checked={playing} onChange={(e) => setPlaying(e.target.checked)} />
           アニメーションを繰り返し再生（オフなら表示中の一瞬で止める）
         </label>
-        <span className="cutin-gallery__hint">コマをクリックすると、そのコマだけ最初から再生します。</span>
+        <span className="cutin-gallery__hint">{t("cutinGallery.t2")}</span>
       </header>
       <table className="cutin-gallery__table">
         <thead>
@@ -66,7 +68,7 @@ export function CutinGallery() {
                   return (
                     <td key={kind}>
                       <div className="cutin-gallery__missing" style={{ width: THUMB_WIDTH, height: thumbHeight }}>
-                        絵なし
+                        {t("cutinGallery.t3")}
                       </div>
                     </td>
                   );

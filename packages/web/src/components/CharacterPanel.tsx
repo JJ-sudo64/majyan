@@ -4,6 +4,7 @@ import { TIME_STOP_FAKE_TURN_STEP_MS, useGameStore } from "../store/gameStore.js
 import { SkillGauge } from "./SkillGauge.js";
 import { TileView } from "./TileView.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
+import { useT } from "../i18n/index.js";
 
 const SEAT_LABELS: Record<number, string> = { 1: "下家CPU", 2: "対面CPU", 3: "上家CPU" };
 
@@ -54,6 +55,7 @@ export function CharacterPanel({
   onPointerUp?: (e: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerCancel?: (e: ReactPointerEvent<HTMLDivElement>) => void;
 }) {
+  const t = useT();
   const p = round.players[player];
   // ネット対戦では各席のプレイヤー名も出す（ローカル対戦ではnull）。
   const onlineSeat = useGameStore((s) => s.onlineSeats?.[player] ?? null);
@@ -97,7 +99,7 @@ export function CharacterPanel({
             className="character-panel__portrait-btn"
             onClick={onShowSkillInfo}
             aria-label={`${character.name}の能力を見る`}
-            title="タップでキャラクターの能力を見る"
+            title={t("characterPanel.t1")}
           >
             <img className="character-panel__avatar" src={character.avatar ?? `/avatars/seat${player}.svg`} alt="" />
           </button>
@@ -138,7 +140,7 @@ export function CharacterPanel({
         <div className="character-panel__side-status">
           {p.revealedFutureDraws.length > 0 && (
             <div className="character-panel__side-item">
-              <span className="wait-row__label">未来視</span>
+              <span className="wait-row__label">{t("characterPanel.t2")}</span>
               <div className="wait-row__tiles">
                 {p.revealedFutureDraws.map((code, i) => (
                   <TileView key={i} code={code} tiny highlightable={false} />
@@ -148,7 +150,7 @@ export function CharacterPanel({
           )}
           {p.bettaoriActive && (
             <div className="character-panel__side-item">
-              <span className="wait-row__label">ベタ降り</span>
+              <span className="wait-row__label">{t("characterPanel.t3")}</span>
               <span className={`wait-row__shield${p.bettaoriShield ? " wait-row__shield--up" : ""}`}>{p.bettaoriShield ? "盾あり" : "盾なし"}</span>
             </div>
           )}

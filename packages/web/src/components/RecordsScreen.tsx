@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CARDS, CHARACTERS, GACHA_KIND_LABELS, JADE_REASON_LABELS, rarityOf, type GachaItem, type RecordsResponse } from "@majyan/core";
 import { fetchRecords } from "../online/account.js";
 import { RARITY_STARS } from "./GachaCard.js";
+import { useT } from "../i18n/index.js";
 
 type Tab = "jade" | "gacha";
 
@@ -20,6 +21,7 @@ function itemName(item: GachaItem): string {
 
 /** 雀玉の増減とガチャの結果の履歴（それぞれ新しい順に100件まで）。 */
 export function RecordsScreen({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [tab, setTab] = useState<Tab>("jade");
   const [records, setRecords] = useState<RecordsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,10 +38,10 @@ export function RecordsScreen({ onClose }: { onClose: () => void }) {
         <div className="setup-picker-modal__header">
           <div className="inbox-screen__tabs">
             <button type="button" className={`inbox-screen__tab${tab === "jade" ? " is-active" : ""}`} onClick={() => setTab("jade")}>
-              雀玉の履歴
+              {t("recordsScreen.t1")}
             </button>
             <button type="button" className={`inbox-screen__tab${tab === "gacha" ? " is-active" : ""}`} onClick={() => setTab("gacha")}>
-              ガチャの履歴
+              {t("recordsScreen.t2")}
             </button>
           </div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
@@ -47,19 +49,19 @@ export function RecordsScreen({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {!records && !error && <p className="setup-lead">読み込んでいます…</p>}
+        {!records && !error && <p className="setup-lead">{t("friendsScreen.t2")}</p>}
         {error && <p className="online-lobby__error">{error}</p>}
 
         {records && tab === "jade" && (
           <>
-            {records.jade.length === 0 && <p className="setup-lead">記録はまだありません。</p>}
+            {records.jade.length === 0 && <p className="setup-lead">{t("recordsScreen.t3")}</p>}
             <table className="history-screen__stats records-screen__table">
               <thead>
                 <tr>
-                  <th>日時</th>
-                  <th>内容</th>
-                  <th>増減</th>
-                  <th>残高</th>
+                  <th>{t("recordsScreen.t4")}</th>
+                  <th>{t("recordsScreen.t5")}</th>
+                  <th>{t("recordsScreen.t6")}</th>
+                  <th>{t("recordsScreen.t7")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -84,7 +86,7 @@ export function RecordsScreen({ onClose }: { onClose: () => void }) {
 
         {records && tab === "gacha" && (
           <>
-            {records.gacha.length === 0 && <p className="setup-lead">記録はまだありません。</p>}
+            {records.gacha.length === 0 && <p className="setup-lead">{t("recordsScreen.t3")}</p>}
             <ul className="inbox-screen__list">
               {records.gacha.map((e, i) => (
                 <li key={i} className="inbox-screen__gift records-screen__gacha">
@@ -106,7 +108,7 @@ export function RecordsScreen({ onClose }: { onClose: () => void }) {
             </ul>
           </>
         )}
-        <p className="gacha-screen__rate-note">それぞれ新しいものから100件まで表示します。</p>
+        <p className="gacha-screen__rate-note">{t("recordsScreen.t8")}</p>
       </div>
     </div>
   );

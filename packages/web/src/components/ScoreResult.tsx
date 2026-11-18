@@ -7,6 +7,7 @@ import { playVoiceQueue } from "../sound.js";
 import { meldDisplaySlots } from "../meldDisplay.js";
 import { MatchVictoryOverlay } from "./MatchVictoryOverlay.js";
 import { TileView } from "./TileView.js";
+import { useT } from "../i18n/index.js";
 
 const PLAYER_NAMES: Record<number, string> = { 0: "あなた", 1: "下家", 2: "対面", 3: "上家" };
 
@@ -126,6 +127,7 @@ function resultTitle(round: RoundState): string {
 }
 
 export function ScoreResult({ round, outcome }: { round: RoundState; outcome: RoundScoreOutcome }) {
+  const t = useT();
   const acknowledgeRoundEnd = useGameStore((s) => s.acknowledgeRoundEnd);
   const backToTitle = useGameStore((s) => s.backToTitle);
   const tutorial = useGameStore((s) => s.tutorial);
@@ -227,7 +229,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                 <div className="score-card-notes">カード「親孝行」：本場の点が2倍（{round.honba}本場）</div>
               )}
               <div className="win-detail__dora">
-                <span className="hud__dora-label">ドラ表示</span>
+                <span className="hud__dora-label">{t("hud.doraIndicator")}</span>
                 <div className="hud__dora">
                   {doraIndicators(round.wall).map((d, i) => (
                     <TileView key={i} code={d} tiny highlightable={false} />
@@ -236,7 +238,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               </div>
               {showUraDora && (
                 <div className="win-detail__dora">
-                  <span className="hud__dora-label">裏ドラ表示</span>
+                  <span className="hud__dora-label">{t("scoreResult.t1")}</span>
                   <div className="hud__dora">
                     {uraDoraIndicators(round.wall).map((d, i) => (
                       <TileView key={i} code={d} tiny highlightable={false} />
@@ -281,7 +283,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                   <WinningHandView round={round} player={p} />
                   {waits.length > 0 && (
                     <div className="wait-row">
-                      <span className="wait-row__label">待ち</span>
+                      <span className="wait-row__label">{t("scoreResult.t2")}</span>
                       <div className="wait-row__tiles">
                         {waits.map((code) => (
                           <TileView key={code} code={code} tiny highlightable={false} />
@@ -326,7 +328,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
 
         {match?.finished ? (
           <div>
-            <h3>対局終了</h3>
+            <h3>{t("scoreResult.t3")}</h3>
             {match.finalBonusNotes && match.finalBonusNotes.length > 0 && (
               <ul className="score-card-notes">
                 {match.finalBonusNotes.map((n, i) => (
@@ -351,10 +353,10 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                     )}
                     <strong>{rankResult.after.label}</strong>
                     {rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && (
-                      <span className="score-rank-result__change score-rank-result__change--up">昇段！</span>
+                      <span className="score-rank-result__change score-rank-result__change--up">{t("scoreResult.t4")}</span>
                     )}
                     {rankOrdinal(rankResult.after) < rankOrdinal(rankResult.before) && (
-                      <span className="score-rank-result__change score-rank-result__change--down">降段…</span>
+                      <span className="score-rank-result__change score-rank-result__change--down">{t("scoreResult.t5")}</span>
                     )}
                   </div>
                   <div className="score-rank-result__bar">
@@ -377,11 +379,11 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
             )}
             {rankResult && rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && (
               <button className="btn" onClick={() => shareToX(`雀杯の段位戦で「${rankResult.after.label}」に昇段した！`)}>
-                Xでシェア
+                {t("gachaScreen.t3")}
               </button>
             )}
             <button className="btn btn--primary" onClick={() => setShowVictory(true)} disabled={reading}>
-              結果を見る
+              {t("scoreResult.t6")}
             </button>
           </div>
         ) : (

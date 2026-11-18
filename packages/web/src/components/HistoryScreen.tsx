@@ -12,6 +12,7 @@ import {
 import { fetchRankedHistory, fetchRanking, fetchReplay, reportPlayer } from "../online/account.js";
 import { useGameStore } from "../store/gameStore.js";
 import { HistoryStats } from "./HistoryStats.js";
+import { useT } from "../i18n/index.js";
 
 const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
 /** 対局一覧の1ページに出す件数（スクロールなしで収まる数）。 */
@@ -43,6 +44,7 @@ function RankingRow({ e }: { e: RankingEntry }) {
 
 /** 段位の高い順のランキング。自分が上位に入っていなくても最後に自分の順位を出す。 */
 function RankingView() {
+  const t = useT();
   const [ranking, setRanking] = useState<RankingResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -51,7 +53,7 @@ function RankingView() {
       .catch((err: Error) => setError(err.message));
   }, []);
   if (error) return <p className="online-lobby__error">{error}</p>;
-  if (!ranking) return <p className="setup-lead">読み込んでいます…</p>;
+  if (!ranking) return <p className="setup-lead">{t("friendsScreen.t2")}</p>;
   const youInTop = ranking.top.some((e) => e.isYou);
   return (
     <>
@@ -74,13 +76,14 @@ function RankingView() {
           )}
         </tbody>
       </table>
-      {ranking.top.length === 0 && <p className="setup-lead">まだ誰も段位戦を打っていません。</p>}
+      {ranking.top.length === 0 && <p className="setup-lead">{t("historyScreen.t1")}</p>}
     </>
   );
 }
 
 /** 段位戦の戦績（通算の順位の成績と、最近の対局）と、段位のランキング。 */
 export function HistoryScreen({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [tab, setTab] = useState<"stats" | "history" | "ranking">("stats");
   const [history, setHistory] = useState<RankedHistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,13 +134,13 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
         <div className="setup-picker-modal__header">
           <div className="inbox-screen__tabs">
             <button type="button" className={`inbox-screen__tab${tab === "stats" ? " is-active" : ""}`} onClick={() => setTab("stats")}>
-              戦績（段位戦）
+              {t("historyScreen.t2")}
             </button>
             <button type="button" className={`inbox-screen__tab${tab === "history" ? " is-active" : ""}`} onClick={() => setTab("history")}>
-              対局一覧
+              {t("historyScreen.t3")}
             </button>
             <button type="button" className={`inbox-screen__tab${tab === "ranking" ? " is-active" : ""}`} onClick={() => setTab("ranking")}>
-              ランキング
+              {t("historyScreen.t4")}
             </button>
           </div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
@@ -146,7 +149,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
         </div>
 
         {tab === "ranking" && <RankingView />}
-        {tab !== "ranking" && !history && !error && <p className="setup-lead">読み込んでいます…</p>}
+        {tab !== "ranking" && !history && !error && <p className="setup-lead">{t("friendsScreen.t2")}</p>}
         {error && <p className="online-lobby__error">{error}</p>}
         {notice && (
           <div className="online-lobby__notice" onClick={() => setNotice(null)}>
@@ -158,8 +161,8 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
 
         {tab === "history" && history && (
           <>
-            <div className="online-lobby__section-title">最近の対局</div>
-            {history.recent.length === 0 && <p className="setup-lead">まだ段位戦を打っていません。</p>}
+            <div className="online-lobby__section-title">{t("historyScreen.t5")}</div>
+            {history.recent.length === 0 && <p className="setup-lead">{t("historyScreen.t6")}</p>}
             <ul className="history-screen__list">
               {history.recent.slice(page * MATCHES_PER_PAGE, (page + 1) * MATCHES_PER_PAGE).map((e) => (
                 <li key={e.matchId} className={`history-screen__match history-screen__match--place${e.place}`}>
@@ -204,7 +207,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                               className="history-screen__report"
                               onClick={() => setReporting({ matchId: e.matchId, seat: s.seat, name: s.name })}
                             >
-                              通報
+                              {t("historyScreen.t7")}
                             </button>
                           )}
                         </li>
@@ -223,10 +226,10 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                       </select>
                       <div className="setup-buttons">
                         <button type="button" className="btn btn--primary" disabled={reportBusy} onClick={() => void sendReport()}>
-                          通報する
+                          {t("historyScreen.t8")}
                         </button>
                         <button type="button" className="btn btn--secondary" onClick={() => setReporting(null)}>
-                          やめる
+                          {t("cardSlot.t7")}
                         </button>
                       </div>
                     </div>
@@ -237,7 +240,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
             {history.recent.length > MATCHES_PER_PAGE && (
               <div className="history-screen__pager">
                 <button type="button" className="btn" disabled={page === 0} onClick={() => setPage(page - 1)}>
-                  ‹ 新しい対局
+                  {t("historyScreen.t9")}
                 </button>
                 <span>
                   {page + 1} / {Math.ceil(history.recent.length / MATCHES_PER_PAGE)}
@@ -248,7 +251,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                   disabled={(page + 1) * MATCHES_PER_PAGE >= history.recent.length}
                   onClick={() => setPage(page + 1)}
                 >
-                  古い対局 ›
+                  {t("historyScreen.t10")}
                 </button>
               </div>
             )}

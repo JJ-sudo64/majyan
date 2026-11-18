@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ACCOUNT_DELETE_CONFIRM, TRANSFER_PASSWORD_MAX_LENGTH, TRANSFER_PASSWORD_MIN_LENGTH, formatTransferCode } from "@majyan/core";
 import { deleteAccount, fetchTransferCode, loginWithTransfer, regenerateTransferCode, setTransferPassword, useAccountStore } from "../online/account.js";
+import { useT } from "../i18n/index.js";
 
 /**
  * 引き継ぎ。今のアカウントに引き継ぎのパスワードを決める（コードはサーバーが作る）のと、
@@ -8,6 +9,7 @@ import { deleteAccount, fetchTransferCode, loginWithTransfer, regenerateTransfer
  * アカウントがまだ無い時は、入る方だけを出す。
  */
 export function TransferScreen({ onClose, justCreated = false }: { onClose: () => void; justCreated?: boolean }) {
+  const t = useT();
   const profile = useAccountStore((s) => s.profile);
   const jade = useAccountStore((s) => s.jade);
   /** 今のアカウントの引き継ぎコード。undefined=読み込み中、null=まだ決めていない。 */
@@ -111,37 +113,37 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
 
         {profile && (
           <section className="transfer-screen__section">
-            <div className="online-lobby__section-title">この端末のアカウントを引き継げるようにする</div>
+            <div className="online-lobby__section-title">{t("transferScreen.t1")}</div>
             <p className="setup-lead">
-              パスワードを決めると引き継ぎコードが発行されます。ブラウザのデータを消した時や別の端末で遊ぶ時に、コードとパスワードで今のアカウント（雀玉・キャラ・段位）に戻れます。
+              {t("transferScreen.t2")}
             </p>
-            {code === undefined && <p className="setup-lead">確認しています…</p>}
+            {code === undefined && <p className="setup-lead">{t("transferScreen.t3")}</p>}
             {code && (
               <div className="transfer-screen__code">
-                <span>引き継ぎコード</span>
+                <span>{t("transferScreen.t4")}</span>
                 <strong>{formatTransferCode(code)}</strong>
               </div>
             )}
             {code && (justSet || justCreated) && (
-              <p className="transfer-screen__note">コードとパスワードを、メモやスクリーンショットで控えておいてください。パスワードはあとから表示できません。</p>
+              <p className="transfer-screen__note">{t("transferScreen.t5")}</p>
             )}
             {code && (
               <div className="transfer-screen__regenerate">
                 {!confirmRegenerate ? (
                   <button type="button" className="btn btn--secondary" onClick={() => setConfirmRegenerate(true)}>
-                    コードを作り直す
+                    {t("transferScreen.t6")}
                   </button>
                 ) : (
                   <>
                     <p className="transfer-screen__note">
-                      新しいコードに変わり、今のコードはすぐ使えなくなります（パスワードはそのままです）。コードを他人に知られたかもしれない時に使ってください。すでにログインしている端末は、そのまま遊べます。
+                      {t("transferScreen.t7")}
                     </p>
                     <div className="setup-buttons">
                       <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void submitRegenerate()}>
                         {busy ? "作り直しています…" : "作り直す"}
                       </button>
                       <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => setConfirmRegenerate(false)}>
-                        やめる
+                        {t("cardSlot.t7")}
                       </button>
                     </div>
                   </>
@@ -163,7 +165,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
                   />
                 </label>
                 <label className="online-lobby__field">
-                  <span>もう一度</span>
+                  <span>{t("onlineLobby.t8")}</span>
                   <input
                     type="password"
                     autoComplete="new-password"
@@ -180,7 +182,7 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
                 </button>
               </div>
             )}
-            {password2 !== "" && password !== password2 && <p className="online-lobby__error">2つのパスワードが違います</p>}
+            {password2 !== "" && password !== password2 && <p className="online-lobby__error">{t("transferScreen.t8")}</p>}
             {setupError && <p className="online-lobby__error">{setupError}</p>}
           </section>
         )}
@@ -192,8 +194,8 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
         )}
 
         <section className="transfer-screen__section">
-          <div className="online-lobby__section-title">引き継ぎコードで入る</div>
-          <p className="setup-lead">別の端末で発行した引き継ぎコードとパスワードを入れると、このブラウザでそのアカウントを使えます（元の端末でもそのまま遊べます）。</p>
+          <div className="online-lobby__section-title">{t("transferScreen.t9")}</div>
+          <p className="setup-lead">{t("transferScreen.t10")}</p>
           {profile && (
             <p className="transfer-screen__note">
               このブラウザの今のアカウント（{profile.displayName} さん）とは入れ替わります。
@@ -202,11 +204,11 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
           )}
           <div className="online-lobby__form">
             <label className="online-lobby__field">
-              <span>引き継ぎコード</span>
+              <span>{t("transferScreen.t4")}</span>
               <input value={loginCode} autoComplete="username" placeholder="XXXX-XXXX-XXXX" onChange={(e) => setLoginCode(e.target.value)} />
             </label>
             <label className="online-lobby__field">
-              <span>パスワード</span>
+              <span>{t("transferScreen.t11")}</span>
               <input
                 type="password"
                 autoComplete="current-password"
@@ -235,11 +237,11 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
           <section className="transfer-screen__section">
             {!showDelete ? (
               <button type="button" className="btn btn--secondary transfer-screen__delete-open" onClick={() => setShowDelete(true)}>
-                退会する
+                {t("transferScreen.t12")}
               </button>
             ) : (
               <>
-                <div className="online-lobby__section-title">退会</div>
+                <div className="online-lobby__section-title">{t("transferScreen.t13")}</div>
                 <p className="transfer-screen__note">
                   退会すると、このアカウント（{profile.displayName} さん）には二度と入れません。雀玉・キャラ・カード・段位はすべて使えなくなり、引き継ぎコードも消えます。取り消しはできません。
                 </p>
@@ -259,10 +261,10 @@ export function TransferScreen({ onClose, justCreated = false }: { onClose: () =
                     disabled={deleteConfirm !== ACCOUNT_DELETE_CONFIRM || busy}
                     onClick={() => void submitDelete()}
                   >
-                    退会する
+                    {t("transferScreen.t12")}
                   </button>
                   <button type="button" className="btn btn--secondary" onClick={() => setShowDelete(false)}>
-                    やめる
+                    {t("cardSlot.t7")}
                   </button>
                 </div>
                 {deleteError && <p className="online-lobby__error">{deleteError}</p>}

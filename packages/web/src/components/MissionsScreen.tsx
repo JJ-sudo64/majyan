@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { MissionsResponse } from "@majyan/core";
 import { claimMissions, fetchMissions } from "../online/account.js";
 import { playUiSuccess } from "../sound.js";
+import { useT } from "../i18n/index.js";
 
 /** リセットまでの残り（「あと5時間」「あと30分」）。 */
 function untilReset(resetsAt: number, now: number): string {
@@ -11,6 +12,7 @@ function untilReset(resetsAt: number, now: number): string {
 
 /** デイリー・ウィークリーミッション。段位戦を打つと進み、達成したら受け取ると雀玉がもらえる。 */
 export function MissionsScreen({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [data, setData] = useState<MissionsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -44,12 +46,12 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="gacha-screen inbox-screen" onClick={(e) => e.stopPropagation()}>
         <div className="setup-picker-modal__header">
-          <div className="setup-character-select__label">ミッション</div>
+          <div className="setup-character-select__label">{t("missionsScreen.t1")}</div>
           <button type="button" className="setup-picker-modal__close" onClick={onClose}>
             ×
           </button>
         </div>
-        {!data && !error && <p className="setup-lead">読み込んでいます…</p>}
+        {!data && !error && <p className="setup-lead">{t("friendsScreen.t2")}</p>}
         {error && <p className="online-lobby__error">{error}</p>}
         {notice && (
           <div className="online-lobby__notice" onClick={() => setNotice(null)}>
@@ -63,7 +65,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
             </p>
             {ready.length > 1 && (
               <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void claim(null)}>
-                まとめて受け取る
+                {t("inboxScreen.t4")}
               </button>
             )}
             {(["daily", "weekly"] as const).map((period) => (
@@ -84,7 +86,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
                       </div>
                     </div>
                     {m.claimed ? (
-                      <span className="missions-screen__claimed">受け取り済み</span>
+                      <span className="missions-screen__claimed">{t("missionsScreen.t2")}</span>
                     ) : (
                       <button type="button" className="btn" disabled={!done || busy} onClick={() => void claim(m.id)}>
                         {done ? "受け取る" : "未達成"}
@@ -96,7 +98,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
             </ul>
             </div>
             ))}
-            <p className="gacha-screen__rate-note">ミッションは段位戦だけが対象です（友人戦は数えません）。</p>
+            <p className="gacha-screen__rate-note">{t("missionsScreen.t3")}</p>
           </>
         )}
       </div>

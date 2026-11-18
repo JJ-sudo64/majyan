@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { Character, PlayerIndex } from "@majyan/core";
 import { playVoiceClip } from "../sound.js";
 import { shareToX } from "../share.js";
+import { useT } from "../i18n/index.js";
 
 const PLAYER_NAMES: Record<number, string> = { 0: "あなた", 1: "下家", 2: "対面", 3: "上家" };
 
@@ -18,6 +19,7 @@ export function MatchVictoryOverlay({
   champion: { player: PlayerIndex; character: Character };
   onBackToTitle: () => void;
 }) {
+  const t = useT();
   // 収録ボイスがあるキャラのみ、演出表示と同時に勝利台詞を読み上げる
   // （TTSフォールバックは行わない。棒読みで長台詞を読ませるのは
   //   逆に演出を損なうため）。
@@ -30,7 +32,7 @@ export function MatchVictoryOverlay({
     <div className="modal-overlay match-victory-overlay">
       <div className="match-victory-card">
         <div className="match-victory-card__panel" />
-        <div className="match-victory-card__title">トップ</div>
+        <div className="match-victory-card__title">{t("matchVictoryOverlay.t1")}</div>
         <img className="match-victory-card__art" src={champion.character.cutin ?? champion.character.avatar} alt="" />
         <div className="match-victory-card__name">
           {PLAYER_NAMES[champion.player]}（{champion.character.name}）
@@ -41,11 +43,11 @@ export function MatchVictoryOverlay({
             className="btn btn--large"
             onClick={() => shareToX(`雀杯で${champion.character.name}を使ってトップを取った！「${champion.character.winQuote}」`)}
           >
-            Xでシェア
+            {t("gachaScreen.t3")}
           </button>
         )}
         <button className="btn btn--primary btn--large" onClick={onBackToTitle}>
-          タイトルへ戻る
+          {t("matchVictoryOverlay.t2")}
         </button>
       </div>
     </div>

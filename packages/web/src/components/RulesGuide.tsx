@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { scoreWin, type WinAnalysis } from "@majyan/core";
 import { GUIDE_GROUP_LABELS, GUIDE_PAGES, YAKU_GROUPS, type GuideGroup } from "./rulesGuideData.js";
+import { useT } from "../i18n/index.js";
 
 type Tab = "guide" | "yaku" | "points";
 
@@ -33,12 +34,13 @@ function pointCell(han: number, fu: number, isDealer: boolean, isTsumo: boolean,
 }
 
 function GuideTab({ initialGroup }: { initialGroup?: GuideGroup }) {
+  const t = useT();
   const [page, setPage] = useState(() => (initialGroup ? Math.max(0, GUIDE_PAGES.findIndex((p) => p.group === initialGroup)) : 0));
   const current = GUIDE_PAGES[page]!;
   return (
     <div className="rules-guide__guide">
       {/* 麻雀の基本／このゲームの特徴（必殺技・カード・ガチャ）の先頭へ飛べる。知っている人は、後ろから読める。 */}
-      <div className="rules-guide__chips" role="group" aria-label="ページの分類">
+      <div className="rules-guide__chips" role="group" aria-label={t("rulesGuide.t1")}>
         {(Object.keys(GUIDE_GROUP_LABELS) as GuideGroup[]).map((g) => (
           <button
             key={g}
@@ -60,13 +62,13 @@ function GuideTab({ initialGroup }: { initialGroup?: GuideGroup }) {
       </ul>
       <div className="rules-guide__pager">
         <button type="button" className="btn" disabled={page === 0} onClick={() => setPage(page - 1)}>
-          ‹ 前へ
+          {t("rulesGuide.t2")}
         </button>
         <span>
           {page + 1} / {GUIDE_PAGES.length}
         </span>
         <button type="button" className="btn" disabled={page === GUIDE_PAGES.length - 1} onClick={() => setPage(page + 1)}>
-          次へ ›
+          {t("rulesGuide.t3")}
         </button>
       </div>
     </div>
@@ -74,6 +76,7 @@ function GuideTab({ initialGroup }: { initialGroup?: GuideGroup }) {
 }
 
 function YakuTab() {
+  const t = useT();
   const [groupId, setGroupId] = useState(YAKU_GROUPS[0]!.id);
   const group = YAKU_GROUPS.find((g) => g.id === groupId)!;
   return (
@@ -88,10 +91,10 @@ function YakuTab() {
       <table className="rules-guide__table">
         <thead>
           <tr>
-            <th>役</th>
-            <th>門前</th>
-            <th>鳴き</th>
-            <th>内容</th>
+            <th>{t("rulesGuide.t4")}</th>
+            <th>{t("rulesGuide.t5")}</th>
+            <th>{t("rulesGuide.t6")}</th>
+            <th>{t("recordsScreen.t5")}</th>
           </tr>
         </thead>
         <tbody>
@@ -105,36 +108,37 @@ function YakuTab() {
           ))}
         </tbody>
       </table>
-      {group.id === "han1" && <p className="rules-guide__note">「鳴き」の「-」は、鳴いている（門前でない）手では成立しない役です。</p>}
+      {group.id === "han1" && <p className="rules-guide__note">{t("rulesGuide.t7")}</p>}
     </div>
   );
 }
 
 function PointsTab() {
+  const t = useT();
   const [isDealer, setIsDealer] = useState(false);
   const [isTsumo, setIsTsumo] = useState(false);
   return (
     <div className="rules-guide__points">
       <div className="rules-guide__chips">
         <button type="button" className={`rules-guide__chip${!isDealer ? " is-active" : ""}`} onClick={() => setIsDealer(false)}>
-          子
+          {t("rulesGuide.t8")}
         </button>
         <button type="button" className={`rules-guide__chip${isDealer ? " is-active" : ""}`} onClick={() => setIsDealer(true)}>
-          親
+          {t("rulesGuide.t9")}
         </button>
         <span className="rules-guide__chips-gap" />
         <button type="button" className={`rules-guide__chip${!isTsumo ? " is-active" : ""}`} onClick={() => setIsTsumo(false)}>
-          ロン
+          {t("call.ron")}
         </button>
         <button type="button" className={`rules-guide__chip${isTsumo ? " is-active" : ""}`} onClick={() => setIsTsumo(true)}>
-          ツモ
+          {t("rulesGuide.t10")}
         </button>
       </div>
       <div className="rules-guide__points-cols">
         <table className="rules-guide__table rules-guide__table--points">
           <thead>
             <tr>
-              <th>符＼翻</th>
+              <th>{t("rulesGuide.t11")}</th>
               {HAN_COLUMNS.map((h) => (
                 <th key={h}>{h}翻</th>
               ))}
@@ -155,8 +159,8 @@ function PointsTab() {
           <table className="rules-guide__table rules-guide__table--points">
             <thead>
               <tr>
-                <th>満貫以上</th>
-                <th>点数</th>
+                <th>{t("rulesGuide.t12")}</th>
+                <th>{t("rulesGuide.t13")}</th>
               </tr>
             </thead>
             <tbody>

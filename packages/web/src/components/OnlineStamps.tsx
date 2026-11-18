@@ -5,6 +5,7 @@ import { playVoiceClip } from "../sound.js";
 import { useKyushuPreview } from "../store/kyushuPreview.js";
 import { stampArt } from "../online/stampArt.js";
 import { onlineLink, setStampsMuted, showStamp, useOnlineStore } from "../online/onlineLink.js";
+import { useT } from "../i18n/index.js";
 
 /** 届いたスタンプを出しておく時間。 */
 const STAMP_SHOW_MS = 3500;
@@ -72,6 +73,7 @@ export function OnlineStampBubbles() {
  * 「表示しない」は他の人の分も出さなくする、このブラウザだけの設定。
  */
 export function OnlineStamps({ canSend }: { canSend: boolean }) {
+  const t = useT();
   const muted = useOnlineStore((s) => s.stampsMuted);
   const online = useGameStore((s) => s.online);
   const characterIds = useGameStore((s) => s.match?.round.characterIds);
@@ -130,7 +132,7 @@ export function OnlineStamps({ canSend }: { canSend: boolean }) {
                 setOpen(false);
               }}
             >
-              全席に表示（位置確認）
+              {t("onlineStamps.t1")}
             </button>
           )}
           {/* 開発用（devビルドのひとり用だけ）。九種九牌の流局で相手の手牌が開く動きを見るための確認用。 */}
@@ -145,7 +147,7 @@ export function OnlineStamps({ canSend }: { canSend: boolean }) {
                 setOpen(false);
               }}
             >
-              九種九牌の演出を確認
+              {t("onlineStamps.t2")}
             </button>
           )}
           <label className="online-stamps__mute">
@@ -155,7 +157,7 @@ export function OnlineStamps({ canSend }: { canSend: boolean }) {
         </div>
       )}
       <button type="button" className="online-stamps__toggle" onClick={() => setOpen((v) => !v)}>
-        スタンプ
+        {t("onlineStamps.t3")}
       </button>
     </div>
   );

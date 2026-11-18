@@ -4,6 +4,7 @@ import { CARDS, CHARACTERS, rarityOf, type GachaItem, type Rarity } from "@majya
 import { playGachaSound, type SampleHandle } from "../sound.js";
 import { RARITY_STARS } from "./GachaCard.js";
 import { portalRoot } from "../orientation.js";
+import { useT } from "../i18n/index.js";
 
 /** 光の玉が溜まる時間（その回で一番高いレア度ごと）。高いほど長く引っ張る。 */
 const CHARGE_MS: Record<Rarity, number> = { 1: 1300, 2: 1800, 3: 2600 };
@@ -25,6 +26,7 @@ type Phase = "charge" | "burst" | "spot";
  * OSで「動きを減らす」設定にしている時は何も出さずにすぐ onDone を呼ぶ。
  */
 export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () => void }) {
+  const t = useT();
   const top = items.reduce<Rarity>((best, item) => (rarityOf(item) > best ? rarityOf(item) : best), 1);
   const stars = items.filter((item) => rarityOf(item) === 3);
   const [phase, setPhase] = useState<Phase>("charge");
@@ -145,7 +147,7 @@ export function GachaReveal({ items, onDone }: { items: GachaItem[]; onDone: () 
           doneRef.current();
         }}
       >
-        スキップ
+        {t("call.skip")}
       </button>
       <div className="gacha-reveal__hint">{phase === "spot" ? "タップで次へ" : ""}</div>
     </div>,

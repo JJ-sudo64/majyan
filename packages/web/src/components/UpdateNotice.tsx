@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useGameStore } from "../store/gameStore.js";
+import { useT } from "../i18n/index.js";
 
 /** サーバーの版を確かめる間隔。 */
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -10,6 +11,7 @@ const CHECK_INTERVAL_MS = 5 * 60 * 1000;
  * 対局中に読み込み直すと入り直しの情報が消えるので、対局が終わるまでは出さない。
  */
 export function UpdateNotice() {
+  const t = useT();
   const inMatch = useGameStore((s) => s.match !== null);
   const [outdated, setOutdated] = useState(false);
 
@@ -44,9 +46,9 @@ export function UpdateNotice() {
   if (!outdated || inMatch) return null;
   return (
     <div className="update-notice" role="status">
-      <span>新しい版があります</span>
+      <span>{t("updateNotice.t1")}</span>
       <button type="button" onClick={() => window.location.reload()}>
-        更新する
+        {t("updateNotice.t2")}
       </button>
     </div>
   );

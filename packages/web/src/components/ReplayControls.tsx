@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { PlayerIndex } from "@majyan/core";
 import { replayLastStep, useGameStore } from "../store/gameStore.js";
 import { viewportHeight } from "../orientation.js";
+import { useT } from "../i18n/index.js";
 
 const WIND = ["", "東", "南", "西", "北"];
 /** 自動再生で1手進める間隔（等速）。 */
@@ -12,6 +13,7 @@ const SPEEDS = [1, 2, 4] as const;
 /** 牌譜の再生中、画面の下に出す操作バー（1手ずつ・局送り・自動再生・視点切り替え）。
     手牌に重なるので、たたんで小さくできる。 */
 export function ReplayControls() {
+  const t = useT();
   const replay = useGameStore((s) => s.replay);
   const step = useGameStore((s) => s.replayStep);
   const seek = useGameStore((s) => s.replaySeek);
@@ -55,7 +57,7 @@ export function ReplayControls() {
   const total = replayLastStep(replay);
 
   const playButton = (
-    <button type="button" className="btn btn--primary" onClick={() => setPlaying((p) => !p)} title="自動再生（スペース）">
+    <button type="button" className="btn btn--primary" onClick={() => setPlaying((p) => !p)} title={t("replayControls.t1")}>
       {playing ? "■ 停止" : "▶ 再生"}
     </button>
   );
@@ -76,15 +78,15 @@ export function ReplayControls() {
       <div className="replay-controls replay-controls--folded" onClick={(e) => e.stopPropagation()}>
         {info}
         <div className="replay-controls__buttons">
-          <button type="button" className="btn" onClick={() => step(-1)} title="1手戻す（←）">
+          <button type="button" className="btn" onClick={() => step(-1)} title={t("replayControls.t2")}>
             ◀
           </button>
           {playButton}
-          <button type="button" className="btn" onClick={() => step(1)} title="1手進める（→）">
+          <button type="button" className="btn" onClick={() => step(1)} title={t("replayControls.t3")}>
             ▶
           </button>
-          <button type="button" className="btn btn--secondary" onClick={() => setFolded(false)} title="操作バーをひらく">
-            ひらく
+          <button type="button" className="btn btn--secondary" onClick={() => setFolded(false)} title={t("replayControls.t4")}>
+            {t("replayControls.t5")}
           </button>
         </div>
       </div>
@@ -104,17 +106,17 @@ export function ReplayControls() {
           setPlaying(false);
           seek(Number(e.target.value));
         }}
-        aria-label="この局の中の位置"
+        aria-label={t("replayControls.t6")}
       />
       <div className="replay-controls__buttons">
-        <button type="button" className="btn" disabled={replay.roundIndex === 0} onClick={() => gotoRound(replay.roundIndex - 1)} title="前の局">
+        <button type="button" className="btn" disabled={replay.roundIndex === 0} onClick={() => gotoRound(replay.roundIndex - 1)} title={t("replayControls.t7")}>
           ⏮
         </button>
-        <button type="button" className="btn" onClick={() => step(-1)} title="1手戻す（←）">
+        <button type="button" className="btn" onClick={() => step(-1)} title={t("replayControls.t2")}>
           ◀
         </button>
         {playButton}
-        <button type="button" className="btn" onClick={() => step(1)} title="1手進める（→）">
+        <button type="button" className="btn" onClick={() => step(1)} title={t("replayControls.t3")}>
           ▶
         </button>
         <button
@@ -122,7 +124,7 @@ export function ReplayControls() {
           className="btn"
           disabled={replay.roundIndex + 1 >= replay.data.rounds.length}
           onClick={() => gotoRound(replay.roundIndex + 1)}
-          title="次の局"
+          title={t("replayControls.t8")}
         >
           ⏭
         </button>
@@ -130,7 +132,7 @@ export function ReplayControls() {
           type="button"
           className="btn"
           onClick={() => setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]!)}
-          title="自動再生の速さ"
+          title={t("replayControls.t9")}
         >
           ×{speed}
         </button>
@@ -148,13 +150,13 @@ export function ReplayControls() {
           </select>
         </label>
         <button type="button" className={`btn${replay.revealAll ? " btn--primary" : ""}`} onClick={toggleReveal}>
-          全員の手牌
+          {t("replayControls.t10")}
         </button>
-        <button type="button" className="btn" onClick={() => setFolded(true)} title="操作バーを小さくして手牌を見えるようにする">
-          たたむ
+        <button type="button" className="btn" onClick={() => setFolded(true)} title={t("replayControls.t11")}>
+          {t("replayControls.t12")}
         </button>
         <button type="button" className="btn btn--secondary" onClick={backToTitle}>
-          終了
+          {t("title.exit")}
         </button>
       </div>
     </div>

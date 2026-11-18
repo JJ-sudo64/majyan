@@ -4,6 +4,7 @@ import { equipCard, useAccountStore } from "../online/account.js";
 import { RARITY_STARS } from "./GachaCard.js";
 import { UnitDetail } from "./UnitDetail.js";
 import { CardSlotPicker, slotLabel, type SlotKind } from "./CardSlot.js";
+import { useT } from "../i18n/index.js";
 
 /** 並び順。oldest=入手順（サーバーの並び）、newest=新しい順。 */
 export type SortKey = "oldest" | "newest" | "rarity" | "equipped" | "name";
@@ -117,13 +118,14 @@ const PRACTICE_HIGHLIGHT: Partial<Record<PracticeStage, string>> = {
 };
 
 function PracticeBanner({ stage, onFinish }: { stage: PracticeStage; onFinish: () => void }) {
+  const t = useT();
   return (
     <div className="practice-banner" role="status">
-      <div className="practice-banner__head">カードの付け方（練習）</div>
+      <div className="practice-banner__head">{t("unitsScreen.t1")}</div>
       <p className="practice-banner__text">{PRACTICE_TEXT[stage]}</p>
       {stage === "done" && (
         <button type="button" className="btn btn--primary practice-banner__finish" onClick={onFinish}>
-          練習を終わる
+          {t("unitsScreen.t2")}
         </button>
       )}
     </div>
@@ -138,6 +140,7 @@ function PracticeBanner({ stage, onFinish }: { stage: PracticeStage; onFinish: (
  * レア度・カードの装着状態での絞り込みができる（選んだ内容は覚えておく）。
  */
 export function UnitsScreen({ onClose, practice = false }: { onClose: () => void; practice?: boolean }) {
+  const t = useT();
   const realUnits = useAccountStore((s) => s.units);
   const realCards = useAccountStore((s) => s.cards);
   const realError = useAccountStore((s) => s.error);
@@ -225,7 +228,7 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
             <p className="setup-lead">
               キャラを押すと、パッシブカード欄・アクティブカード欄にカードを付けられます。一度付けたカードは外せません。{" "}
               <button type="button" className="units-screen__chip" onClick={() => setShowPractice(true)}>
-                カードの付け方を体験
+                {t("unitsScreen.t3")}
               </button>
             </p>
           )}
@@ -233,8 +236,8 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
 
           {/* 並び替えと絞り込み。選んだ内容は覚えておく（練習中は出さない）。 */}
           <div className="units-screen__controls" style={practice ? { display: "none" } : undefined}>
-            <div className="units-screen__control-row" role="group" aria-label="並び替え">
-              <span className="units-screen__control-label">並び替え</span>
+            <div className="units-screen__control-row" role="group" aria-label={t("unitsScreen.t4")}>
+              <span className="units-screen__control-label">{t("unitsScreen.t4")}</span>
               {SORT_LABELS.map(([key, label]) => (
                 <button
                   key={key}
@@ -246,8 +249,8 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
                 </button>
               ))}
             </div>
-            <div className="units-screen__control-row" role="group" aria-label="レア度で絞り込み">
-              <span className="units-screen__control-label">レア度</span>
+            <div className="units-screen__control-row" role="group" aria-label={t("unitsScreen.t5")}>
+              <span className="units-screen__control-label">{t("unitsScreen.t6")}</span>
               {RARITY_FILTERS.map((r) => (
                 <button
                   key={r}
@@ -259,8 +262,8 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
                 </button>
               ))}
             </div>
-            <div className="units-screen__control-row" role="group" aria-label="カードの装着で絞り込み">
-              <span className="units-screen__control-label">カード</span>
+            <div className="units-screen__control-row" role="group" aria-label={t("unitsScreen.t7")}>
+              <span className="units-screen__control-label">{t("gachaScreen.t2")}</span>
               {EQUIP_LABELS.map(([key, label]) => (
                 <button
                   key={key}
@@ -307,19 +310,19 @@ export function UnitsScreen({ onClose, practice = false }: { onClose: () => void
             <p className="setup-lead">
               この条件に合うキャラがいません。{" "}
               <button type="button" className="units-screen__chip" onClick={() => setView({ rarity: "all", equip: "all" })}>
-                絞り込みを解除
+                {t("unitsScreen.t8")}
               </button>
             </p>
           )}
 
-          {ownedCardIds.length === 0 && <p className="setup-lead">付けられるカードを持っていません（カードはガチャで手に入ります）。</p>}
+          {ownedCardIds.length === 0 && <p className="setup-lead">{t("unitsScreen.t9")}</p>}
         </div>
       </div>
       {selectedUnit && (
         <div className="modal-overlay" onClick={closeDetail}>
           <div className="gacha-screen units-screen__detail" onClick={(e) => e.stopPropagation()}>
             <div className="setup-picker-modal__header">
-              <div className="setup-character-select__label">キャラの詳細</div>
+              <div className="setup-character-select__label">{t("unitsScreen.t10")}</div>
               <button type="button" className="setup-picker-modal__close" onClick={closeDetail}>
                 ×
               </button>

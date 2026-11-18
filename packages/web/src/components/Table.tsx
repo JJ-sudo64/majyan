@@ -37,6 +37,7 @@ import { DeclarationCutinOverlay } from "./DeclarationCutinOverlay.js";
 import { useDeclarationCutinStore } from "../store/declarationCutinStore.js";
 import { viewRect, portalRoot } from "../orientation.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
+import { useT } from "../i18n/index.js";
 
 /**
  * 画面全体のレイヤー構造（View再設計）:
@@ -56,6 +57,7 @@ import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
  * ゲームロジック（packages/core、gameStore.ts）は一切変更していない。
  */
 export function Table() {
+  const t = useT();
   const match = useGameStore((s) => s.match);
   const pendingRoundEnd = useGameStore((s) => s.pendingRoundEnd);
   const lastRoundOutcome = useGameStore((s) => s.lastRoundOutcome);
@@ -635,7 +637,7 @@ export function Table() {
                 必殺技「{skillInfoCharacter.skill.name}」: {skillInfoCharacter.skill.description}
               </div>
               <button className="btn btn--primary" onClick={() => setSkillInfoSeat(null)}>
-                閉じる
+                {t("common.close")}
               </button>
             </div>
           </div>

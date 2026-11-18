@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CHARACTERS } from "@majyan/core";
+import { useT } from "../i18n/index.js";
 
 /**
  * 全キャラの勝利台詞（対局で1位になった時に出る台詞）を並べて見返すための
@@ -8,6 +9,7 @@ import { CHARACTERS } from "@majyan/core";
  * そのまま読むので、台詞を書き換えればこのページにもすぐ反映される。
  */
 export function QuoteGallery() {
+  const t = useT();
   const [query, setQuery] = useState("");
   const all = Object.values(CHARACTERS);
   const q = query.trim().toLowerCase();
@@ -18,11 +20,11 @@ export function QuoteGallery() {
   return (
     <div className="quote-gallery">
       <header className="quote-gallery__header">
-        <h1>勝利台詞一覧</h1>
+        <h1>{t("matchSetup.t3")}</h1>
         <input
           className="quote-gallery__search"
           type="search"
-          placeholder="キャラ名・技名・台詞で検索"
+          placeholder={t("quoteGallery.t1")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -44,7 +46,7 @@ export function QuoteGallery() {
           </article>
         ))}
       </div>
-      {shown.length === 0 && <p className="quote-gallery__empty">該当するキャラがいません。</p>}
+      {shown.length === 0 && <p className="quote-gallery__empty">{t("quoteGallery.t2")}</p>}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { confirmFirstGacha, rollFirstGacha, useAccountStore } from "../online/ac
 import { GachaCard } from "./GachaCard.js";
 import { GachaReveal } from "./GachaReveal.js";
 import { preloadGachaSounds } from "../sound.js";
+import { useT } from "../i18n/index.js";
 
 /**
  * 最初の10連。何度でも引き直せて、「これで決定」を押すとその結果のキャラが
@@ -11,6 +12,7 @@ import { preloadGachaSounds } from "../sound.js";
  * 確定するまではネット対戦の画面の代わりにこれを出す。
  */
 export function FirstGacha() {
+  const t = useT();
   // 引いた直後の演出の音が最初の1回から遅れず鳴るよう、画面を開いた時に読み込んでおく。
   useEffect(preloadGachaSounds, []);
   const firstGacha = useAccountStore((s) => s.firstGacha);
@@ -62,7 +64,7 @@ export function FirstGacha() {
           </button>
           {pending && (
             <button type="button" className="btn btn--large" disabled={busy} onClick={() => setConfirming(true)}>
-              これで決定
+              {t("firstGacha.t1")}
             </button>
           )}
         </div>
@@ -71,10 +73,10 @@ export function FirstGacha() {
           <p>この{FIRST_GACHA.count}連の結果で決定しますか？（決定した後は引き直せません）</p>
           <div className="setup-buttons">
             <button type="button" className="btn btn--primary btn--large" disabled={busy} onClick={() => void run(confirmFirstGacha)}>
-              決定する
+              {t("firstGacha.t2")}
             </button>
             <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => setConfirming(false)}>
-              もう少し引く
+              {t("firstGacha.t3")}
             </button>
           </div>
         </div>

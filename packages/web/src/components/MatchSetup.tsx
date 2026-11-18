@@ -3,6 +3,7 @@ import { CARDS, CHARACTERS, type AiDifficulty, type MatchFormat } from "@majyan/
 import { useGameStore, type CpuDifficultySettings } from "../store/gameStore.js";
 import { playUiClickFor } from "../sound.js";
 import { CardSlot, CardSlotPicker, slotLabel, type SlotKind } from "./CardSlot.js";
+import { useT } from "../i18n/index.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
 /** その種類のカードのID（定義順）。カード欄を開いた時の選択肢になる。 */
@@ -42,6 +43,7 @@ const CPU_SEATS: { player: 1 | 2 | 3; label: string }[] = [
 ];
 
 export function MatchSetup({ onBack }: { onBack: () => void }) {
+  const t = useT();
   const startMatch = useGameStore((s) => s.startMatch);
   const startTutorial = useGameStore((s) => s.startTutorial);
   const [debugMode, setDebugMode] = useState(false);
@@ -109,7 +111,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
     <div className="online-home match-setup" onClickCapture={playUiClickFor}>
       <header className="oh-top">
         <button type="button" className="oh-back" onClick={showLoadout ? () => setShowLoadout(false) : onBack}>
-          ← 戻る
+          {t("matchSetup.t1")}
         </button>
         <div className="oh-top__title">{showLoadout ? "CARD" : "PLAY"}</div>
         <div className="oh-top__spacer" />
@@ -117,21 +119,21 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
             開くので、この画面で選んだキャラや設定はそのまま残る。 */}
         <div className="setup-gallery-links" style={showLoadout ? { display: "none" } : undefined}>
           <button type="button" className="oh-ghost setup-tutorial-btn" onClick={() => startTutorial()}>
-            チュートリアル
+            {t("matchSetup.t2")}
           </button>
           {/* 確認用ページへのリンクは開発者用。本番のビルドには出さない。 */}
           {import.meta.env.DEV && (
             <>
               <a className="oh-ghost" href="?cutin-gallery" target="_blank" rel="noreferrer">
-                カットイン一覧
+                {t("cutinGallery.t1")}
               </a>
               <a className="oh-ghost" href="?quote-gallery" target="_blank" rel="noreferrer">
-                勝利台詞一覧
+                {t("matchSetup.t3")}
               </a>
             </>
           )}
           <a className="oh-ghost" href="/about/" target="_blank" rel="noreferrer">
-            公式サイト
+            {t("matchSetup.t4")}
           </a>
         </div>
       </header>
@@ -142,19 +144,19 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
             <div className="cardloadout__who">
               {selectedCharacter && <img src={selectedCharacter.avatar} alt="" />}
               <div>
-                <div className="oh-plate__label">自分のキャラクター</div>
+                <div className="oh-plate__label">{t("matchSetup.t5")}</div>
                 <div className="oh-plate__name">{selectedCharacter?.name ?? "おまかせ"}</div>
               </div>
             </div>
             <p className="cardloadout__lead">
-              パッシブ（常に効く）とアクティブ（自分で使う）を、1枚ずつ付けられます。CPU戦では、全カードから自由に選べます。
+              {t("matchSetup.t6")}
             </p>
             <div className="cardloadout__slots">
               <CardSlot kind="passive" cardId={selectedPassiveId} onOpen={() => setOpenSlot("passive")} />
               <CardSlot kind="consumable" cardId={selectedActiveId} onOpen={() => setOpenSlot("consumable")} />
             </div>
             <button type="button" className="oh-ghost cardloadout__done" onClick={() => setShowLoadout(false)}>
-              決定して戻る
+              {t("matchSetup.t7")}
             </button>
           </section>
         </main>
@@ -170,14 +172,14 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
             />
           )}
           <div className="oh-plate">
-            <div className="oh-plate__label">自分のキャラクター</div>
+            <div className="oh-plate__label">{t("matchSetup.t5")}</div>
             <div className="oh-plate__name">{selectedCharacter?.name ?? "おまかせ"}</div>
             <div className="oh-plate__sub">
               {selectedCharacter ? `必殺技「${selectedCharacter.skill.name}」` : "ランダムに割り当てます"}
             </div>
             <div className="oh-plate__buttons">
               <button type="button" className="oh-ghost" onClick={() => setShowCharacterPicker(true)}>
-                キャラを選ぶ
+                {t("matchSetup.t8")}
               </button>
               <button type="button" className="oh-ghost" onClick={() => setShowLoadout(true)}>
                 カードを付ける（{attachedCardCount}/2）
@@ -189,10 +191,10 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
         <section className="oh-panel">
           <div className="oh-card oh-card--ranked">
             <div className="oh-card__head">
-              <span className="oh-card__title">CPU戦</span>
+              <span className="oh-card__title">{t("mode.cpu")}</span>
               <span className="oh-card__en">VS CPU</span>
             </div>
-            <p className="oh-card__lead">CPU3人と対局します。全キャラ・全カードを自由に使えます。</p>
+            <p className="oh-card__lead">{t("matchSetup.t9")}</p>
             <div className="setup-cpu-difficulty">
               {CPU_SEATS.map(({ player, label }) => (
                 <div key={player} className="setup-cpu-difficulty__row">
@@ -201,9 +203,9 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
                     <select
                       value={cpuCharacterIds[player] ?? ""}
                       onChange={(e) => setSeatCharacter(player, e.target.value || null)}
-                      title="キャラクター"
+                      title={t("matchSetup.t10")}
                     >
-                      <option value="">おまかせ</option>
+                      <option value="">{t("matchSetup.t11")}</option>
                       {CHARACTER_LIST.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
@@ -213,7 +215,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
                     <select
                       value={cpuDifficulty[player]}
                       onChange={(e) => setSeatDifficulty(player, Number(e.target.value) as AiDifficulty)}
-                      title="難易度"
+                      title={t("matchSetup.t12")}
                     >
                       {DIFFICULTY_OPTIONS.map((level) => (
                         <option key={level} value={level}>
@@ -227,14 +229,14 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
             </div>
             <div className="oh-modes">
               <button type="button" className="oh-mode" onClick={() => start("tonpuusen")}>
-                <span className="oh-mode__kanji">東</span>
-                <span className="oh-mode__name">東風戦</span>
-                <span className="oh-mode__sub">東場のみ・短め</span>
+                <span className="oh-mode__kanji">{t("wind.1")}</span>
+                <span className="oh-mode__name">{t("format.tonpuusen")}</span>
+                <span className="oh-mode__sub">{t("matchSetup.t13")}</span>
               </button>
               <button type="button" className="oh-mode" onClick={() => start("hanchan")}>
-                <span className="oh-mode__kanji">南</span>
-                <span className="oh-mode__name">半荘戦</span>
-                <span className="oh-mode__sub">東場＋南場・じっくり</span>
+                <span className="oh-mode__kanji">{t("wind.2")}</span>
+                <span className="oh-mode__name">{t("format.hanchan")}</span>
+                <span className="oh-mode__sub">{t("matchSetup.t14")}</span>
               </button>
             </div>
             <label className="setup-debug-toggle">
@@ -257,7 +259,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
         <div className="modal-overlay" onClick={() => setShowCharacterPicker(false)}>
           <div className="setup-picker-modal" onClick={(e) => e.stopPropagation()}>
             <div className="setup-picker-modal__header">
-              <div className="setup-character-select__label">自分のキャラクター</div>
+              <div className="setup-character-select__label">{t("matchSetup.t5")}</div>
               <button type="button" className="setup-picker-modal__close" onClick={() => setShowCharacterPicker(false)}>
                 ×
               </button>
@@ -273,8 +275,8 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
                 }}
               >
                 <div className="character-card__avatar character-card__avatar--random">？</div>
-                <div className="character-card__name">おまかせ</div>
-                <div className="character-card__desc">ランダムに割り当てます</div>
+                <div className="character-card__name">{t("matchSetup.t11")}</div>
+                <div className="character-card__desc">{t("matchSetup.t15")}</div>
               </button>
               {CHARACTER_LIST.map((c) => {
                 const { title, shortName } = splitCharacterName(c.name);
@@ -310,7 +312,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
             <div className="character-confirm__skill">
               必殺技「{confirmingCharacter.skill.name}」: {confirmingCharacter.skill.description}
             </div>
-            <div className="character-confirm__prompt">このキャラクターでよろしいですか？</div>
+            <div className="character-confirm__prompt">{t("matchSetup.t16")}</div>
             <div className="character-confirm__buttons">
               <button
                 className="btn btn--primary"
@@ -321,10 +323,10 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
                   setShowLoadout(true);
                 }}
               >
-                このキャラクターにする
+                {t("matchSetup.t17")}
               </button>
               <button className="btn btn--secondary" onClick={() => setConfirmingCharacterId(null)}>
-                やめる
+                {t("cardSlot.t7")}
               </button>
             </div>
           </div>
@@ -337,7 +339,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
           title={`${slotLabel(openSlot)}に入れるカード`}
           candidates={cardIdsOfKind(openSlot)}
           current={openSlot === "passive" ? selectedPassiveId : selectedActiveId}
-          emptyMessage="カードがありません。"
+          emptyMessage={t("matchSetup.t18")}
           onConfirm={(id) => {
             if (openSlot === "passive") setSelectedPassiveId(id);
             else setSelectedActiveId(id);
