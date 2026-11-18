@@ -382,7 +382,7 @@ export function SettingsPanel() {
                   className={`hud__toggle-btn${tableBackgroundId === opt.id ? " hud__toggle-btn--on" : ""}`}
                   onClick={() => setTableBackgroundId(opt.id)}
                 >
-                  {opt.label}
+                  {t(opt.label)}
                 </button>
               ))}
             </div>

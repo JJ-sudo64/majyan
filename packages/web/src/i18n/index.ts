@@ -93,6 +93,11 @@ export function cpuSeatKey(seat: number): MessageKey {
   return `seat.cpu${seat}` as MessageKey;
 }
 
+/** コンポーネントの外（ストアなど）用。今選んでいる言語で文言を引く。 */
+export function tr(key: MessageKey, params?: Record<string, string | number>): string {
+  return translate(useLocaleStore.getState().locale, key, params);
+}
+
 /** 要素を差し込める版を返す。言語を切り替えると再描画される。 */
 export function useTn(): (key: MessageKey, params?: Record<string, ReactNode>) => ReactNode {
   const locale = useLocaleStore((s) => s.locale);

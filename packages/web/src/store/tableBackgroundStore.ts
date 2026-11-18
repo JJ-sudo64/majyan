@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { sharedTuningStorage } from "./sharedTuningStorage.js";
+import type { MessageKey } from "../i18n/index.js";
 
 /**
  * 卓面背景画像(.table-surface)の「どの画像を使うか」を管理するストア。
@@ -19,7 +20,7 @@ import { sharedTuningStorage } from "./sharedTuningStorage.js";
 export interface TableBackgroundOption {
   id: string;
   /** 設定メニューに出す短いラベル。 */
-  label: string;
+  label: MessageKey;
   /** public/table/以下の画像パス。 */
   path: string;
 }
@@ -27,14 +28,14 @@ export interface TableBackgroundOption {
 // 未知のidのフォールバック先は先頭。既定の背景はDEFAULT_BACKGROUND_ID。旧「初期背景」
 // (id:"default"、table-surface-bg.png)は2026-09-24に削除した。
 export const TABLE_BACKGROUND_OPTIONS: TableBackgroundOption[] = [
-  { id: "sakura-2026-09-24", label: "桜(紫)", path: "/table/table-surface-bg-sakura.webp" },
-  { id: "seigaiha-2026-09-24", label: "青海波(紺)", path: "/table/table-surface-bg-seigaiha.webp" },
-  { id: "neon-2026-09-24", label: "ネオン", path: "/table/table-surface-bg-neon.webp" },
-  { id: "wood-2026-09-24", label: "木目", path: "/table/table-surface-bg-wood.webp" },
-  { id: "marble-2026-09-24", label: "大理石", path: "/table/table-surface-bg-marble.webp" },
-  { id: "nami-2026-09-24", label: "荒波(紺)", path: "/table/table-surface-bg-nami.webp" },
-  { id: "benizakura-2026-09-24", label: "紅桜(赤)", path: "/table/table-surface-bg-benizakura.webp" },
-  { id: "blue-2026-09-18", label: "新背景(青)", path: "/table/table-surface-bg-2.webp" },
+  { id: "sakura-2026-09-24", label: "bg.sakura", path: "/table/table-surface-bg-sakura.webp" },
+  { id: "seigaiha-2026-09-24", label: "bg.seigaiha", path: "/table/table-surface-bg-seigaiha.webp" },
+  { id: "neon-2026-09-24", label: "bg.neon", path: "/table/table-surface-bg-neon.webp" },
+  { id: "wood-2026-09-24", label: "bg.wood", path: "/table/table-surface-bg-wood.webp" },
+  { id: "marble-2026-09-24", label: "bg.marble", path: "/table/table-surface-bg-marble.webp" },
+  { id: "nami-2026-09-24", label: "bg.nami", path: "/table/table-surface-bg-nami.webp" },
+  { id: "benizakura-2026-09-24", label: "bg.benizakura", path: "/table/table-surface-bg-benizakura.webp" },
+  { id: "blue-2026-09-18", label: "bg.blue", path: "/table/table-surface-bg-2.webp" },
 ];
 
 const DEFAULT_BACKGROUND_ID = "neon-2026-09-24";

@@ -37,6 +37,7 @@ import {
 } from "@majyan/core";
 
 import { hasAccountMarker, mirrorToken, readMirroredToken, requestPersistentStorage, setAccountMarker } from "./tokenBackup.js";
+import { tr } from "../i18n/index.js";
 
 const TOKEN_KEY = "majyan.account.token";
 /** 最後に読んだお知らせのID（未読の印を消すため。ブラウザごとでよい）。 */
@@ -196,7 +197,7 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
   const body = (await res.json().catch(() => null)) as (T & Partial<ApiErrorResponse>) | null;
   if (!res.ok || !body) {
-    const error = new Error(body?.error ?? "サーバーにつながりませんでした（サーバーが起動しているか確認してください）");
+    const error = new Error(body?.error ?? tr("net.noServer"));
     (error as Error & { status?: number }).status = res.status;
     throw error;
   }
@@ -445,14 +446,14 @@ export async function fetchTransferCode(): Promise<string | null> {
 /** 引き継ぎのパスワードを決めて（変えて）、引き継ぎコードを返す。失敗したら例外（理由はmessage）。 */
 export async function setTransferPassword(password: string): Promise<string> {
   const { code } = await api<TransferCodeResponse>("/me/transfer", { method: "POST", body: JSON.stringify({ password }) });
-  if (!code) throw new Error("引き継ぎコードを作れませんでした");
+  if (!code) throw new Error(tr("net.codeFail"));
   return code;
 }
 
 /** 引き継ぎコードを作り直して、新しいコードを返す（古いコードはその場で使えなくなる）。失敗したら例外。 */
 export async function regenerateTransferCode(): Promise<string> {
   const { code } = await api<TransferCodeResponse>("/me/transfer/code", { method: "POST", body: "{}" });
-  if (!code) throw new Error("引き継ぎコードを作り直せませんでした");
+  if (!code) throw new Error(tr("net.codeRegenFail"));
   return code;
 }
 
@@ -515,7 +516,7 @@ export async function resetCollectionForTesting(): Promise<void> {
     applyMe(await api<MeResponse>("/dev/reset-collection", { method: "POST", body: "{}" }));
   } catch (err) {
     if ((err as { status?: number }).status === 404) {
-      throw new Error("ゲームサーバーが開発用の設定で起動していません（start-game.bat か npm run dev:server で起動し直してください）");
+      throw new Error(tr("net.devServer"));
     }
     throw err;
   }

@@ -18,6 +18,7 @@ import {
 } from "@majyan/core";
 import { useGameStore } from "../store/gameStore.js";
 import { accountToken, loadAccount } from "./account.js";
+import { tr } from "../i18n/index.js";
 
 export type OnlineStatus =
   /** 接続していない（タイトル・入室前） */
@@ -160,7 +161,7 @@ function handleMessage(message: ServerMessage) {
       // 消えている。新しい待合室に入ったままにせず、抜けて知らせる。
       if (useGameStore.getState().online) {
         onlineLink.close();
-        useOnlineStore.setState({ error: "対局が見つかりませんでした（サーバーが再起動された可能性があります）" });
+        useOnlineStore.setState({ error: tr("net.matchNotFound") });
         return;
       }
       useOnlineStore.setState({ status: "lobby", room: message.room, members: message.members, error: null });
@@ -231,7 +232,7 @@ function connect(first: ClientMessage) {
     const { status } = useOnlineStore.getState();
     // 観戦は入り直す席が無いので、切れたら観戦を終えて元の画面に戻る。
     if (useGameStore.getState().spectating) {
-      useOnlineStore.setState({ status: "idle", error: "観戦の接続が切れました" });
+      useOnlineStore.setState({ status: "idle", error: tr("net.spectateLost") });
       useGameStore.getState().backToTitle();
       return;
     }
@@ -240,13 +241,13 @@ function connect(first: ClientMessage) {
       scheduleAutoRejoin();
     } else if (status === "connecting" && rejoinConnection) {
       // 入り直そうとしたがつながらなかった（サーバーの再起動中等）。少し待って次を試す。
-      useOnlineStore.setState({ status: "disconnected", error: "サーバーにつながりませんでした" });
+      useOnlineStore.setState({ status: "disconnected", error: tr("net.noServerShort") });
       scheduleAutoRejoin();
     } else if (status !== "idle") {
       useOnlineStore.setState({
         status: "idle",
         queue: null,
-        error: status === "connecting" ? "サーバーにつながりませんでした（サーバーが起動しているか確認してください）" : "サーバーとの接続が切れました",
+        error: status === "connecting" ? tr("net.noServer") : tr("net.disconnected"),
       });
     }
   };

@@ -746,6 +746,22 @@ export const ja = {
   "units.equipPartial": "片方だけ",
   "units.equipFull": "両方付き",
   "shop.yen": "{n}円",
+  "bg.sakura": "桜(紫)",
+  "bg.seigaiha": "青海波(紺)",
+  "bg.neon": "ネオン",
+  "bg.wood": "木目",
+  "bg.marble": "大理石",
+  "bg.nami": "荒波(紺)",
+  "bg.benizakura": "紅桜(赤)",
+  "bg.blue": "新背景(青)",
+  "net.matchNotFound": "対局が見つかりませんでした（サーバーが再起動された可能性があります）",
+  "net.spectateLost": "観戦の接続が切れました",
+  "net.noServerShort": "サーバーにつながりませんでした",
+  "net.noServer": "サーバーにつながりませんでした（サーバーが起動しているか確認してください）",
+  "net.disconnected": "サーバーとの接続が切れました",
+  "net.codeFail": "引き継ぎコードを作れませんでした",
+  "net.codeRegenFail": "引き継ぎコードを作り直せませんでした",
+  "net.devServer": "ゲームサーバーが開発用の設定で起動していません（start-game.bat か npm run dev:server で起動し直してください）",
 } as const;
 
 export type MessageKey = keyof typeof ja;
