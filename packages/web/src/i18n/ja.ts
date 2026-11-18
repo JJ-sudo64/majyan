@@ -745,6 +745,7 @@ export const ja = {
   "units.equipNone": "カードなし",
   "units.equipPartial": "片方だけ",
   "units.equipFull": "両方付き",
+  "shop.yen": "{n}円",
 } as const;
 
 export type MessageKey = keyof typeof ja;

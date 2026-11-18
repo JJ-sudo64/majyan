@@ -3,7 +3,7 @@ import { Fragment, createElement, type ReactNode } from "react";
 import { ja, type MessageKey } from "./ja.js";
 
 /** 対応言語。新しい言語を足すときは、ここに足して dictionaries に辞書を登録する。 */
-export const LOCALES = [{ id: "ja", label: "日本語" }] as const;
+export const LOCALES = [{ id: "ja", label: "日本語", tag: "ja-JP" }] as const;
 export type Locale = (typeof LOCALES)[number]["id"];
 
 type Dictionary = Partial<Record<MessageKey, string>>;
@@ -37,6 +37,16 @@ export const useLocaleStore = create<LocaleState>((set) => ({
     set({ locale });
   },
 }));
+
+/** 日付・数字の書式に使う言語タグ（例: ja-JP）。 */
+export function localeTag(locale: Locale): string {
+  return LOCALES.find((l) => l.id === locale)!.tag;
+}
+
+/** コンポーネント用。選んでいる言語の書式タグ。 */
+export function useLocaleTag(): string {
+  return localeTag(useLocaleStore((s) => s.locale));
+}
 
 /** 文言を引く。選んだ言語に無ければ日本語、日本語にも無ければキー名を返す。{name} は params で差し込む。 */
 export function translate(locale: Locale, key: MessageKey, params?: Record<string, string | number>): string {

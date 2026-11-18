@@ -21,7 +21,7 @@ import { GachaReveal } from "./GachaReveal.js";
 import { RecordsScreen } from "./RecordsScreen.js";
 import { preloadGachaSounds } from "../sound.js";
 import { shareToX } from "../share.js";
-import { useT, useTn, type Translate } from "../i18n/index.js";
+import { useT, useTn, useLocaleTag, type Translate } from "../i18n/index.js";
 
 const RARITIES: Rarity[] = [3, 2, 1];
 
@@ -49,6 +49,7 @@ const sameItem = (a: GachaItem | null, b: GachaItem) => !!a && a.kind === b.kind
 export function GachaScreen({ onClose }: { onClose: () => void }) {
   const tn = useTn();
   const t = useT();
+  const tag = useLocaleTag();
   // 引いた直後の演出の音が最初の1回から遅れず鳴るよう、画面を開いた時に読み込んでおく。
   useEffect(preloadGachaSounds, []);
   const jade = useAccountStore((s) => s.jade);
@@ -95,7 +96,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
 
         {pickup && (
           <div className="gacha-screen__pickup">
-            <div className="gacha-screen__pickup-title">{tn("gachaScreen.t24", { title: pickup.title, span: <span className="gacha-screen__pickup-until">{t("gachaScreen.t7", { v1: new Date(pickup.endsAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}</span> })}</div>
+            <div className="gacha-screen__pickup-title">{tn("gachaScreen.t24", { title: pickup.title, span: <span className="gacha-screen__pickup-until">{t("gachaScreen.t7", { v1: new Date(pickup.endsAt).toLocaleString(tag, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) })}</span> })}</div>
             <div className="gacha-screen__pickup-items">
               {pickup.items.map((item) => {
                 const character = item.kind === "character" ? CHARACTERS[item.id] : undefined;
