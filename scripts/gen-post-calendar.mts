@@ -52,3 +52,35 @@ ids.forEach((id, i) => {
 });
 writeFileSync("drafts/shorts-captions.md", sc);
 console.log("shorts-captions:", ids.length, "days");
+
+// --- 英語版（海外向け）。出力: drafts/posts-en.md。対訳は packages/web/src/i18n/en-data.ts。
+import { enData } from "../packages/web/src/i18n/en-data.ts";
+const EN_URL = "https://janhai.maxplantlabs.com/en/";
+const en = (t: string): string => enData[t] ?? t;
+const enWeight = (t: string) => [...t.replace(EN_URL, "")].length + (t.includes(EN_URL) ? 23 : 0);
+const firstEn = (t: string) => (t.split(/(?<=\.)\s/)[0] ?? t).trim();
+
+let pe = `# English posts (X / TikTok / Reels / Shorts)
+
+Same order and same videos as post-calendar.md. Note: the gameplay clips still show the Japanese UI — re-record in English (set \`majyan.locale\` to "en") if you want an English-UI version.
+Check each time: AI-generated content label ON; put the link in the profile (caption links aren't clickable on TikTok/Reels); post in the evening of the target time zone.
+
+`;
+ids.forEach((id, i) => {
+  const c = all[id];
+  const full = en(c.name); // "Hiiragi, the Blossom Priestess"
+  const [short, ...rest] = full.split(", ");
+  const epithet = rest.join(", ");
+  const skill = en(c.skill.name);
+  const first = firstEn(en(c.skill.description));
+  const quote = en(c.winQuote);
+  const head = `${short}${epithet ? `, ${epithet}` : ""} — skill "${skill}"\n${first}\n\n`;
+  const tail = `Free skill-powered mahjong in your browser, no sign-up:\n${EN_URL}\n#mahjong #riichimahjong #indiegame`;
+  const withQuote = `${head}"${quote}"\n\n${tail}`;
+  const post = enWeight(withQuote) <= 280 ? withQuote : `${head}${tail}`;
+  pe += `## Day ${i + 1}: ${short} (video \`${videoOf(id)}\`)\n\n**X**\n\n${FENCE}\n${post}\n${FENCE}\n(${enWeight(post)}/280${post === withQuote ? "" : ", quote omitted: too long"})\n\n`;
+  pe += `**TikTok / Reels**\n\n${FENCE}\n${short}'s skill "${skill}" 🀄 ${first} Free, no sign-up — link in bio.\n#mahjong #riichimahjong #browsergame #indiegame #gamedev\n${FENCE}\n\n`;
+  pe += `**YouTube Shorts** (title ≤100 chars)\n\n${FENCE}\n${short}: "${skill}" skill | Skill-Powered Riichi Mahjong #Shorts\n${FENCE}\n\n`;
+});
+writeFileSync("drafts/posts-en.md", pe);
+console.log("posts-en:", ids.length, "days");
