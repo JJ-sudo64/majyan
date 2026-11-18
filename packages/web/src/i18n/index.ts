@@ -21,8 +21,16 @@ const STORAGE_KEY = "majyan.locale";
 
 function loadInitialLocale(): Locale {
   try {
+    // ?lang=en のように指定されていれば、それを優先して覚える（公式ページの英語版からの行き先）。
+    const asked = new URLSearchParams(window.location.search).get("lang");
+    if (asked && asked in dictionaries) {
+      window.localStorage.setItem(STORAGE_KEY, asked);
+      return asked as Locale;
+    }
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved && saved in dictionaries) return saved as Locale;
+    // 初めて開いた人は、ブラウザの言語が英語なら英語で始める（日本語のブラウザは今まで通り日本語）。
+    if (navigator.language.toLowerCase().startsWith("en")) return "en";
   } catch {
     // localStorageが使えない環境では既定の日本語で始める
   }
