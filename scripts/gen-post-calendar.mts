@@ -31,3 +31,24 @@ ids.forEach((id, i) => {
 });
 writeFileSync("drafts/post-calendar.md", out);
 console.log(ids.length, "days");
+
+// --- TikTok / YouTube Shorts / Instagram Reels 用（同じ動画・同じ順番）。出力: drafts/shorts-captions.md
+let sc = `# 縦動画の投稿文（TikTok / YouTube Shorts / Instagram Reels）
+
+毎日1本。動画を選んで、下の文をコピペするだけ。順番は post-calendar.md の Day と同じ。
+**毎回の確認**: ①「AI生成コンテンツ」の設定をオン ②URLはプロフィールのリンク欄（キャプションのURLは押せない）③夜20〜23時に出す。
+
+`;
+ids.forEach((id, i) => {
+  const c = all[id];
+  const [title, ...rest] = c.name.split("・");
+  const who = rest.join("・");
+  const first = String(c.skill.description).split("。")[0] + "。";
+  const tags = "#雀杯 #異能麻雀 #麻雀 #ブラウザゲーム #ゲーム紹介";
+  sc += `## Day ${i + 1}：${who}（動画 \`${videoOf(id)}\`）\n\n`;
+  sc += `**TikTok / Instagram Reels**\n\n${FENCE}\n${who}の必殺技「${c.skill.name}」🀄 ${first}無料・登録不要で遊べます→プロフのリンク\n${tags}\n${FENCE}\n\n`;
+  sc += `**YouTube Shorts**（タイトル100文字以内）\n\n${FENCE}\n【${who}】必殺技「${c.skill.name}」 #Shorts #雀杯 #異能麻雀\n${FENCE}\n\n`;
+  sc += `説明欄:\n\n${FENCE}\n${first}\n無料・登録不要で遊べる異能麻雀バトル『雀杯』\n▼今すぐ遊ぶ ${URL}\n公式X https://x.com/janhai_game\n${FENCE}\n\n`;
+});
+writeFileSync("drafts/shorts-captions.md", sc);
+console.log("shorts-captions:", ids.length, "days");
