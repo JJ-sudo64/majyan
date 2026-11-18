@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { RANK_TIERS, rankLabel, rankMaxPoints, rankPointDelta, type MatchFormat, type RankState, type RankView } from "@majyan/core";
-import { useT, useTn } from "../i18n/index.js";
+import { useT, tx, txRank, useTn } from "../i18n/index.js";
 
 const PLACES = [1, 2, 3, 4] as const;
 /** 持ち点による増減が0になる点数（順位による増減だけを取り出すのに使う）。 */
@@ -49,7 +49,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
             {rank && (
               <div className="rank-guide__mine">
                 <span className="rank-guide__mine-label">{t("rankGuideScreen.t1")}</span>
-                <span className="rank-guide__mine-rank">{rank.label}</span>
+                <span className="rank-guide__mine-rank">{txRank(rank.label)}</span>
                 <span className="rank-guide__mine-points">
                   {rank.maxPoints === null
                     ? t("rankGuideScreen.t15", { points: rank.points })
@@ -63,7 +63,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
                 <Fragment key={tier.id}>
                   {ti > 0 && <span className="rank-guide__arrow">▶</span>}
                   <span className={`rank-guide__step${rank?.tier === ti ? " is-mine" : ""}`}>
-                    <span className="rank-guide__step-name">{tier.name}</span>
+                    <span className="rank-guide__step-name">{tx(tier.name)}</span>
                     <span className="rank-guide__step-levels">{tier.levelMax.length === 0 ? t("rankGuideScreen.t17") : "1 → 2 → 3"}</span>
                   </span>
                 </Fragment>
@@ -111,7 +111,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
                     return (
                       <tr key={`${r.tier}-${r.level}`} className={`${isMine(r) ? "is-mine" : ""}${r.level === 0 ? " is-tier-start" : ""}`}>
                         <th scope="row">
-                          {rankLabel(r)}
+                          {txRank(rankLabel(r))}
                           {isMine(r) && <span className="rank-guide__here">{t("rankGuideScreen.t12")}</span>}
                           {!tier.canDemote[r.level] && <span className="rank-guide__safe">{t("rankGuideScreen.t13")}</span>}
                         </th>
@@ -134,7 +134,7 @@ export function RankGuideScreen({ rank, onClose }: { rank: RankView | null; onCl
             <div className="rank-guide__score">
               <div className="rank-guide__score-title">{t("rankGuideScreen.t14")}</div>
               <p>{tn("rankGuideScreen.t24", { b: <b>{t("rankGuideScreen.t19", { v1: scoreSlope.toFixed(1) })}</b>, b1: <b>{t("rankGuideScreen.t20", { v1: scoreSlope.toFixed(1) })}</b> })}</p>
-              <p className="rank-guide__example">{tn("rankGuideScreen.t25", { v1: rankLabel(sample), v2: format === "hanchan" ? t("format.hanchan") : t("format.tonpuusen"), v3: sampleScore.toLocaleString(), b: <b>{t("rankGuideScreen.t21", { v1: signed(samplePlacement), v2: signed(sampleTotal - samplePlacement), v3: signed(sampleTotal) })}</b> })}</p>
+              <p className="rank-guide__example">{tn("rankGuideScreen.t25", { v1: txRank(rankLabel(sample)), v2: format === "hanchan" ? t("format.hanchan") : t("format.tonpuusen"), v3: sampleScore.toLocaleString(), b: <b>{t("rankGuideScreen.t21", { v1: signed(samplePlacement), v2: signed(sampleTotal - samplePlacement), v3: signed(sampleTotal) })}</b> })}</p>
             </div>
 
           </div>

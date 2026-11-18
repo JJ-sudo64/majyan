@@ -6,7 +6,7 @@ import { useTile3DDebugStore } from "../store/tile3dDebugStore.js";
 import { useBackgroundDebugStore } from "../store/backgroundDebugStore.js";
 import { TABLE_BACKGROUND_OPTIONS, useTableBackgroundStore } from "../store/tableBackgroundStore.js";
 import { portalRoot } from "../orientation.js";
-import { useT } from "../i18n/index.js";
+import { useT, useLocaleStore, LOCALES } from "../i18n/index.js";
 
 /** 自動ツモ切り/自動和了トグルを、対局情報(Hud.tsx)とは切り離して画面左下に
     常設する設定パネル。以前はHudパネル(左上)に同居していたが、対局情報と
@@ -14,6 +14,8 @@ import { useT } from "../i18n/index.js";
     押した時だけ出るポップオーバーに移した（指摘により）。 */
 export function SettingsPanel() {
   const t = useT();
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
   const bgmVolume = useSettingsStore((s) => s.bgmVolume);
   const setBgmVolume = useSettingsStore((s) => s.setBgmVolume);
   const seVolume = useSettingsStore((s) => s.seVolume);
@@ -150,6 +152,19 @@ export function SettingsPanel() {
               >
                 {t("settings.tile3d")} {tile3dEnabled ? t("settings.on") : t("settings.off")}
               </button>
+            </div>
+            <div className="hud__row">
+              {LOCALES.map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  className={`hud__toggle-btn${locale === l.id ? " hud__toggle-btn--on" : ""}`}
+                  aria-label={t("settings.language")}
+                  onClick={() => setLocale(l.id)}
+                >
+                  {l.label}
+                </button>
+              ))}
             </div>
             {/* ここから「背景の調整」までは開発者用の調整項目。本番のビルドには出さない
                 （import.meta.env.DEVは、開発サーバーでだけtrue）。 */}

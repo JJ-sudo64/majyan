@@ -12,7 +12,7 @@ import {
 import { fetchRankedHistory, fetchRanking, fetchReplay, reportPlayer } from "../online/account.js";
 import { useGameStore } from "../store/gameStore.js";
 import { HistoryStats } from "./HistoryStats.js";
-import { useT } from "../i18n/index.js";
+import { useT, txRank } from "../i18n/index.js";
 
 const FORMAT_KEY = { tonpuusen: "format.tonpuusen", hanchan: "format.hanchan" } as const;
 /** 対局一覧の1ページに出す件数（スクロールなしで収まる数）。 */
@@ -36,7 +36,7 @@ function RankingRow({ e }: { e: RankingEntry }) {
     <tr className={e.isYou ? "ranking-screen__you" : undefined}>
       <td className="ranking-screen__position">{e.position}</td>
       <td className="ranking-screen__name">{e.displayName}</td>
-      <td className="history-screen__rank">{e.rankLabel}</td>
+      <td className="history-screen__rank">{txRank(e.rankLabel)}</td>
       <td>{e.points} pt</td>
       <td>{t("historyScreen.t11", { gamesPlayed: e.gamesPlayed })}</td>
     </tr>

@@ -1,16 +1,21 @@
 import { create } from "zustand";
 import { Fragment, createElement, type ReactNode } from "react";
 import { ja, type MessageKey } from "./ja.js";
+import { en } from "./en.js";
+import { enData } from "./en-data.js";
 import { applyDataLocale } from "./dataOverlay.js";
 
 /** 対応言語。新しい言語を足すときは、ここに足して dictionaries に辞書を登録する。 */
-export const LOCALES = [{ id: "ja", label: "日本語", tag: "ja-JP" }] as const;
+export const LOCALES = [
+  { id: "ja", label: "日本語", tag: "ja-JP" },
+  { id: "en", label: "English", tag: "en-US" },
+] as const;
 export type Locale = (typeof LOCALES)[number]["id"];
 
 type Dictionary = Partial<Record<MessageKey, string>>;
-const dictionaries: Record<Locale, Dictionary> = { ja };
+const dictionaries: Record<Locale, Dictionary> = { ja, en };
 /** キャラクター・カードの日本語原文 → 翻訳。日本語は原文のままなので空。 */
-const dataTables: Record<Locale, Record<string, string>> = { ja: {} };
+const dataTables: Record<Locale, Record<string, string>> = { ja: {}, en: enData };
 
 const STORAGE_KEY = "majyan.locale";
 
@@ -120,3 +125,11 @@ export function useTn(): (key: MessageKey, params?: Record<string, ReactNode>) =
 export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
 
 export type { MessageKey };
+
+/** 段位名（「雀帝3」など）を今の言語に直す。段位名の部分だけ対訳表で直し、段の数字は残す。 */
+export function txRank(label: string): string {
+  const m = /^(下雀|中雀|上雀|雀王|雀帝|雀神)(\d*)$/.exec(label);
+  if (!m) return label;
+  const name = tx(m[1]!);
+  return name === m[1] ? label : m[2] ? `${name} ${m[2]}` : name;
+}

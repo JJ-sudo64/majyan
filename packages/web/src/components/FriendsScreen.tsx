@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { formatFriendCode, type FriendsResponse, type FriendView } from "@majyan/core";
 import { fetchFriends, friendAction } from "../online/account.js";
-import { useT, type Translate } from "../i18n/index.js";
+import { useT, txRank, type Translate } from "../i18n/index.js";
 
 /** 最終ログインの表示（「3分前」「2日前」）。 */
 function ago(ms: number, now: number, t: Translate): string {
@@ -143,7 +143,7 @@ export function FriendsScreen({
                     <li key={r.code} className="inbox-screen__gift">
                       <div className="inbox-screen__gift-main">
                         <div className="inbox-screen__news-title">{r.displayName}</div>
-                        <div className="inbox-screen__date">{r.rankLabel}</div>
+                        <div className="inbox-screen__date">{txRank(r.rankLabel)}</div>
                       </div>
                       <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void act(() => friendAction("respond", r.code, true), t("friendsScreen.t17", { displayName: r.displayName }))}>
                         {t("friendsScreen.t8")}
@@ -164,7 +164,7 @@ export function FriendsScreen({
                 <li key={f.code} className={`inbox-screen__gift${f.presence && f.presence !== "playing" ? " friends-screen__waiting" : ""}`}>
                   <div className="inbox-screen__gift-main">
                     <div className="inbox-screen__news-title">
-                      {f.displayName} <span className="history-screen__rank">{f.rankLabel}</span>
+                      {f.displayName} <span className="history-screen__rank">{txRank(f.rankLabel)}</span>
                     </div>
                     <div className="inbox-screen__date">{presenceLabel(f, now, t)}</div>
                   </div>
@@ -204,7 +204,7 @@ export function FriendsScreen({
                     <li key={r.code} className="inbox-screen__gift">
                       <div className="inbox-screen__gift-main">
                         <div className="inbox-screen__news-title">{r.displayName}</div>
-                        <div className="inbox-screen__date">{r.rankLabel}</div>
+                        <div className="inbox-screen__date">{txRank(r.rankLabel)}</div>
                       </div>
                       <button type="button" className="btn btn--secondary" disabled={busy} onClick={() => void act(() => friendAction("remove", r.code))}>
                         {t("friendsScreen.t15")}

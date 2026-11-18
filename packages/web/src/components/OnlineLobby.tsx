@@ -18,7 +18,7 @@ import { FriendsScreen } from "./FriendsScreen.js";
 import { RulesGuide } from "./RulesGuide.js";
 import { DevAccountTools } from "./DevAccountTools.js";
 import { playUiClickFor } from "../sound.js";
-import { useT, useTn, type Translate } from "../i18n/index.js";
+import { useT, txRank, useTn, type Translate } from "../i18n/index.js";
 
 /** 付けているカードの表示（パッシブ・アクティブの順。無ければ「カードなし」）。 */
 function cardLabel(cardId: string | null, cardId2: string | null, t: Translate): string {
@@ -470,7 +470,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
             <div className="oh-player__name">{profile.displayName}</div>
             {rank && (
               <button type="button" className="oh-player__rank" title={t("onlineLobby.t12")} onClick={() => setShowRankGuide(true)}>
-                <span className="oh-player__rank-label">{rank.label}</span>
+                <span className="oh-player__rank-label">{txRank(rank.label)}</span>
                 <span className="oh-player__rank-bar">
                   <span style={{ width: `${rankProgress * 100}%` }} />
                 </span>
@@ -647,7 +647,7 @@ export function OnlineLobby({ onBack }: { onBack: () => void }) {
                 <span className="oh-card__title">{t("onlineLobby.t27")}</span>
                 <span className="oh-card__en">RANKED MATCH</span>
               </div>
-              <p className="oh-card__lead">{tn("onlineLobby.t69", { v1: rank ? t("onlineLobby.t56", { label: rank.label, gamesPlayed: rank.gamesPlayed }) : "", button: <button type="button" className="oh-link" onClick={() => setShowRankGuide(true)}>
+              <p className="oh-card__lead">{tn("onlineLobby.t69", { v1: rank ? t("onlineLobby.t56", { label: txRank(rank.label), gamesPlayed: rank.gamesPlayed }) : "", button: <button type="button" className="oh-link" onClick={() => setShowRankGuide(true)}>
                   {t("onlineLobby.t28")}
                 </button> })}</p>
               <div className="oh-modes">

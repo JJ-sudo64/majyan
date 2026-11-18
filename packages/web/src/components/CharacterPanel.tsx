@@ -4,7 +4,7 @@ import { TIME_STOP_FAKE_TURN_STEP_MS, useGameStore } from "../store/gameStore.js
 import { SkillGauge } from "./SkillGauge.js";
 import { TileView } from "./TileView.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
-import { useT, cpuSeatKey } from "../i18n/index.js";
+import { useT, txRank, cpuSeatKey } from "../i18n/index.js";
 
 
 export type PanelCorner = "top" | "right" | "left" | "bottom";
@@ -117,7 +117,7 @@ export function CharacterPanel({
             <span className="character-panel__player-name">{onlineSeat.name}</span>
             {(onlineSeat.rankLabel || onlineSeat.disconnected) && (
               <span className="character-panel__player-sub">
-                {onlineSeat.rankLabel && <span className="character-panel__rank">{onlineSeat.rankLabel}</span>}
+                {onlineSeat.rankLabel && <span className="character-panel__rank">{txRank(onlineSeat.rankLabel)}</span>}
                 {onlineSeat.disconnected ? t("characterPanel.t5") : ""}
               </span>
             )}

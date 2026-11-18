@@ -7,7 +7,7 @@ import { playVoiceQueue } from "../sound.js";
 import { meldDisplaySlots } from "../meldDisplay.js";
 import { MatchVictoryOverlay } from "./MatchVictoryOverlay.js";
 import { TileView } from "./TileView.js";
-import { useT, tx, seatKey, type MessageKey } from "../i18n/index.js";
+import { useT, tx, txRank, seatKey, type MessageKey } from "../i18n/index.js";
 
 const seatLabel = (t: (k: MessageKey) => string, seat: number) => t(seatKey(seat));
 
@@ -345,11 +345,11 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
                   <div className="score-rank-result__ranks">
                     {rankOrdinal(rankResult.after) !== rankOrdinal(rankResult.before) && (
                       <>
-                        <span className="score-rank-result__before">{rankResult.before.label}</span>
+                        <span className="score-rank-result__before">{txRank(rankResult.before.label)}</span>
                         <span className="score-rank-result__arrow">→</span>
                       </>
                     )}
-                    <strong>{rankResult.after.label}</strong>
+                    <strong>{txRank(rankResult.after.label)}</strong>
                     {rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && (
                       <span className="score-rank-result__change score-rank-result__change--up">{t("scoreResult.t4")}</span>
                     )}
@@ -376,7 +376,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               </div>
             )}
             {rankResult && rankOrdinal(rankResult.after) > rankOrdinal(rankResult.before) && (
-              <button className="btn" onClick={() => shareToX(t("scoreResult.t17", { label: rankResult.after.label }))}>
+              <button className="btn" onClick={() => shareToX(t("scoreResult.t17", { label: txRank(rankResult.after.label) }))}>
                 {t("gachaScreen.t3")}
               </button>
             )}
