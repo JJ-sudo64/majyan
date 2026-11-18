@@ -18,6 +18,8 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
   const [showRules, setShowRules] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPv, setShowPv] = useState(false);
+  // 背景画像が上から順に描かれる様子を見せないよう、読み込み終わりまで隠して、終わったらふわっと出す。
+  const [bgReady, setBgReady] = useState(false);
   useEffect(() => {
     if (!showPv) return undefined;
     window.dispatchEvent(new CustomEvent("pv-playing", { detail: true }));
@@ -39,7 +41,16 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
   return (
     <div className="title-screen" ref={containerRef} onClickCapture={playUiClickFor}>
       <div className="title-screen__canvas" style={{ width: TITLE_WIDTH, height: TITLE_HEIGHT, zoom: scale }}>
-        <img className="title-screen__bg" src="/title/title-bg.webp" alt="雀杯" />
+        <img
+          className={`title-screen__bg${bgReady ? " title-screen__bg--ready" : ""}`}
+          src="/title/title-bg.webp"
+          alt="雀杯"
+          ref={(el) => {
+            if (el?.complete && el.naturalWidth > 0) setBgReady(true);
+          }}
+          onLoad={() => setBgReady(true)}
+          onError={() => setBgReady(true)}
+        />
 
         <div className="title-screen__menu">
           <button type="button" className="title-screen__menu-btn" aria-label="プレイ" onClick={onPlay} />

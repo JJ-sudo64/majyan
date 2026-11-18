@@ -71,9 +71,15 @@ button {
 .title-screen__canvas {
   position: relative;
   flex-shrink: 0;
+  background: radial-gradient(ellipse at 50% 40%, #2a1638 0%, #0c0710 70%);
+}
+.title-screen__bg.title-screen__bg--ready {
+  opacity: 1;
 }
 .title-screen__bg {
   display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease;
   width: 100%;
   height: 100%;
   object-fit: cover;
