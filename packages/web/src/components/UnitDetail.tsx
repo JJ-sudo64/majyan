@@ -37,8 +37,8 @@ export function UnitDetail({
         </div>
         {(
           [
-            { slot: "パッシブ", kind: "passive", id: cardId },
-            { slot: "アクティブ", kind: "consumable", id: cardId2 },
+            { slot: t("unit.slotPassive"), kind: "passive", id: cardId },
+            { slot: t("unit.slotActive"), kind: "consumable", id: cardId2 },
           ] as const
         ).map(({ slot, kind, id }) => {
           const card = id ? CARDS[id] : undefined;
@@ -60,7 +60,7 @@ export function UnitDetail({
                   </div>
                   <div className="unit-detail__card-body">
                     <div className="unit-detail__label">
-                      {slot}カード <span className="unit-detail__stars">{RARITY_STARS[cardRarity(id!)]}</span>「{card.name}」
+                      {t("unit.slotCard", { slot })} <span className="unit-detail__stars">{RARITY_STARS[cardRarity(id!)]}</span>「{card.name}」
                     </div>
                     <p className="unit-detail__text">{card.description}</p>
                   </div>

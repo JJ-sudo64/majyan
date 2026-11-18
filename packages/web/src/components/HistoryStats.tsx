@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { MatchFormat, RankedPlaceStats, RankedSeriesPoint, RoundStatsSummary, WinKinds } from "@majyan/core";
 import { useT } from "../i18n/index.js";
 
-const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
+const FORMAT_KEY = { tonpuusen: "format.tonpuusen", hanchan: "format.hanchan" } as const;
 /** 順位の推移グラフに出す対局数の選択肢（−・＋で切り替える）。 */
 const WINDOW_SIZES = [10, 20, 50, 100] as const;
 
@@ -39,7 +39,7 @@ function PlaceLineChart({ series }: { series: RankedSeriesPoint[] }) {
           <button type="button" aria-label={t("historyStats.t2")} disabled={sizeIndex === 0} onClick={() => setSizeIndex(sizeIndex - 1)}>
             −
           </button>
-          直近{shown.length ? Math.min(size, series.length) : size}戦
+          {t("historyStats.recent", { n: shown.length ? Math.min(size, series.length) : size })}
           <button type="button" aria-label={t("historyStats.t3")} disabled={sizeIndex === WINDOW_SIZES.length - 1} onClick={() => setSizeIndex(sizeIndex + 1)}>
             ＋
           </button>
@@ -106,9 +106,9 @@ function WinKindsDonut({ kinds }: { kinds: WinKinds }) {
   const t = useT();
   const total = kinds.riichi + kinds.open + kinds.dama;
   const parts = [
-    { label: "立直", n: kinds.riichi, className: "history-stats__donut--riichi" },
-    { label: "副露", n: kinds.open, className: "history-stats__donut--open" },
-    { label: "闇聴", n: kinds.dama, className: "history-stats__donut--dama" },
+    { label: t("historyStats.riichi"), n: kinds.riichi, className: "history-stats__donut--riichi" },
+    { label: t("historyStats.open"), n: kinds.open, className: "history-stats__donut--open" },
+    { label: t("historyStats.dama"), n: kinds.dama, className: "history-stats__donut--dama" },
   ];
   const radius = 40;
   const circumference = 2 * Math.PI * radius;
@@ -219,7 +219,7 @@ export function HistoryStats({
           <div className="history-stats__formats">
             {(["tonpuusen", "hanchan"] as MatchFormat[]).map((f) => (
               <button key={f} type="button" className={`history-stats__format${format === f ? " is-active" : ""}`} onClick={() => setFormat(f)}>
-                {FORMAT_LABEL[f]}
+                {t(FORMAT_KEY[f])}
                 <small>{t("historyStats.t32", { games: byFormat[f].games })}</small>
               </button>
             ))}

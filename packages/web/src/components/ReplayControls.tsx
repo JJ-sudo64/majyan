@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import type { PlayerIndex } from "@majyan/core";
 import { replayLastStep, useGameStore } from "../store/gameStore.js";
 import { viewportHeight } from "../orientation.js";
-import { useT } from "../i18n/index.js";
+import { useT, windKey } from "../i18n/index.js";
 
-const WIND = ["", "東", "南", "西", "北"];
 /** 自動再生で1手進める間隔（等速）。 */
 const AUTO_PLAY_MS = 900;
 /** 自動再生の速さ。押すたびに順に切り替わる。 */
@@ -63,7 +62,7 @@ export function ReplayControls() {
   );
   const info = (
     <div className="replay-controls__info">
-      <strong>{t("replayControls.t15", { v1: WIND[start.roundWind] ?? "", roundNumber: start.roundNumber, honba: start.honba })}</strong>
+      <strong>{t("replayControls.t15", { v1: t(windKey(start.roundWind)), roundNumber: start.roundNumber, honba: start.honba })}</strong>
       <span>{t("replayControls.t16", { v1: replay.roundIndex + 1, length: replay.data.rounds.length, v2: Math.min(replay.step, total), total })}</span>
     </div>
   );
@@ -134,7 +133,7 @@ export function ReplayControls() {
       </div>
       <div className="replay-controls__buttons">
         <label className="replay-controls__viewer">
-          視点
+          {t("replay.viewer")}
           <select value={replay.viewer} onChange={(e) => setViewer(Number(e.target.value) as PlayerIndex)}>
             {replay.data.seats.map((s, i) => (
               <option key={i} value={i}>

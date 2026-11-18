@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { CHARACTERS, type RoundState } from "@majyan/core";
 import { CardFace } from "./CardFace.js";
+import { useT } from "../i18n/index.js";
 
 const SHOW_MS = 2200;
 /** カードの絵つきの演出は、札だけの時より少し長く見せる。 */
 const SHOW_CARD_MS = 2800;
 
-const KIND_LABEL = { use: "カード使用", auto: "カード発動" } as const;
+const KIND_KEY = { use: "cardToast.use", auto: "cardToast.auto" } as const;
 
 interface Shown {
   title: string;
@@ -28,6 +29,7 @@ interface Shown {
  *   絵が無い時（キャラの自動効果など）: 卓の中央上寄りに小さな札だけを出す。
  */
 export function CardTriggerToast({ round }: { round: RoundState }) {
+  const t = useT();
   const trigger = round.cardTrigger;
   // seqは局ごとに1から数え直すので、局の識別も混ぜて前局との取り違えを防ぐ。
   const seq = trigger ? `${round.roundWind}-${round.roundNumber}-${round.honba}-${trigger.seq}` : "";
@@ -61,7 +63,7 @@ export function CardTriggerToast({ round }: { round: RoundState }) {
   if (shown.cardId) {
     return (
       <div className={`card-use-stage card-use-stage--${shown.kind} card-use-stage--seat${shown.seat}`} key={shown.key} role="status">
-        <div className="card-use-stage__label">{KIND_LABEL[shown.kind]}</div>
+        <div className="card-use-stage__label">{t(KIND_KEY[shown.kind])}</div>
         <div className="card-use-stage__who">{shown.who}</div>
         <div className="card-use-stage__card">
           <CardFace cardId={shown.cardId} />

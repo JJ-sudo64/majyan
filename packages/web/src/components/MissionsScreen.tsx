@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import type { MissionsResponse } from "@majyan/core";
 import { claimMissions, fetchMissions } from "../online/account.js";
 import { playUiSuccess } from "../sound.js";
-import { useT } from "../i18n/index.js";
+import { useT, type Translate } from "../i18n/index.js";
 
 /** リセットまでの残り（「あと5時間」「あと30分」）。 */
-function untilReset(resetsAt: number, now: number): string {
+function untilReset(resetsAt: number, now: number, t: Translate): string {
   const minutes = Math.max(1, Math.ceil((resetsAt - now) / 60_000));
-  return minutes >= 60 ? `あと${Math.floor(minutes / 60)}時間` : `あと${minutes}分`;
+  return minutes >= 60 ? t("time.hoursLeft", { n: Math.floor(minutes / 60) }) : t("time.minutesLeft", { n: minutes });
 }
 
 /** デイリー・ウィークリーミッション。段位戦を打つと進み、達成したら受け取ると雀玉がもらえる。 */
@@ -60,7 +60,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
         )}
         {data && (
           <>
-            <p className="setup-lead">{t("missionsScreen.t5", { v1: untilReset(data.resetsAt, Date.now()), v2: untilReset(data.weeklyResetsAt, Date.now()) })}</p>
+            <p className="setup-lead">{t("missionsScreen.t5", { v1: untilReset(data.resetsAt, Date.now(), t), v2: untilReset(data.weeklyResetsAt, Date.now(), t) })}</p>
             {ready.length > 1 && (
               <button type="button" className="btn btn--primary" disabled={busy} onClick={() => void claim(null)}>
                 {t("inboxScreen.t4")}

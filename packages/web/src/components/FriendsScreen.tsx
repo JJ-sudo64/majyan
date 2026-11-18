@@ -1,21 +1,21 @@
 import { useEffect, useState } from "react";
 import { formatFriendCode, type FriendsResponse, type FriendView } from "@majyan/core";
 import { fetchFriends, friendAction } from "../online/account.js";
-import { useT } from "../i18n/index.js";
+import { useT, type Translate } from "../i18n/index.js";
 
 /** 最終ログインの表示（「3分前」「2日前」）。 */
-function ago(ms: number, now: number): string {
+function ago(ms: number, now: number, t: Translate): string {
   const minutes = Math.max(0, Math.floor((now - ms) / 60_000));
-  if (minutes < 60) return `${Math.max(1, minutes)}分前`;
+  if (minutes < 60) return t("friends.agoMinutes", { n: Math.max(1, minutes) });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}時間前`;
-  return `${Math.floor(hours / 24)}日前`;
+  if (hours < 24) return t("friends.agoHours", { n: hours });
+  return t("friends.agoDays", { n: Math.floor(hours / 24) });
 }
 
-function presenceLabel(f: FriendView, now: number): string {
-  if (f.presence === "playing") return "対局中";
-  if (f.presence) return "部屋で待っています";
-  return `最終ログイン ${ago(f.lastLoginAt, now)}`;
+function presenceLabel(f: FriendView, now: number, t: Translate): string {
+  if (f.presence === "playing") return t("friends.playing");
+  if (f.presence) return t("friends.waiting");
+  return t("friends.lastLogin", { ago: ago(f.lastLoginAt, now, t) });
 }
 
 /**
@@ -71,9 +71,9 @@ export function FriendsScreen({
     if (!data) return;
     try {
       await navigator.clipboard.writeText(data.myCode);
-      setNotice("フレンドコードをコピーしました");
+      setNotice(t("friends.copied"));
     } catch {
-      setNotice("コピーできませんでした。手で書き写してください");
+      setNotice(t("friends.copyFailed"));
     }
   }
 
@@ -115,7 +115,7 @@ export function FriendsScreen({
                   placeholder="12345-67890"
                   onChange={(e) => setCode(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && code.trim()) void act(() => friendAction("request", code), "申請しました");
+                    if (e.key === "Enter" && code.trim()) void act(() => friendAction("request", code), t("friends.requested"));
                   }}
                 />
               </label>
@@ -128,7 +128,7 @@ export function FriendsScreen({
                     const res = await friendAction("request", code);
                     setCode("");
                     return res;
-                  }, "申請しました（相手が承認するとフレンドになります）")
+                  }, t("friends.requestedPending"))
                 }
               >
                 {t("friendsScreen.t6")}
@@ -166,7 +166,7 @@ export function FriendsScreen({
                     <div className="inbox-screen__news-title">
                       {f.displayName} <span className="history-screen__rank">{f.rankLabel}</span>
                     </div>
-                    <div className="inbox-screen__date">{presenceLabel(f, now)}</div>
+                    <div className="inbox-screen__date">{presenceLabel(f, now, t)}</div>
                   </div>
                   {f.presence && f.presence !== "playing" && (
                     <button type="button" className="btn btn--primary" onClick={() => onJoinRoom((f.presence as { room: string }).room)}>

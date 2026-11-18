@@ -2,17 +2,17 @@ import { useEffect, useState } from "react";
 import { CARDS, CHARACTERS, characterRarity, type GachaItem, type InboxResponse } from "@majyan/core";
 import { claimGifts, fetchInbox, markAnnouncementsSeen, useAccountStore } from "../online/account.js";
 import { playUiSuccess } from "../sound.js";
-import { useT } from "../i18n/index.js";
+import { useT, type Translate } from "../i18n/index.js";
 
 export type InboxTab = "news" | "gifts";
 
-function itemLabel(item: GachaItem): string {
+function itemLabel(item: GachaItem, t: Translate): string {
   if (item.kind === "character") return `${"★".repeat(characterRarity(item.id))} ${CHARACTERS[item.id]?.name ?? item.id}`;
-  return `カード「${CARDS[item.id]?.name ?? item.id}」`;
+  return t("item.card", { name: CARDS[item.id]?.name ?? item.id });
 }
 
-function contentsLabel(jade: number, items: GachaItem[]): string {
-  return [jade ? `雀玉 ${jade.toLocaleString()}` : "", ...items.map(itemLabel)].filter(Boolean).join("、");
+function contentsLabel(jade: number, items: GachaItem[], t: Translate): string {
+  return [jade ? t("item.jade", { n: jade.toLocaleString() }) : "", ...items.map((i) => itemLabel(i, t))].filter(Boolean).join(t("common.listSeparator"));
 }
 
 function formatDate(ms: number): string {
@@ -21,11 +21,11 @@ function formatDate(ms: number): string {
 }
 
 /** 受け取り期限の表示（「あと3日」「あと5時間」）。 */
-function remaining(expiresAt: number | null, now: number): string {
-  if (expiresAt === null) return "期限なし";
+function remaining(expiresAt: number | null, now: number, t: Translate): string {
+  if (expiresAt === null) return t("inbox.noExpiry");
   const hours = Math.max(0, Math.floor((expiresAt - now) / 3_600_000));
   // 2日を切ったら時間で出す（「あと1日」が実は47時間、のような食い違いを避ける）。
-  return hours >= 48 ? `あと${Math.floor(hours / 24)}日` : `あと${Math.max(1, hours)}時間`;
+  return hours >= 48 ? t("time.daysLeft", { n: Math.floor(hours / 24) }) : t("time.hoursLeft", { n: Math.max(1, hours) });
 }
 
 /** お知らせとプレゼントボックス。 */
@@ -60,7 +60,7 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
     setError(null);
     try {
       const res = await claimGifts(giftId);
-      setNotice(t("inboxScreen.t7", { v1: contentsLabel(res.jade, res.items) }));
+      setNotice(t("inboxScreen.t7", { v1: contentsLabel(res.jade, res.items, t) }));
       playUiSuccess();
       setInbox(await fetchInbox());
     } catch (err) {
@@ -128,8 +128,8 @@ export function InboxScreen({ initialTab, onClose }: { initialTab: InboxTab; onC
                   <div className="inbox-screen__gift-main">
                     <div className="inbox-screen__news-title">{g.title}</div>
                     {g.message && <p className="inbox-screen__body">{g.message}</p>}
-                    <div className="inbox-screen__contents">{contentsLabel(g.jade, g.items)}</div>
-                    <div className="inbox-screen__date">{t("inboxScreen.t9", { v1: formatDate(g.createdAt), v2: remaining(g.expiresAt, now) })}</div>
+                    <div className="inbox-screen__contents">{contentsLabel(g.jade, g.items, t)}</div>
+                    <div className="inbox-screen__date">{t("inboxScreen.t9", { v1: formatDate(g.createdAt), v2: remaining(g.expiresAt, now, t) })}</div>
                   </div>
                   <button type="button" className="btn" disabled={busy} onClick={() => void claim(g.id)}>
                     {t("inboxScreen.t5")}

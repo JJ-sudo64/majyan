@@ -65,4 +65,7 @@ export function cpuSeatKey(seat: number): MessageKey {
   return `seat.cpu${seat}` as MessageKey;
 }
 
+/** 文言を引く関数の型（部品の外の補助関数に渡す用）。 */
+export type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
+
 export type { MessageKey };

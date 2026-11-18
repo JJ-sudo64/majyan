@@ -14,7 +14,7 @@ import { useGameStore } from "../store/gameStore.js";
 import { HistoryStats } from "./HistoryStats.js";
 import { useT } from "../i18n/index.js";
 
-const FORMAT_LABEL: Record<MatchFormat, string> = { tonpuusen: "東風戦", hanchan: "半荘戦" };
+const FORMAT_KEY = { tonpuusen: "format.tonpuusen", hanchan: "format.hanchan" } as const;
 /** 対局一覧の1ページに出す件数（スクロールなしで収まる数）。 */
 const MATCHES_PER_PAGE = 3;
 
@@ -166,7 +166,7 @@ export function HistoryScreen({ onClose }: { onClose: () => void }) {
                 <li key={e.matchId} className={`history-screen__match history-screen__match--place${e.place}`}>
                   <div className="history-screen__match-head">
                     <span className="history-screen__place">{t("historyScreen.t14", { place: e.place })}</span>
-                    <span>{FORMAT_LABEL[e.format]}</span>
+                    <span>{t(FORMAT_KEY[e.format])}</span>
                     <span className="history-screen__score">{t("historyScreen.t15", { v1: e.finalScore.toLocaleString() })}</span>
                     <span className={e.delta >= 0 ? "history-screen__delta--up" : "history-screen__delta--down"}>
                       {e.delta >= 0 ? `+${e.delta}` : e.delta} pt

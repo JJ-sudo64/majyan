@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CARDS, CHARACTERS, GACHA_KIND_LABELS, JADE_REASON_LABELS, rarityOf, type GachaItem, type RecordsResponse } from "@majyan/core";
 import { fetchRecords } from "../online/account.js";
 import { RARITY_STARS } from "./GachaCard.js";
-import { useT } from "../i18n/index.js";
+import { useT , type Translate } from "../i18n/index.js";
 
 type Tab = "jade" | "gacha";
 
@@ -14,9 +14,9 @@ function formatDateTime(ms: number): string {
 
 const signed = (n: number) => (n > 0 ? `+${n.toLocaleString()}` : n.toLocaleString());
 
-function itemName(item: GachaItem): string {
+function itemName(item: GachaItem, t: Translate): string {
   const name = (item.kind === "character" ? CHARACTERS[item.id]?.name : CARDS[item.id]?.name) ?? item.id;
-  return item.kind === "card" ? `カード「${name}」` : name;
+  return item.kind === "card" ? t("item.card", { name }) : name;
 }
 
 /** 雀玉の増減とガチャの結果の履歴（それぞれ新しい順に100件まで）。 */
@@ -98,7 +98,7 @@ export function RecordsScreen({ onClose }: { onClose: () => void }) {
                     <div className="records-screen__items">
                       {e.results.map((item, j) => (
                         <span key={j} className={`records-screen__item records-screen__item--r${rarityOf(item)}`}>
-                          {RARITY_STARS[rarityOf(item)]} {itemName(item)}
+                          {RARITY_STARS[rarityOf(item)]} {itemName(item, t)}
                         </span>
                       ))}
                     </div>
