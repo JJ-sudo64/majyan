@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useGameStore } from "../store/gameStore.js";
 import { playCountdownBeep } from "../sound.js";
-import { useT } from "../i18n/index.js";
+import { useT, seatKey } from "../i18n/index.js";
 
 /** 自分の持ち時間がこの秒数以下になったら、1秒ごとに音で知らせる。 */
 const BEEP_FROM_SECONDS = 5;
 
 /** OpponentArea.tsx等と同じ呼び方（自分から見た座席番号）。 */
-const SEAT_LABELS = ["あなた", "下家", "対面", "上家"];
 
 /**
  * ネット対戦の制限時間の表示。サーバーから届いた「残り時間」を、受信して
@@ -43,7 +42,7 @@ export function OnlineTurnTimer() {
   }, [secondsLeft]);
 
   if (!clock || seats?.[clock.seat]?.isCpu) return null;
-  const who = mine ? t("standings.you") : (seats?.[clock.seat]?.name ?? SEAT_LABELS[clock.seat]);
+  const who = mine ? t("standings.you") : (seats?.[clock.seat]?.name ?? t(seatKey(clock.seat)));
   const urgent = base === 0 && bank < 5000;
 
   return (

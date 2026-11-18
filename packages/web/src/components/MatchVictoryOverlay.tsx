@@ -2,9 +2,8 @@ import { useEffect } from "react";
 import type { Character, PlayerIndex } from "@majyan/core";
 import { playVoiceClip } from "../sound.js";
 import { shareToX } from "../share.js";
-import { useT } from "../i18n/index.js";
+import { useT, seatKey } from "../i18n/index.js";
 
-const PLAYER_NAMES: Record<number, string> = { 0: "あなた", 1: "下家", 2: "対面", 3: "上家" };
 
 /**
  * 対局終了後、結果モーダル（役・点数内訳、順位一覧）を確認し終えた後に見せる
@@ -35,7 +34,7 @@ export function MatchVictoryOverlay({
         <div className="match-victory-card__title">{t("matchVictoryOverlay.t1")}</div>
         <img className="match-victory-card__art" src={champion.character.cutin ?? champion.character.avatar} alt="" />
         <div className="match-victory-card__name">
-          {PLAYER_NAMES[champion.player]}（{champion.character.name}）
+          {t(seatKey(champion.player))}（{champion.character.name}）
         </div>
         <div className="match-victory-card__quote">「{champion.character.winQuote}」</div>
         {champion.player === 0 && (

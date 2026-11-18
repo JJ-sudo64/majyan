@@ -4,9 +4,8 @@ import { TIME_STOP_FAKE_TURN_STEP_MS, useGameStore } from "../store/gameStore.js
 import { SkillGauge } from "./SkillGauge.js";
 import { TileView } from "./TileView.js";
 import { freezeDelayStyle, useFreezeSource } from "../freezeWave.js";
-import { useT } from "../i18n/index.js";
+import { useT, cpuSeatKey } from "../i18n/index.js";
 
-const SEAT_LABELS: Record<number, string> = { 1: "下家CPU", 2: "対面CPU", 3: "上家CPU" };
 
 export type PanelCorner = "top" | "right" | "left" | "bottom";
 
@@ -109,7 +108,7 @@ export function CharacterPanel({
       </div>
       <div className="character-panel__body">
         {/* キャラクター名は出さない（アイコンを押すと名前と能力が見られる）。キャラ未設定の席だけ、席の呼び名を出す。 */}
-        {!character && <div className="character-panel__name character-panel__name--split">{SEAT_LABELS[player]}</div>}
+        {!character && <div className="character-panel__name character-panel__name--split">{t(cpuSeatKey(player))}</div>}
         {onlineSeat && (
           <div className="character-panel__player">
             {/* 名前は最長12文字。切らずに全部見せる（幅に入らなければ2行に折り返す）。

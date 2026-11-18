@@ -5,19 +5,19 @@ import { playVoiceClip } from "../sound.js";
 import { useKyushuPreview } from "../store/kyushuPreview.js";
 import { stampArt } from "../online/stampArt.js";
 import { onlineLink, setStampsMuted, showStamp, useOnlineStore } from "../online/onlineLink.js";
-import { useT } from "../i18n/index.js";
+import { useT, seatKey } from "../i18n/index.js";
 
 /** 届いたスタンプを出しておく時間。 */
 const STAMP_SHOW_MS = 3500;
 
 /** OpponentArea.tsx等と同じ呼び方（自分から見た座席番号）。 */
-const SEAT_LABELS = ["あなた", "下家", "対面", "上家"];
 
 /**
  * 届いたスタンプの吹き出し。送った人の席の側に数秒出す。卓と一緒に拡大縮小されるよう、
  * Stageの中に置く。「表示しない」にしている間は出さない。
  */
 export function OnlineStampBubbles() {
+  const t = useT();
   const stamps = useOnlineStore((s) => s.stamps);
   const muted = useOnlineStore((s) => s.stampsMuted);
   const seats = useGameStore((s) => s.onlineSeats);
@@ -58,7 +58,7 @@ export function OnlineStampBubbles() {
             <div key={s.key} className={`online-stamp online-stamp--seat${s.seat}`}>
               {character && <img className="online-stamp__avatar" src={character.avatar} alt="" />}
               <div className="online-stamp__bubble">
-                <span className="online-stamp__name">{seats?.[s.seat]?.name ?? SEAT_LABELS[s.seat]}</span>
+                <span className="online-stamp__name">{seats?.[s.seat]?.name ?? t(seatKey(s.seat))}</span>
                 <span className="online-stamp__text">{stamp.text}</span>
               </div>
             </div>

@@ -7,9 +7,9 @@ import { playVoiceQueue } from "../sound.js";
 import { meldDisplaySlots } from "../meldDisplay.js";
 import { MatchVictoryOverlay } from "./MatchVictoryOverlay.js";
 import { TileView } from "./TileView.js";
-import { useT } from "../i18n/index.js";
+import { useT, seatKey, type MessageKey } from "../i18n/index.js";
 
-const PLAYER_NAMES: Record<number, string> = { 0: "あなた", 1: "下家", 2: "対面", 3: "上家" };
+const seatLabel = (t: (k: MessageKey) => string, seat: number) => t(seatKey(seat));
 
 /** 役の読み上げ中は先へ進めないが、音声が終わりを知らせずに止まった時のための上限。 */
 const READING_MAX_MS = 20000;
@@ -108,22 +108,22 @@ function resolveYakuVoiceClip(character: Character, y: YakuResult, round: RoundS
 }
 
 /** 役満でない13翻以上は「数え役満」と表示する（ボイスのキーは「役満」のまま）。 */
-function limitLabel(han: number, limitName: string): string {
-  return limitName === "役満" && han >= 13 ? "数え役満" : limitName;
+function limitLabel(han: number, limitName: string, t: (k: MessageKey) => string): string {
+  return limitName === "役満" && han >= 13 ? t("limit.countedYakuman") : limitName === "役満" ? t("limit.yakuman") : limitName;
 }
 
 /** 満貫・跳満・倍満・三倍満・役満の読み上げの直前に空ける間（ms）。 */
 const LIMIT_VOICE_PAUSE_MS = 1200;
 
-function resultTitle(round: RoundState): string {
+function resultTitle(round: RoundState, t: (k: MessageKey, p?: Record<string, string | number>) => string): string {
   const r = round.result!;
-  if (r.type === "tsumo") return `${PLAYER_NAMES[r.winners[0]!]} のツモ和了`;
-  if (r.type === "ron") return `${r.winners.map((w) => PLAYER_NAMES[w]).join("・")} のロン和了`;
-  if (r.type === "exhaustive-draw") return r.nagashiPlayers?.length ? "流局（流し満貫）" : "流局（荒牌平局）";
-  if (r.abortReason === "four-winds") return "流局（四風連打）";
-  if (r.abortReason === "four-riichi") return "流局（四家立直）";
+  if (r.type === "tsumo") return t("result.tsumo", { who: t(seatKey(r.winners[0]!)) });
+  if (r.type === "ron") return t("result.ron", { who: r.winners.map((w) => t(seatKey(w))).join(t("common.middleDot")) });
+  if (r.type === "exhaustive-draw") return r.nagashiPlayers?.length ? t("result.nagashi") : t("result.exhaustive");
+  if (r.abortReason === "four-winds") return t("result.fourWinds");
+  if (r.abortReason === "four-riichi") return t("result.fourRiichi");
   // 九種九牌だけが宣言者を持つ。宣言者のいない途中流局は四槓散了。
-  return r.declarer !== undefined ? "流局（九種九牌）" : "流局（四槓散了）";
+  return r.declarer !== undefined ? t("result.nineTiles") : t("result.fourKans");
 }
 
 export function ScoreResult({ round, outcome }: { round: RoundState; outcome: RoundScoreOutcome }) {
@@ -212,7 +212,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
   return (
     <div className="modal-overlay">
       <div className="modal modal--result">
-        <h2>{resultTitle(round)}</h2>
+        <h2>{resultTitle(round, t)}</h2>
         {/* 画面の高さに収まるよう、左に和了・流局の内容、右に順位と次へのボタンを並べる。 */}
         <div className="result-cols">
           <div className="result-cols__left">
@@ -223,7 +223,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
           const showUraDora = winner.riichi || winner.doubleRiichi;
           return (
             <div key={player} className="win-detail">
-              <div className="win-detail__player">{PLAYER_NAMES[player]}</div>
+              <div className="win-detail__player">{seatLabel(t, player)}</div>
               <WinningHandView round={round} player={player} />
               {player === round.dealerSeat && round.honba > 0 && hasCard(round, player, "dealer-honba-boost") && (
                 <div className="score-card-notes">{t("scoreResult.t7", { honba: round.honba })}</div>
@@ -256,7 +256,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               <div className="win-detail__score">
                 {analysis.isYakuman
                   ? t("scoreResult.t11", { v1: score.limitName ?? t("scoreResult.t9"), total: score.payments.total })
-                  : t("scoreResult.t12", { han: analysis.han, fu: analysis.fu, total: score.payments.total, v1: score.limitName ? `（${limitLabel(analysis.han, score.limitName)}）` : "" })}
+                  : t("scoreResult.t12", { han: analysis.han, fu: analysis.fu, total: score.payments.total, v1: score.limitName ? `（${limitLabel(analysis.han, score.limitName, t)}）` : "" })}
               </div>
             </div>
           );
@@ -264,7 +264,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
 
         {round.result?.type === "exhaustive-draw" && (
           <div className="tenpai-list">
-            <div className="tenpai-list__label">{t("scoreResult.t13", { v1: (round.result.tenpaiPlayers ?? []).map((p) => PLAYER_NAMES[p]).join("、") || t("cardSlot.t10") })}</div>
+            <div className="tenpai-list__label">{t("scoreResult.t13", { v1: (round.result.tenpaiPlayers ?? []).map((p) => t(seatKey(p))).join("、") || t("cardSlot.t10") })}</div>
             {/* 実際の麻雀のルール通り、荒牌流局時はテンパイを申告した者の手牌を
                 開示する（ノーテン者は開示不要のため対象外）。名前だけでは
                 「本当にテンパイしていたか」が分からず不透明だったため。 */}
@@ -277,7 +277,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               const waits = getWaitingTiles(round.players[p]!.hand);
               return (
                 <div key={p} className="win-detail">
-                  <div className="win-detail__player">{PLAYER_NAMES[p]}</div>
+                  <div className="win-detail__player">{seatLabel(t, p)}</div>
                   <WinningHandView round={round} player={p} />
                   {waits.length > 0 && (
                     <div className="wait-row">
@@ -305,7 +305,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               <div key={i} className={`rank-card rank-card--${rank + 1}`}>
                 <img className="rank-card__avatar" src={CHARACTERS[round.characterIds[i]!]?.avatar ?? `/avatars/seat${i}.svg`} alt="" />
                 <div className="rank-card__body">
-                  <div className="rank-card__name">{PLAYER_NAMES[i]}</div>
+                  <div className="rank-card__name">{seatLabel(t, i)}</div>
                   <div className="rank-card__score-row">
                     <span className="rank-card__rank">{t("historyStats.t30", { v1: rank + 1 })}</span>
                     <span className="rank-card__score">{t("scoreResult.t14", { s })}</span>
@@ -331,7 +331,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
               <ul className="score-card-notes">
                 {match.finalBonusNotes.map((n, i) => (
                   <li key={i}>
-                    カード「{n.title}」 {PLAYER_NAMES[n.seat]}：<strong className={n.delta >= 0 ? "delta-positive" : "delta-negative"}>{t("scoreResult.t16", { v1: n.delta >= 0 ? "+" : "", delta: n.delta })}</strong>
+                    {t("result.finalBonusNote", { title: n.title, who: seatLabel(t, n.seat) })}<strong className={n.delta >= 0 ? "delta-positive" : "delta-negative"}>{t("scoreResult.t16", { v1: n.delta >= 0 ? "+" : "", delta: n.delta })}</strong>
                   </li>
                 ))}
               </ul>
@@ -339,7 +339,7 @@ export function ScoreResult({ round, outcome }: { round: RoundState; outcome: Ro
             {rankResult && (
               <div className="score-rank-result">
                 <div className="score-rank-result__place">
-                  <strong>{rankResult.place}</strong>位
+                  <strong>{rankResult.place}</strong>{t("common.rankSuffix")}
                 </div>
                 <div className="score-rank-result__body">
                   <div className="score-rank-result__ranks">

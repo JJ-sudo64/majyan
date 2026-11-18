@@ -3,7 +3,7 @@ import { CARDS, CHARACTERS, type AiDifficulty, type MatchFormat } from "@majyan/
 import { useGameStore, type CpuDifficultySettings } from "../store/gameStore.js";
 import { playUiClickFor } from "../sound.js";
 import { CardSlot, CardSlotPicker, slotLabel, type SlotKind } from "./CardSlot.js";
-import { useT } from "../i18n/index.js";
+import { useT, type MessageKey } from "../i18n/index.js";
 
 const CHARACTER_LIST = Object.values(CHARACTERS);
 /** その種類のカードのID（定義順）。カード欄を開いた時の選択肢になる。 */
@@ -26,20 +26,14 @@ function splitCharacterName(fullName: string): { title: string; shortName: strin
   return { title: fullName.slice(0, sep), shortName: fullName.slice(sep + 1) };
 }
 
-const DIFFICULTY_LABELS: Record<AiDifficulty, string> = {
-  1: "Lv1 初心者",
-  2: "Lv2 弱め",
-  3: "Lv3 普通",
-  4: "Lv4 強め",
-  5: "Lv5 最強",
-};
+const DIFFICULTY_KEYS = { 1: "difficulty.1", 2: "difficulty.2", 3: "difficulty.3", 4: "difficulty.4", 5: "difficulty.5" } as const satisfies Record<AiDifficulty, MessageKey>;
 const DIFFICULTY_OPTIONS: AiDifficulty[] = [1, 2, 3, 4, 5];
 
 /** OpponentArea.tsxのNAMESと表記を合わせてある（下家→対面→上家の順）。 */
-const CPU_SEATS: { player: 1 | 2 | 3; label: string }[] = [
-  { player: 1, label: "下家CPU" },
-  { player: 2, label: "対面CPU" },
-  { player: 3, label: "上家CPU" },
+const CPU_SEATS: { player: 1 | 2 | 3; label: MessageKey }[] = [
+  { player: 1, label: "seat.cpu1" },
+  { player: 2, label: "seat.cpu2" },
+  { player: 3, label: "seat.cpu3" },
 ];
 
 export function MatchSetup({ onBack }: { onBack: () => void }) {
@@ -196,7 +190,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
             <div className="setup-cpu-difficulty">
               {CPU_SEATS.map(({ player, label }) => (
                 <div key={player} className="setup-cpu-difficulty__row">
-                  <span className="setup-cpu-difficulty__name">{label}</span>
+                  <span className="setup-cpu-difficulty__name">{t(label)}</span>
                   <div className="setup-cpu-difficulty__selects">
                     <select
                       value={cpuCharacterIds[player] ?? ""}
@@ -217,7 +211,7 @@ export function MatchSetup({ onBack }: { onBack: () => void }) {
                     >
                       {DIFFICULTY_OPTIONS.map((level) => (
                         <option key={level} value={level}>
-                          {DIFFICULTY_LABELS[level]}
+                          {t(DIFFICULTY_KEYS[level])}
                         </option>
                       ))}
                     </select>

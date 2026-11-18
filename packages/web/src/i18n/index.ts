@@ -55,4 +55,14 @@ export function windKey(wind: 1 | 2 | 3 | 4): MessageKey {
   return `wind.${wind}` as MessageKey;
 }
 
+/** 座席（0=自分 1=下家 2=対面 3=上家）の呼び名のキー。 */
+export function seatKey(seat: number): MessageKey {
+  return `seat.${seat}` as MessageKey;
+}
+
+/** CPU席（1=下家 2=対面 3=上家）の呼び名のキー。 */
+export function cpuSeatKey(seat: number): MessageKey {
+  return `seat.cpu${seat}` as MessageKey;
+}
+
 export type { MessageKey };
