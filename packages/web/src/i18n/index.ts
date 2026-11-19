@@ -3,8 +3,10 @@ import { Fragment, createElement, type ReactNode } from "react";
 import { ja, type MessageKey } from "./ja.js";
 import { en } from "./en.js";
 import { zh } from "./zh.js";
+import { zhHant } from "./zh-hant.js";
 import { enData } from "./en-data.js";
 import { zhData } from "./zh-data.js";
+import { zhHantData } from "./zh-hant-data.js";
 import { applyDataLocale } from "./dataOverlay.js";
 
 /** 対応言語。新しい言語を足すときは、ここに足して dictionaries に辞書を登録する。 */
@@ -12,13 +14,14 @@ export const LOCALES = [
   { id: "ja", label: "日本語", tag: "ja-JP" },
   { id: "en", label: "English", tag: "en-US" },
   { id: "zh", label: "简体中文", tag: "zh-CN" },
+  { id: "zh-Hant", label: "繁體中文", tag: "zh-TW" },
 ] as const;
 export type Locale = (typeof LOCALES)[number]["id"];
 
 type Dictionary = Partial<Record<MessageKey, string>>;
-const dictionaries: Record<Locale, Dictionary> = { ja, en, zh };
+const dictionaries: Record<Locale, Dictionary> = { ja, en, zh, "zh-Hant": zhHant };
 /** キャラクター・カードの日本語原文 → 翻訳。日本語は原文のままなので空。 */
-const dataTables: Record<Locale, Record<string, string>> = { ja: {}, en: enData, zh: zhData };
+const dataTables: Record<Locale, Record<string, string>> = { ja: {}, en: enData, zh: zhData, "zh-Hant": zhHantData };
 
 const STORAGE_KEY = "majyan.locale";
 
@@ -35,6 +38,7 @@ function loadInitialLocale(): Locale {
     // 初めて開いた人は、ブラウザの言語が英語なら英語で始める（日本語のブラウザは今まで通り日本語）。
     const nav = navigator.language.toLowerCase();
     if (nav.startsWith("en")) return "en";
+    if (/^zh-(tw|hk|mo|hant)/.test(nav)) return "zh-Hant";
     if (nav.startsWith("zh")) return "zh";
   } catch {
     // localStorageが使えない環境では既定の日本語で始める

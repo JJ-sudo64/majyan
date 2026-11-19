@@ -2,13 +2,15 @@
 import { ja } from "../packages/web/src/i18n/ja.ts";
 import { en } from "../packages/web/src/i18n/en.ts";
 import { zh } from "../packages/web/src/i18n/zh.ts";
+import { zhHant } from "../packages/web/src/i18n/zh-hant.ts";
+import { zhHantData } from "../packages/web/src/i18n/zh-hant-data.ts";
 import { enData } from "../packages/web/src/i18n/en-data.ts";
 import { zhData } from "../packages/web/src/i18n/zh-data.ts";
 import { dataSourceTexts } from "../packages/web/src/i18n/dataOverlay.ts";
 
 const slots = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]!).sort().join(",");
 let bad = 0;
-for (const [name, dict] of [["en", en], ["zh", zh]] as const) {
+for (const [name, dict] of [["en", en], ["zh", zh], ["zh-Hant", zhHant]] as const) {
   const missing = Object.keys(ja).filter((k) => !(k in dict));
   const extra = Object.keys(dict).filter((k) => !(k in ja));
   const mismatch = Object.keys(dict).filter((k) => k in ja && slots((ja as Record<string, string>)[k]!) !== slots((dict as Record<string, string>)[k]!));
@@ -20,7 +22,7 @@ for (const [name, dict] of [["en", en], ["zh", zh]] as const) {
 }
 // キャラクター・カード・役名・チュートリアルなどの対訳表（原文 → 各言語）の抜け・余り
 const sources = new Set(dataSourceTexts());
-for (const [name, table] of [["en-data", enData], ["zh-data", zhData]] as const) {
+for (const [name, table] of [["en-data", enData], ["zh-data", zhData], ["zh-hant-data", zhHantData]] as const) {
   const missing = [...sources].filter((t) => !(t in table) || !(table as Record<string, string>)[t]);
   const extra = Object.keys(table).filter((t) => !sources.has(t));
   console.log(`${name}: 抜け ${missing.length} / 余り ${extra.length}`);

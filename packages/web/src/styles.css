@@ -10692,3 +10692,14 @@ html:lang(zh) .online-home {
 html:lang(zh) {
   --cf-font: "Songti SC", "SimSun", "Noto Serif SC", "STSong", serif;
 }
+
+/* 繁体字（台湾）表示時の書体。 */
+html:lang(zh-TW) body {
+  font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Hiragino Sans CNS", system-ui, sans-serif;
+}
+html:lang(zh-TW) .online-home {
+  --oh-serif: "Songti TC", "PMingLiU", "Noto Serif TC", "STSong", serif;
+}
+html:lang(zh-TW) {
+  --cf-font: "Songti TC", "PMingLiU", "Noto Serif TC", "STSong", serif;
+}
