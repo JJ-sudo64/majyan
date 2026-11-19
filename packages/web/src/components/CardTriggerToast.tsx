@@ -47,7 +47,8 @@ export function CardTriggerToast({ round }: { round: RoundState }) {
     const who = CHARACTERS[round.characterIds[trigger.seat]!]?.name ?? "";
     setShown({
       title: trigger.title.endsWith("は不発") ? tr("trigger.fizzle", { name: tx(trigger.title.slice(0, -3)) }) : tx(trigger.title),
-      detail: tx(trigger.detail),
+      // カード使用の説明は、coreが1文目を「。」なしで渡す。辞書は「。」つきで持つので、そちらも引く。
+      detail: tx(trigger.detail) !== trigger.detail ? tx(trigger.detail) : tx(`${trigger.detail}。`).replace(/。$/, ""),
       who,
       key: keyRef.current,
       cardId: trigger.cardId,
