@@ -8,6 +8,7 @@ import { pathToFileURL } from "node:url";
 import { join } from "node:path";
 import { zh } from "../packages/web/src/i18n/zh.ts";
 import { zhData } from "../packages/web/src/i18n/zh-data.ts";
+import { ZH } from "./official-zh.mjs";
 
 const dir = process.env.OPENCC_DIR;
 if (!dir) throw new Error("OPENCC_DIR（opencc-js を入れたフォルダ）を指定してください");
@@ -28,5 +29,10 @@ writeFileSync(
 writeFileSync(
   "packages/web/src/i18n/zh-hant-data.ts",
   `/** 角色・卡牌・役名等的對譯（日語原文 → 繁體中文）。由 scripts/gen-zh-hant.mts 從 zh-data.ts 機械轉換而成。 */\nexport const zhHantData: Record<string, string> = {\n${body(zhData, false)}\n};\n`,
+);
+// 公式ページ（/zh-tw/）の置き換え表
+writeFileSync(
+  "scripts/official-zh-hant.mjs",
+  `/** 公式ページ繁体字版（/zh-tw/）の文言。official-zh.mjs を scripts/gen-zh-hant.mts で機械変換したもの（手で直さない）。 */\nexport const ZH_HANT = [\n${ZH.map((v: string) => `  ${JSON.stringify(fix(v))},`).join("\n")}\n];\n`,
 );
 console.log("生成しました");

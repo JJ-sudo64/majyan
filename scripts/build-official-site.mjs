@@ -82,14 +82,17 @@ for (const url of [...used].sort()) {
 if (missing.length > 0) throw new Error(`ページが使う素材が見つかりません:\n  ${missing.join("\n  ")}`);
 
 // 英語版（/en/）。日本語版の文言を英語に置き換えて作る。言語どうしの対応づけ（hreflang）は両方に付ける。
-const alternates = `<link rel="alternate" hreflang="ja" href="${SITE_URL}/" />\n<link rel="alternate" hreflang="en" href="${SITE_URL}/en/" />\n<link rel="alternate" hreflang="x-default" href="${SITE_URL}/" />\n</head>`;
+const alternates = `<link rel="alternate" hreflang="ja" href="${SITE_URL}/" />\n<link rel="alternate" hreflang="en" href="${SITE_URL}/en/" />\n<link rel="alternate" hreflang="zh-CN" href="${SITE_URL}/zh/" />\n<link rel="alternate" hreflang="zh-TW" href="${SITE_URL}/zh-tw/" />\n<link rel="alternate" hreflang="x-default" href="${SITE_URL}/" />\n</head>`;
 const enHtml = buildEnglishPage(html, { siteUrl: SITE_URL, gameUrl: GAME_URL }).replace("</head>", () => alternates);
 const zhHtml = buildChinesePage(html, { siteUrl: SITE_URL, gameUrl: GAME_URL }).replace("</head>", () => alternates);
+const zhHantHtml = buildChinesePage(html, { siteUrl: SITE_URL, gameUrl: GAME_URL, variant: "hant" }).replace("</head>", () => alternates);
 html = html.replace("</head>", () => alternates);
 mkdirSync(join(out, "en"), { recursive: true });
 writeFileSync(join(out, "en", "index.html"), enHtml);
 mkdirSync(join(out, "zh"), { recursive: true });
 writeFileSync(join(out, "zh", "index.html"), zhHtml);
+mkdirSync(join(out, "zh-tw"), { recursive: true });
+writeFileSync(join(out, "zh-tw", "index.html"), zhHantHtml);
 
 // 法的ページ（特商法・規約・プライバシー）。販売者の情報が未記入なら作らず、リンクも付けない。
 const legal = await buildLegalPages({ root, out, siteUrl: SITE_URL });
@@ -108,12 +111,12 @@ const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 writeFileSync(join(out, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 writeFileSync(
   join(out, "sitemap.xml"),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${SITE_URL}/</loc>\n    <lastmod>${today}</lastmod>\n  </url>\n  <url>\n    <loc>${SITE_URL}/en/</loc>\n    <lastmod>${today}</lastmod>\n  </url>\n${(legal.files ?? []).map((n) => `  <url>\n    <loc>${SITE_URL}/${n.replace(/.html$/, "")}</loc>\n    <lastmod>${today}</lastmod>\n  </url>\n`).join("")}</urlset>\n`,
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${SITE_URL}/</loc>\n    <lastmod>${today}</lastmod>\n  </url>\n  <url>\n    <loc>${SITE_URL}/en/</loc>\n    <lastmod>${today}</lastmod>\n  </url>\n  <url>\n    <loc>${SITE_URL}/zh/</loc>\n    <lastmod>${today}</lastmod>\n  </url>\n  <url>\n    <loc>${SITE_URL}/zh-tw/</loc>\n    <lastmod>${today}</lastmod>\n  </url>\n${(legal.files ?? []).map((n) => `  <url>\n    <loc>${SITE_URL}/${n.replace(/.html$/, "")}</loc>\n    <lastmod>${today}</lastmod>\n  </url>\n`).join("")}</urlset>\n`,
 );
 // ページ本体はすぐ更新を反映（毎回確認）、画像・動画は1日キャッシュ。
 writeFileSync(
   join(out, "_headers"),
-  ["/", "  Cache-Control: public, max-age=0, must-revalidate", "/en/", "  Cache-Control: public, max-age=0, must-revalidate", "/zh/", "  Cache-Control: public, max-age=0, must-revalidate", "/*.webp", "  Cache-Control: public, max-age=86400", "/*.png", "  Cache-Control: public, max-age=86400", "/*.mp4", "  Cache-Control: public, max-age=86400", ""].join("\n"),
+  ["/", "  Cache-Control: public, max-age=0, must-revalidate", "/en/", "  Cache-Control: public, max-age=0, must-revalidate", "/zh/", "  Cache-Control: public, max-age=0, must-revalidate", "/zh-tw/", "  Cache-Control: public, max-age=0, must-revalidate", "/*.webp", "  Cache-Control: public, max-age=86400", "/*.png", "  Cache-Control: public, max-age=86400", "/*.mp4", "  Cache-Control: public, max-age=86400", ""].join("\n"),
 );
 
 console.log(`official-site/ を作りました: ${count}ファイル + index.html・robots.txt・sitemap.xml・_headers（素材 ${(totalBytes / 1048576).toFixed(1)}MB）`);

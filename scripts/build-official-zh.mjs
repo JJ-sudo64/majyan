@@ -9,18 +9,25 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { REPLACEMENTS } from "./build-official-en.mjs";
 import { ZH } from "./official-zh.mjs";
+import { ZH_HANT } from "./official-zh-hant.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-function loadZhData() {
-  const src = readFileSync(join(root, "packages/web/src/i18n/zh-data.ts"), "utf8");
-  return JSON.parse(src.slice(src.indexOf("{", src.indexOf("zhData")), src.lastIndexOf("}") + 1).replace(/,\s*}$/, "}"));
+function loadZhData(file, name) {
+  const src = readFileSync(join(root, "packages/web/src/i18n", file), "utf8");
+  return JSON.parse(src.slice(src.indexOf("{", src.indexOf(name)), src.lastIndexOf("}") + 1).replace(/,\s*}$/, "}"));
 }
+
+/** 簡体字版(hans)と繁体字版(hant)の違い。 */
+const VARIANTS = {
+  hans: { table: ZH, dataFile: "zh-data.ts", dataName: "zhData", path: "zh", gameLang: "zh", tag: "zh-CN", locale: "zh_CN", moreLeftover: [] },
+  hant: { table: ZH_HANT, dataFile: "zh-hant-data.ts", dataName: "zhHantData", path: "zh-tw", gameLang: "zh-Hant", tag: "zh-TW", locale: "zh_TW", moreLeftover: [] },
+};
 
 const TYPE_ZH = { パッシブ: "被动", アクティブ: "主动" };
 
 /** 置き換え表の番号ずれを検出する（日本語と中国語で、タグや引用符の付き方が揃っているか）。 */
-function checkAlignment() {
+function checkAlignment(ZH) {
   if (ZH.length !== REPLACEMENTS.length) throw new Error(`official-zh.mjs の件数（${ZH.length}）が置き換え表（${REPLACEMENTS.length}）と違います`);
   REPLACEMENTS.forEach(([ja], i) => {
     const zh = ZH[i];
@@ -31,9 +38,11 @@ function checkAlignment() {
 }
 
 /** 日本語版のHTML（住所の書き換えまで済んだもの）から、中国語版のHTMLを作る。 */
-export function buildChinesePage(html, { siteUrl, gameUrl }) {
-  checkAlignment();
-  const zhData = loadZhData();
+export function buildChinesePage(html, { siteUrl, gameUrl, variant = "hans" }) {
+  const v = VARIANTS[variant];
+  const ZH = v.table;
+  checkAlignment(ZH);
+  const zhData = loadZhData(v.dataFile, v.dataName);
   let out = html;
 
   const tr = (text) => {
@@ -64,19 +73,23 @@ export function buildChinesePage(html, { siteUrl, gameUrl }) {
     out = out.split(ja).join(ZH[i]);
   });
 
+  // 言語タグ（簡体字版の表は zh-CN のまま。繁体字版は zh-TW に直す）。
+  out = out.replace('<html lang="zh-CN">', `<html lang="${v.tag}">`).replace('content="zh_CN"', `content="${v.locale}"`).replace('"inLanguage": "zh-CN"', `"inLanguage": "${v.tag}"`);
+
   // 検索・共有まわり（中国語版の住所、言語の対応づけ）。
-  const zhUrl = `${siteUrl}/zh/`;
+  const zhUrl = `${siteUrl}/${v.path}/`;
   out = out
     .replace(`<link rel="canonical" href="${siteUrl}/" />`, `<link rel="canonical" href="${zhUrl}" />`)
     .replace(`property="og:url" content="${siteUrl}/"`, `property="og:url" content="${zhUrl}"`)
     .replace(`"url": "${siteUrl}/",`, `"url": "${zhUrl}",`)
-    .replace(`"url": "${gameUrl}/"`, `"url": "${gameUrl}/?lang=zh"`);
+    .replace(`"url": "${gameUrl}/"`, `"url": "${gameUrl}/?lang=${v.gameLang}"`);
   // ゲームへのリンクは、中国語で開くよう lang=zh を付ける。
-  out = out.replaceAll(`href="${gameUrl}/"`, `href="${gameUrl}/?lang=zh"`);
+  out = out.replaceAll(`href="${gameUrl}/"`, `href="${gameUrl}/?lang=${v.gameLang}"`);
   // フッターの言語リンク: 日本語版への行き先と英語版を出す（日本語版にある英語・中国語のリンクを差し替える）。
-  out = out
-    .replace(`<a href="${siteUrl}/en/" hreflang="en">English</a>`, `<a href="${siteUrl}/" hreflang="ja">日本語</a>`)
-    .replace(`<a href="${siteUrl}/zh/" hreflang="zh-CN">简体中文</a>`, `<a href="${siteUrl}/en/" hreflang="en">English</a>`);
+  const hansLink = `<a href="${siteUrl}/zh/" hreflang="zh-CN">简体中文</a>`;
+  const hantLink = `<a href="${siteUrl}/zh-tw/" hreflang="zh-TW">繁體中文</a>`;
+  out = out.replace(`<a href="${siteUrl}/en/" hreflang="en">English</a>`, `<a href="${siteUrl}/" hreflang="ja">日本語</a>`);
+  out = out.replace(variant === "hans" ? hansLink : hantLink, `<a href="${siteUrl}/en/" hreflang="en">English</a>`);
 
   // 日本語のかなが残っていないか確認する（コメント・日本語への言語リンクは除く）。
   const visible = out
@@ -86,7 +99,7 @@ export function buildChinesePage(html, { siteUrl, gameUrl }) {
     .filter((l) => !/^\s*\/\//.test(l))
     .map((l) => l.replace(/\s\/\/\s.*$/, ""))
     .join("\n");
-  const left = [...new Set(visible.match(/[^\n<>"`]*[぀-ヺー-ヿ][^\n<>"`]*/g) ?? [])].filter((x) => !x.includes("日本語") && !x.includes("じゃんはい"));
+  const left = [...new Set(visible.match(/[^\n<>"`]*[぀-ヺー-ヿ][^\n<>"`]*/g) ?? [])].filter((x) => !x.includes("日本語") && !x.includes("简体中文") && !x.includes("繁體中文") && !x.includes("じゃんはい"));
   if (left.length > 0) throw new Error(`中国語版に日本語が残っています:\n${left.slice(0, 15).join("\n")}`);
   return out;
 }

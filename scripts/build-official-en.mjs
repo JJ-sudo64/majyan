@@ -317,7 +317,7 @@ export function buildEnglishPage(html, { siteUrl, gameUrl }) {
     .filter((l) => !/^\s*\/\//.test(l))
     .map((l) => l.replace(/\s\/\/\s.*$/, ""))
     .join("\n");
-  const left = [...new Set(visible.match(/[^\n<>"`]*[\u3040-\u30ff\u4e00-\u9fff][^\n<>"`]*/g) ?? [])].filter((x) => !x.includes("日本語") && !x.includes("简体中文") && !x.includes("じゃんはい"));
+  const left = [...new Set(visible.match(/[^\n<>"`]*[\u3040-\u30ff\u4e00-\u9fff][^\n<>"`]*/g) ?? [])].filter((x) => !x.includes("日本語") && !x.includes("简体中文") && !x.includes("繁體中文") && !x.includes("じゃんはい"));
   if (left.length > 0) throw new Error(`英語版に日本語が残っています:\n${left.slice(0, 15).join("\n")}`);
   return out;
 }
