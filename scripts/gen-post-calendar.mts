@@ -86,3 +86,37 @@ ids.forEach((id, i) => {
 });
 writeFileSync("drafts/posts-en.md", pe);
 console.log("posts-en:", ids.length, "days");
+
+// --- 簡体字中国語版。出力: drafts/posts-zh.md。対訳は packages/web/src/i18n/zh-data.ts。
+import { zhData } from "../packages/web/src/i18n/zh-data.ts";
+const ZH_URL = "https://janhai.maxplantlabs.com/zh/";
+const zhT = (t: string): string => zhData[t] ?? t;
+const videoOfZh = (id: string) => (existsSync(`drafts/shorts/play-zh/${id}.mp4`) ? `drafts/shorts/play-zh/${id}.mp4` : `${videoOf(id)} (日语界面)`);
+const firstZh = (t: string) => (t.split("。")[0] ?? t) + "。";
+
+let pz = `# 中文投稿文（X / 抖音以外的短视频平台 / Reels / Shorts 等）
+
+顺序和视频与 post-calendar.md 相同。视频：drafts/shorts/play-zh/ 是中文界面的实机录像（带简体字幕）；没有的角色用日语界面的视频（已标注）。
+每次发布前确认：开启“AI生成内容”标识；链接放在个人简介里（TikTok/Reels 的文案链接无法点击）；在目标时区的晚间发布。
+X 的字数：汉字算2、半角算1、链接算23，280以内。
+
+`;
+ids.forEach((id, i) => {
+  const c = all[id];
+  const full = zhT(c.name); // "绽放的巫女·柊"
+  const dot = full.lastIndexOf("·");
+  const short = dot >= 0 ? full.slice(dot + 1) : full;
+  const epithet = dot >= 0 ? full.slice(0, dot) : "";
+  const skill = zhT(c.skill.name);
+  const first = firstZh(zhT(c.skill.description));
+  const quote = zhT(c.winQuote);
+  const head = `【${short}】${epithet ? `${epithet}` : ""}的必杀技「${skill}」\n${first}\n\n`;
+  const tail = `免费・无需注册，浏览器就能玩的异能麻将『雀杯』\n${ZH_URL}\n#雀杯 #日麻 #立直麻将`;
+  const withQuote = `${head}「${quote}」\n\n${tail}`;
+  const post = weight(withQuote.replace(ZH_URL, EN_URL)) <= 280 ? withQuote : `${head}${tail}`;
+  pz += `## 第${i + 1}天：${short}（视频 \`${videoOfZh(id)}\`）\n\n**X**\n\n${FENCE}\n${post}\n${FENCE}\n（X换算 ${weight(post.replace(ZH_URL, EN_URL))}/280${post === withQuote ? "" : "，台词太长已省略"}）\n\n`;
+  pz += `**短视频平台 / Reels**\n\n${FENCE}\n${short}的必杀技「${skill}」🀄 ${first}免费・无需注册→主页链接\n#雀杯 #日麻 #立直麻将 #浏览器游戏 #独立游戏\n${FENCE}\n\n`;
+  pz += `**YouTube Shorts**（标题100字以内）\n\n${FENCE}\n【${short}】必杀技「${skill}」｜异能立直麻将 #Shorts #雀杯\n${FENCE}\n\n`;
+});
+writeFileSync("drafts/posts-zh.md", pz);
+console.log("posts-zh:", ids.length, "days");

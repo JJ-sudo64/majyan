@@ -22,6 +22,7 @@ list += lastFile + "\n";
 fs.writeFileSync(path.join(dir, "list.txt"), list);
 
 // 字幕（textfile）
+const LANG = process.env.CLIP_LANG ?? "en"; // en | zh | zh-Hant
 const wrap = (t, w) => {
   const words = t.split(" ");
   const lines = [];
@@ -32,13 +33,31 @@ const wrap = (t, w) => {
   if (cur) lines.push(cur);
   return lines.join("\n");
 };
+// 中国語は単語の区切りが無いので、文字数で折り返す。
+const wrapCjk = (t, w) => {
+  // 句読点や閉じ括弧は行頭に来ないよう、前の行の末尾に付ける。
+  const noStart = new Set("。、，．）」』】！？；：…");
+  const lines = [];
+  let cur = "";
+  for (const ch of [...t]) {
+    if ([...cur].length >= w && !noStart.has(ch)) { lines.push(cur); cur = ""; }
+    cur += ch;
+  }
+  if (cur) lines.push(cur);
+  return lines.join("\n");
+};
+const TEXTS = {
+  en: { t1: (c) => `"${c.skill}"!`, t2: (c) => wrap(c.first, 38), t3: (c) => `${c.short}'s skill "${c.skill}"`, t4: "Free, no sign-up   janhai.maxplantlabs.com", font: "segoeuib.ttf" },
+  zh: { t1: (c) => `「${c.skill}」发动！`, t2: (c) => wrapCjk(c.first, 19), t3: (c) => `${c.short}的必杀技「${c.skill}」`, t4: "免费・无需注册　janhai.maxplantlabs.com/zh/", font: "msyhbd.ttc" },
+  "zh-Hant": { t1: (c) => `「${c.skill}」發動！`, t2: (c) => wrapCjk(c.first, 19), t3: (c) => `${c.short}的必殺技「${c.skill}」`, t4: "免費・無需註冊　janhai.maxplantlabs.com/zh-tw/", font: "msjhbd.ttc" },
+}[LANG];
 const tf = (name, text) => { const p = path.join(dir, name).replace(/\\/g, "/"); fs.writeFileSync(p, text); return p; };
 const esc = (p) => p.replace(/:/g, "\\:");
-const t1 = tf("t1.txt", `"${caps.skill}"!`);
-const t2 = tf("t2.txt", wrap(caps.first, 38));
-const t3 = tf("t3.txt", `${caps.short}'s skill "${caps.skill}"`);
-const t4 = tf("t4.txt", "Free, no sign-up   janhai.maxplantlabs.com");
-const FB = "C\\:/Windows/Fonts/segoeuib.ttf";
+const t1 = tf("t1.txt", TEXTS.t1(caps));
+const t2 = tf("t2.txt", TEXTS.t2(caps));
+const t3 = tf("t3.txt", TEXTS.t3(caps));
+const t4 = tf("t4.txt", TEXTS.t4);
+const FB = `C\\:/Windows/Fonts/${TEXTS.font}`;
 const dt = (f, size, y, color) => `drawtext=fontfile='${FB}':textfile='${esc(f)}':fontsize=${size}:fontcolor=${color}:borderw=3:bordercolor=black@0.8:x=(w-text_w)/2:y=${y}`;
 const t3size = caps.skill.length > 22 ? 48 : 56;
 const vf = [
@@ -46,7 +65,7 @@ const vf = [
   "[a]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=40:5,eq=brightness=-0.25[bg]",
   "[b]scale=1080:-2[fg]",
   "[bg][fg]overlay=0:(H-h)/2[o]",
-  `[o]${dt(t1, 72, 250, "white")},${dt(t2, 44, 1305, "white")},${dt(t3, t3size, 1500, "white")},${dt(t4, 48, 1610, "#ffd966")}[v]`,
+  `[o]${dt(t1, 72, 250, "white")},${dt(t2, 44, 1305, "white")},${dt(t3, t3size, 1500, "white")},${dt(t4, LANG === "en" ? 48 : 38, 1610, "#ffd966")}[v]`,
 ].join(";");
 
 const voice = path.join("C:/Users/user/majyan/packages/web/public", caps.voice);

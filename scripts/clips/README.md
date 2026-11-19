@@ -4,3 +4,8 @@
 - build.mjs <id> <recDir> <caps.json> <out.mp4>: 5秒・1080x1920に整形（字幕は caps.json、ボイスは public/voices）。
 - batch.sh <scratchdir>: 13人分を順番に。終わったらVite(5199)と majyan-pp 付きChromeを止める。
 - 注意: sed で正規表現を書き換えない（\s が s に化けた）。
+
+## 言語別の動画（中国語など）
+- caps.mts: `npx tsx scripts/clips/caps.mts <zh|zh-Hant|en> <caps.json>` で字幕データを作る。
+- batch-lang.sh: `CLIP_LANG=zh bash scripts/clips/batch-lang.sh <作業フォルダ> <caps.json>` で19人分を録画→動画化（rec.mjs/build.mjs は作業フォルダ/pp にコピーして実行。Viteは先に5199で起動）。録画フレームは作業フォルダ/out に残るので、字幕だけ直す時は build.mjs だけ再実行できる。
+- 中国語の字幕フォントは msyhbd.ttc（繁体字は msjhbd.ttc）。URL行は小さめ(38)にしないと幅からはみ出す。

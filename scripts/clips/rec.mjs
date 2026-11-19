@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 
 const [id, outDir, mode] = process.argv.slice(2);
-const URL = "http://localhost:5199/?lang=en";
+const URL = `http://localhost:5199/?lang=${process.env.CLIP_LANG ?? "en"}`;
 fs.mkdirSync(outDir, { recursive: true });
 const prof = fs.mkdtempSync(path.join(os.tmpdir(), "majyan-pp-"));
 const browser = await puppeteer.launch({
