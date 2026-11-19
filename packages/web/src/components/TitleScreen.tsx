@@ -3,7 +3,7 @@ import { useSettingsStore } from "../store/settingsStore.js";
 import { useFitScale } from "../hooks/useFitScale.js";
 import { playUiClickFor } from "../sound.js";
 import { RulesGuide } from "./RulesGuide.js";
-import { useT } from "../i18n/index.js";
+import { LOCALES, useLocaleStore, useT } from "../i18n/index.js";
 
 /** タイトル背景画像(1672x940)の実ピクセルサイズ。画像内に描かれたボタン絵の
     座標にそのまま合わせて実ボタンを重ねるため、Stageと同様に
@@ -33,6 +33,8 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
   const setBgmVolume = useSettingsStore((s) => s.setBgmVolume);
   const seVolume = useSettingsStore((s) => s.seVolume);
   const setSeVolume = useSettingsStore((s) => s.setSeVolume);
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
 
   function handleExit() {
     if (window.confirm(t("title.exitConfirm"))) {
@@ -112,6 +114,19 @@ export function TitleScreen({ onPlay }: { onPlay: () => void }) {
                   onChange={(e) => setSeVolume(Number(e.target.value))}
                 />
                 <span className="hud__bgm-volume__value">{Math.round(seVolume * 100)}%</span>
+              </div>
+              <div className="hud__row">
+                {LOCALES.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    className={`hud__toggle-btn${locale === l.id ? " hud__toggle-btn--on" : ""}`}
+                    aria-label={t("settings.language")}
+                    onClick={() => setLocale(l.id)}
+                  >
+                    {l.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

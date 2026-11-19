@@ -225,6 +225,14 @@ button { font: inherit; color: inherit; }
 .nav a:hover { color: var(--gold-2); }
 .nav a:hover::after { transform: scaleX(1); }
 .header__cta { min-height: 40px; padding: 0 22px; font-size: 13px; }
+.header__lang { position: relative; margin-left: 18px; font-size: 13px; }
+.header__lang summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; color: var(--ink-2); border: 1px solid rgba(230, 195, 106, 0.3); border-radius: 4px; white-space: nowrap; }
+.header__lang summary::-webkit-details-marker { display: none; }
+.header__lang summary:hover { color: var(--gold-2); border-color: var(--gold); }
+.header__lang ul { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; margin: 0; padding: 6px; list-style: none; min-width: 140px; background: #14100b; border: 1px solid rgba(230, 195, 106, 0.35); border-radius: 4px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+.header__lang a { display: block; padding: 9px 12px; color: var(--ink-2); }
+.header__lang a:hover { color: var(--gold-2); }
+.header__lang a[aria-current] { color: var(--gold-2); font-weight: 700; }
 .burger { display: none; margin-left: auto; width: 44px; height: 44px; background: none; border: 0; cursor: pointer; }
 .burger span { display: block; width: 22px; height: 2px; margin: 5px auto; background: var(--gold-2); transition: transform 0.25s, opacity 0.25s; }
 
@@ -524,7 +532,8 @@ button { font: inherit; color: inherit; }
 /* ---------- 狭い画面 ---------- */
 @media (max-width: 960px) {
   .nav, .header__cta { display: none; }
-  .burger { display: block; }
+  .header__lang { margin-left: auto; }
+  .burger { display: block; margin-left: 4px; }
   .header.is-menu .nav {
     display: flex; flex-direction: column; gap: 0;
     position: fixed; top: 68px; left: 0; right: 0;
@@ -578,6 +587,15 @@ button { font: inherit; color: inherit; }
       <a href="#system">システム</a>
       <a href="#faq">よくある質問</a>
     </nav>
+    <details class="header__lang" id="lang">
+      <summary aria-label="Language">🌐 {{LANG_NAME}}</summary>
+      <ul>
+        <li><a href="/" hreflang="ja" lang="ja" {{CUR_ja}}>日本語</a></li>
+        <li><a href="/en/" hreflang="en" lang="en" {{CUR_en}}>English</a></li>
+        <li><a href="/zh/" hreflang="zh-CN" lang="zh-CN" {{CUR_zh}}>简体中文</a></li>
+        <li><a href="/zh-tw/" hreflang="zh-TW" lang="zh-TW" {{CUR_zhtw}}>繁體中文</a></li>
+      </ul>
+    </details>
     <a class="btn btn--gold header__cta" href="/">今すぐプレイ</a>
     <button class="burger" id="burger" aria-label="メニュー" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>

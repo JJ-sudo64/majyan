@@ -82,17 +82,21 @@ for (const url of [...used].sort()) {
 if (missing.length > 0) throw new Error(`ページが使う素材が見つかりません:\n  ${missing.join("\n  ")}`);
 
 // 英語版（/en/）。日本語版の文言を英語に置き換えて作る。言語どうしの対応づけ（hreflang）は両方に付ける。
+// 言語メニュー（ヘッダー）に、そのページの言語を差し込む。
+const LANG_NAMES = { ja: "日本語", en: "English", zh: "简体中文", zhtw: "繁體中文" };
+const withLang = (page, cur) =>
+  Object.keys(LANG_NAMES).reduce((h, k) => h.replace(`{{CUR_${k}}}`, k === cur ? 'aria-current="true"' : ""), page.replace("{{LANG_NAME}}", LANG_NAMES[cur]));
 const alternates = `<link rel="alternate" hreflang="ja" href="${SITE_URL}/" />\n<link rel="alternate" hreflang="en" href="${SITE_URL}/en/" />\n<link rel="alternate" hreflang="zh-CN" href="${SITE_URL}/zh/" />\n<link rel="alternate" hreflang="zh-TW" href="${SITE_URL}/zh-tw/" />\n<link rel="alternate" hreflang="x-default" href="${SITE_URL}/" />\n</head>`;
 const enHtml = buildEnglishPage(html, { siteUrl: SITE_URL, gameUrl: GAME_URL }).replace("</head>", () => alternates);
 const zhHtml = buildChinesePage(html, { siteUrl: SITE_URL, gameUrl: GAME_URL }).replace("</head>", () => alternates);
 const zhHantHtml = buildChinesePage(html, { siteUrl: SITE_URL, gameUrl: GAME_URL, variant: "hant" }).replace("</head>", () => alternates);
 html = html.replace("</head>", () => alternates);
 mkdirSync(join(out, "en"), { recursive: true });
-writeFileSync(join(out, "en", "index.html"), enHtml);
+writeFileSync(join(out, "en", "index.html"), withLang(enHtml, "en"));
 mkdirSync(join(out, "zh"), { recursive: true });
-writeFileSync(join(out, "zh", "index.html"), zhHtml);
+writeFileSync(join(out, "zh", "index.html"), withLang(zhHtml, "zh"));
 mkdirSync(join(out, "zh-tw"), { recursive: true });
-writeFileSync(join(out, "zh-tw", "index.html"), zhHantHtml);
+writeFileSync(join(out, "zh-tw", "index.html"), withLang(zhHantHtml, "zhtw"));
 
 // 法的ページ（特商法・規約・プライバシー）。販売者の情報が未記入なら作らず、リンクも付けない。
 const legal = await buildLegalPages({ root, out, siteUrl: SITE_URL });
@@ -104,7 +108,7 @@ if (legal.ok) {
 } else {
   console.warn("注意: " + legal.reason);
 }
-writeFileSync(join(out, "index.html"), html);
+writeFileSync(join(out, "index.html"), withLang(html, "ja"));
 
 // 3. 検索エンジン向けのファイルとキャッシュの指定。
 const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10); // 日本時間の日付
