@@ -2,20 +2,23 @@ import { create } from "zustand";
 import { Fragment, createElement, type ReactNode } from "react";
 import { ja, type MessageKey } from "./ja.js";
 import { en } from "./en.js";
+import { zh } from "./zh.js";
 import { enData } from "./en-data.js";
+import { zhData } from "./zh-data.js";
 import { applyDataLocale } from "./dataOverlay.js";
 
 /** 対応言語。新しい言語を足すときは、ここに足して dictionaries に辞書を登録する。 */
 export const LOCALES = [
   { id: "ja", label: "日本語", tag: "ja-JP" },
   { id: "en", label: "English", tag: "en-US" },
+  { id: "zh", label: "简体中文", tag: "zh-CN" },
 ] as const;
 export type Locale = (typeof LOCALES)[number]["id"];
 
 type Dictionary = Partial<Record<MessageKey, string>>;
-const dictionaries: Record<Locale, Dictionary> = { ja, en };
+const dictionaries: Record<Locale, Dictionary> = { ja, en, zh };
 /** キャラクター・カードの日本語原文 → 翻訳。日本語は原文のままなので空。 */
-const dataTables: Record<Locale, Record<string, string>> = { ja: {}, en: enData };
+const dataTables: Record<Locale, Record<string, string>> = { ja: {}, en: enData, zh: zhData };
 
 const STORAGE_KEY = "majyan.locale";
 
@@ -30,7 +33,9 @@ function loadInitialLocale(): Locale {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved && saved in dictionaries) return saved as Locale;
     // 初めて開いた人は、ブラウザの言語が英語なら英語で始める（日本語のブラウザは今まで通り日本語）。
-    if (navigator.language.toLowerCase().startsWith("en")) return "en";
+    const nav = navigator.language.toLowerCase();
+    if (nav.startsWith("en")) return "en";
+    if (nav.startsWith("zh")) return "zh";
   } catch {
     // localStorageが使えない環境では既定の日本語で始める
   }
@@ -44,6 +49,12 @@ interface LocaleState {
 
 const initialLocale: Locale = typeof window === "undefined" ? "ja" : loadInitialLocale();
 applyDataLocale(dataTables[initialLocale]);
+/** 文書の言語（lang属性）を合わせる。字形や書体の選択に効く。 */
+function applyDocumentLang(locale: Locale): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = LOCALES.find((l) => l.id === locale)?.tag ?? "ja-JP";
+}
+applyDocumentLang(initialLocale);
 
 export const useLocaleStore = create<LocaleState>((set) => ({
   locale: initialLocale,
@@ -54,6 +65,7 @@ export const useLocaleStore = create<LocaleState>((set) => ({
       // 保存できなくても、このセッション中は切り替わる
     }
     applyDataLocale(dataTables[locale]);
+    applyDocumentLang(locale);
     set({ locale });
   },
 }));
