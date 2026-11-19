@@ -14,7 +14,7 @@ function parse(md: string): Entry[] {
     const head = lines[0]!;
     const video = /`([^`]+)`/.exec(head)?.[1] ?? "";
     // 見出しは「Day 2：ライコ（動画 `…`）」「Day 2: Raiko (video `…`)」の形。日付と名前の部分だけを取る。
-    const day = head.replace(/\s*[（(]\s*(动画|视频|動画|video)\s.*$/i, "").trim();
+    const day = head.replace(/\s*[（(]\s*(动画|视频|影片|動画|video)\s.*$/i, "").trim();
     const blocks: Entry["blocks"] = {};
     let label = "";
     let inFence = false;
@@ -24,7 +24,7 @@ function parse(md: string): Entry[] {
         if (!inFence) { inFence = true; buf = []; continue; }
         inFence = false;
         const text = buf.join("\n").trim();
-        const kind: Kind | null = /^\*\*X\*\*/.test(label) ? "X" : /TikTok|短视频/.test(label) ? "TikTok" : /YouTube/.test(label) ? "YouTube" : /説明欄/.test(label) ? "YouTube説明" : label === "" ? "X" : null;
+        const kind: Kind | null = /^\*\*X\*\*/.test(label) ? "X" : /TikTok|短视频|短影音/.test(label) ? "TikTok" : /YouTube/.test(label) ? "YouTube" : /説明欄/.test(label) ? "YouTube説明" : label === "" ? "X" : null;
         if (kind && !blocks[kind]) blocks[kind] = text;
         label = "-";
         continue;
@@ -37,11 +37,12 @@ function parse(md: string): Entry[] {
   return entries;
 }
 
-const WORDS = { ja: { video: "動画", title: "【タイトル】", desc: "【説明欄】", suffix: "用の投稿文" }, en: { video: "Video", title: "[Title]", desc: "[Description]", suffix: " posts" }, zh: { video: "视频", title: "【标题】", desc: "【说明栏】", suffix: " 投稿文" } } as const;
-const SOURCES: { lang: "ja" | "en" | "zh"; label: string; files: string[]; note: string }[] = [
+const WORDS = { ja: { video: "動画", title: "【タイトル】", desc: "【説明欄】", suffix: "用の投稿文" }, en: { video: "Video", title: "[Title]", desc: "[Description]", suffix: " posts" }, zh: { video: "视频", title: "【标题】", desc: "【说明栏】", suffix: " 投稿文" }, zhtw: { video: "影片", title: "【標題】", desc: "【說明欄】", suffix: " 投稿文" } } as const;
+const SOURCES: { lang: "ja" | "en" | "zh" | "zhtw"; label: string; files: string[]; note: string }[] = [
   { lang: "ja", label: "日本語", files: ["drafts/post-calendar.md", "drafts/shorts-captions.md"], note: "1日1本。動画を添付して、下の文をコピペ。TikTok/Reelsは「AI生成コンテンツ」の設定をオン、URLはプロフィールのリンク欄に、夜20〜23時に投稿。" },
   { lang: "en", label: "English", files: ["drafts/posts-en.md"], note: "One per day. Attach the video and paste the text. Turn the AI-generated label ON; put the link in the profile; post in the evening of the target time zone." },
   { lang: "zh", label: "简体中文", files: ["drafts/posts-zh.md"], note: "每天一条。附上视频，粘贴下面的文字。开启“AI生成内容”标识；链接放在个人简介里；在晚间发布。" },
+  { lang: "zhtw", label: "繁體中文", files: ["drafts/posts-zh-tw.md"], note: "每天一則。附上影片，貼上下面的文字。開啟「AI 生成內容」標示；連結放在個人簡介；在晚間發布。" },
 ];
 
 mkdirSync("drafts/posts-txt", { recursive: true });

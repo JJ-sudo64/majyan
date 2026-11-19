@@ -120,3 +120,36 @@ ids.forEach((id, i) => {
 });
 writeFileSync("drafts/posts-zh.md", pz);
 console.log("posts-zh:", ids.length, "days");
+
+// --- 繁体字中国語版（台湾向け）。出力: drafts/posts-zh-tw.md。対訳は packages/web/src/i18n/zh-hant-data.ts。
+import { zhHantData } from "../packages/web/src/i18n/zh-hant-data.ts";
+const ZHT_URL = "https://janhai.maxplantlabs.com/zh-tw/";
+const zhtT = (t: string): string => zhHantData[t] ?? t;
+const videoOfZht = (id: string) => (existsSync(`drafts/shorts/play-zhtw/${id}.mp4`) ? `drafts/shorts/play-zhtw/${id}.mp4` : `${videoOf(id)} (日語介面)`);
+
+let pt = `# 繁體中文投稿文（X / Reels / Shorts 等，台灣・香港向け）
+
+順序和影片與 post-calendar.md 相同。影片：drafts/shorts/play-zhtw/ 是繁體中文介面的實機錄影（附繁體字幕）；沒有的角色使用日語介面的影片（已標註）。
+每次發布前確認：開啟「AI 生成內容」標示；連結放在個人簡介（TikTok/Reels 的文案連結無法點擊）；在目標時區的晚間發布。
+X 的字數：漢字算2、半形算1、連結算23，280以內。
+
+`;
+ids.forEach((id, i) => {
+  const c = all[id];
+  const full = zhtT(c.name);
+  const dot = full.lastIndexOf("·");
+  const short = dot >= 0 ? full.slice(dot + 1) : full;
+  const epithet = dot >= 0 ? full.slice(0, dot) : "";
+  const skill = zhtT(c.skill.name);
+  const first = firstZh(zhtT(c.skill.description));
+  const quote = zhtT(c.winQuote);
+  const head = `【${short}】${epithet}的必殺技「${skill}」\n${first}\n\n`;
+  const tail = `免費・免註冊，瀏覽器就能玩的異能麻將『雀杯』\n${ZHT_URL}\n#雀杯 #日麻 #立直麻將`;
+  const withQuote = `${head}「${quote}」\n\n${tail}`;
+  const post = weight(withQuote.replace(ZHT_URL, EN_URL)) <= 280 ? withQuote : `${head}${tail}`;
+  pt += `## 第${i + 1}天：${short}（影片 \`${videoOfZht(id)}\`）\n\n**X**\n\n${FENCE}\n${post}\n${FENCE}\n（X換算 ${weight(post.replace(ZHT_URL, EN_URL))}/280${post === withQuote ? "" : "，台詞太長已省略"}）\n\n`;
+  pt += `**短影音平台 / Reels**\n\n${FENCE}\n${short}的必殺技「${skill}」🀄 ${first}免費・免註冊→主頁連結\n#雀杯 #日麻 #立直麻將 #瀏覽器遊戲 #獨立遊戲\n${FENCE}\n\n`;
+  pt += `**YouTube Shorts**（標題100字以內）\n\n${FENCE}\n【${short}】必殺技「${skill}」｜異能立直麻將 #Shorts #雀杯\n${FENCE}\n\n`;
+});
+writeFileSync("drafts/posts-zh-tw.md", pt);
+console.log("posts-zh-tw:", ids.length, "days");
