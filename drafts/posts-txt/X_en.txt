@@ -1,0 +1,278 @@
+X（旧Twitter） posts（English）
+One per day. Attach the video and paste the text. Turn the AI-generated label ON; put the link in the profile; post in the evening of the target time zone.
+
+==== Day 1: Zeno ====
+Video: drafts/shorts/play-en/zeno.mp4
+
+Zeno, the Time Stopper — skill "Time Stop"
+Time stops until you have played twice.
+
+"Struggling inside stopped time won't change a thing."
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 2: Raiko ====
+Video: drafts/shorts/play-raiko-issen.mp4 (Japanese UI)
+
+Raiko, the Lightning God — skill "Flash"
+During Ippatsu after Riichi, if the gauge is full, activates automatically on your draw.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 3: Kagami ====
+Video: drafts/shorts/chars/kagami.mp4 (Japanese UI)
+
+Kagami, the Hundred-Faced Mirror — skill "Mirror Image"
+Use the skill someone else just used, exactly as it was, for yourself.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 4: Mirai ====
+Video: drafts/shorts/play-en/mirai.mp4
+
+Mirai, the Foresight Priestess — skill "Future Sight"
+See your next three draws ahead.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 5: Nyanjiro ====
+Video: drafts/shorts/play-en/nyanjiro.mp4
+
+Nyanjiro, the Strange Bird — skill "Atomic Riichi"
+If you declare Riichi with a full gauge, the other three players can't declare Riichi this round.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 6: Ren ====
+Video: drafts/shorts/play-en/ren.mp4
+
+Ren, the Lucky Gambler — skill "Flip of Fate"
+Activates when you declare Riichi with a full gauge.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 7: Maki ====
+Video: drafts/shorts/chars/saki.mp4 (Japanese UI)
+
+Maki, the Bold Aphrodite — skill "Dora Draw"
+When the gauge is full, activates automatically on your next draw.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 8: Karin ====
+Video: drafts/shorts/chars/karin.mp4 (Japanese UI)
+
+Karin, the Jack of All Trades — skill "Borrow Race"
+Pick one other player and use their skill exactly as it is.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 9: Naoto ====
+Video: drafts/shorts/chars/naoki.mp4 (Japanese UI)
+
+Naoto, the Tabletop Rampaging Bear — skill "Kuma-Kuma Time"
+When you win and the dealer stays, the next round's deal improves.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 10: Tomohiko ====
+Video: drafts/shorts/chars/tomohiro.mp4 (Japanese UI)
+
+Tomohiko, the Mischievous Prince — skill "The Man with One Tile"
+While your hand has just one tile, you stop a Tenpai player from drawing their winning tile.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 11: Kagerou ====
+Video: drafts/shorts/play-en/kagerou.mp4
+
+Kagerou, the Clairvoyant Ninja — skill "Art of Sight"
+For one turn until your next draw, you can see the other three players' hands.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 12: Runa ====
+Video: drafts/shorts/play-en/runa.mp4
+
+Runa, the Dealer of Fate — skill "Fate's Arrangement"
+In the next round's deal, you can swap any 3 tiles in your hand with new tiles from the wall (until you discard your first tile).
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 13: Hiiragi ====
+Video: drafts/shorts/play-en/hiiragi.mp4
+
+Hiiragi, the Blossom Priestess — skill "Bloom"
+Flip one more dora indicator, adding a dora.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 14: Jin ====
+Video: drafts/shorts/play-en/jin.mp4
+
+Jin, the Reckless Dandy — skill "Open Declaration"
+If you declare Riichi with a full gauge, it becomes an Open Riichi where everyone sees your hand.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 15: Toki ====
+Video: drafts/shorts/play-en/toki.mp4
+
+Toki, the Rinshan Prophet — skill "Rinshan Revelation"
+After activating, if you declare a Kan while Tenpai, the tile you draw becomes a winning tile, and you can win by Rinshan Kaihou.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 16: Subaru ====
+Video: drafts/shorts/play-en/subaru.mp4
+
+Subaru, the Wall-Reading Strategist — skill "Wall Reading"
+For this round, you know exactly how many of your winning tiles remain.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 17: Kaede ====
+Video: drafts/shorts/play-en/kaede.mp4
+
+Kaede, the Veteran Tutor — skill "Guidance"
+Put the tile you just drew back in the wall and draw again for a tile that improves your hand.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 18: Nagi ====
+Video: drafts/shorts/play-en/nagi.mp4
+
+Nagi, the Stacker — skill "Stack the Deck"
+Put the tile you just drew back in the wall and draw again.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 19: Masaki ====
+Video: drafts/shorts/play-en/masato.mp4
+
+Masaki, the Tabletop Sanshoku Maniac — skill "Sanshoku Glimmer"
+Tiles close to a Sanshoku Doujun glow for 5 seconds.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 20: Kouki ====
+Video: drafts/shorts/play-en/koki.mp4
+
+Kouki, the Generous Spender — skill "Big-Hearted"
+After activating, for the rest of the round, every time you discard a dora your next draw is a good tile (a winning tile if you're Tenpai).
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 21: Takanori ====
+Video: drafts/shorts/play-en/takaharu.mp4
+
+Takanori, the Full Defender — skill "Atomic Full Defense"
+After activating, for the rest of the round, every time you break up a set to discard, a shield goes up.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 22: Kouji ====
+Video: drafts/shorts/play-en/koji.mp4
+
+Kouji, the Pair Master — skill "Pair Promise"
+In the next round's deal, you get 4 or more pairs.
+
+"I lined them up two by two, neatly. I keep my promises."
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 23: Nannan ====
+Video: drafts/shorts/play-en/nannan.mp4
+
+Nannan, the Assassin from China — skill "Rule Change"
+For the rest of the round, calls no longer reduce han (Honitsu, Chinitsu, Sanshoku Doujun, etc.).
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 24: Shigure ====
+Video: drafts/shorts/play-en/deagari.mp4
+
+Shigure, the One-Shot Hunter — skill "Sniper"
+Activates when you declare Riichi with a full gauge.
+
+"I don't need Tsumo. One tile you discard decides everything."
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 25: Sena ====
+Video: drafts/shorts/play-en/sena.mp4
+
+Sena, the Stone-Bridge Keeper — skill "Wait and See"
+Put the tile you just drew back in the wall and pass the turn to the next player without discarding anything.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 26: Mio ====
+Video: drafts/shorts/chars/mio.mp4 (Japanese UI)
+
+Mio, the Redo Contractor — skill "Take Back"
+After drawing, return one tile from your own discards to your hand and put one tile from your hand into your discards.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
+
+==== Day 27: Mebius ====
+Video: drafts/shorts/chars/mebius.mp4 (Japanese UI)
+
+Mebius, the Two-Faced Dealer — skill "Yin-Yang Deal"
+When you're not the dealer, your deal always has a set of 3 tiles; when you're the dealer, your deal has no set of 3 tiles at all.
+
+Free skill-powered mahjong in your browser, no sign-up:
+https://janhai.maxplantlabs.com/en/
+#mahjong #riichimahjong #indiegame
