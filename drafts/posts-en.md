@@ -3,7 +3,7 @@
 Same order and same videos as post-calendar.md. Videos: drafts/shorts/play-en/ holds English-UI clips with English captions; days without one fall back to the Japanese-UI clip (marked).
 Check each time: AI-generated content label ON; put the link in the profile (caption links aren't clickable on TikTok/Reels); post in the evening of the target time zone.
 
-## Day 1: Zeno (video `drafts/shorts/play-zeno-timestop.mp4 (Japanese UI)`)
+## Day 1: Zeno (video `drafts/shorts/play-en/zeno.mp4`)
 
 **X**
 
@@ -86,7 +86,7 @@ Kagami's skill "Mirror Image" 🀄 Use the skill someone else just used, exactly
 Kagami: "Mirror Image" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 4: Mirai (video `drafts/shorts/play/mirai.mp4 (Japanese UI)`)
+## Day 4: Mirai (video `drafts/shorts/play-en/mirai.mp4`)
 
 **X**
 
@@ -113,7 +113,7 @@ Mirai's skill "Future Sight" 🀄 See your next three draws ahead. Free, no sign
 Mirai: "Future Sight" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 5: Nyanjiro (video `drafts/shorts/play/nyanjiro.mp4 (Japanese UI)`)
+## Day 5: Nyanjiro (video `drafts/shorts/play-en/nyanjiro.mp4`)
 
 **X**
 
@@ -140,7 +140,7 @@ Nyanjiro's skill "Atomic Riichi" 🀄 If you declare Riichi with a full gauge, t
 Nyanjiro: "Atomic Riichi" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 6: Ren (video `drafts/shorts/play/ren.mp4 (Japanese UI)`)
+## Day 6: Ren (video `drafts/shorts/play-en/ren.mp4`)
 
 **X**
 
@@ -356,7 +356,7 @@ Hiiragi's skill "Bloom" 🀄 Flip one more dora indicator, adding a dora. Free, 
 Hiiragi: "Bloom" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 14: Jin (video `drafts/shorts/play/jin.mp4 (Japanese UI)`)
+## Day 14: Jin (video `drafts/shorts/play-en/jin.mp4`)
 
 **X**
 
@@ -410,7 +410,7 @@ Toki's skill "Rinshan Revelation" 🀄 After activating, if you declare a Kan wh
 Toki: "Rinshan Revelation" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 16: Subaru (video `drafts/shorts/play/subaru.mp4 (Japanese UI)`)
+## Day 16: Subaru (video `drafts/shorts/play-en/subaru.mp4`)
 
 **X**
 
@@ -437,7 +437,7 @@ Subaru's skill "Wall Reading" 🀄 For this round, you know exactly how many of 
 Subaru: "Wall Reading" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 17: Kaede (video `drafts/shorts/play/kaede.mp4 (Japanese UI)`)
+## Day 17: Kaede (video `drafts/shorts/play-en/kaede.mp4`)
 
 **X**
 
@@ -518,7 +518,7 @@ Masaki's skill "Sanshoku Glimmer" 🀄 Tiles close to a Sanshoku Doujun glow for
 Masaki: "Sanshoku Glimmer" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 20: Kouki (video `drafts/shorts/play/koki.mp4 (Japanese UI)`)
+## Day 20: Kouki (video `drafts/shorts/play-en/koki.mp4`)
 
 **X**
 
@@ -545,7 +545,7 @@ Kouki's skill "Big-Hearted" 🀄 After activating, for the rest of the round, ev
 Kouki: "Big-Hearted" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 21: Takanori (video `drafts/shorts/play/takaharu.mp4 (Japanese UI)`)
+## Day 21: Takanori (video `drafts/shorts/play-en/takaharu.mp4`)
 
 **X**
 
@@ -572,7 +572,7 @@ Takanori's skill "Atomic Full Defense" 🀄 After activating, for the rest of th
 Takanori: "Atomic Full Defense" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 22: Kouji (video `drafts/shorts/play/koji.mp4 (Japanese UI)`)
+## Day 22: Kouji (video `drafts/shorts/play-en/koji.mp4`)
 
 **X**
 
@@ -601,7 +601,7 @@ Kouji's skill "Pair Promise" 🀄 In the next round's deal, you get 4 or more pa
 Kouji: "Pair Promise" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 23: Nannan (video `drafts/shorts/play/nannan.mp4 (Japanese UI)`)
+## Day 23: Nannan (video `drafts/shorts/play-en/nannan.mp4`)
 
 **X**
 
@@ -628,7 +628,7 @@ Nannan's skill "Rule Change" 🀄 For the rest of the round, calls no longer red
 Nannan: "Rule Change" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 24: Shigure (video `drafts/shorts/play/deagari.mp4 (Japanese UI)`)
+## Day 24: Shigure (video `drafts/shorts/play-en/deagari.mp4`)
 
 **X**
 
@@ -657,7 +657,7 @@ Shigure's skill "Sniper" 🀄 Activates when you declare Riichi with a full gaug
 Shigure: "Sniper" skill | Skill-Powered Riichi Mahjong #Shorts
 ```
 
-## Day 25: Sena (video `drafts/shorts/play/sena.mp4 (Japanese UI)`)
+## Day 25: Sena (video `drafts/shorts/play-en/sena.mp4`)
 
 **X**
 
