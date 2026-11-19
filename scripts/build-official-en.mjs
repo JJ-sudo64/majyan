@@ -18,7 +18,7 @@ function loadEnData() {
 }
 
 /** [日本語の断片, 英語]。上から順に、全て置き換える（長いものを先に書く）。 */
-const REPLACEMENTS = [
+export const REPLACEMENTS = [
   // --- head / メタ情報 ---
   ['<html lang="ja">', '<html lang="en">'],
   ["雀杯 公式サイト｜必殺技で卓が動く、異能麻雀バトル", "Janhai Official Site | Skill-Powered Mahjong Battles"],
@@ -317,7 +317,7 @@ export function buildEnglishPage(html, { siteUrl, gameUrl }) {
     .filter((l) => !/^\s*\/\//.test(l))
     .map((l) => l.replace(/\s\/\/\s.*$/, ""))
     .join("\n");
-  const left = [...new Set(visible.match(/[^\n<>"`]*[\u3040-\u30ff\u4e00-\u9fff][^\n<>"`]*/g) ?? [])].filter((x) => !x.includes("日本語") && !x.includes("じゃんはい"));
+  const left = [...new Set(visible.match(/[^\n<>"`]*[\u3040-\u30ff\u4e00-\u9fff][^\n<>"`]*/g) ?? [])].filter((x) => !x.includes("日本語") && !x.includes("简体中文") && !x.includes("じゃんはい"));
   if (left.length > 0) throw new Error(`英語版に日本語が残っています:\n${left.slice(0, 15).join("\n")}`);
   return out;
 }
