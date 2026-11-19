@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { MissionsResponse } from "@majyan/core";
 import { claimMissions, fetchMissions } from "../online/account.js";
 import { playUiSuccess } from "../sound.js";
-import { useT, type Translate } from "../i18n/index.js";
+import { tx, useT, type Translate } from "../i18n/index.js";
 
 /** リセットまでの残り（「あと5時間」「あと30分」）。 */
 function untilReset(resetsAt: number, now: number, t: Translate): string {
@@ -75,7 +75,7 @@ export function MissionsScreen({ onClose }: { onClose: () => void }) {
                 return (
                   <li key={m.id} className={`inbox-screen__gift missions-screen__mission${m.claimed ? " is-claimed" : ""}`}>
                     <div className="inbox-screen__gift-main">
-                      <div className="inbox-screen__news-title">{m.label}</div>
+                      <div className="inbox-screen__news-title">{tx(m.label)}</div>
                       <div className="missions-screen__bar">
                         <div className="missions-screen__bar-fill" style={{ width: `${(m.progress / m.target) * 100}%` }} />
                       </div>
