@@ -1917,3 +1917,28 @@ describe("two card slots (パッシブ1枚＋アクティブ1枚)", () => {
     expect(spent.cardUsesRemaining[0]).toBe(0);
   });
 });
+
+describe("match-end bonuses are judged on the pre-bonus scores (seat order must not matter)", () => {
+  const round = makeRound({ players: [emptyPlayer([]), emptyPlayer([]), emptyPlayer([]), emptyPlayer([])] });
+  const scores: [number, number, number, number] = [24000, 25000, 30000, 21000];
+
+  it("gives a 2nd-place holder their bonus even if an earlier seat's bonus lifts that seat above them", () => {
+    // 席0は1位以外なので+3000（27000）になるが、席1の「2位」は加点前の順位（25000で2位）で判定する。
+    const a = { ...round, cardIds: ["catch-up", "second-place-pride", null, null] as RoundState["cardIds"] };
+    expect(applyCardMatchEndBonuses(a, scores)).toEqual([27000, 27000, 30000, 21000]);
+  });
+
+  it("gives the same result when the two holders swap seats", () => {
+    const b = { ...round, cardIds: ["second-place-pride", "catch-up", null, null] as RoundState["cardIds"] };
+    // 席0（24000, 3位）は2位ではないので何もなし。席1（25000, 2位）は1位以外なので+3000（28000）。
+    expect(applyCardMatchEndBonuses(b, scores)).toEqual([24000, 28000, 30000, 21000]);
+  });
+
+  it("rounds up last, after every other bonus has been added", () => {
+    // 席0: +500（参加賞）→24500 → 切り上げ25000。切り上げを先にすると24000→25000→+500で25500になってしまう。
+    const c = { ...round, cardIds: ["participation-prize", null, null, null] as RoundState["cardIds"], cardIds2: ["round-up-bonus", null, null, null] as RoundState["cardIds2"] };
+    expect(applyCardMatchEndBonuses(c, scores)).toEqual([25000, 25000, 30000, 21000]);
+    const d = { ...round, cardIds: ["round-up-bonus", null, null, null] as RoundState["cardIds"], cardIds2: ["participation-prize", null, null, null] as RoundState["cardIds2"] };
+    expect(applyCardMatchEndBonuses(d, scores)).toEqual([25000, 25000, 30000, 21000]);
+  });
+});

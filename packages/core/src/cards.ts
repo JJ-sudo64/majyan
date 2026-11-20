@@ -57,6 +57,9 @@ export interface Card {
       RoundState.cardUsesRemaining[owner]へセットし、以後useCardのたびに
       gameEngine.tsのapplyUseCardActionが1減らす（局をまたいで持ち越す）。 */
   maxUses?: number;
+  /** trueの終局カードは、他のカードの終局ボーナスがすべて足された後の点数に対して、最後に
+      適用する（「最終点数を切り上げる」のように、最終点数そのものを扱うカード用）。 */
+  matchEndFinal?: boolean;
   hooks: CardHooks;
 }
 
@@ -653,6 +656,7 @@ export const CARDS: Record<string, Card> = {
     name: "切り上げの恩恵",
     description: "終局時、最終点数を次の1000点まで切り上げる。",
     kind: "passive",
+    matchEndFinal: true,
     hooks: {
       onMatchEnd: (ctx) => {
         const { scores, owner } = ctx;
@@ -1254,15 +1258,30 @@ export function applyCardMatchEndBonusesWithNotes(
   round: RoundState,
   scores: [number, number, number, number],
 ): { scores: [number, number, number, number]; notes: { seat: PlayerIndex; title: string; delta: number }[] } {
-  let next = scores;
   const notes: { seat: PlayerIndex; title: string; delta: number }[] = [];
-  for (const seat of [0, 1, 2, 3] as PlayerIndex[]) {
+  const seats = [0, 1, 2, 3] as PlayerIndex[];
+  // 1段目: 条件（「2位なら」「1位以外なら」など）はすべて、他のカードで加点される前の
+  // 最終点数で判定し、増減をまとめて足す。席の番号が先でも後でも結果が変わらないようにする。
+  const totals: [number, number, number, number] = [...scores];
+  for (const seat of seats) {
     for (const cardId of seatCardIds(round, seat)) {
-      const onMatchEnd = CARDS[cardId]?.hooks.onMatchEnd;
-      if (!onMatchEnd) continue;
-      const after = onMatchEnd({ scores: next, owner: seat });
+      const card = CARDS[cardId];
+      if (!card?.hooks.onMatchEnd || card.matchEndFinal) continue;
+      const after = card.hooks.onMatchEnd({ scores, owner: seat });
+      for (const i of seats) totals[i] += after[i]! - scores[i]!;
+      const delta = after[seat]! - scores[seat]!;
+      if (delta !== 0) notes.push({ seat, title: card.name, delta });
+    }
+  }
+  // 2段目: 「最終点数の切り上げ」のように最終点数そのものを扱うカードは、加点がすべて済んだ後に。
+  let next = totals;
+  for (const seat of seats) {
+    for (const cardId of seatCardIds(round, seat)) {
+      const card = CARDS[cardId];
+      if (!card?.hooks.onMatchEnd || !card.matchEndFinal) continue;
+      const after = card.hooks.onMatchEnd({ scores: next, owner: seat });
       const delta = after[seat]! - next[seat]!;
-      if (delta !== 0) notes.push({ seat, title: CARDS[cardId]!.name, delta });
+      if (delta !== 0) notes.push({ seat, title: card.name, delta });
       next = after;
     }
   }
