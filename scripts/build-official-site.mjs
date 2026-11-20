@@ -84,8 +84,15 @@ if (missing.length > 0) throw new Error(`ページが使う素材が見つかり
 // 英語版（/en/）。日本語版の文言を英語に置き換えて作る。言語どうしの対応づけ（hreflang）は両方に付ける。
 // 言語メニュー（ヘッダー）に、そのページの言語を差し込む。
 const LANG_NAMES = { ja: "日本語", en: "English", zh: "简体中文", zhtw: "繁體中文" };
-const withLang = (page, cur) =>
-  Object.keys(LANG_NAMES).reduce((h, k) => h.replace(`{{CUR_${k}}}`, k === cur ? 'aria-current="true"' : ""), page.replace("{{LANG_NAME}}", LANG_NAMES[cur]));
+const LANG_ATTRS = { ja: "ja", en: "en", zh: "zh-CN", zhtw: "zh-TW" };
+// テンプレート単体（ゲーム側の /about/）でも崩れないよう、既定は日本語を現在地にした実HTMLにしてある。ここで現在地を差し替える。
+const withLang = (page, cur) => {
+  let h = page.replace('aria-label="Language">🌐 日本語</summary>', () => `aria-label="Language">🌐 ${LANG_NAMES[cur]}</summary>`);
+  for (const [k, code] of Object.entries(LANG_ATTRS)) {
+    h = h.replace(new RegExp(`(hreflang="[^"]*" lang="${code}")( aria-current="true")?>`), (_m, a) => (k === cur ? `${a} aria-current="true">` : `${a}>`));
+  }
+  return h;
+};
 const alternates = `<link rel="alternate" hreflang="ja" href="${SITE_URL}/" />\n<link rel="alternate" hreflang="en" href="${SITE_URL}/en/" />\n<link rel="alternate" hreflang="zh-CN" href="${SITE_URL}/zh/" />\n<link rel="alternate" hreflang="zh-TW" href="${SITE_URL}/zh-tw/" />\n<link rel="alternate" hreflang="x-default" href="${SITE_URL}/" />\n</head>`;
 const enHtml = buildEnglishPage(html, { siteUrl: SITE_URL, gameUrl: GAME_URL }).replace("</head>", () => alternates);
 const zhHtml = buildChinesePage(html, { siteUrl: SITE_URL, gameUrl: GAME_URL }).replace("</head>", () => alternates);
