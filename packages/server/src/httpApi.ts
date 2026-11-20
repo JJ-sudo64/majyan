@@ -115,7 +115,10 @@ function readText(req: IncomingMessage, maxBytes: number): Promise<string> {
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
   const text = await readText(req, MAX_BODY_BYTES);
-  return text ? JSON.parse(text) : {};
+  const parsed: unknown = text ? JSON.parse(text) : {};
+  // null・配列・数値などは受け付けない（各ルートは本文をオブジェクトとして読むため）。
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new SyntaxError("本文はオブジェクトである必要があります");
+  return parsed;
 }
 
 function bearerToken(req: IncomingMessage): string | null {

@@ -43,7 +43,12 @@ export function transferPasswordProblem(value: unknown): string | null {
 export function normalizeDisplayName(value: unknown): string | null {
   if (typeof value !== "string") return null;
   // 制御文字・改行は除く（名前は他の人の画面にも出るため）。
-  const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  // 表示の向きを変える文字（右から左への上書きなど）・幅のない文字・壊れたサロゲートも除く
+  // （他の人の画面で名前が反転したり、見えない名前になったりするのを防ぐ）。
+  const cleaned = value
+    .replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁤⁦-⁩﻿]/g, "")
+    .replace(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g, "")
+    .trim();
   if (cleaned.length === 0 || [...cleaned].length > PLAYER_NAME_MAX_LENGTH) return null;
   // U+FFFDは文字コードの違う名前が壊れて届いた印（UTF-8以外で送られた等）。
   if (cleaned.includes("�")) return null;

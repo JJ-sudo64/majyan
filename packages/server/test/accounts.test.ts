@@ -52,6 +52,12 @@ describe("AccountService", () => {
     expect(normalizeDisplayName("あ".repeat(12))).toBe("あ".repeat(12));
     expect(normalizeDisplayName("あ".repeat(13))).toBeNull();
     expect(normalizeDisplayName("a\nb")).toBe("ab");
+    // 向きを変える文字・幅のない文字・壊れたサロゲートは除く。それだけの名前は受け付けない。
+    expect(normalizeDisplayName("‮evil")).toBe("evil");
+    expect(normalizeDisplayName("a​b﻿c")).toBe("abc");
+    expect(normalizeDisplayName("a\ud800b")).toBe("ab");
+    expect(normalizeDisplayName("‮​")).toBeNull();
+    expect(normalizeDisplayName("🀄雀士")).toBe("🀄雀士");
     expect(normalizeDisplayName(42)).toBeNull();
     expect(normalizeDisplayName("�{�b�g")).toBeNull();
   });
