@@ -36,6 +36,8 @@ function page({ title, siteUrl, body }) {
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+<link rel="apple-touch-icon" href="/icons/icon-180.png" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${esc(title)}｜雀杯</title>
 <meta name="robots" content="index,follow" />
