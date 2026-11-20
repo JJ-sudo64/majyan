@@ -15,8 +15,7 @@
 ## プロフィール文（X・TikTok・YouTube 共通）
 ```
 必殺技で卓が動く、異能麻雀バトル『雀杯』公式。
-無料・登録不要・
-ブラウザですぐ遊べます。
+無料・登録不要・ブラウザですぐ遊べます。
 毎日1人、雀士の必殺技を紹介🀄
 ▼ 今すぐ遊ぶ
 https://janhai.maxplantlabs.com
@@ -29,7 +28,7 @@ https://janhai.maxplantlabs.com
 ## 登録後にやること
 1. 固定ポスト（marketing-plan.md の文面＋ drafts/shorts/short-cast4.mp4）を投稿して固定
 2. 翌日から drafts/post-calendar.md の Day 1 から毎日1本
-3. 公式ページのフッターにXのリンクを足す（IDを教えてもらえれば私がやります）
+3. 公式ページのフッターにXのリンクを足す（済み：x.com/janhai_game を追加してある）
 
 ---
 
